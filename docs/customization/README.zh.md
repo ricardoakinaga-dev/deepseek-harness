@@ -8,8 +8,10 @@
 
 ## 内容
 
+- [Triple-A 质量计划](aaa-quality-program.zh.md)——执行优先级、风险排序路线图、状态所有权、人工决策和发布停止条件。
 - [改进开发标准](improvement-development-standard.zh.md)——强制设计顺序、解决方案类型选择、兼容性规则和证据要求。
 - [仓库配置报告](repository-configuration-report.zh.md)——已记录的 fork 拓扑、保护、自动化、登记改进和验证范围。
+- [仓库审计报告 — 2026-09-20](repository-audit-2026-09-20.zh.md)——当前质量结论、已执行证据、问题发现和修复顺序。
 - [上游安全的定制方式](upstream-safe-customization.zh.md)——永久分支拓扑、更新步骤、可执行的差异所有权和恢复方式。
 - [Fork v2 实现报告](fork-v2-implementation-report.zh.md)——简明实现结论、已交付产物、验证证据与维护路径。
 - [Fork v2 提取](fork-v2-extraction.zh.md)——实验 fork 与官方仓库的比较、已经交付的弹性压缩切片，以及每个其余想法的边界。

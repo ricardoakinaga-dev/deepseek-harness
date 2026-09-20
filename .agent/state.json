@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "project": "deepseek-harness",
+  "goal": "Deliver a state-of-the-art Triple-A DeepSeek Harness fork with reproducible evidence and upstream-safe local improvements",
+  "project_profile": "BROWNFIELD",
+  "work_mode": "NORMAL",
+  "work_mode_overlays": [],
+  "lifecycle_stage": "EVOLUTION",
+  "active_activity": "PLAN",
+  "engineering_tier": "T3_SYSTEM",
+  "risk_level": "HIGH",
+  "blast_radius": "SYSTEM",
+  "status": "TODO",
+  "active_execplan": ".agent/plans/deepseek-harness-aaa.md",
+  "active_task": null,
+  "verification_state": "NOT_RUN",
+  "repository_state": "Current custom/main checkout with pre-existing audit documentation changes; remediation has not started",
+  "instruction_scope_refs": [
+    "AGENTS.md",
+    "docs/AGENTS.md",
+    ".agents/notes/AGENTS.md",
+    ".agent/PLANS.md"
+  ],
+  "last_gate_record": null,
+  "last_event_id": null,
+  "state_revision": 1,
+  "next_gate": "AUDIT_RESOLVED",
+  "active_action_id": null,
+  "blocked_by": [],
+  "human_approval_required": [
+    "AAA-008: approve the intended model request sequence if the extra request is confirmed behavior",
+    "AAA-009: resolve ambiguous client-domain ownership after reproduction",
+    "AAA-012: choose the WebSocket close postcondition",
+    "AAA-014: approve aggregate HTTP request-memory and admission policy",
+    "AAA-015: approve dynamic extension deployment, CSP, consent, and default policy",
+    "AAA-018: decide whether locale-specific community channels are intentional",
+    "AAA-019: authorize fork package namespace, repository identity, and publication",
+    "AAA-020: approve public source-export compatibility policy",
+    "AAA-022: approve broad lint-rule or compiler-default changes after focused probes"
+  ],
+  "updated_at": "2026-09-20T16:52:37-03:00"
+}

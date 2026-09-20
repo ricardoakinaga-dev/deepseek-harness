@@ -1,0 +1,12 @@
+{
+  "max_agent_depth": 1,
+  "max_concurrency": 4,
+  "time": null,
+  "tokens": null,
+  "retry_policy": {
+    "deterministic": 0,
+    "flaky": 1,
+    "network": 1,
+    "preserve_first_failure": true
+  }
+}

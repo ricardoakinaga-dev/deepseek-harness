@@ -1,0 +1,7 @@
+{
+  "fresh_context": true,
+  "filesystem_isolation": "Shared repository; critics are instruction-scoped read-only and protected by repository fingerprint sentinels.",
+  "max_concurrency": 4,
+  "wait_supported": true,
+  "notes": "Fresh-context subagents are available; one integrator owns writes and canonical state."
+}

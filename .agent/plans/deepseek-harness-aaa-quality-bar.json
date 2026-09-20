@@ -1,0 +1,386 @@
+{
+  "schema_version": 1,
+  "version": "AAA-QB-v1.4",
+  "frozen_at": "2026-09-20T18:30:00-03:00",
+  "goal": "Deliver a state-of-the-art DeepSeek Harness fork whose correctness, security, reliability, maintainability, performance, documentation, and upstream updateability are demonstrated by current reproducible evidence.",
+  "sources": [
+    {
+      "type": "USER",
+      "location": "User request of 2026-09-20",
+      "version": "user-current",
+      "snapshot_sha256": null,
+      "license_notes": "Acceptance intent only; no copied implementation."
+    },
+    {
+      "type": "REPO",
+      "location": "docs/audits/auditoria-completa-2026-09-20.md",
+      "version": "2026-09-20",
+      "snapshot_sha256": "c81d3d639b078d64e11ca046bfb724889447cbe5f4846b7897c7c5acda0f0d79",
+      "license_notes": "Repository-owned audit evidence."
+    },
+    {
+      "type": "REPO",
+      "location": "docs/customization/repository-audit-2026-09-20.md",
+      "version": "2026-09-20",
+      "snapshot_sha256": "1db8fe564db84addefef7dd56d4ddfface834b37aa495fc39d9f35aa69111ff5",
+      "license_notes": "Repository-owned audit evidence."
+    },
+    {
+      "type": "STANDARD",
+      "location": "docs/customization/improvement-development-standard.md",
+      "version": "2026-09-20",
+      "snapshot_sha256": "caeb7f542c5217731a45991109386ea15afba5a6306e46b285a6056975b9ea9b",
+      "license_notes": "Repository-owned improvement standard."
+    },
+    {
+      "type": "STANDARD",
+      "location": "AGENTS.md",
+      "version": "2026-09-20 working-tree snapshot",
+      "snapshot_sha256": "7aa6243a1a3aaf8f98a8ce241c27dafeba53f74e4935117d9c8996d2ef031f4e",
+      "license_notes": "Repository-owned standing instructions."
+    },
+    {
+      "type": "STANDARD",
+      "location": "docs/AGENTS.md",
+      "version": "2026-09-20 working-tree snapshot",
+      "snapshot_sha256": "bcc61a7563e7c7b3a6edfa0c62d7bf4b49321585b8f1a01faa76155bfbd7cdac",
+      "license_notes": "Repository-owned documentation instructions."
+    },
+    {
+      "type": "STANDARD",
+      "location": "docs/customization/upstream-safe-customization.md",
+      "version": "2026-09-20 working-tree snapshot",
+      "snapshot_sha256": "99c42479b29a602e9fffcc0aa3c9b16b5f0d391b3dd25077408abe378b00e351",
+      "license_notes": "Repository-owned branch and synchronization procedure."
+    },
+    {
+      "type": "STANDARD",
+      "location": "docs/defensive-patterns.md",
+      "version": "2026-09-20 working-tree snapshot",
+      "snapshot_sha256": "919d27a033c655ea6187496872caa4aa9babf08d87179562ca23545301108bb1",
+      "license_notes": "Repository-owned lifecycle and resource-safety rules."
+    },
+    {
+      "type": "REPO",
+      "location": ".github/workflows/ci.yml",
+      "version": "2026-09-20 working-tree snapshot",
+      "snapshot_sha256": "894b8ced49be4a020c24d935deb796cc22711c7c13920bef0437d9dc8741752c",
+      "license_notes": "Repository-owned CI job inventory."
+    },
+    {
+      "type": "REPO",
+      "location": "package.json",
+      "version": "2026-09-20 working-tree snapshot",
+      "snapshot_sha256": "a9cc164c4d922d74571e09c04be4e0f85a318685d410bb1c56072258a19a6f1d",
+      "license_notes": "Repository-owned command inventory."
+    },
+    {
+      "type": "DERIVED",
+      "location": ".agents/notes/proposed/process/2026-09-20-aaa-quality-program.md",
+      "version": "2026-09-20 working-tree snapshot",
+      "snapshot_sha256": "984d195cadd2a3f86f694645e3588a627e854eabe655fc5a7bdb5f53ecb5c7e2",
+      "license_notes": "Repository-owned rationale and final independent-qualification rule."
+    },
+    {
+      "type": "STANDARD",
+      "location": ".agent/PLANS.md",
+      "version": "2026-09-20 working-tree snapshot",
+      "snapshot_sha256": "1164a2c14f6d6d8ce8e92bd1533ba2ea077ef397884be23e441e3583da9f8d17",
+      "license_notes": "Repository-owned execution-plan and recovery convention."
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AAA-QB-01",
+      "source_type": "REPO",
+      "source": "docs/customization/repository-audit-2026-09-20.md#executed-evidence",
+      "dimension": "integrated correctness",
+      "target": "`pnpm run check:all` passes once from the documented clean and prepared environment with no unexplained retry or ignored failure.",
+      "evidence_method": "Record the commit, environment preparation, exact command, exit status, duration, and retained failure output for any earlier attempt.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The 2026-09-20 audit recorded 61 passing and 6 failing aggregate tasks."
+      },
+      "conditions": "Environment prerequisites must be explicit; a host-dependent failure is resolved only by a documented supported prerequisite or a deterministic code/test correction.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "1db8fe564db84addefef7dd56d4ddfface834b37aa495fc39d9f35aa69111ff5",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "Re-run after every material remediation wave and after the final upstream synchronization rehearsal."
+    },
+    {
+      "id": "AAA-QB-02",
+      "source_type": "REPO",
+      "source": "AGENTS.md#commands",
+      "dimension": "tests and coverage",
+      "target": "Focused tests pass for every changed behavior, `pnpm run test:coverage` meets the repository per-file coverage contract, and no new skip or broad suppression is introduced.",
+      "evidence_method": "Run focused tests during each task and the coverage gate during release qualification; compare skipped tests and suppressions with the frozen baseline.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The audit recorded 13 failing unit-test files and 26 failing tests; the coverage gate was not established as current release evidence."
+      },
+      "conditions": "Existing debt may remain only when separately owned, bounded, and non-regressing; changed source must meet the repository contract.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "7aa6243a1a3aaf8f98a8ce241c27dafeba53f74e4935117d9c8996d2ef031f4e",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "CI matrix evidence complements but does not replace focused local reproduction."
+    },
+    {
+      "id": "AAA-QB-03",
+      "source_type": "REPO",
+      "source": "AGENTS.md#conventions",
+      "dimension": "model-visible replay",
+      "target": "Every custom model-visible input and output is reconstructable from Session data, has a keyless recorded-session snapshot when required, and passes snapshot and expected-output suites.",
+      "evidence_method": "Run the owning focused tests, `pnpm run test:snapshot`, and `pnpm run test:expected`; inspect the shipped profile and persisted raw events.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The audit recorded snapshot generation mismatch, a missing lib-mode adapter, unavailable Playwright Chromium, an expected request-count failure, and missing shell timeout snapshot coverage."
+      },
+      "conditions": "Snapshot updates require behavior evidence and may not normalize away platform-visible differences.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "7aa6243a1a3aaf8f98a8ce241c27dafeba53f74e4935117d9c8996d2ef031f4e",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "Real-provider recording is required only where repository policy requires it and credentials are available."
+    },
+    {
+      "id": "AAA-QB-04",
+      "source_type": "REPO",
+      "source": "docs/customization/repository-audit-2026-09-20.md#graph-and-generated-residue-hygiene",
+      "dimension": "architecture and generated truth",
+      "target": "The client-domain graph reports no violation, module and dependency catalogs are current, removed packages leave no ignored build residue, and generators reproduce tracked outputs.",
+      "evidence_method": "Run graph, constraint, catalog, and freshness checks from a clean tree; inspect ignored package-like directories and compare generated output with Git.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The audit recorded 38 client-domain violations, a stale module graph, and eight manifest-less ignored package directories. The reported dependency-catalog mismatch remains a hypothesis because that catalog records a dated public npm resolution rather than the current workspace."
+      },
+      "conditions": "Delete only verified residue; preserve any source or user-owned material and record the exact targets removed.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "1db8fe564db84addefef7dd56d4ddfface834b37aa495fc39d9f35aa69111ff5",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "Generated catalogs are derivative and must be changed through their owning source or generator."
+    },
+    {
+      "id": "AAA-QB-05",
+      "source_type": "REPO",
+      "source": "docs/customization/repository-audit-2026-09-20.md#runtime-and-security-sensitive-paths",
+      "dimension": "security and runtime reliability",
+      "target": "WebSocket shutdown reaches the documented quiescent state, static-file containment applies to resolved filesystem targets, HTTP bridge memory and concurrency have enforced aggregate bounds, and dynamic extension loading enforces the approved deployment, CSP, consent, and default policy.",
+      "evidence_method": "Execute deterministic lifecycle, symlink-escape, oversized-body, cancellation, concurrency, teardown, blocked-extension, CSP, and consent/default negative tests against the public entry points and document the resulting contracts.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The audit found an early-resolving WebSocket close path, lexical-only static containment, request-local buffering without an aggregate cap, and unresolved dynamic extension trust and deployment controls."
+      },
+      "conditions": "Any accepted residual HIGH or CRITICAL risk requires explicit human authority and prevents an unconditional AAA verdict.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "1db8fe564db84addefef7dd56d4ddfface834b37aa495fc39d9f35aa69111ff5",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "Apply docs/defensive-patterns.md before implementation."
+    },
+    {
+      "id": "AAA-QB-06",
+      "source_type": "STANDARD",
+      "source": "docs/customization/improvement-development-standard.md",
+      "dimension": "upstream-safe governance",
+      "target": "Every delta from `master` has one policy owner and one valid `solutionType`; non-packaged extension types cannot claim package roots; weighted approval classifies the live production package path and rejects removed aliases; automation verifies the official upstream mirror before custom integration.",
+      "evidence_method": "Run positive and invalid customization-policy fixtures, weighted-approval classifier fixtures for live and removed paths, the top-level policy command, and the upstream synchronization workflow against mismatched and matching mirror states.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The audits found permissive `packageRoots` validation, a weighted-approval classifier keyed to a removed package path, and a workflow that compares `origin/master` without proving equality to `deepseek-official/master`."
+      },
+      "conditions": "Each production remediation receives its own proposed policy record before code changes spread; the program record owns governance artifacts only.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "caeb7f542c5217731a45991109386ea15afba5a6306e46b285a6056975b9ea9b",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "A green policy check proves attribution and classification, not product correctness."
+    },
+    {
+      "id": "AAA-QB-07",
+      "source_type": "REPO",
+      "source": "AGENTS.md#commands",
+      "dimension": "build and package integrity",
+      "target": "Typecheck, build, hygiene, package publication checks, NodeNext consumer checks, and release packs pass from their documented artifact prerequisites without missing published files.",
+      "evidence_method": "Run the owning build sequence, `pnpm run typecheck`, `pnpm run build`, and `pnpm run hygiene`; inspect representative packed artifacts and publint diagnostics.",
+      "required": true,
+      "priority": "high",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The audit recorded a hidden hygiene build prerequisite and 279 source-export warnings whose publication intent is unresolved."
+      },
+      "conditions": "Warning debt can remain only with an explicit upstream-owned baseline and no custom regression; release errors cannot be waived.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "7aa6243a1a3aaf8f98a8ce241c27dafeba53f74e4935117d9c8996d2ef031f4e",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "Use built smokes for published entry points, not source-only substitutions."
+    },
+    {
+      "id": "AAA-QB-08",
+      "source_type": "REPO",
+      "source": "docs/audits/auditoria-completa-2026-09-20.md#5-pontos-fracos",
+      "dimension": "static contracts and maintainability",
+      "target": "Lint and typecheck pass; the production-source `no-deprecated` baseline of 85 is at most 84, the production-source suppression baseline of 205 is at most 204, no measured debt category grows, and every retained correctness, `skipLibCheck`, or module-syntax exception has an owner and disposition.",
+      "evidence_method": "Use the canonical metrics command created by AAA-018 over `packages/*/*/src` with its recorded extensions and exclusions, run lint/typecheck and staged compiler/lint probes, and compare the candidate JSON with the frozen 85/205 baseline.",
+      "required": true,
+      "priority": "high",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The audit counted 85 deprecated-reader suppressions and 205 source suppressions, with correctness category disabled, `skipLibCheck` enabled, and `verbatimModuleSyntax` disabled."
+      },
+      "conditions": "M0 must reproduce the stated corpus and counts before remediation; a mismatch requires a versioned Quality Bar correction with preserved prior values, not a silent baseline edit. Do not enable broad rules or compiler options until affected owners and migration waves are known.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "c81d3d639b078d64e11ca046bfb724889447cbe5f4846b7897c7c5acda0f0d79",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "Counts must come from the canonical metrics procedure established by the program."
+    },
+    {
+      "id": "AAA-QB-09",
+      "source_type": "REPO",
+      "source": "docs/AGENTS.md",
+      "dimension": "documentation truth",
+      "target": "Documentation checks pass; every English/Chinese pair changed between the M0 baseline and candidate, plus the root README pair and every pair in the `documentationPairs` fields of AAA-011 through AAA-015, retains semantic parity; current-state claims cite their owner and mutable metrics include provenance.",
+      "evidence_method": "Derive the exact pair corpus from the baseline-to-candidate Git diff plus `README.md`/`README.zh.md` and the backlog's mandatory pair fields, store it in `.agent/evidence/AAA-023/documentation-pairs.json`, run pairing, `test:docs`, `doc-sync`, and link checks, then record a semantic review result for every entry.",
+      "required": true,
+      "priority": "high",
+      "baseline": {
+        "status": "FAIL",
+        "actual": "The audit found README channel differences, stale historical counts, and stale shell documentation. The reported generated verifier name is not a defect by itself because a live compatibility entry point owns that name."
+      },
+      "conditions": "Human-facing docs remain bilingual unless explicitly excluded by the pairing manifest for their document class.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "bcc61a7563e7c7b3a6edfa0c62d7bf4b49321585b8f1a01faa76155bfbd7cdac",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "A translation sidecar records pair consistency but does not replace semantic review."
+    },
+    {
+      "id": "AAA-QB-10",
+      "source_type": "REPO",
+      "source": "docs/defensive-patterns.md; .github/workflows/ci.yml; package.json",
+      "dimension": "performance and operational resilience",
+      "target": "`pnpm run check:ci:bench` passes on the current designated Linux benchmark job and its repository-owned thresholds; changed hot paths remain within those budgets; resource-limit tests accept work one reservation below and exactly at the approved aggregate budget, reject one reservation above it, and release capacity after cancellation and disconnect.",
+      "evidence_method": "Run `pnpm run check:ci:bench` on the CI job defined for benchmarks in `.github/workflows/ci.yml`, recording image, architecture, CPU and memory labels, Node, pnpm, commit, and output; run the AAA-014 concurrency matrix relative to its approved configured budget.",
+      "required": true,
+      "priority": "high",
+      "baseline": {
+        "status": "NOT_RUN",
+        "actual": "The audits did not establish a current integrated performance and resilience qualification."
+      },
+      "conditions": "The workflow and benchmark sources own numeric thresholds and representative workloads; evidence records their exact revisions. If the designated job does not expose stable hardware labels, compare only the repository's normalized or tolerance-based assertions and do not claim raw timing improvement.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "919d27a033c655ea6187496872caa4aa9babf08d87179562ca23545301108bb1",
+      "license_notes": "Derived acceptance criterion with repository-owned evidence only.",
+      "validity_notes": "Do not claim improvement from microbenchmarks without behavioral parity and representative workload evidence."
+    },
+    {
+      "id": "AAA-QB-11",
+      "source_type": "STANDARD",
+      "source": "docs/customization/upstream-safe-customization.md",
+      "dimension": "upstream updateability",
+      "target": "`master` equals fetched official upstream, a merge rehearsal into `custom/main` completes without unattributed delta, and every custom improvement remains removable or has an explicit upstream plan.",
+      "evidence_method": "Fetch both remotes, compare object identities, rehearse the documented update in a disposable worktree, run the policy verifier, and inspect the complete `master...HEAD` delta.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "NOT_RUN",
+        "actual": "The branch topology is documented, but the audit found that automation does not prove the mirror equals the official remote and no final rehearsal exists for this program."
+      },
+      "conditions": "Do not rewrite the permanent integration branch; use ordinary merge commits and lease-protected topic-branch rewrites only where repository policy permits."
+      ,"version": "2026-09-20",
+      "snapshot_sha256": "99c42479b29a602e9fffcc0aa3c9b16b5f0d391b3dd25077408abe378b00e351",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "The final rehearsal must use the candidate commit and current official upstream."
+    },
+    {
+      "id": "AAA-QB-12",
+      "source_type": "REPO",
+      "source": "AGENTS.md#pre-stable-apis-and-released-session-data",
+      "dimension": "Session and SDK compatibility",
+      "target": "Any persistence, agent-loop, session-lifecycle, or SessionEventMap change preserves committed generations through adjacent migration and updates both TypeScript and Python SDK projections in the same change.",
+      "evidence_method": "Run persistence-format checks, affected Session tests, TypeScript SDK snapshots, and Python expected outputs for every applicable change; inspect that no committed generation moved, changed, or disappeared.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "NOT_RUN",
+        "actual": "The snapshot generation mismatch requires reproduction; no program-wide Session and dual-SDK compatibility evidence exists yet."
+      },
+      "conditions": "Mark not applicable only when the complete candidate diff contains no persistence, loop, lifecycle, or Session event change.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "7aa6243a1a3aaf8f98a8ce241c27dafeba53f74e4935117d9c8996d2ef031f4e",
+      "license_notes": "Repository-owned acceptance criterion.",
+      "validity_notes": "Predecessor generations do not imply fallback or downgrade support."
+    },
+    {
+      "id": "AAA-QB-13",
+      "source_type": "REPO",
+      "source": ".github/workflows/ci.yml; package.json; docs/customization/repository-audit-2026-09-20.md#limitations",
+      "dimension": "release provenance and platform evidence",
+      "target": "One clean immutable release-candidate commit identifies all mirror and integration refs and passes required Linux, Node compatibility, Web, consumer, packed-install, benchmark, coverage, and credentialed provider lanes without silently skipping their subject.",
+      "evidence_method": "Record Git refs and clean status, OS, architecture, Node, pnpm, umask, exact commands, required GitHub checks, and executed-versus-skipped e2e cases for one commit.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "NOT_RUN",
+        "actual": "Neither audit pins a clean immutable candidate with complete coverage, benchmark, real-provider, packed-install, and platform evidence."
+      },
+      "conditions": "A required lane that self-skips its subject is NOT_RUN, not PASS; credential and platform limitations remain release blockers until CI or an authorized runner supplies evidence.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "894b8ced49be4a020c24d935deb796cc22711c7c13920bef0437d9dc8741752c",
+      "license_notes": "Derived acceptance criterion using repository-owned commands and workflows.",
+      "validity_notes": "The exact required job set is read from current workflows at candidate time and recorded in the evidence index."
+    },
+    {
+      "id": "AAA-QB-14",
+      "source_type": "DERIVED",
+      "source": ".agents/notes/proposed/process/2026-09-20-aaa-quality-program.md#proposal",
+      "dimension": "independent final qualification",
+      "target": "A fresh-context critic receives the frozen bar and candidate artifacts without builder rationale, reproduces the decisive evidence, and returns PASS with no material unresolved gap; a dated repository-audit attestation binds that verdict to the immutable candidate commit and evidence-index digest.",
+      "evidence_method": "Seal the candidate fingerprint, run an I1-or-better read-only critic, verify the mutation sentinel, then publish the critic packet, verdict, candidate commit, and evidence-index digest in a documentation-only attestation commit and rerun the affected documentation checks.",
+      "required": true,
+      "priority": "critical",
+      "baseline": {
+        "status": "NOT_RUN",
+        "actual": "No final candidate or post-remediation audit exists."
+      },
+      "conditions": "A critic cannot replace deterministic evidence; CONDITIONAL_PASS or accepted residual HIGH risk prevents the Triple-A claim. The attestation commit is not the qualified candidate unless the complete bar is rerun on it.",
+      "version": "2026-09-20",
+      "snapshot_sha256": "984d195cadd2a3f86f694645e3588a627e854eabe655fc5a7bdb5f53ecb5c7e2",
+      "license_notes": "Derived acceptance criterion using repository artifacts.",
+      "validity_notes": "Run only after all other required criteria have current evidence."
+    }
+  ],
+  "revision_log": [
+    {
+      "version": "AAA-QB-v1.1",
+      "date": "2026-09-20",
+      "reason": "The first fresh-context critique found a final-qualification dependency deadlock and under-specified static-debt, documentation-semantic, and performance targets. This revision makes those criteria falsifiable without weakening their required status.",
+      "affected_criteria": ["AAA-QB-08", "AAA-QB-09", "AAA-QB-10", "AAA-QB-14"]
+    },
+    {
+      "version": "AAA-QB-v1.2",
+      "date": "2026-09-20",
+      "reason": "The second fresh-context critic detected a stale source snapshot after a documentation-gate correction, an AAA-013 alternative that contradicted fail-closed resolved-target containment, and unnamed mandatory semantic-review pairs. This revision restores source provenance and makes the security and documentation obligations exact without weakening them.",
+      "affected_criteria": ["AAA-QB-05", "AAA-QB-09"]
+    },
+    {
+      "version": "AAA-QB-v1.3",
+      "date": "2026-09-20",
+      "reason": "The third fresh-context critic found incomplete provenance for mutable normative sources, non-transactional future task-start prose, and a stale static-root authority phrase. This revision pins every locally available normative source and binds derived criteria to repository records without weakening any target.",
+      "affected_criteria": ["AAA-QB-02", "AAA-QB-03", "AAA-QB-05", "AAA-QB-07", "AAA-QB-09", "AAA-QB-10", "AAA-QB-11", "AAA-QB-12", "AAA-QB-13", "AAA-QB-14"]
+    },
+    {
+      "version": "AAA-QB-v1.4",
+      "date": "2026-09-20",
+      "reason": "The fifth fresh-context critic found an implementation-readiness deadlock, ambiguous gate-event ordering, two audit-derived outcomes absent from the release bar, and an attestation step that could mutate the sealed candidate. This revision gates only the first IMPLEMENT action, adds weighted-approval and dynamic-extension enforcement, and binds a documentation-only attestation to the immutable candidate without weakening any target.",
+      "affected_criteria": ["AAA-QB-05", "AAA-QB-06", "AAA-QB-14"]
+    }
+  ]
+}

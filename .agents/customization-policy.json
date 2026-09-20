@@ -72,6 +72,22 @@
         "scripts/verify-customization-policy.mjs",
         "scripts/verify-customization-policy.spec.ts"
       ]
+    },
+    {
+      "id": "aaa-quality-program",
+      "kind": "governance",
+      "solutionType": "repository-automation",
+      "status": "active",
+      "summary": "Operate the audit-derived Triple-A quality program through a frozen quality bar, one canonical backlog, persistent state, and independent verification.",
+      "paths": [
+        ".agent/",
+        ".agents/notes/proposed/process/2026-09-20-aaa-quality-program*",
+        ".gitignore",
+        "docs/audits/",
+        "docs/customization/aaa-quality-program*",
+        "docs/customization/repository-audit-2026-09-20*",
+        "scripts/translation-pairing.manifest.json"
+      ]
     }
   ]
 }

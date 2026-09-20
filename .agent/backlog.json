@@ -1,0 +1,560 @@
+{
+  "schema_version": 2,
+  "items": [
+    {
+      "id": "AAA-001",
+      "title": "Freeze and reproduce the release baseline",
+      "stage": "AUDIT",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Both 2026-09-20 audits; incompatible verdicts and incomplete same-SHA evidence",
+      "dependencies": [],
+      "owner": "Quality program integrator",
+      "acceptance_summary": "A pristine checkout at one exact commit has an environment manifest and a current evidence matrix for every reported failure and every required unexecuted lane",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-001:A01",
+        "kind": "INSPECT",
+        "summary": "Select the exact post-planning baseline commit and write its environment manifest without changing product code",
+        "target": ".agent/evidence/AAA-001/environment.json",
+        "completion_signal": "The manifest records the candidate and remote refs, clean status, OS, architecture, Node, pnpm, umask, worktree path, and capture time"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-02", "AAA-QB-13"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-002",
+      "title": "Make workspace preparation and ignored residue deterministic",
+      "stage": "AUDIT",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Portuguese P1; repository audit graph and generated-residue findings",
+      "dependencies": ["AAA-001"],
+      "owner": "Workspace constraints and clean-path owners",
+      "acceptance_summary": "The supported clean path removes only verified residue, no manifest-less package directory remains, and constraints passes from the prepared checkout",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-002:A01",
+        "kind": "INSPECT",
+        "summary": "Classify all ignored package-like directories as reproducible residue or preserved material",
+        "target": "packages/** directories without a tracked package manifest",
+        "completion_signal": "An exact target list and safe cleanup procedure exist before deletion"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-04"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-003",
+      "title": "Repair weighted-approval ownership for the renamed Python runtime",
+      "stage": "BUILD",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Portuguese P2; current review-ownership static evidence",
+      "dependencies": ["AAA-001"],
+      "owner": "Review-ownership automation",
+      "acceptance_summary": "The live ptc-runtime Python path counts as production, the removed path does not, and positive and invalid classifier fixtures pass",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-003:A01",
+        "kind": "IMPLEMENT",
+        "summary": "Update the production-path classifier and its focused test for the live runtime name",
+        "target": ".github/review-ownership/blame-production.py and its tests",
+        "completion_signal": "The focused classifier suite proves both the live and removed path cases"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-06"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-004",
+      "title": "Make spill fixtures portable across supported umasks",
+      "stage": "AUDIT",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit unit-test evidence",
+      "dependencies": ["AAA-001"],
+      "owner": "spill-local package",
+      "acceptance_summary": "The focused spill suite passes under umask 0002 and 0022 while the explicit unsafe-directory case still proves rejection",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-004:A01",
+        "kind": "REPRODUCE",
+        "summary": "Reproduce the spill suite under both umasks and separate fixture leakage from product security behavior",
+        "target": "packages/spill/spill-local tests and temporary-directory setup",
+        "completion_signal": "The same focused command has retained results for both umasks and one attributed failure cause"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-02"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-005",
+      "title": "Reconcile recorded-session generation selection",
+      "stage": "AUDIT",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit snapshot evidence",
+      "dependencies": ["AAA-001"],
+      "owner": "Session snapshot corpus",
+      "acceptance_summary": "The selected generation, filename, and header agree and the focused replay passes without moving, overwriting, or deleting a committed generation",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-005:A01",
+        "kind": "REPRODUCE",
+        "summary": "Identify the exact scenario and generation-v0 versus generation-v3 selection path",
+        "target": "snapshot corpus generation resolver and failing scenario",
+        "completion_signal": "One focused replay reproduces the mismatch and names the owning source"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-03", "AAA-QB-12"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-006",
+      "title": "Restore the resilient-compaction built snapshot path",
+      "stage": "AUDIT",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit missing lib-mode resilience-snapshot adapter",
+      "dependencies": ["AAA-001"],
+      "owner": "resilient-compaction custom extension",
+      "acceptance_summary": "The keyless lib-mode replay resolves its declared adapter through the shipped scenario path and the optional bundle remains removable",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-006:A01",
+        "kind": "REPRODUCE",
+        "summary": "Run the resilient-compaction timeout scenario in lib mode and trace adapter resolution",
+        "target": "snapshots/session/resilient-compaction-timeout and snapshot adapter loading",
+        "completion_signal": "The missing adapter is reproduced through the real built entry path or the audit finding is closed with current evidence"
+      },
+      "solutionType": "plugin-and-bundle",
+      "quality_bar_refs": ["AAA-QB-03", "AAA-QB-06"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-007",
+      "title": "Provision the pinned browser for Web snapshot lanes",
+      "stage": "SPEC",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Repository audit missing Playwright Chromium",
+      "dependencies": ["AAA-001"],
+      "owner": "CI and snapshot environment",
+      "acceptance_summary": "A clean supported runner provisions the pinned browser before replay and a missing browser produces one actionable prerequisite diagnostic",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-007:A01",
+        "kind": "DESIGN",
+        "summary": "Choose the owning setup step for the pinned Playwright browser in local and CI snapshot lanes",
+        "target": "Playwright configuration and CI setup",
+        "completion_signal": "One documented provisioning owner and one failure diagnostic are specified"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-03"],
+      "risk": "MEDIUM"
+    },
+    {
+      "id": "AAA-008",
+      "title": "Resolve the DeepSeek expected request-count divergence",
+      "stage": "AUDIT",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Repository audit expected-output evidence",
+      "dependencies": ["AAA-001"],
+      "owner": "Headless profile and expected-output test owners",
+      "acceptance_summary": "The focused compatibility case has an approved request-role oracle and deterministically observes the intended request count and content",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-008:A01",
+        "kind": "REPRODUCE",
+        "summary": "Capture all requests in the focused DeepSeek compatibility case and classify the extra request",
+        "target": "apps/cli headless expected-output scenario and assembled profile",
+        "completion_signal": "Each observed request has a role, trigger, and intended-or-defect decision"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-03"],
+      "risk": "MEDIUM",
+      "humanDecision": "Approve the intended request sequence if the third request is product behavior rather than a regression"
+    },
+    {
+      "id": "AAA-009",
+      "title": "Restore client-domain ownership",
+      "stage": "AUDIT",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit 38 client-domain graph violations",
+      "dependencies": ["AAA-001"],
+      "owner": "Client UI package owners",
+      "acceptance_summary": "The client-domain graph passes after every sibling import moves through the owning public package or approved API",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-009:A01",
+        "kind": "INSPECT",
+        "summary": "Group the 38 violations by intended domain owner and required public export",
+        "target": "client-domain graph output and implicated packages",
+        "completion_signal": "Every violation has one owner, dependency order, and focused acceptance path"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-04"],
+      "risk": "HIGH",
+      "humanDecision": "Resolve any domain ownership that is ambiguous after architecture inspection"
+    },
+    {
+      "id": "AAA-010",
+      "title": "Regenerate graph evidence through its owner",
+      "stage": "BUILD",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Repository audit stale module graph",
+      "dependencies": ["AAA-009"],
+      "owner": "Module graph generator and documentation projection",
+      "acceptance_summary": "Module graph generation and bilingual pairing pass with no hand-edited derivative",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-010:A01",
+        "kind": "RUN",
+        "summary": "Run the owning module-graph generator after client ownership changes settle",
+        "target": "module graph source, English output, Chinese output, and pairing record",
+        "completion_signal": "The freshness verifier and bilingual pairing command both pass"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-04", "AAA-QB-09"],
+      "risk": "MEDIUM"
+    },
+    {
+      "id": "AAA-011",
+      "title": "Synchronize persistent-shell model-visible behavior",
+      "stage": "SPEC",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit stale shell timeout docs and missing keyless snapshot",
+      "dependencies": ["AAA-005", "AAA-007"],
+      "owner": "persistent-shell-diagnostics upstream patch",
+      "acceptance_summary": "Bash and PowerShell READMEs, durable rationale, policy ownership, focused tests, and an assembled keyless snapshot describe and prove the shipped result wording",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-011:A01",
+        "kind": "DESIGN",
+        "summary": "Expand the existing improvement record to own the required documentation and snapshot paths",
+        "target": ".agents/customization-policy.json persistent-shell-diagnostics record",
+        "completion_signal": "The proposed path set attributes every planned shell documentation and snapshot delta before implementation"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-03", "AAA-QB-06", "AAA-QB-09"],
+      "risk": "HIGH",
+      "documentationPairs": [
+        ["packages/shell/tool-bash-persistent/README.md", "packages/shell/tool-bash-persistent/README.zh.md"],
+        ["packages/shell/tool-pwsh-persistent/README.md", "packages/shell/tool-pwsh-persistent/README.zh.md"],
+        [".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.md", ".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.zh.md"]
+      ]
+    },
+    {
+      "id": "AAA-012",
+      "title": "Define and enforce WebSocket close quiescence",
+      "stage": "SPEC",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit RemoteStreamClient close finding",
+      "dependencies": ["AAA-001"],
+      "owner": "API gateway stream client",
+      "acceptance_summary": "The approved close postcondition is documented and a barrier-based test proves resolution timing, late-callback behavior, timeout, and teardown",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-012:A01",
+        "kind": "DECIDE",
+        "summary": "Choose logical disposal or confirmed physical closure as the public close postcondition",
+        "target": "RemoteStreamClient close contract",
+        "completion_signal": "The contract names success, timeout, error, and already-closed behavior and has human approval"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-05", "AAA-QB-10"],
+      "risk": "HIGH",
+      "humanDecision": "Choose the caller-visible WebSocket close postcondition",
+      "documentationPairs": [
+        ["packages/api/gateway/README.md", "packages/api/gateway/README.zh.md"]
+      ]
+    },
+    {
+      "id": "AAA-013",
+      "title": "Enforce the static asset symlink policy",
+      "stage": "SPEC",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit frontend-static containment finding",
+      "dependencies": ["AAA-001"],
+      "owner": "frontend-static package",
+      "acceptance_summary": "Resolved filesystem targets remain inside the configured static root, and a symlink escape returns 403 or 404 without returning external bytes",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-013:A01",
+        "kind": "DESIGN",
+        "summary": "Specify race-safe resolved-target containment and its cross-platform symlink escape fixture",
+        "target": "frontend-static resolved filesystem containment",
+        "completion_signal": "The design names resolution timing, platform behavior, 403-or-404 response, and a fixture that proves no external bytes are returned"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-05"],
+      "risk": "HIGH",
+      "documentationPairs": [
+        ["packages/host/frontend-static/README.md", "packages/host/frontend-static/README.zh.md"]
+      ]
+    },
+    {
+      "id": "AAA-014",
+      "title": "Bound aggregate HTTP bridge buffering",
+      "stage": "SPEC",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit HTTP bridge resource finding",
+      "dependencies": ["AAA-001"],
+      "owner": "client connection HTTP bridge",
+      "acceptance_summary": "A validated aggregate memory policy bounds concurrent buffered requests, rejects or queues excess work predictably, and releases capacity on cancellation and disconnect",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-014:A01",
+        "kind": "DECIDE",
+        "summary": "Set the aggregate memory budget, admission behavior, response, and deployment configurability",
+        "target": "HTTP bridge resource policy",
+        "completion_signal": "The approved policy names limits, failure behavior, configuration owner, and concurrency test oracle"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-05", "AAA-QB-10"],
+      "risk": "HIGH",
+      "humanDecision": "Approve the aggregate request-memory and admission policy",
+      "documentationPairs": [
+        ["packages/client/connection/README.md", "packages/client/connection/README.zh.md"]
+      ]
+    },
+    {
+      "id": "AAA-015",
+      "title": "Complete the dynamic extension threat model",
+      "stage": "SPEC",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Portuguese P10 plus current runner documentation gap",
+      "dependencies": ["AAA-001"],
+      "owner": "Cordis client and host extension runners",
+      "acceptance_summary": "Owning documentation states who may supply code, the opt-in point, host enforcement, browser CSP requirements, supported deployments, and residual limits; claimed controls have negative tests",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-015:A01",
+        "kind": "DECIDE",
+        "summary": "Approve the supported deployment, CSP, user-consent, and default-enable policy for dynamic extensions",
+        "target": "dynamic extension trust and deployment policy",
+        "completion_signal": "The threat model has an approved scope and identifies every enforced versus residual control"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-05", "AAA-QB-09"],
+      "risk": "HIGH",
+      "humanDecision": "Approve dynamic code execution deployment and consent policy",
+      "documentationPairs": [
+        ["packages/extensions/cordis-client-runner/README.md", "packages/extensions/cordis-client-runner/README.zh.md"],
+        ["packages/extensions/cordis-host-runner/README.md", "packages/extensions/cordis-host-runner/README.zh.md"]
+      ]
+    },
+    {
+      "id": "AAA-016",
+      "title": "Reject forbidden package roots in customization records",
+      "stage": "BUILD",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit customization-policy enforcement gap",
+      "dependencies": ["AAA-001"],
+      "owner": "Customization policy verifier",
+      "acceptance_summary": "Configuration, profile-patch, and skill records cannot claim package source; invalid fixtures fail with an actionable diagnostic while packaged extension fixtures pass",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-016:A01",
+        "kind": "IMPLEMENT",
+        "summary": "Add the forbidden-packageRoots rule and focused invalid fixtures",
+        "target": "scripts/verify-customization-policy.mjs and its specification",
+        "completion_signal": "The focused suite rejects each non-packaged extension type with packageRoots and the top-level verifier passes"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-06"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-017",
+      "title": "Enforce official mirror identity in automation",
+      "stage": "SPEC",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit upstream-master workflow gap",
+      "dependencies": ["AAA-001"],
+      "owner": "Customization policy workflow",
+      "acceptance_summary": "The workflow proves the configured mirror branch equals fetched official upstream and rejects divergence even when attribution against the fork remote passes",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-017:A01",
+        "kind": "DESIGN",
+        "summary": "Specify official-remote fetch and equality checks for push and pull-request contexts",
+        "target": ".github/workflows/customization-policy.yml and verifier integration",
+        "completion_signal": "Matching and mismatched mirror fixtures have executable workflow-level acceptance"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-06", "AAA-QB-11"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-018",
+      "title": "Establish canonical audit metrics and semantic documentation parity",
+      "stage": "SPEC",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Portuguese P12-P14; repository audit README and historical count findings",
+      "dependencies": ["AAA-001"],
+      "owner": "Documentation and audit automation",
+      "acceptance_summary": "One command emits named metrics with corpus, commit, environment, and count; maintained bilingual pages carry approved common channels and label intentional locale-only differences",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-018:A01",
+        "kind": "DESIGN",
+        "summary": "Define metric names and corpora and decide the bilingual community-channel policy",
+        "target": "audit metric owner and root README pair",
+        "completion_signal": "The metric schema and communication-channel decision are explicit before prose or automation changes"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-08", "AAA-QB-09", "AAA-QB-13"],
+      "risk": "MEDIUM",
+      "humanDecision": "Decide whether locale-specific community channels are intentional additions or semantic drift"
+    },
+    {
+      "id": "AAA-019",
+      "title": "Authorize fork package publication identity",
+      "stage": "SPEC",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "Repository audit custom package repository metadata",
+      "dependencies": ["AAA-001"],
+      "owner": "Fork maintainer and package release owner",
+      "acceptance_summary": "Fork-only package namespace, repository URL, directory metadata, and publication authority are approved and mechanically verified in packed manifests",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-019:A01",
+        "kind": "DECIDE",
+        "summary": "Choose whether fork-only packages remain private, use a fork-owned namespace, or are prepared solely as upstream contributions",
+        "target": "resilient-compaction package publication identity",
+        "completion_signal": "A maintainer decision names the namespace, repository URL, registry visibility, and authorized publisher"
+      },
+      "solutionType": "plugin-and-bundle",
+      "quality_bar_refs": ["AAA-QB-07", "AAA-QB-11"],
+      "risk": "HIGH",
+      "humanDecision": "Publication identity and authority cannot be inferred by an agent"
+    },
+    {
+      "id": "AAA-020",
+      "title": "Decide and verify public source-export policy",
+      "stage": "SPEC",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Portuguese P4 publint warnings",
+      "dependencies": ["AAA-001", "AAA-019"],
+      "owner": "Package publication architecture",
+      "acceptance_summary": "Source subpath exports are either published and packed consistently or removed through a compatibility-reviewed migration; packed-install and NodeNext consumer checks pass",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-020:A01",
+        "kind": "DECIDE",
+        "summary": "Determine whether ./src/* is a repository-only development facility or a supported published API",
+        "target": "package export and publication policy",
+        "completion_signal": "The policy selects publish, remove, or mechanically exempt with compatibility evidence"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-07"],
+      "risk": "HIGH",
+      "humanDecision": "Source export compatibility policy"
+    },
+    {
+      "id": "AAA-021",
+      "title": "Make standalone hygiene prerequisites explicit",
+      "stage": "SPEC",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Portuguese P9 and current run-gates evidence",
+      "dependencies": ["AAA-001"],
+      "owner": "Repository gate orchestration",
+      "acceptance_summary": "On a clean tree the advertised hygiene command either prepares required artifacts or fails immediately with the exact prerequisite correction while check:all ordering remains valid",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-021:A01",
+        "kind": "DESIGN",
+        "summary": "Choose whether hygiene owns its build dependency or a deterministic preflight diagnostic",
+        "target": "scripts/run-gates.ts hygiene entry point",
+        "completion_signal": "The standalone and aggregate command contracts have focused valid and invalid fixtures"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-07"],
+      "risk": "MEDIUM"
+    },
+    {
+      "id": "AAA-022",
+      "title": "Reduce static contract debt in measured waves",
+      "stage": "EVOLUTION",
+      "priority": "HIGH",
+      "status": "TODO",
+      "origin": "Portuguese P5-P8 and count-based P13-P14 signals",
+      "dependencies": ["AAA-018"],
+      "owner": "Session, lint, type-system, and affected package owners",
+      "acceptance_summary": "Canonical debt metrics do not grow, at least one owner-scoped deprecated-reader and suppression wave reduces its frozen count, retained exceptions have local reasons, and stricter lint/compiler probes have explicit dispositions",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-022:A01",
+        "kind": "INSPECT",
+        "summary": "Create owner-grouped inventories for deprecated readers, suppressions, correctness rules, and compiler relaxations",
+        "target": "canonical metrics output and affected package owners",
+        "completion_signal": "Each migration wave has a bounded owner, behavior risk, dependencies, and focused checks"
+      },
+      "solutionType": "upstream-package-change",
+      "quality_bar_refs": ["AAA-QB-08"],
+      "risk": "MEDIUM",
+      "humanDecision": "Approve rule adoption and compiler-default changes after probes expose their compatibility cost"
+    },
+    {
+      "id": "AAA-023",
+      "title": "Qualify one immutable release candidate",
+      "stage": "AUDIT",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "User AAA objective; both audits' missing release evidence",
+      "dependencies": ["AAA-002", "AAA-003", "AAA-004", "AAA-005", "AAA-006", "AAA-007", "AAA-008", "AAA-010", "AAA-011", "AAA-012", "AAA-013", "AAA-014", "AAA-015", "AAA-016", "AAA-017", "AAA-018", "AAA-019", "AAA-020", "AAA-021", "AAA-022"],
+      "owner": "Release qualification integrator",
+      "acceptance_summary": "One immutable candidate has current evidence for AAA-QB-01 through AAA-QB-13, including aggregate gates, coverage, snapshots, Web, benchmarks, packed install, real-provider behavior, required platforms, documentation, and upstream update rehearsal",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-023:A01",
+        "kind": "RUN",
+        "summary": "Execute the release matrix on the sealed candidate and record every executed, skipped, blocked, and failed lane",
+        "target": "AAA-QB-v1.4 criteria AAA-QB-01 through AAA-QB-13 and required CI jobs",
+        "completion_signal": "Every required criterion has current same-SHA evidence and no subject silently skips"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-02", "AAA-QB-03", "AAA-QB-04", "AAA-QB-05", "AAA-QB-06", "AAA-QB-07", "AAA-QB-08", "AAA-QB-09", "AAA-QB-10", "AAA-QB-11", "AAA-QB-12", "AAA-QB-13"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "AAA-024",
+      "title": "Run the final independent audit and issue the AAA verdict",
+      "stage": "AUDIT",
+      "priority": "CRITICAL",
+      "status": "TODO",
+      "origin": "User AAA objective and Gauntlet final-critic requirement",
+      "dependencies": ["AAA-023"],
+      "owner": "Fresh-context critic and quality program integrator",
+      "acceptance_summary": "A sealed read-only critic reproduces decisive evidence, the candidate mutation sentinel remains unchanged, a dated documentation-only attestation binds PASS to the candidate commit and evidence-index digest, and no material gap or accepted HIGH risk remains",
+      "evidence_refs": [],
+      "next_action": {
+        "id": "AAA-024:A01",
+        "kind": "REVIEW",
+        "summary": "Send the sealed candidate, frozen bar, and evidence index to a fresh-context independent critic",
+        "target": "final release candidate and AAA-QB-v1.4",
+        "completion_signal": "The critic returns PASS with an unchanged candidate fingerprint, and the documentation-only attestation records that candidate commit, evidence-index digest, and unconditional verdict"
+      },
+      "solutionType": "repository-automation",
+      "quality_bar_refs": ["AAA-QB-14"],
+      "risk": "HIGH"
+    }
+  ]
+}
