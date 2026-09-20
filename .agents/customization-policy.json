@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "repository": {
+    "forkRemote": "origin",
+    "forkUrl": "https://github.com/ricardoakinaga-dev/deepseek-harness.git",
+    "upstreamRemote": "deepseek-official",
+    "upstreamUrl": "https://github.com/deepseek-ai/deepseek-harness.git",
+    "mirrorBranch": "master",
+    "integrationBranch": "custom/main",
+    "updateStrategy": "merge"
+  },
+  "improvements": [
+    {
+      "id": "persistent-shell-diagnostics",
+      "kind": "upstream-patch",
+      "status": "active",
+      "summary": "Keep persistent Bash and PowerShell truncation and timeout guidance accurate.",
+      "upstreamPlan": "docs/customization/fork-v2-extraction.md#extraction-matrix",
+      "paths": [
+        "packages/shell/tool-bash-persistent/src/index.ts",
+        "packages/shell/tool-bash-persistent/tests/tools.spec.ts",
+        "packages/shell/tool-pwsh-persistent/src/index.ts",
+        "packages/shell/tool-pwsh-persistent/tests/tools.spec.ts"
+      ]
+    },
+    {
+      "id": "resilient-compaction",
+      "kind": "extension",
+      "status": "active",
+      "summary": "Add opt-in compaction request limits and profile composition without changing the official loop or presets.",
+      "optIn": true,
+      "packageRoots": [
+        "packages/bundle/resilient-compaction/",
+        "packages/compaction/compaction-resilience-policy/"
+      ],
+      "paths": [
+        ".agents/notes/implemented/bug-fix/2026-09-03-purpose-scoped-compaction-resilience*",
+        ".agents/notes/proposed/architecture/2026-09-03-fork-v2-extension-extraction*",
+        "docs/config-catalog*",
+        "docs/customization/fork-v2-*",
+        "docs/event-producer-consumer*",
+        "packages/bundle/README*",
+        "packages/bundle/resilient-compaction/",
+        "packages/compaction/README*",
+        "packages/compaction/compaction-resilience-policy/",
+        "pnpm-lock.yaml",
+        "scripts/verify-package-readme-model-experience.ts",
+        "snapshots/session/resilient-compaction-timeout/",
+        "tsconfig.base.json",
+        "tsconfig.host.json"
+      ]
+    },
+    {
+      "id": "upstream-safe-customization-governance",
+      "kind": "governance",
+      "status": "active",
+      "summary": "Keep the official mirror clean and make every custom delta attributable to an extension, upstream patch, or repository policy.",
+      "paths": [
+        ".agents/customization-policy.json",
+        ".agents/notes/implemented/process/2026-09-20-upstream-safe-customization-branch*",
+        ".github/workflows/customization-policy.yml",
+        "AGENTS.md",
+        "docs/customization/README*",
+        "docs/customization/upstream-safe-customization*",
+        "scripts/verify-customization-policy.d.mts",
+        "scripts/verify-customization-policy.mjs",
+        "scripts/verify-customization-policy.spec.ts"
+      ]
+    }
+  ]
+}

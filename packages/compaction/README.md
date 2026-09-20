@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The `compaction/` group keeps long agent conversations working near the model's context limit: older history is condensed into a summary automatically as token pressure builds, on demand with `/compact`, oversized tool outputs can be trimmed first so there is less to condense, and images an image-capable route can no longer send are replaced with placeholders. The shipped `dsh` base enables the feature by default — mount the packages explicitly to tune when and how condensation happens. The token measurement that decides when to condense lives in a separate LLM-family service.
+The `compaction/` group keeps long agent conversations working near the model's context limit: older history is condensed into a summary automatically as token pressure builds, on demand with `/compact`, oversized tool outputs can be trimmed first, and images an image-capable route can no longer send are replaced with placeholders. An optional resilience policy bounds auxiliary calls and rejects requests that already exceed the logged capacity before provider dispatch. The shipped `dsh` base enables the core feature by default; the resilience policy remains opt-in through its bundle. The token measurement that decides when to condense lives in a separate LLM-family service.
 
 ## Table of Contents
 
@@ -28,6 +28,7 @@ Each package below provides one piece of the feature; open a package page for ho
 |---|---|---|
 | [`compaction/`](compaction/README.md) | The shared condensation contract: the operations and summary format every backend and trigger use | `ctx.compaction` |
 | [`compaction-basic/`](compaction-basic/README.md) | Automatic condensation of older history into a summary as token pressure builds | registers `ctx.compaction` |
+| [`compaction-resilience-policy/`](compaction-resilience-policy/README.md) | Bounds compaction calls and rejects projected context overflow before adapter dispatch | wraps global `llm/stream` |
 | [`compaction-tool-result-pruner/`](compaction-tool-result-pruner/README.md) | Trims oversized tool outputs so less history needs condensing | `ctx.toolResultPruner` |
 | [`compaction-image-offload/`](compaction-image-offload/README.md) | Replaces over-budget request images with placeholders when an image-capable route rejects a request | listens to `agent/request-error` |
 | [`command-compact/`](command-compact/README.md) | The `/compact` command to condense history on demand | registers on `ctx.commands` |
@@ -37,11 +38,12 @@ Each package below provides one piece of the feature; open a package page for ho
 <a id="related-documentation"></a>
 ## Related documentation
 
-Start with the subsystem reference for the shared vocabulary, then read the two Agent Notes for the design rationale.
+Start with the subsystem reference for the shared vocabulary, then read the Agent Notes for the design rationale.
 
 - [Compaction subsystem reference](../../docs/subsystems/compaction.md) — the condensation vocabulary, results, and service behavior.
 - [Compaction capability-seam Agent Note](../../.agents/notes/implemented/feature/2026-06-18-compaction-capability-seam.md) — how the family is split and why it depends on session and LLM vocabulary.
 - [Queued manual compaction Agent Note](../../.agents/notes/implemented/feature/2026-07-30-queued-manual-compaction.md) — how on-demand `/compact` serializes against running turns.
+- [Purpose-scoped resilience Agent Note](../../.agents/notes/implemented/bug-fix/2026-09-03-purpose-scoped-compaction-resilience.md) — why bounded auxiliary calls and request admission remain an external policy.
 - [Capability seams](../../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md) — the Service Definition / Service Provider / Consumer split this family follows.
 
 <a id="dev-note"></a>

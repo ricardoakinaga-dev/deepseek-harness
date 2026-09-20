@@ -425,7 +425,10 @@ describe('tool-pwsh-persistent', () => {
     expect(missingStart).toContain('<response clipped>')
 
     session.mode = 'large'
-    expect(text(await call(ctx, owner, 'large'))).toContain('<response clipped>')
+    const clipped = text(await call(ctx, owner, 'large'))
+    expect(clipped).toContain('<response clipped>')
+    expect(clipped).toContain('Narrow the command output or redirect it to a file')
+    expect(clipped).not.toContain('part of this file')
 
     session.mode = 'nonzero'
     expect(text(await call(ctx, owner, 'false'))).toBe('[exit code: 7]')
@@ -529,7 +532,8 @@ describe('tool-pwsh-persistent', () => {
     await call(ctx, owner, 'warm up')
     stub.sessions[0]!.mode = 'wait-for-abort'
     const result = await call(ctx, owner, 'hang')
-    expect(text(result)).toContain('timed out after 0 seconds or experienced an OOM error')
+    expect(text(result)).toContain('timed out after 10 ms')
+    expect(text(result)).not.toContain('OOM')
     expect(text(result)).toContain('partial output')
     expect(text(result)).toContain('next pwsh call starts from the workspace')
     expect(stub.sessions[0]?.closed).toContain('persistent pwsh command timed out')

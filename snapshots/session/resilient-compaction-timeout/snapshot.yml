@@ -1,0 +1,9 @@
+version: 1
+scenario: resilient-compaction-timeout
+profile: headless
+composition: resilient-compaction-timeout
+recording: authored
+header:
+  class: resilient-compaction-timeout
+  pin: true
+  toolSchemasSource: text-turn

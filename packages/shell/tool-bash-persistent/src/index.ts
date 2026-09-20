@@ -11,13 +11,9 @@ import type { TerminalReadResult, TerminalSessionId } from '@deepseek-ai/dsh-ter
 import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-// TODO: Replace the file-search advice; arbitrary command output need not come from a searchable file.
-const TRUNCATED_MESSAGE = '<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>'
+const TRUNCATED_MESSAGE = '<response clipped><NOTE>Command output exceeded the configured limit. Narrow the command output or redirect it to a file, then inspect the relevant section.</NOTE>'
 const LOST_PREFIX_MESSAGE = '<response clipped><NOTE>The beginning of this command output was dropped by the terminal scrollback limit. The following text is the earliest retained output.</NOTE>\n'
 const SHELL_RESET_MESSAGE = 'The persistent bash shell was reset; the next bash call starts from the workspace with a fresh current directory and environment.'
-// Status trailer for a command that never reported an exit code; settled
-// commands append `[Command finished with exit code N]` instead (see renderCaptured).
-const TIMEOUT_STATUS_MARKER = '[Command timed out or OOM]'
 const TIMEOUT_CODE = 'PERSISTENT_BASH_TIMEOUT'
 // One page is enough to find a just-emitted completion marker; the full
 // scrollback is assembled only when a command settles or needs partial output.
@@ -346,9 +342,8 @@ async function executeCommand(
       )
       await shells.reset(owner, 'persistent bash command timed out')
       return [
-        // TODO: Report a timeout only; this signal does not establish an OOM.
-        `Your command timed out after ${Math.round(timedOut.timeoutMs / 1000)} seconds or experienced an OOM error. Below is partial output:`,
-        appendStatusMarker(partial, TIMEOUT_STATUS_MARKER),
+        `Your command timed out after ${timedOut.timeoutMs} ms. Below is partial output:`,
+        partial,
         SHELL_RESET_MESSAGE,
       ].join('\n')
     }

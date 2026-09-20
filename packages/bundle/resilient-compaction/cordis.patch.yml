@@ -1,0 +1,14 @@
+# Opt-in resilience controls extracted from deepseek-harness-v2 without
+# replacing the official compaction backend or copying any shipped preset.
+# The global listener reaches compaction engines mounted inside preset realms.
+
+- insert:
+    - id: compaction-resilience-policy
+      name: '@deepseek-ai/dsh-compaction-resilience-policy'
+      config:
+        compactionMaxTokens: 4096
+        compactionReasoningEffort: 'off'
+        compactionTimeoutMs: 480000
+        requestPreflight: true
+        requestSafetyMarginTokens: 256
+        requestOutputReserveTokens: 1024

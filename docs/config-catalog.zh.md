@@ -517,6 +517,32 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 
 来源：[`packages/compaction/compaction-basic/src/types.ts:38`](../packages/compaction/compaction-basic/src/types.ts)
 
+<a id="deepseek-aidsh-compaction-resilience-policy"></a>
+
+## `@deepseek-ai/dsh-compaction-resilience-policy`
+
+需要：`llm` · `sessions` · `tokenMeter`
+
+```ts config-catalog
+/** Configurable compaction and request-admission limits. */
+export interface Config {
+  /** Maximum output tokens sent by calls whose purpose is `compaction`. */
+  compactionMaxTokens?: number
+  /** Reasoning effort sent by calls whose purpose is `compaction`; omitted to preserve the caller/provider choice. */
+  compactionReasoningEffort?: string
+  /** Total cooperative deadline for one compaction stream, in milliseconds. */
+  compactionTimeoutMs?: number
+  /** Whether loop-built requests are checked against their logged context capacity before adapter dispatch. */
+  requestPreflight?: boolean
+  /** Additional headroom reserved inside the model context window. */
+  requestSafetyMarginTokens?: number
+  /** Output reserve used when a loop-built request has no explicit `maxTokens`. */
+  requestOutputReserveTokens?: number
+}
+```
+
+来源：[`packages/compaction/compaction-resilience-policy/src/index.ts:33`](../packages/compaction/compaction-resilience-policy/src/index.ts)
+
 <a id="deepseek-aidsh-compaction-tool-result-pruner"></a>
 
 ## `@deepseek-ai/dsh-compaction-tool-result-pruner`
@@ -3050,7 +3076,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/tool-bash-persistent/src/index.ts:435`](../packages/shell/tool-bash-persistent/src/index.ts)
+来源：[`packages/shell/tool-bash-persistent/src/index.ts:430`](../packages/shell/tool-bash-persistent/src/index.ts)
 
 <a id="deepseek-aidsh-tool-fs"></a>
 
@@ -3231,7 +3257,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/tool-pwsh-persistent/src/index.ts:472`](../packages/shell/tool-pwsh-persistent/src/index.ts)
+来源：[`packages/shell/tool-pwsh-persistent/src/index.ts:470`](../packages/shell/tool-pwsh-persistent/src/index.ts)
 
 <a id="deepseek-aidsh-tool-ralph"></a>
 
@@ -3921,6 +3947,7 @@ export interface Config {
 - `@deepseek-ai/dsh-output-retention`（[`packages/util/output-retention/src/index.ts`](../packages/util/output-retention/src/index.ts)）
 - `@deepseek-ai/dsh-package-manifest` ([`packages/util/package-manifest/src/index.ts`](../packages/util/package-manifest/src/index.ts))
 - `@deepseek-ai/dsh-remote-mock`（[`packages/test-support/remote-mock/src/index.ts`](../packages/test-support/remote-mock/src/index.ts)）
+- `@deepseek-ai/dsh-resilient-compaction`（[`packages/bundle/resilient-compaction/src/index.ts`](../packages/bundle/resilient-compaction/src/index.ts)）
 - `@deepseek-ai/dsh-sandbox-windows-acl`（[`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts)）
 - `@deepseek-ai/dsh-scope`（[`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts)）
 - `@deepseek-ai/dsh-sdk-client`（[`packages/sdk/client/src/index.ts`](../packages/sdk/client/src/index.ts)）

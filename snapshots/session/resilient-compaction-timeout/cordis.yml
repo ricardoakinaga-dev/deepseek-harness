@@ -1,0 +1,30 @@
+# Purpose-scoped compaction timeout composition. The deterministic adapter
+# makes the second loop request exceed its newly resolved model capacity, then
+# settles silently when the compaction deadline aborts its auxiliary stream.
+
+- id: llm-deepseek
+  name: '@deepseek-ai/dsh-llm-deepseek'
+  disabled: true
+
+- id: session-persistence-jsonl
+  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  config:
+    root: !!js dshHomePath('sessions')
+    compression: none
+
+- id: compaction-basic
+  name: '@deepseek-ai/dsh-compaction-basic'
+  config:
+    maxTokens: 8192
+
+- insert:
+    - id: resilient-compaction-snapshot-adapter
+      name: './resilient-compaction-snapshot-adapter.mjs'
+    - id: compaction-resilience-policy
+      name: '@deepseek-ai/dsh-compaction-resilience-policy'
+      config:
+        compactionMaxTokens: 128
+        compactionTimeoutMs: 25
+        requestPreflight: true
+        requestSafetyMarginTokens: 0
+        requestOutputReserveTokens: 1
