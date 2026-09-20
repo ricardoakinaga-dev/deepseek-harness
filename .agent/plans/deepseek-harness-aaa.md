@@ -1,6 +1,6 @@
 # DeepSeek Harness Triple-A quality program — ExecPlan
 
-<!-- engineering-framework: active_action_id=NONE -->
+<!-- engineering-framework: active_action_id=AAA-001:A02 -->
 
 ## Purpose / Big Picture
 
@@ -17,6 +17,10 @@ The current repository is not Triple-A. The broader 2026-09-20 audit recorded si
 - [x] (2026-09-20T17:42:00-03:00) Restore audit-source provenance, align AAA-013 with fail-closed containment, and name the mandatory risk-document pairs in `AAA-QB-v1.2`.
 - [x] (2026-09-20T18:02:00-03:00) Pin every mutable normative source, remove the stale static-root authority phrase, and specify state-last task and gate transitions in `AAA-QB-v1.3`.
 - [x] (2026-09-20T18:30:00-03:00) Move implementation readiness to the first IMPLEMENT action, remove the gate-event ordering ambiguity, cover weighted approval and dynamic extensions in `AAA-QB-v1.4`, and bind final attestation to the immutable candidate.
+- [x] (2026-09-20T18:13:00-03:00) Commit and push the independently approved planning checkpoint as `b7e934dc9d`, with `HEAD` equal to `origin/custom/main` and a clean worktree.
+- [x] (2026-09-20T18:16:00-03:00) Record the immutable checkpoint and supported host environment in `.agent/evidence/AAA-001/environment.json`.
+- [ ] Reproduce and classify each reported failing leaf and required unexecuted release lane in the canonical M0 evidence matrix.
+
 - [ ] Reproduce the baseline at one pristine immutable commit before changing product behavior.
 - [ ] Execute milestones M1 through M8 and update this plan, the backlog, ledgers, and program page at every transition.
 
@@ -173,11 +177,11 @@ Advance between actions through a third state-last checkpoint transaction. Persi
 
 From `/home/ricardo/deepseek-harness`:
 
-1. [NONE] Run the engineering state checker, Gauntlet validator, customization-policy verifier, focused documentation checks, full documentation synchronization, lint, and `git diff --check`; completion is every selected command returning exit status zero with the exact command recorded in the handoff.
+1. [AAA-001:A02] Reproduce and classify every reported failing leaf and required unexecuted release lane in `.agent/evidence/AAA-001/findings.json` and `.agent/evidence/AAA-001/commands.jsonl`; completion is every source finding and required lane having one command record, observed status, classification, owner, and retained-output digest.
 2. Commit and push the complete planning checkpoint only after step 1 passes, then confirm `HEAD` equals `origin/custom/main` and the worktree is clean.
 3. Prepare AAA-001, move its backlog record from TODO to READY, append the declared DECISION transition with a null action pointer, then update state last with `last_event_id`, incremented `state_revision`, READY status, null task/action pointers, `next_gate: AUDIT_RESOLVED`, and the transition timestamp.
-4. Start `AAA-001:A01` by updating this plan's marker and first step, moving only AAA-001 from READY to IN_PROGRESS, appending START with the exact action ID, then updating state last with matching task/action pointers, event ID, incremented revision, `AUDIT/INSPECT`, and timestamp.
-5. Create `.agent/evidence/AAA-001/environment.json` and verify its required fields. When `AAA-001:A01` completes, install this exact successor through the checkpoint transaction: `AAA-001:A02`, kind `REPRODUCE`, summary `Reproduce and classify every reported failing leaf and required unexecuted release lane`, target `.agent/evidence/AAA-001/findings.json and commands.jsonl`, completion signal `Every source finding and required lane has one command record, observed status, classification, owner, and retained-output digest`.
+4. Start the environment-capture action by updating this plan's marker and first step, moving only AAA-001 from READY to IN_PROGRESS, appending START with the exact action ID, then updating state last with matching task/action pointers, event ID, incremented revision, `AUDIT/INSPECT`, and timestamp.
+5. Create `.agent/evidence/AAA-001/environment.json` and verify its required fields. When the environment-capture action completes, install this exact successor through the checkpoint transaction: `AAA-001:A02`, kind `REPRODUCE`, summary `Reproduce and classify every reported failing leaf and required unexecuted release lane`, target `.agent/evidence/AAA-001/findings.json and commands.jsonl`, completion signal `Every source finding and required lane has one command record, observed status, classification, owner, and retained-output digest`.
 
 ## Validation and Acceptance
 

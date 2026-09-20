@@ -5,16 +5,16 @@
   "project_profile": "BROWNFIELD",
   "work_mode": "NORMAL",
   "work_mode_overlays": [],
-  "lifecycle_stage": "EVOLUTION",
-  "active_activity": "PLAN",
+  "lifecycle_stage": "AUDIT",
+  "active_activity": "RUN",
   "engineering_tier": "T3_SYSTEM",
   "risk_level": "HIGH",
   "blast_radius": "SYSTEM",
-  "status": "TODO",
+  "status": "IN_PROGRESS",
   "active_execplan": ".agent/plans/deepseek-harness-aaa.md",
-  "active_task": null,
-  "verification_state": "NOT_RUN",
-  "repository_state": "Current custom/main checkout with pre-existing audit documentation changes; remediation has not started",
+  "active_task": "AAA-001",
+  "verification_state": "PARTIAL",
+  "repository_state": "Baseline commit b7e934dc9d environment captured; worktree contains the AAA-001 action checkpoint",
   "instruction_scope_refs": [
     "AGENTS.md",
     "docs/AGENTS.md",
@@ -22,10 +22,10 @@
     ".agent/PLANS.md"
   ],
   "last_gate_record": null,
-  "last_event_id": null,
-  "state_revision": 1,
+  "last_event_id": "EVT-AAA-001-CHECKPOINT-001",
+  "state_revision": 4,
   "next_gate": "AUDIT_RESOLVED",
-  "active_action_id": null,
+  "active_action_id": "AAA-001:A02",
   "blocked_by": [],
   "human_approval_required": [
     "AAA-008: approve the intended model request sequence if the extra request is confirmed behavior",
@@ -38,5 +38,5 @@
     "AAA-020: approve public source-export compatibility policy",
     "AAA-022: approve broad lint-rule or compiler-default changes after focused probes"
   ],
-  "updated_at": "2026-09-20T16:52:37-03:00"
+  "updated_at": "2026-09-20T18:17:00-03:00"
 }
