@@ -28,7 +28,7 @@ The upstream-safe compaction improvements are implemented. This is a selective e
 |---|---|
 | Implemented | Compaction output cap, optional reasoning selection, cooperative total deadline, immutable-request failure, oversized loop-request admission, installable profile layer, and durable recovery snapshot |
 | Retained from official upstream | Fail-closed summary validation, model-free pruning, durable surface replacement, context-overflow retry, OAuth support, foreground shell/subprocess results, and output spill |
-| Proposed | Multi-call compaction provenance, decomposed quality evaluation, loader-owned integrity metadata, data-flow-specific redaction, and operation-level Web/workflow additions |
+| Proposed | Session events for multi-call compaction, decomposed quality evaluation, loader-owned integrity metadata, data-flow-specific redaction, and operation-level Web/workflow additions |
 | Requires a focused upstream change | Durable result parity for persistent terminal tools; a removable plugin cannot safely replace the registered `bash` or `pwsh` tools |
 | Excluded | In-process Git updater, generic timestamp/UUID execution classifier, copied presets, private-field patches, and generated engineering corpora as runtime content |
 

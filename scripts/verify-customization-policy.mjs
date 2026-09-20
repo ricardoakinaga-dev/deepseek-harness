@@ -15,9 +15,31 @@ const EXPECTED_REPOSITORY = {
   mirrorBranch: 'master',
   integrationBranch: 'custom/main',
   updateStrategy: 'merge',
+  designStandard: 'docs/customization/improvement-development-standard.md',
 }
 const KINDS = new Set(['extension', 'upstream-patch', 'governance'])
-const STATUSES = new Set(['active', 'retiring'])
+const STATUSES = new Set(['proposed', 'active', 'retiring'])
+const SOLUTION_TYPES = new Map([
+  ['extension', new Set([
+    'configuration',
+    'profile-patch',
+    'plugin',
+    'bundle',
+    'plugin-and-bundle',
+    'skill',
+    'library',
+    'capability-seam',
+  ])],
+  ['upstream-patch', new Set(['upstream-package-change'])],
+  ['governance', new Set(['repository-automation'])],
+])
+const PACKAGED_EXTENSION_TYPES = new Set([
+  'plugin',
+  'bundle',
+  'plugin-and-bundle',
+  'library',
+  'capability-seam',
+])
 
 /**
  * Return whether a repository path is owned by one policy pattern.
@@ -73,7 +95,11 @@ export function validateCustomizationPolicy(input, changedPaths) {
       ids.add(id)
     }
     if (!KINDS.has(candidate.kind)) errors.push(`${label}.kind must be extension, upstream-patch, or governance`)
-    if (!STATUSES.has(candidate.status)) errors.push(`${label}.status must be active or retiring`)
+    const permittedSolutionTypes = SOLUTION_TYPES.get(candidate.kind)
+    if (typeof candidate.solutionType !== 'string' || permittedSolutionTypes?.has(candidate.solutionType) !== true) {
+      errors.push(`${label}.solutionType is not permitted for kind ${JSON.stringify(candidate.kind)}`)
+    }
+    if (!STATUSES.has(candidate.status)) errors.push(`${label}.status must be proposed, active, or retiring`)
     if (typeof candidate.summary !== 'string' || candidate.summary.trim() === '') errors.push(`${label}.summary must be non-empty`)
     if (!isStringArray(candidate.paths) || candidate.paths.length === 0) {
       errors.push(`${label}.paths must be a non-empty string array`)
@@ -82,7 +108,10 @@ export function validateCustomizationPolicy(input, changedPaths) {
     }
     if (candidate.kind === 'extension') {
       if (candidate.optIn !== true) errors.push(`${label}.optIn must be true for an extension`)
-      if (!isStringArray(candidate.packageRoots) || candidate.packageRoots.length === 0 || candidate.packageRoots.some(path => !path.startsWith('packages/') || !path.endsWith('/'))) {
+      if (PACKAGED_EXTENSION_TYPES.has(candidate.solutionType)
+        && (!isStringArray(candidate.packageRoots)
+          || candidate.packageRoots.length === 0
+          || candidate.packageRoots.some(path => !path.startsWith('packages/') || !path.endsWith('/')))) {
         errors.push(`${label}.packageRoots must contain package directories ending in /`)
       }
     }

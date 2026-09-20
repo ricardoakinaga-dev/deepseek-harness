@@ -89,7 +89,7 @@ dsh plugin --profile <name> remove @deepseek-ai/dsh-resilient-compaction
 - **`off` 是适配器自有的强度 id**——不公布该值的模型会拒绝压缩；请用受支持的低成本 id 覆盖完整策略配置项，或省略 `compactionReasoningEffort`。
 - **该层依赖 base 服务**——必须存在 `llm`、`sessions` 与 `tokenMeter`；缺少它们的极简自定义 profile 会让插件等待依赖。
 - **后续配置 patch 会替换完整配置块**——调优一个字段时，请重述希望保留的每个值。
-- **策略的来源记录限制仍然适用**——在依赖事件日志中的有效推理强度或降低后的输出上限之前，请查阅其 README。
+- **策略的事件日志限制仍然适用**——在依赖事件日志中的有效推理强度或降低后的输出上限之前，请查阅其 README。
 
 <a id="dev-note"></a>
 ### 开发备注

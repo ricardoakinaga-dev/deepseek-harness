@@ -133,8 +133,8 @@ These constraints define where the policy deliberately delegates or where the of
 - **Admission uses the token meter's estimate** — the safety margin reduces estimator risk but cannot turn heuristic tokenization into provider-exact pricing.
 - **Unknown or mismatched capacity delegates** — no preflight is attempted without a live session and a latest `request/context` matching the request's provider and model.
 - **The reasoning effort must exist on the selected model** — an unsupported configured id fails with the LLM service's `UNSUPPORTED_REASONING_EFFORT` result instead of silently falling back.
-- **Official compaction provenance has no reasoning or timeout fields** — `compaction/summary` records provider, model, output cap, output, and usage; a waterfall-applied reasoning choice and a successful deadline are not represented in that event. The package emits no custom session event because removable bundles must not make their historical logs unreadable.
-- **The backend-requested cap remains in compaction provenance** — the current `compaction-basic` result records its own configured `maxTokens`, even when this waterfall lowers the adapter request. Full effective auxiliary-call provenance requires an upstream event/API extension rather than a bundle-local event.
+- **Official `compaction/summary` has no reasoning or timeout fields** — the event records provider, model, output cap, output, and usage; a waterfall-applied reasoning choice and a successful deadline are not represented. The package emits no custom session event because removable bundles must not make their historical logs unreadable.
+- **`compaction/summary` keeps the backend-requested cap** — the current `compaction-basic` result records its own configured `maxTokens`, even when this waterfall lowers the adapter request. Recording every effective auxiliary-call request requires an upstream event/API extension rather than a bundle-local event.
 
 <a id="dev-note"></a>
 ### Dev Note
@@ -142,6 +142,6 @@ These constraints define where the policy deliberately delegates or where the of
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-The package intentionally contains no hierarchical summarizer. Multiple hidden model calls would not fit the current one-call `llmStreamCall` provenance marker; the [fork extraction proposal](../../../.agents/notes/proposed/architecture/2026-09-03-fork-v2-extension-extraction.md) defines the prerequisite before that algorithm can be ported.
+The package intentionally contains no hierarchical summarizer. Multiple hidden model calls would not fit the current one-call `llmStreamCall` marker; the [fork extraction proposal](../../../.agents/notes/proposed/architecture/2026-09-03-fork-v2-extension-extraction.md) defines the prerequisite before that algorithm can be ported.
 
 </details>

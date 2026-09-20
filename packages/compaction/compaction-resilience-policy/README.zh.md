@@ -133,8 +133,8 @@ kind: "package-reference"
 - **准入使用 token meter 的估算**——安全余量会降低估算风险，但无法把启发式分词变成提供方精确计价。
 - **容量未知或不匹配时委派**——如果没有实时会话，或最新 `request/context` 与请求的提供方和模型不匹配，则不进行预检。
 - **推理强度必须存在于所选模型**——不受支持的配置 id 会以 LLM 服务的 `UNSUPPORTED_REASONING_EFFORT` 结果失败，而不会静默回退。
-- **官方压缩来源记录没有推理或超时字段**——`compaction/summary` 记录提供方、模型、输出上限、输出与用量；waterfall 应用的推理选择和成功截止时间不在该事件中表示。此包不发出自定义会话事件，因为可移除组合包不得使其历史日志变得不可读。
-- **压缩来源记录仍保留后端请求的上限**——即使此 waterfall 降低适配器请求，当前 `compaction-basic` 结果也会记录其自身配置的 `maxTokens`。完整的有效辅助调用来源需要上游事件／API 扩展，而不是组合包本地事件。
+- **官方 `compaction/summary` 没有推理或超时字段**——该事件记录提供方、模型、输出上限、输出与用量；waterfall 应用的推理选择和成功截止时间不在其中表示。此包不发出自定义会话事件，因为可移除组合包不得使其历史日志变得不可读。
+- **`compaction/summary` 保留后端请求的上限**——即使此 waterfall 降低适配器请求，当前 `compaction-basic` 结果也会记录其自身配置的 `maxTokens`。记录每个有效辅助调用请求需要上游事件／API 扩展，而不是组合包本地事件。
 
 <a id="dev-note"></a>
 ### 开发备注
@@ -142,6 +142,6 @@ kind: "package-reference"
 <details>
 <summary>维护者的工作上下文——点击展开</summary>
 
-此包有意不包含分层摘要器。多个隐藏模型调用不符合当前单调用 `llmStreamCall` 来源标记；[fork 提取提案](../../../.agents/notes/proposed/architecture/2026-09-03-fork-v2-extension-extraction.zh.md)定义了移植该算法之前的先决条件。
+此包有意不包含分层摘要器。多个隐藏模型调用不符合当前单调用 `llmStreamCall` 标记；[fork 提取提案](../../../.agents/notes/proposed/architecture/2026-09-03-fork-v2-extension-extraction.zh.md)定义了移植该算法之前的先决条件。
 
 </details>

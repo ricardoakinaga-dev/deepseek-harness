@@ -47,35 +47,9 @@ When `deepseek-official` already exists, replace `git remote add` with `git remo
 <a id="model-an-improvement"></a>
 ## Model an improvement
 
-Choose the least coupled kind that preserves the behavior:
+Follow [the improvement development standard](improvement-development-standard.md) before editing production code. It owns the mandatory design sequence, solution-type selection, design brief, compatibility rules, machine-readable record, and verification evidence. This guide owns branch and update operations only.
 
-| Kind | Use when | Required maintenance record |
-|---|---|---|
-| `extension` | Public Cordis events, services, profile patches, and package exports are sufficient | Opt-in package roots; no edits to official production source |
-| `upstream-patch` | The official source must change because no public extension preserves the required behavior | Focused paths and an `upstreamPlan` pointing to extraction or upstream work |
-| `governance` | The change controls this fork's repository workflow rather than product runtime | Repository-only paths; no runtime package source |
-
-An extension normally contains one behavior package, its tests and README, and a small optional bundle that mounts it. It must not copy a shipped preset, modify `agent-loop`, replace an already registered service or tool, or add model-visible state that official session events cannot reconstruct. If one of those changes is necessary, first propose the narrow official API or durable event change; keep the optional behavior separate.
-
-Add one entry to `.agents/customization-policy.json` before the implementation leaves its topic branch. This abbreviated record is the reusable template:
-
-```json
-{
-  "id": "improvement-id",
-  "kind": "extension",
-  "status": "active",
-  "summary": "One current-state sentence.",
-  "optIn": true,
-  "packageRoots": ["packages/<group>/<package>/"],
-  "paths": [
-    "packages/<group>/<package>/",
-    "packages/bundle/<bundle>/",
-    "docs/<owning-guide>*"
-  ]
-}
-```
-
-The record owns every custom path exactly once. Shared generated files belong to the improvement that causes their content. A core patch uses `kind: "upstream-patch"` and replaces `optIn` and `packageRoots` with an `upstreamPlan`; it remains small enough to submit or retire independently.
+The policy `kind` describes maintenance: an opt-in `extension`, a focused `upstream-patch` with an exit plan, or repository `governance`. The required `solutionType` describes implementation: configuration, profile patch, plugin, bundle, skill, library, complete capability seam, upstream package change, or repository automation. Every custom path has exactly one record in `.agents/customization-policy.json`.
 
 <a id="update-from-upstream"></a>
 ## Update from upstream

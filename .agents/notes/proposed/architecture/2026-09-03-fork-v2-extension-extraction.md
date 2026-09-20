@@ -16,7 +16,7 @@ Treat the fork as an evidence corpus and extract only behavior with a named owne
 
 The extraction will proceed in the following dependency order:
 
-1. Propose upstream auxiliary-call provenance that records the effective request controls and can represent multiple compaction calls without overloading `compaction/summary.llmStreamCall`. Only after that contract lands may a hierarchical summarizer become an alternative Compaction Service Provider.
+1. Propose upstream auxiliary-call events that record the effective request controls and can represent multiple compaction calls without overloading `compaction/summary.llmStreamCall`. Only after that contract lands may a hierarchical summarizer become an alternative Compaction Service Provider.
 2. Decompose the fork's quality framework into a complete evaluation seam: a Service Definition for evidence and verdicts, at least one replaceable local Service Provider, and an explicit Consumer that decides whether evaluation affects a workflow. Scores will be session-visible only when reconstructable events and projection ownership are defined.
 3. Propose loader-owned extension metadata and content-integrity verification separately from execution isolation. The loader will own manifest validation and package identity; an actual sandbox provider will own authority reduction if one is required.
 4. Split redaction by data flow. Telemetry policy will use the existing `session-telemetry/record` redact waterfall; model-input and persistence transformations will require their own explicit contracts and must not silently rewrite one another's data.
@@ -47,4 +47,4 @@ The fork's generic execution-result classifier, existing foreground execution re
 
 ## Risks
 
-The public extension surface may be insufficient for provenance, model-input redaction, or loader isolation, so those slices can remain blocked on narrowly reviewed upstream changes. Evaluation and hierarchical summarization can add significant token and latency costs if consumers enable them without explicit budgets. Integrity metadata can create false confidence if documentation blurs identity verification with authority isolation. A thin bundle reduces merge drift but still needs compatibility testing against each supported official release.
+The public extension surface may be insufficient for recording effective request controls, model-input redaction, or loader isolation, so those slices can remain blocked on narrowly reviewed upstream changes. Evaluation and hierarchical summarization can add significant token and latency costs if consumers enable them without explicit budgets. Integrity metadata can create false confidence if documentation blurs identity verification with authority isolation. A thin bundle reduces merge drift but still needs compatibility testing against each supported official release.

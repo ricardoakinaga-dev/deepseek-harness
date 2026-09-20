@@ -18,7 +18,7 @@ For requests carrying the exact process-local `dsh-agent-loop` marker, the plugi
 
 `@deepseek-ai/dsh-resilient-compaction` installs the policy as an opt-in profile bundle with local-model defaults: 4,096 output tokens, reasoning effort `off`, a 480-second deadline, request admission, a 256-token margin, and a 1,024-token fallback output reserve. The listener is global so one host insertion receives calls from compaction engines inside standing preset compositions. The output budget is large enough for the official structured checkpoint prompt to terminate on the validated local model; a smaller truncating budget cannot be treated as a successful summary. The bundle inserts a new row and copies or patches no official preset.
 
-The plugin emits no custom session event. The public `Session.append` API cannot mark a plugin-defined event ignorable, so such an event would make historical logs unreadable after removing the bundle. Current `compaction/summary` provenance also cannot record the effective reasoning choice or distinguish a waterfall-lowered cap from the backend-requested cap; that limitation stays explicit until an upstream vocabulary extension exists.
+The plugin emits no custom session event. The public `Session.append` API cannot mark a plugin-defined event ignorable, so such an event would make historical logs unreadable after removing the bundle. Current `compaction/summary` fields also cannot record the effective reasoning choice or distinguish a waterfall-lowered cap from the backend-requested cap; that limitation stays explicit until an upstream vocabulary extension exists.
 
 This decision extends the [compaction capability seam](../feature/2026-06-18-compaction-capability-seam.md), [replay token meter](../../archived/architecture/2026-07-15-replay-token-meter-service.md), [context-overflow recovery](../architecture/2026-07-10-after-call-compaction-pressure-and-overflow-recovery.md), [reconstructable request](../architecture/2026-07-05-reconstructable-requests.md), and [profile bundle](../architecture/2026-08-05-profile-plugin-bundles.md) decisions. Each remains active and owns its broader contract; the overlap is partial, so none is superseded or eligible for archival.
 
@@ -32,7 +32,7 @@ This decision extends the [compaction capability seam](../feature/2026-06-18-com
 
 **Race the provider against a timer and return immediately.** Rejected because abandoned provider work can continue consuming resources and mutate state after the caller sees a terminal result. The deadline is cooperative and returns only after the downstream iterator settles.
 
-**Port hierarchical summarization behind one `llmStreamCall` marker.** Rejected because the current durable marker identifies exactly one auxiliary call. Hidden intermediate calls would break request reconstruction and usage provenance.
+**Port hierarchical summarization behind one `llmStreamCall` marker.** Rejected because the current durable marker identifies exactly one auxiliary call. Hidden intermediate calls would break request reconstruction and attribution of token usage to the calls that produced it.
 
 ## Testing
 
@@ -42,4 +42,4 @@ Deterministic fake-timer tests cover timeout ownership, upstream cancellation, d
 
 Local deployments can bound the exact auxiliary call that caused the observed stall while continuing to use the official compaction engine and presets. Oversized loop requests fail before provider work and enter the official recovery path through its canonical error code. Ordinary model calls remain unchanged, and removing the bundle adds no unreadable durable vocabulary.
 
-The policy remains limited by cooperative adapters and heuristic token measurement. Models that do not advertise the configured reasoning effort reject it explicitly. Successful compaction records retain the backend-requested cap and omit reasoning and deadline facts, so complete effective auxiliary-call provenance remains an upstream prerequisite rather than a bundle claim.
+The policy remains limited by cooperative adapters and heuristic token measurement. Models that do not advertise the configured reasoning effort reject it explicitly. Successful compaction records retain the backend-requested cap and omit reasoning and deadline facts, so recording every effective auxiliary-call request remains an upstream prerequisite rather than a bundle claim.

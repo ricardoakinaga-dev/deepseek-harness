@@ -89,7 +89,7 @@ These limits define the bundle's deployment boundary.
 - **`off` is an adapter-owned effort id** — a model that does not advertise it rejects compaction; override the complete policy row with a supported low-cost id or omit `compactionReasoningEffort`.
 - **The layer expects the base services** — `llm`, `sessions`, and `tokenMeter` must exist; a minimal custom profile without them leaves the plugin waiting for dependencies.
 - **Later config patches replace the complete block** — restate every value you want to retain when tuning one field.
-- **The policy's provenance limitations still apply** — consult its README before relying on the event log for the effective reasoning effort or lowered output cap.
+- **The policy's event-log limitations still apply** — consult its README before relying on the event log for the effective reasoning effort or lowered output cap.
 
 <a id="dev-note"></a>
 ### Dev Note

@@ -38,7 +38,7 @@ Fork 的压缩工作正确强调快速失败的摘要、过大请求预防、回
 | 压缩快速失败与回放恢复 | `compaction-basic` 已经拒绝截断／无效摘要，并且只在持久表面取得进展后重试 | 保留官方实现；不添加重复后端 |
 | 过大请求预防 | Agent loop 请求暴露精确身份；会话记录路由容量；token meter 暴露回放压力 | 已作为 `compaction-resilience-policy` 的分派前策略实现 |
 | 压缩输出、推理与耗时限制 | `purpose: compaction` 与协作式信号是公共接口；目前没有随附的用途策略 | 已作为全局 LLM（大语言模型）策略和可选组合包实现 |
-| 分层多调用摘要 | 当前 `compaction/summary.llmStreamCall` 标识一次辅助调用 | 延期到 upstream 来源记录能够表示每次中间调用；绝不把调用隐藏在单调用标记后 |
+| 分层多调用摘要 | 当前 `compaction/summary.llmStreamCall` 标识一次辅助调用 | 延期到 upstream 会话事件能够表示每次中间调用；绝不把调用隐藏在单调用标记后 |
 | 质量与本地评估框架 | 官方会话事件与投影可以承载证据，但 fork 混合了评分、策略与报告 | 仅拆分为带独立提供方与消费方的完整评估 seam；不移植单体实现 |
 | Upstream 协调更新器 | 官方组合包、profile patch、包管理器更新与 Git 已经拥有组合及源码更新 | 不交付进程内 Git 更新器；它在 agent 沙箱外执行并重复受信工具 |
 | 扩展完整性与安全 manifest | Loader 包具有清单与生命周期所有权，但同进程插件仍拥有宿主权限 | 为 loader 提案保留 manifest（元数据清单）／完整性想法；不把哈希描述成沙箱隔离 |

@@ -12,9 +12,9 @@ Fork 需要一个稳定位置来保存本地产品改进，同时不能让官方
 
 本地和远端 `master` 是 `deepseek-official/master` 的快进镜像。永久 `custom/main` 分支包含持续维护的定制差异，并通过普通 merge commit 接收 `master` 的更新。改进分支从 `custom/main` 创建并合回该分支；永久分支既不 rebase，也不强制推送。
 
-[定制策略](../../../customization-policy.json)记录 remote、分支职责、合并策略和每项活动改进。相对于 `master` 的每个变更路径恰好属于一项改进，其类别为选择性启用的 `extension`、具有退出计划的 `upstream-patch` 或仓库 `governance`。扩展记录列出自己的新包根目录，验证器会拒绝这些根目录以外的生产源代码变更。专用工作流会在定制分支推送以及以 `custom/main` 为目标的 pull request 上运行验证器。
+[定制策略](../../../customization-policy.json)记录 remote、分支职责、合并策略，以及每项已提议、活动中或正在退役的改进。相对于 `master` 的每个变更路径恰好属于一项改进，其类别为选择性启用的 `extension`、具有退出计划的 `upstream-patch` 或仓库 `governance`。每项记录还声明兼容的 `solutionType`；含包的扩展列出自己的新包根目录，验证器会拒绝这些根目录以外的生产源代码变更。专用工作流会在定制分支推送以及以 `custom/main` 为目标的 pull request 上运行验证器。
 
-[操作步骤](../../../../docs/customization/upstream-safe-customization.zh.md)负责克隆配置、更新命令、恢复方式和可复用的改进记录。[Fork 提取提案](../../proposed/architecture/2026-09-03-fork-v2-extension-extraction.zh.md)继续负责把实验行为转化为独立插件和完整能力 seam 的架构标准。
+[操作步骤](../../../../docs/customization/upstream-safe-customization.zh.md)负责克隆配置、更新命令和恢复方式。[改进开发标准](../../../../docs/customization/improvement-development-standard.zh.md)负责强制的编码前设计顺序、解决方案类型选择、兼容性规则、改进记录和证据要求。[Fork 提取提案](../../proposed/architecture/2026-09-03-fork-v2-extension-extraction.zh.md)继续负责把实验行为转化为独立插件和完整能力 seam 的架构标准。
 
 ## 考虑过的替代方案
 
@@ -28,4 +28,4 @@ Fork 需要一个稳定位置来保存本地产品改进，同时不能让官方
 
 ## 后果
 
-此 fork 保留精确的官方比较点，同时让定制版本拥有稳定的提交标识。上游更新仍可能在有意分类为 `upstream-patch` 的文件或共享生成文件中发生冲突，但每个冲突都有明确的改进所有者和提取路径。引入、移动或退役定制路径时都必须维护策略；这项成本能够防止隐性耦合累积。
+此 fork 保留精确的官方比较点，同时让定制版本拥有稳定的提交标识。上游更新仍可能在有意分类为 `upstream-patch` 的文件或共享生成文件中发生冲突，但每个冲突都有明确的改进所有者和提取路径。提议、引入、移动或退役改进或定制路径时，都必须投入设计和策略维护工作；这项成本能够防止解决方案类型漂移和隐性耦合累积。

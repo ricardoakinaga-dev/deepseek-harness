@@ -7,12 +7,14 @@
     "upstreamUrl": "https://github.com/deepseek-ai/deepseek-harness.git",
     "mirrorBranch": "master",
     "integrationBranch": "custom/main",
-    "updateStrategy": "merge"
+    "updateStrategy": "merge",
+    "designStandard": "docs/customization/improvement-development-standard.md"
   },
   "improvements": [
     {
       "id": "persistent-shell-diagnostics",
       "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
       "status": "active",
       "summary": "Keep persistent Bash and PowerShell truncation and timeout guidance accurate.",
       "upstreamPlan": "docs/customization/fork-v2-extraction.md#extraction-matrix",
@@ -26,6 +28,7 @@
     {
       "id": "resilient-compaction",
       "kind": "extension",
+      "solutionType": "plugin-and-bundle",
       "status": "active",
       "summary": "Add opt-in compaction request limits and profile composition without changing the official loop or presets.",
       "optIn": true,
@@ -53,6 +56,7 @@
     {
       "id": "upstream-safe-customization-governance",
       "kind": "governance",
+      "solutionType": "repository-automation",
       "status": "active",
       "summary": "Keep the official mirror clean and make every custom delta attributable to an extension, upstream patch, or repository policy.",
       "paths": [
@@ -61,6 +65,8 @@
         ".github/workflows/customization-policy.yml",
         "AGENTS.md",
         "docs/customization/README*",
+        "docs/customization/improvement-development-standard*",
+        "docs/customization/repository-configuration-report*",
         "docs/customization/upstream-safe-customization*",
         "scripts/verify-customization-policy.d.mts",
         "scripts/verify-customization-policy.mjs",

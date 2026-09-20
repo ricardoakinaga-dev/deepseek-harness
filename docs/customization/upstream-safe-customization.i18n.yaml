@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/upstream-safe-customization.md
-upstream-safe-customization.md: 8b84f1925126f36f081fd21031075e8ae665c0c7
-upstream-safe-customization.zh.md: fdbccb6d09e23062456c817e6311853b0a0cac32
+upstream-safe-customization.md: 5c1b9a8d3c5e60d2b51b125d365b0ec09cc57c5b
+upstream-safe-customization.zh.md: d4c36fd84b0b2d1537229247f10c0d1d7855f0d7

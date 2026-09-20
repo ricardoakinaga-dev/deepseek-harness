@@ -47,35 +47,9 @@ git config --local branch.custom/main.rebase false
 <a id="model-an-improvement"></a>
 ## 改进建模
 
-选择能够保持行为且耦合最少的类别：
+编辑生产代码前遵循[改进开发标准](improvement-development-standard.zh.md)。该标准负责强制设计顺序、解决方案类型选择、设计简报、兼容性规则、机器可读记录和验证证据。本指南只负责分支与更新操作。
 
-| 类别 | 使用条件 | 必需的维护记录 |
-|---|---|---|
-| `extension` | 公共 Cordis 事件、服务、profile patch 和包导出已经足够 | 选择性启用的包根目录；不修改官方生产源代码 |
-| `upstream-patch` | 因没有公共扩展能够保持所需行为，必须修改官方源代码 | 聚焦的路径，以及指向提取或上游工作的 `upstreamPlan` |
-| `governance` | 变更控制此 fork 的仓库工作流，而非产品运行时 | 仅限仓库路径；不含运行时包源代码 |
-
-一个扩展通常包含一个行为包、相应测试与 README，以及用于挂载该包的小型可选组合包。它不得复制已发布 preset、修改 `agent-loop`、替换已经注册的服务或工具，也不得添加官方 Session 事件无法重建的模型可见状态。如果必须进行其中任一变更，先提出范围狭窄的官方 API 或持久事件变更，并让可选行为保持独立。
-
-实现离开主题分支之前，在 `.agents/customization-policy.json` 中添加一个条目。以下缩略记录是可复用模板：
-
-```json
-{
-  "id": "improvement-id",
-  "kind": "extension",
-  "status": "active",
-  "summary": "One current-state sentence.",
-  "optIn": true,
-  "packageRoots": ["packages/<group>/<package>/"],
-  "paths": [
-    "packages/<group>/<package>/",
-    "packages/bundle/<bundle>/",
-    "docs/<owning-guide>*"
-  ]
-}
-```
-
-该记录对每个定制路径恰好拥有一次所有权。共享生成文件归导致其内容变化的改进所有。核心 patch 使用 `kind: "upstream-patch"`，并以 `upstreamPlan` 取代 `optIn` 和 `packageRoots`；其范围应足够小，以便独立提交到上游或独立退役。
+策略 `kind` 描述维护方式：选择性启用的 `extension`、具有退出计划的聚焦 `upstream-patch`，或仓库 `governance`。必需的 `solutionType` 描述实现方式：配置、profile patch、插件、组合包、skill、库、完整能力 seam、上游包变更或仓库自动化。每个定制路径在 `.agents/customization-policy.json` 中恰好有一项记录。
 
 <a id="update-from-upstream"></a>
 ## 从上游更新

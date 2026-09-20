@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-20-upstream-safe-customization-branch.md
-2026-09-20-upstream-safe-customization-branch.md: 06d5a133fc7ea3caac1bd56bd5eb361f0696186b
-2026-09-20-upstream-safe-customization-branch.zh.md: 342a9ee4274d0142d843d5b6fa31784b2ba3baf4
+2026-09-20-upstream-safe-customization-branch.md: 4cb4fc732f215cd5196de0b790de4fd416ffe44f
+2026-09-20-upstream-safe-customization-branch.zh.md: 00aa24beeb7f6919b087b200f1768f383486aea6

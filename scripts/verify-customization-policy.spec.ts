@@ -12,6 +12,7 @@ const repository = {
   mirrorBranch: 'master',
   integrationBranch: 'custom/main',
   updateStrategy: 'merge',
+  designStandard: 'docs/customization/improvement-development-standard.md',
 }
 
 describe('customization policy', () => {
@@ -29,6 +30,7 @@ describe('customization policy', () => {
       improvements: [{
         id: 'sample-extension',
         kind: 'extension',
+        solutionType: 'plugin',
         status: 'active',
         summary: 'Exercise an optional package.',
         optIn: true,
@@ -46,6 +48,7 @@ describe('customization policy', () => {
       improvements: [{
         id: 'sample-extension',
         kind: 'extension',
+        solutionType: 'plugin',
         status: 'active',
         summary: 'Exercise an optional package.',
         optIn: true,
@@ -59,6 +62,32 @@ describe('customization policy', () => {
     ])).toEqual([
       'packages/core/agent-loop/src/index.ts: extension sample-extension changes source outside its package roots',
       'unregistered.txt: custom delta has no improvement owner',
+    ])
+  })
+
+  it('rejects a missing or kind-incompatible solution type', () => {
+    const policy = {
+      version: 1,
+      repository,
+      improvements: [{
+        id: 'missing-type',
+        kind: 'extension',
+        status: 'proposed',
+        summary: 'Missing classification.',
+        optIn: true,
+        paths: ['docs/missing.md'],
+      }, {
+        id: 'wrong-type',
+        kind: 'governance',
+        solutionType: 'plugin',
+        status: 'active',
+        summary: 'Incompatible classification.',
+        paths: ['scripts/wrong.mjs'],
+      }],
+    }
+    expect(validateCustomizationPolicy(policy, [])).toEqual([
+      'improvements[0].solutionType is not permitted for kind "extension"',
+      'improvements[1].solutionType is not permitted for kind "governance"',
     ])
   })
 })

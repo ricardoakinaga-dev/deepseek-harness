@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/fork-v2-extraction.md
-fork-v2-extraction.md: cb9da34be3c3a2b2df597e09c06b6500be3ffab7
-fork-v2-extraction.zh.md: 8003ab099d899523313133d437dc6cd38c634cb9
+fork-v2-extraction.md: 342d6a1fcbf7d2c194f7d6c842dd7bead6812b90
+fork-v2-extraction.zh.md: 24ac0d4ba76afdf196f91a92714cf9c4408b288c
