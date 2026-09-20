@@ -14,7 +14,7 @@
   "active_execplan": ".agent/plans/deepseek-harness-aaa.md",
   "active_task": "AAA-001",
   "verification_state": "PARTIAL",
-  "repository_state": "Baseline commit b7e934dc9d environment captured; worktree contains the AAA-001 action checkpoint",
+  "repository_state": "AAA-001:A02 partial reproduction matrix saved; findings reconciliation remains active",
   "instruction_scope_refs": [
     "AGENTS.md",
     "docs/AGENTS.md",
@@ -22,8 +22,8 @@
     ".agent/PLANS.md"
   ],
   "last_gate_record": null,
-  "last_event_id": "EVT-AAA-001-CHECKPOINT-001",
-  "state_revision": 4,
+  "last_event_id": "EVT-AAA-001-SAVEPOINT-002",
+  "state_revision": 5,
   "next_gate": "AUDIT_RESOLVED",
   "active_action_id": "AAA-001:A02",
   "blocked_by": [],
@@ -38,5 +38,5 @@
     "AAA-020: approve public source-export compatibility policy",
     "AAA-022: approve broad lint-rule or compiler-default changes after focused probes"
   ],
-  "updated_at": "2026-09-20T18:17:00-03:00"
+  "updated_at": "2026-09-20T19:00:00-03:00"
 }

@@ -78,7 +78,7 @@
       "type": "DERIVED",
       "location": ".agents/notes/proposed/process/2026-09-20-aaa-quality-program.md",
       "version": "2026-09-20 working-tree snapshot",
-      "snapshot_sha256": "984d195cadd2a3f86f694645e3588a627e854eabe655fc5a7bdb5f53ecb5c7e2",
+      "snapshot_sha256": "5ce6084ea12417cd996cedb6d9d12bbf164710487e54aa84ec3989e1821e6ded",
       "license_notes": "Repository-owned rationale and final independent-qualification rule."
     },
     {
@@ -247,7 +247,7 @@
       "source_type": "REPO",
       "source": "docs/AGENTS.md",
       "dimension": "documentation truth",
-      "target": "Documentation checks pass; every English/Chinese pair changed between the M0 baseline and candidate, plus the root README pair and every pair in the `documentationPairs` fields of AAA-011 through AAA-015, retains semantic parity; current-state claims cite their owner and mutable metrics include provenance.",
+      "target": "Documentation checks pass; every English/Chinese pair changed between the M0 baseline and candidate, plus the root README pair and every pair in the `documentationPairs` fields of AAA-011 through AAA-015, retains semantic parity; current-state claims cite their owner and mutable metrics identify their source command, corpus, and revision.",
       "evidence_method": "Derive the exact pair corpus from the baseline-to-candidate Git diff plus `README.md`/`README.zh.md` and the backlog's mandatory pair fields, store it in `.agent/evidence/AAA-023/documentation-pairs.json`, run pairing, `test:docs`, `doc-sync`, and link checks, then record a semantic review result for every entry.",
       "required": true,
       "priority": "high",
@@ -322,7 +322,7 @@
       "id": "AAA-QB-13",
       "source_type": "REPO",
       "source": ".github/workflows/ci.yml; package.json; docs/customization/repository-audit-2026-09-20.md#limitations",
-      "dimension": "release provenance and platform evidence",
+      "dimension": "release identity and platform evidence",
       "target": "One clean immutable release-candidate commit identifies all mirror and integration refs and passes required Linux, Node compatibility, Web, consumer, packed-install, benchmark, coverage, and credentialed provider lanes without silently skipping their subject.",
       "evidence_method": "Record Git refs and clean status, OS, architecture, Node, pnpm, umask, exact commands, required GitHub checks, and executed-versus-skipped e2e cases for one commit.",
       "required": true,
@@ -352,7 +352,7 @@
       },
       "conditions": "A critic cannot replace deterministic evidence; CONDITIONAL_PASS or accepted residual HIGH risk prevents the Triple-A claim. The attestation commit is not the qualified candidate unless the complete bar is rerun on it.",
       "version": "2026-09-20",
-      "snapshot_sha256": "984d195cadd2a3f86f694645e3588a627e854eabe655fc5a7bdb5f53ecb5c7e2",
+      "snapshot_sha256": "5ce6084ea12417cd996cedb6d9d12bbf164710487e54aa84ec3989e1821e6ded",
       "license_notes": "Derived acceptance criterion using repository artifacts.",
       "validity_notes": "Run only after all other required criteria have current evidence."
     }
@@ -367,13 +367,13 @@
     {
       "version": "AAA-QB-v1.2",
       "date": "2026-09-20",
-      "reason": "The second fresh-context critic detected a stale source snapshot after a documentation-gate correction, an AAA-013 alternative that contradicted fail-closed resolved-target containment, and unnamed mandatory semantic-review pairs. This revision restores source provenance and makes the security and documentation obligations exact without weakening them.",
+      "reason": "The second fresh-context critic detected a stale source snapshot after a documentation-gate correction, an AAA-013 alternative that contradicted fail-closed resolved-target containment, and unnamed mandatory semantic-review pairs. This revision restores exact source identities and makes the security and documentation obligations exact without weakening them.",
       "affected_criteria": ["AAA-QB-05", "AAA-QB-09"]
     },
     {
       "version": "AAA-QB-v1.3",
       "date": "2026-09-20",
-      "reason": "The third fresh-context critic found incomplete provenance for mutable normative sources, non-transactional future task-start prose, and a stale static-root authority phrase. This revision pins every locally available normative source and binds derived criteria to repository records without weakening any target.",
+      "reason": "The third fresh-context critic found incomplete revision identities for mutable normative sources, non-transactional future task-start prose, and a stale static-root authority phrase. This revision pins every locally available normative source and binds derived criteria to repository records without weakening any target.",
       "affected_criteria": ["AAA-QB-02", "AAA-QB-03", "AAA-QB-05", "AAA-QB-07", "AAA-QB-09", "AAA-QB-10", "AAA-QB-11", "AAA-QB-12", "AAA-QB-13", "AAA-QB-14"]
     },
     {

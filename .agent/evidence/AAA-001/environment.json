@@ -5,10 +5,10 @@
   "captured_at": "2026-09-20T18:12:52-03:00",
   "candidate": {
     "branch": "custom/main",
-    "commit": "b7e934dc9d1b2da303b585ae1512f14826414ace",
-    "origin_custom_main": "b7e934dc9d1b2da303b585ae1512f14826414ace",
-    "origin_master": "ddefc45fbc7f8e46dd73185e68295696d1297887",
-    "deepseek_official_master": "ddefc45fbc7f8e46dd73185e68295696d1297887"
+    "commit_ref": "refs/tags/aaa-m0-source-2026-09-20",
+    "origin_custom_main_at_capture": "refs/tags/aaa-m0-source-2026-09-20",
+    "origin_master_at_capture": "refs/tags/dsh-v0.1.6-alpha.2",
+    "deepseek_official_master_at_capture": "refs/tags/dsh-v0.1.6-alpha.2"
   },
   "cleanliness": {
     "command": "git status --porcelain=v1 --untracked-files=all",
@@ -24,5 +24,5 @@
     "umask": "0002",
     "worktree": "/home/ricardo/deepseek-harness"
   },
-  "limitations": "The manifest records the clean planning commit before control-plane evidence for this action was added. Ignored build outputs are outside Git porcelain and will be classified separately by AAA-002."
+  "limitations": "The immutable tag identifies the clean planning commit before control-plane evidence for this action was added. Ignored build outputs are outside Git porcelain and will be classified separately by AAA-002."
 }

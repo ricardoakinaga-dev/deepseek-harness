@@ -14,12 +14,12 @@ The current repository is not Triple-A. The broader 2026-09-20 audit recorded si
 - [x] (2026-09-20T16:52:37-03:00) Classify the program as `BROWNFIELD`, `EVOLUTION/PLAN`, `T3_SYSTEM`, `HIGH` risk, and `SYSTEM` blast radius.
 - [x] (2026-09-20T16:52:37-03:00) Freeze the initial Quality Bar, create the canonical remediation backlog, and establish persistent state and recovery artifacts.
 - [x] (2026-09-20T17:20:00-03:00) Correct the first critic's qualification deadlock, action granularity, authority reference, publication routing, and under-specified criteria in `AAA-QB-v1.1`.
-- [x] (2026-09-20T17:42:00-03:00) Restore audit-source provenance, align AAA-013 with fail-closed containment, and name the mandatory risk-document pairs in `AAA-QB-v1.2`.
+- [x] (2026-09-20T17:42:00-03:00) Restore audit-source identity, align AAA-013 with fail-closed containment, and name the mandatory risk-document pairs in `AAA-QB-v1.2`.
 - [x] (2026-09-20T18:02:00-03:00) Pin every mutable normative source, remove the stale static-root authority phrase, and specify state-last task and gate transitions in `AAA-QB-v1.3`.
 - [x] (2026-09-20T18:30:00-03:00) Move implementation readiness to the first IMPLEMENT action, remove the gate-event ordering ambiguity, cover weighted approval and dynamic extensions in `AAA-QB-v1.4`, and bind final attestation to the immutable candidate.
-- [x] (2026-09-20T18:13:00-03:00) Commit and push the independently approved planning checkpoint as `b7e934dc9d`, with `HEAD` equal to `origin/custom/main` and a clean worktree.
+- [x] (2026-09-20T18:13:00-03:00) Commit and push the independently approved planning checkpoint, now identified by `refs/tags/aaa-m0-source-2026-09-20`, with `HEAD` equal to `origin/custom/main` and a clean worktree.
 - [x] (2026-09-20T18:16:00-03:00) Record the immutable checkpoint and supported host environment in `.agent/evidence/AAA-001/environment.json`.
-- [ ] Reproduce and classify each reported failing leaf and required unexecuted release lane in the canonical M0 evidence matrix.
+- [ ] (savepoint 2026-09-20T19:00:00-03:00) Reproduce and classify each reported failing leaf and required unexecuted release lane in the canonical M0 evidence matrix; 37 command records are retained, while findings reconciliation and coverage validation remain open.
 
 - [ ] Reproduce the baseline at one pristine immutable commit before changing product behavior.
 - [ ] Execute milestones M1 through M8 and update this plan, the backlog, ledgers, and program page at every transition.
@@ -37,7 +37,7 @@ The current repository is not Triple-A. The broader 2026-09-20 audit recorded si
   Impact: do not treat the banner alone as a defect.
 - Observation: count-based findings vary with corpus, exclusions, and checkout state.
   Evidence: the reports disagree on residue and skipped-test counts and omit an immutable audited commit.
-  Impact: canonical metric provenance is required before debt trends become acceptance evidence.
+  Impact: the canonical metric command and corpus are required before debt trends become acceptance evidence.
 - Observation: the first fresh-context critic found a circular final-qualification obligation, but its read-only sentinel also detected a changed ignored Vitest cache result.
   Evidence: the pre/post repository fingerprint differed only at `node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json`.
   Impact: the verdict is retained as INVALID mutation evidence; its independently reproducible findings were remediated and require a new sealed critic.
@@ -105,7 +105,7 @@ M0 selects the exact planning-checkpoint commit only after the worktree is clean
 - Outcome: one pristine immutable commit has a complete environment manifest and a current finding/evidence matrix.
 - Scope/dependencies: no product changes; distinguish environment, stale-report, and product failures.
 - Demonstration: rerun reported failing leaves and required unexecuted lanes in a disposable clean worktree.
-- Acceptance/evidence: AAA-001 plus `AAA-QB-01`, `AAA-QB-02`, and release provenance in `AAA-QB-13`.
+- Acceptance/evidence: AAA-001 plus `AAA-QB-01`, `AAA-QB-02`, and release identity and platform evidence in `AAA-QB-13`.
 
 ### M1 — Make the execution environment deterministic
 
@@ -223,7 +223,7 @@ Use disposable worktrees for pristine baseline and upstream merge rehearsals. Ne
 - `.agent/execution-log.jsonl`: append-only chronology once task execution begins.
 - `.agent/verification.jsonl`: append-only verification evidence once procedures run.
 - `.agent/reviews/plan-critic-round-1-invalid.md`: preserved first critic findings and the ignored-cache mutation that invalidated its verdict.
-- `.agent/reviews/plan-critic-round-2-reject.md`: mutation-clean rejection and the source-provenance, containment, and documentation-corpus remediations.
+- `.agent/reviews/plan-critic-round-2-reject.md`: mutation-clean rejection and the source-identity, containment, and documentation-corpus remediations.
 - `.agent/reviews/plan-critic-round-3-reject.md`: mutation-clean rejection and the state-last transition, implementation-readiness, and normative-source remediations.
 - `.agent/reviews/plan-critic-round-4-reject.md`: mutation-clean rejection and the gate-record and active-action checkpoint remediations.
 - `.agent/reviews/plan-critic-round-5-reject.md`: mutation-clean rejection and the implementation-entry, missing-criterion, and immutable-attestation remediations.
@@ -233,7 +233,7 @@ Plan revision note, 2026-09-20: initial plan created from both requested audits,
 
 Plan revision note, 2026-09-20: the first sealed critic exposed a final-qualification deadlock, a compound first action, a wrong authority pointer, incorrect publication routing, and three under-specified criteria. Quality Bar v1.1 and the backlog correct those gaps. The critic verdict itself remains INVALID because its pre/post sentinel detected an ignored Vitest cache mutation; a new sealed critic is required.
 
-Plan revision note, 2026-09-20: the second sealed critic remained mutation-clean and rejected stale source provenance, AAA-013's trust-based alternative, and an unnamed documentation corpus. Quality Bar v1.2 pins the corrected report, requires resolved-target containment, and binds each risk task to exact English/Chinese pairs.
+Plan revision note, 2026-09-20: the second sealed critic remained mutation-clean and rejected a stale source snapshot, AAA-013's trust-based alternative, and an unnamed documentation corpus. Quality Bar v1.2 pins the corrected report, requires resolved-target containment, and binds each risk task to exact English/Chinese pairs.
 
 Plan revision note, 2026-09-20: the third sealed critic remained mutation-clean and rejected future task-start ordering, missing task-bound implementation readiness, incomplete normative-source hashes, and stale static-root authority prose. The plan now defines both state-last transactions, BUILD/IMPLEMENT gate binding, fail-closed containment, and Quality Bar v1.3 source snapshots.
 

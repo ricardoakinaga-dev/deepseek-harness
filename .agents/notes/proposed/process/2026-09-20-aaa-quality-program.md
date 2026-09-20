@@ -30,7 +30,7 @@ A release receives the Triple-A label only when one immutable candidate has curr
 
 ## Acceptance criteria
 
-- The Quality Bar contains stable required criteria with targets, baseline status, evidence methods, conditions, and provenance.
+- The Quality Bar contains stable required criteria with targets, baseline status, evidence methods, conditions, and exact source identities.
 - The canonical backlog contains stable tasks, dependencies, owners, solution types, acceptance summaries, and exactly one structured next action per task.
 - The ExecPlan and runtime state pass the engineering-framework consistency checker and provide deterministic recovery after interruption.
 - The executive roadmap links to the canonical owners without duplicating task status.
