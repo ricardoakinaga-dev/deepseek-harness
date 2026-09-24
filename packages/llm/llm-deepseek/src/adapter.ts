@@ -35,7 +35,7 @@ export class DeepSeekAdapter extends LlmAdapter {
         })
       case 'chat-completions':
         return new ChatCompletionsAdapter({ ...this.dependencies, options: () => connection, resolveFiles: () => this.files })
-      /* v8 ignore next -- protocol is validated at configuration resolution. */
+      /*! v8 ignore next -- protocol is validated at configuration resolution. */
       default: return assertNever(connection.protocol, 'DeepSeek protocol')
     }
   }

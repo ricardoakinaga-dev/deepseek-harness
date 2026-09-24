@@ -370,7 +370,7 @@ function parseHeaderRecord(record: Buffer): { readonly meta: SessionHeader; read
       validation: 'transformed',
     })
   } catch {
-    /* v8 ignore next -- isHeaderLine matches the current codec; this preserves classification if it tightens. */
+    /*! v8 ignore next -- isHeaderLine matches the current codec; this preserves classification if it tightens. */
     throw new Error('corrupt session log: first line is not a session header')
   }
   return { meta: fromHeaderLine(parsed).meta, restore }
@@ -503,7 +503,7 @@ export class SessionLogScanner {
       this.restore.decodeRow(decoded)
     } catch (error: unknown) {
       // Unsupported V3 rows have already been refused before recovery.
-      /* v8 ignore next -- every production Session format decoder rejects with Error. */
+      /*! v8 ignore next -- every production Session format decoder rejects with Error. */
       const detail = error instanceof Error ? error.message : String(error)
       const issue = new Error(`corrupt session log: invalid committed event at line ${this.eventLine}: ${detail}`, {
         cause: error,

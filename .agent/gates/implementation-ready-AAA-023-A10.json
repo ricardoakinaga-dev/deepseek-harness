@@ -1,0 +1,83 @@
+{
+  "record_id": "GATE-AAA-023-IMPLEMENTATION-READY-004",
+  "timestamp": "2026-09-22T04:46:30-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-023 bounded rename-safe baseline reading for canonical audit metrics",
+  "scope_ref": "AAA-023",
+  "version": 4,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "A09 reproduces the shared path failure, identifies all 16 related source moves, and shows that a complete temporary candidate reaches the audit ratchet instead of failing while opening a deleted path.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a34.json",
+        ".agent/verification.jsonl#VER-AAA-023-A09-DIAGNOSIS-A34-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The actual worktree remains dirty and the source moves are not represented by one immutable candidate."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation is limited to scripts/audit-metrics.ts: the baseline changed-file query disables Git rename detection so both removed and added paths are treated as changed. It does not ignore missing files, alter the canonical corpus, change metric definitions or ratchet budgets, or modify vendor-rescope behavior.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a34.json",
+        ".agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        "scripts/audit-metrics.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The separate explicit_any ratchet increase remains outside this implementation."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires the audit-metrics focused tests, the temporary complete-candidate audit reproduction to reach its expected ratchet result, vendor-rescope verification against the same temporary candidate, and git diff --check.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a34.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This action cannot establish same-SHA release qualification or close the remaining ratchet violation."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-023/diagnosis-a34.json",
+    ".agent/verification.jsonl#VER-AAA-023-A09-DIAGNOSIS-A34-001",
+    ".agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001",
+    ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"
+  ],
+  "candidate_fingerprint": "9ae7042e2c634fc3850f5e8265507a0a09b14f96bec5fc219b7988e9c946f7b3",
+  "confidence": "HIGH",
+  "gaps": [
+    "The 16-path client source move still requires one candidate tree before the real aggregate path gates can run.",
+    "The temporary complete candidate reports an independent explicit_any ratchet increase in @deepseek-ai/dsh-cordis-client-runner."
+  ],
+  "conditions": [
+    "Change only the baseline changed-file query in scripts/audit-metrics.ts; preserve canonical corpus and ratchet semantics.",
+    "Do not modify vendor-rescope behavior to hide deleted paths or path residues.",
+    "Use a temporary candidate index for validation; do not stage, commit, publish, push, merge, release, or issue a final verdict."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "Repository metric/parity automation and approved local compatibility validation",
+    "decision": "The existing metric-automation and AAA-023 local-validation authorities cover this bounded reader correction; external publication, registry writes, push, merge, release, and final-verdict actions remain outside scope.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001; .agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+    "expires_or_revalidates": "Revalidate if the implementation changes canonical baseline identity, corpus selection, metric budgets, vendor-rescope policy, or any external repository state."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-023:A10 to make the audit baseline reader rename-safe and run the bounded focused validation.",
+  "revalidation_triggers": [
+    "The change modifies corpus selection, baseline identity, metric definitions, or ratchet comparison.",
+    "The candidate validation requires actual staging, commit, or external repository state.",
+    "The audit result changes from the known explicit_any violation without an owner-scoped repair."
+  ],
+  "supersedes": "GATE-AAA-023-IMPLEMENTATION-READY-003"
+}

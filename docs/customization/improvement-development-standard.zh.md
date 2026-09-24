@@ -96,6 +96,8 @@ Skill 改变 agent 执行工作的方式；插件改变运行中的 Harness 行�
 
 `configuration`、`profile-patch` 和 `skill` 记录可以省略 `packageRoots`，因为它们不得添加生产包源代码。`upstream-package-change` 使用 `kind: "upstream-patch"` 和 `upstreamPlan`；`repository-automation` 使用 `kind: "governance"`。每个定制路径恰好属于一项改进。
 
+当这些非打包扩展解决方案类型声明该字段时，策略验证器会拒绝 `packageRoots`。打包扩展类型必须使用非空的 `packages/<...>/` 根目录，以便验证器证明其运行时源代码位于声明的包内。
+
 -----
 
 <a id="architecture-and-compatibility-rules"></a>

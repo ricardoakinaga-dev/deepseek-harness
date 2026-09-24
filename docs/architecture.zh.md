@@ -126,9 +126,11 @@ turn/end
 
 Session 消费方只了解当前逻辑格式。仅 header 的 `stat` 与 `list` 会重新扫描每个 Session 目录，选择数值最高的规范 generation，并在不加载事件或发布后继的情况下转换受支持的历史 header。已存储 Session 的 `open` 选择同一 generation，拒绝未来版本，或只 Decode 并组合一次构建时静态确定的相邻迁移链，再返回经过校验的当前逻辑事件。只读 open 直接使用这份内存结果，不发布后继；写 open 则先编码、校验并在未改变源的旁边排他发布最终版本命名的后继。未被后续事件封住的普通中断尾部仍由句柄消费方修复；只有在后续 `turn/start` 已经封住一种有限的已发布 restart 时，migration 才会插入缺失的 interrupted `turn/end`。JSONL v0 使用 `session.jsonl[.zstd]`，v1 及后续版本使用小写 `session.vN.jsonl[.zstd]`；已提交 generation 路径绝不重命名、替换或删除。JSONL provider 负责物理 framing、压缩、generation 选择与排他发布，每个相邻迁移包只负责一个 `vN -> vN+1` 步骤（[决策](../.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.zh.md)）。
 
+`AgentLoop` 负责新建与恢复 agent 发布前的持久化。它通过有界 append 分页写入构造基线、已接受的 setup 追加与中断轮次修复事件，并且只在每次 append 成功后推进游标。发布前 append 拒绝时，其效果存在歧义，因此循环会关闭句柄，不重试或宣告 Session；调用方必须显式恢复完全相同的 id，并以后台实际日志为准。排空固定的 Session 序号切面后，循环检查取消并在同一 JavaScript 调用栈中调用发布；`SessionStore.enter()` 会先封存 preparation 流，再开始 live 事件路由。
+
 **模型可见即已记录。** 抵达模型请求的一切都必须能从日志重建，并由一项运行时不变量断言这一点。新增模型可见输入需要一个会话事件。修改现有消息内容的插件注册[纯消息投影](subsystems/session.zh.md#plugin-owned-message-projections)，独立读取器显式传入相同的处理器。
 
-**投影 seam。** `dsh-session-projection` 提供 `ctx.sessionProjections`：已注册单元增量折叠已提交事件，host 消费方通过 `stateOf()` 读取单个类型化状态，载体通过 `snapshot()` 批量取得裁剪后的客户端视图。host 读取方要么在激活时要求该服务，要么在注册表或必需 key 缺席时明确失败。贡献方可以保留 `ctx.inject(['sessionProjections'], ...)` 注册，但不能为缺失的 host 值静默提供默认值。agent loop 为读取方注册共享的 `turnBoundary` 状态（[决策](../.agents/notes/implemented/architecture/2026-08-19-session-projection-mandatory-seam.zh.md)）。
+**投影 seam。** `dsh-session-projection` 提供 `ctx.sessionProjections`：单元折叠已提交事件，host 通过 `stateOf()` 读取状态，载体通过 `snapshot()` 批量读取视图。host 读取方必须依赖该服务；服务或必需 key 缺席时会明确失败。贡献方使用 `ctx.inject(['sessionProjections'], ...)` 注册可选功能；必需 host 状态缺席时仍会明确失败。`AgentLoop` 从构造与 setup 事件准备 cell，并在 Session 进入 store 时封存其 feed。循环为读取方注册 `turnBoundary`（[决策](../.agents/notes/implemented/architecture/2026-08-19-session-projection-mandatory-seam.zh.md)）。
 
 ## 能力 seam
 

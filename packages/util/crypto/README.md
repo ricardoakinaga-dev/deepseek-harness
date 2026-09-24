@@ -58,6 +58,8 @@ No direct invalidation; identifier-minting consumers own any request changes.
 - **Uniqueness is probabilistic** — 122 random bits, the same guarantee `crypto.randomUUID` gives; nothing here detects collisions.
 
 
+**Runtime invariant:** No companion is published. This pure utility owns no event stream or mutable runtime data; its value algebra is enforced by unit tests.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -67,5 +69,3 @@ No direct invalidation; identifier-minting consumers own any request changes.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This pure utility owns no event stream or mutable runtime data; its value algebra is enforced by unit tests.

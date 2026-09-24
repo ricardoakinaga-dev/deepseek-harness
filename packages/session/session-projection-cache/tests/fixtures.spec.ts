@@ -19,10 +19,11 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
 import { z } from 'zod'
-import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
+import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionHeader } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
+import type { ProjectionCheckpoint, ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
+import type { SessionProjectionStateMap } from '@deepseek-ai/dsh-session-projection/types'
 import Storage from '@deepseek-ai/dsh-storage'
 import {
   apply as storageJsonApply, Config as storageJsonConfig, inject as storageJsonInject, name as storageJsonName,
@@ -33,20 +34,10 @@ import {
 import SessionProjectionCache from '../src/index.ts'
 import { projectionCacheDomainSpec } from '../src/spec.ts'
 
-// Declarations must match the shipped title unit's exactly (the repo-wide
-// compile face sees both).
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    title: string | null
-  }
-  interface SessionProjectionMap {
-    title: string | null
-  }
-}
-
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     'fixtures-test/set-title': { title: string }
+    'fixtures-test/env-fold': { amount: number }
   }
 
   interface OutOfBandSessionEventMap {
@@ -54,17 +45,54 @@ declare module '@deepseek-ai/dsh-session/types' {
   }
 }
 
-// Mirrors the shipped title unit's storage face: stateVersion 1, bare-string
-// state (the fixture rows carry exactly this shape in every archived
-// version), folding a test event so the rewrite path has fresh data.
+declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    'fixtures-test/env-fold': number
+  }
+}
+
+// Mirrors the predecessor title unit's storage face: stateVersion 1 and
+// bare-string archived rows. The current title state is richer, so the
+// schema adapts only this historical fixture value before the rewrite path
+// folds a test event and emits the current state format.
+type CurrentTitleState = SessionProjectionStateMap['title']
+
+const legacyTitleStateSchema: import('zod').ZodType<CurrentTitleState> = z.string().nullable().transform((title): CurrentTitleState => {
+  if (title === null) return null
+  return {
+    title,
+    messageSeqs: [],
+    source: { kind: 'fallback' },
+    eventSeq: SessionSeq(0),
+    updatedAt: 0,
+  }
+})
+
 const titleUnit = {
   key: 'title',
-  stateSchema: z.string().nullable(),
+  stateSchema: legacyTitleStateSchema,
   init: () => null,
-  apply: (state, event) => (event.type === 'fixtures-test/set-title' ? event.data.title : state),
-  wire: { viewSchema: z.string().nullable(), view: state => state },
+  apply: (state, event) => (event.type === 'fixtures-test/set-title'
+    ? {
+      title: event.data.title,
+      messageSeqs: [],
+      source: { kind: 'fallback' },
+      eventSeq: event.seq,
+      updatedAt: event.time,
+    }
+    : state),
+  wire: { viewSchema: z.string().nullable(), view: state => state?.title ?? null },
   stateVersion: 1,
-} satisfies ProjectionDefinition<'title', string | null>
+} satisfies ProjectionDefinition<'title', CurrentTitleState>
+
+const environmentUnit = {
+  key: 'fixtures-test/env-fold',
+  stateSchema: z.number().int().nonnegative(),
+  init: () => 0,
+  apply: (state, event) => event.type === 'fixtures-test/env-fold' ? state + event.data.amount : state,
+  stateVersion: 1,
+  cacheFingerprint: 'current-intl-runtime',
+} satisfies ProjectionDefinition<'fixtures-test/env-fold', number>
 
 const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url))
 
@@ -72,7 +100,7 @@ const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url))
 interface FixtureDoc {
   version: number
   record: {
-    identity: { createdAt: number; cwd?: string }
+    identity: { createdAt: number; cwd?: string; formatVersion?: number; isSeeded?: boolean; inheritedEventCount?: number }
     rows: Record<string, { ver: number; seq: number; val: unknown }>
   }
 }
@@ -135,7 +163,7 @@ async function assertRewrite(ctx: Context, root: string, id: SessionId): Promise
       isSeeded: false,
       inheritedEventCount: 0,
     })
-    expect(doc.record.rows['title']?.val).toBe('重写标题')
+    expect(doc.record.rows['title']?.val).toMatchObject({ title: '重写标题' })
   }, { timeout: 5_000 })
 }
 
@@ -207,6 +235,39 @@ describe('archived version recovery', () => {
       await assertRewrite(ctx, root, id)
     })
   }
+
+  it('opens an archived v7 row without cacheFingerprint and refolds it from the complete log', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-projcache-v7-'))
+    const id = SessionId('v7-environment')
+    const doc = await placeDoc(root, id, 'v7-session-doc.json')
+    expect(doc.version).toBe(7)
+    const { ctx, cache } = await harness(root)
+    ctx.sessionProjections.register(environmentUnit)
+    expect(cache.cachedSnapshot(headerFor(id, doc.record.identity), SessionLogOffset(0), ['title'])?.values.title)
+      .toBe('v7标题')
+    const checkpoint: ProjectionCheckpoint = Object.fromEntries(Object.entries(doc.record.rows).map(([key, row]) => [
+      key,
+      { ...row, seq: row.seq === -1 ? -1 as const : SessionSeq(row.seq) },
+    ]))
+    expect(ctx.sessionProjections.restoreFloor(checkpoint)).toBe(0)
+
+    const events = [
+      { type: 'fixtures-test/env-fold', seq: SessionSeq(0), time: 1, data: { amount: 2 } },
+      { type: 'fixtures-test/env-fold', seq: SessionSeq(1), time: 2, data: { amount: 3 } },
+    ] satisfies import('@deepseek-ai/dsh-session').SessionEvent[]
+    cache.coldSnapshot(headerFor(id, doc.record.identity), SessionLogOffset(0), events)
+    const path = join(root, projectionCacheDomainSpec.name, 'sessions', `${String(id)}.json`)
+    await vi.waitFor(async () => {
+      const current = JSON.parse(await readFile(path, 'utf8')) as FixtureDoc
+      expect(current.version).toBe(7)
+      expect(current.record.rows['fixtures-test/env-fold']).toMatchObject({
+        ver: 1,
+        seq: 1,
+        val: 5,
+        cacheFingerprint: 'current-intl-runtime',
+      })
+    }, { timeout: 5_000 })
+  })
 
   it('serves an explicitly older format title but never a current or newer one through the predecessor path', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-projcache-fx-'))

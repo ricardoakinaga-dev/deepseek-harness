@@ -1,0 +1,26 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-PROJECTION-BASELINE-HANDOFF-CORRECTION-A83-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A12 correction",
+  "kind": "CONSUMER_TEST_EXPECTATION_CORRECTION",
+  "status": "PASS",
+  "timestamp": "2026-09-22T21:24:20-03:00",
+  "cause": "The first A13 source-grounded test sweep exposed two session-title projection tests that still expected the removed lazy event-history rebuild.",
+  "change": {
+    "file": "packages/session/session-title/tests/projection.spec.ts",
+    "facts": [
+      "The late-registration test now asserts asynchronous rejection with the named exact-baseline error.",
+      "The 5,000-message bounded-aggregate test installs SessionTitleService while the Session is empty, then appends events through the live projection path.",
+      "No production source or released format changed in this correction."
+    ]
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run packages/core/session/tests/invariant.spec.ts packages/session/session-telemetry/tests packages/session/session-title/tests/invariant.spec.ts packages/session/session-title/tests/projection.spec.ts packages/session/session-title/tests/provider.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "6 files and 73 tests passed with no unhandled errors."
+    }
+  ],
+  "decision": "Accept the consumer-test correction as part of A12 closure and continue A13 design with strict projection baseline behavior as the current lifecycle contract."
+}

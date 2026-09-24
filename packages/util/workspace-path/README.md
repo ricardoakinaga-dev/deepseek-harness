@@ -36,6 +36,8 @@ A resource address is `dsh-resource://<type>/…`, and the type — the URI host
 - **Home abbreviation is POSIX-only** — Windows paths remain unchanged because a portable browser cannot infer Windows home-path equivalence safely.
 
 
+**Runtime invariant:** No companion is published. This utility owns no mutable runtime relationship.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -45,5 +47,3 @@ A resource address is `dsh-resource://<type>/…`, and the type — the URI host
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This utility owns no mutable runtime relationship.

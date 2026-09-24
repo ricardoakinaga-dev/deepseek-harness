@@ -1,0 +1,87 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A12-001",
+  "timestamp": "2026-09-22T20:48:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 W1 transient SessionCreationBaseline handoff and strict SessionProjectionRegistry baseline ownership",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "Confirmed authority covers the owner-scoped W1 projection seam and lifecycle compatibility work while excluding broad lint/compiler changes, released generations, publication, push, merge, release, and final-verdict actions.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/evidence/AAA-022/reader-migration-plan-a74.json",
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-design-a82.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate authorizes only the transient core lifecycle handoff, projection baseline enforcement, and their compatibility/documentation tests. It does not authorize a general asynchronous history API or a query-to-projection dependency."
+    },
+    {
+      "id": "IR-002",
+      "description": "The source-grounded design supplies constructor-owned events at session/created, keeps projection restore/hydrate as explicit supplied-cut paths, rejects silent late registration, and removes direct Session history reads from the registry without changing Session format or durable data.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-projection-owner-design-a81.json",
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-design-a82.json",
+        "packages/core/session/src/index.ts",
+        "packages/session/session-projection/src/index.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A12 must not preserve an implicit history fallback when a baseline is missing, retain a registry-wide event backlog, or make a synchronous projection fold await storage."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires fresh, seeded, restored, forked, late-registration, HMR, checkpoint-cache, exact-watermark, missing-gap, event-payload, generated-documentation, type, lint, focused-test, dependency, and whitespace evidence, plus a complete-candidate metric check before any ratchet claim.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-design-a82.json",
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate authorizes implementation only; it is not implementation or candidate-qualification evidence."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/session-projection-owner-design-a81.json",
+    ".agent/evidence/AAA-022/session-projection-baseline-handoff-design-a82.json",
+    "packages/core/session/src/index.ts",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session/session-projection-cache/src/index.ts"
+  ],
+  "candidate_fingerprint": "58e6a8930130619ee7383e32a26fa07f7b96fa8e04bade83f07c6f23aae411c5",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [
+    "Do not bump SESSION_FORMAT_VERSION or modify durable Session event envelopes, persistence schemas, projection wire values, or released generations.",
+    "Treat SessionCreationBaseline.events as borrowed lifecycle input: projection code must fold or detach required state before session/created delivery returns and must not expose the array as a new history reader.",
+    "Require a named failure for an eventful Session registered without a baseline; do not serve init-only or stale state.",
+    "Install projection cells before projection-cache creation checkpointing and preserve inheritedEventCount, firstLiveSeq, end-seed, disposal, and HMR behavior.",
+    "Update all typed session/created consumers and generated/event-producer documentation; run the focused checks and canonical metrics only on a complete successor candidate before promoting counts."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 REM-028 W0-W4 owner-scoped Session-reader migration and bounded asynchronous reader, projection, and pre-commit seams",
+    "decision": "Implement the bounded transient core lifecycle baseline handoff and strict projection baseline owner seam; broad lint/compiler defaults, released-generation rewrites, publication, repository writes, release, and final verdict remain excluded.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    "expires_or_revalidates": "Revalidate if A12 adds a general history reader, changes sdk-minimal composition, changes durable Session data, introduces a new storage dependency, or requires external repository actions."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-022:A12 to implement the transient SessionCreationBaseline handoff and strict projection baseline seam.",
+  "revalidation_triggers": [
+    "The implementation changes Session format generations, persistence rows, wire payloads, or raw event sequence values.",
+    "A projection retains the borrowed baseline array, reads a shadowed persistence log, or falls back to init state for an eventful Session.",
+    "A late registration or HMR path returns state without proving an exact baseline and watermark.",
+    "Generated event-consumer documentation, focused lifecycle/projection tests, cancellation/teardown behavior, or package type/lint checks do not remain green."
+  ],
+  "supersedes": ".agent/gates/implementation-ready-AAA-022-A09.json"
+}

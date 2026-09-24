@@ -734,3 +734,8 @@ Types: [Scoped](scope.md)
 
 Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.ts)
 <!-- END GENERATED cordis-surface -->
+
+<a id="runtime-invariant-companion"></a>
+## Runtime invariant companion
+
+`@deepseek-ai/dsh-tools/invariant` requires `sessions` and `sessionProjections`. It folds PTC dispatch ancestry from each exact Session creation baseline, validates unpublished setup appends through `sessionProjections.onBeforePrepareSession()`, and rejects invalid live dispatches before the log advances. Load it before any stored Session becomes eventful; later activation fails because the constructor baseline is unavailable.

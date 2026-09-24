@@ -1,0 +1,82 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A08-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree after final aggregate test scheduling correction",
+  "timestamp": "2026-09-21T20:45:50-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "pnpm run check:all",
+      "exit_status": 1,
+      "observed_status": "PARTIAL",
+      "summary": "The integrated matrix ran 77 gates with 75 passed, 2 failed, and 0 skipped in 527.71 seconds. Its test gate passed via pnpm run test -- --maxWorkers=4 in 336.59 seconds; the only failures were verify-client-domain-graph with 38 AAA-009 violations and verify-module-graph with three stale AAA-010 artifacts."
+    },
+    {
+      "command": "pnpm run test",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "With the default test configuration capped at min(8, availableParallelism()), the native prerequisite and full Vitest run passed 1,535 files and 26,284 tests, with 12 skipped files, 153 skipped tests, and one expected failure."
+    },
+    {
+      "command": "pnpm exec vitest run scripts/run-gates.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The gate scheduler contract suite passed 1 file and 123 tests, including the check-all worker-bound and project-order assertions."
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Host artifacts rebuilt and the Host/Client contract-ready typecheck passed."
+    },
+    {
+      "command": "pnpm run lint",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Host artifacts rebuilt and the contract-ready oxlint gate passed."
+    },
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The ownership gate attributes 698 custom paths across 12 improvements."
+    },
+    {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "All 11 control-plane checks pass and the active AAA-009 decision pointer reconciles with the append-only ledgers."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "implementation_refs": [
+    "vitest.config.ts",
+    "scripts/run-gates.ts",
+    "scripts/run-gates.spec.ts",
+    "packages/deliverables/workspace-changes/tests/git.spec.ts",
+    "packages/deliverables/workspace-changes/tests/plugin.spec.ts",
+    "packages/terminal/terminal-bash/tests/local.spec.ts",
+    "apps/desktop/tests/packaging-run.spec.ts",
+    ".agents/customization-policy.json"
+  ],
+  "summary": "The final aggregate correction bounds Vitest workers, orders thread-safe and process-bound projects, and runs check-all's full unit gate with four workers after all sibling gates settle. This addresses observed host-load and PTY/subprocess contention without retries, skipped assertions, output normalization, or product-runtime changes.",
+  "decision_dependent_gates": [
+    "AAA-008 oracle decision before any product change",
+    "AAA-009 client-domain ownership and shared document API placement",
+    "AAA-010 module-graph regeneration after AAA-009",
+    "AAA-012 WebSocket close postcondition",
+    "AAA-014 aggregate HTTP memory and admission policy",
+    "AAA-015 dynamic extension deployment, CSP, consent, and default policy",
+    "AAA-019 fork publication identity and namespace",
+    "AAA-020 public source-export compatibility",
+    "AAA-022 broad rule/compiler policy and remaining complete-history reader migrations"
+  ],
+  "limitations": "This is a current dirty-worktree qualification checkpoint, not a sealed immutable release qualification or final Gauntlet PASS. The integrated matrix remains partial solely because AAA-009 has 38 client-domain violations and AAA-010 has three stale generated module-graph artifacts; external platform/provider, packed-install, upstream-rehearsal, complete required-gate, and final independent-critic evidence remain outstanding.",
+  "observed_at": "2026-09-21T20:45:50-03:00",
+  "freshness": "CURRENT"
+}

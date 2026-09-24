@@ -99,6 +99,8 @@ source 不实现任何裁决钩子，也没有引用 codec：pick 落下字面�
 - **文本是唯一依据**：引用是普通的草稿文本；手动键入的相同 token 就是同一个引用，宿主手势边界评判的是发出的文本，而不是菜单交互。chip 视觉由 lexicon 扫描派生；提示词协议上没有 occurrence 身份、位置跟踪或结构化引用载荷。
 - **预热落定之前打开的菜单**：在那次击键下不显示 skill 候选；下一次击键会重新轮询已落定的缓存。
 
+**运行时不变式：** 不发布伴生入口。slash source、locale dictionary 与 keyed toolview 都是由注册表持有的注册项，其释放行为已由 HMR（热模块替换）安全规范证明；它们不发出 Cordis 事件或持有跨插件可变状态。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -108,5 +110,3 @@ source 不实现任何裁决钩子，也没有引用 codec：pick 落下字面�
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。slash source、locale dictionary 与 keyed toolview 都是由注册表持有的注册项，其释放行为已由 HMR（热模块替换）安全规范证明；它们不发出 Cordis 事件或持有跨插件可变状态。

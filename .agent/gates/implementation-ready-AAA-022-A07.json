@@ -1,0 +1,89 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A07-001",
+  "timestamp": "2026-09-22T19:36:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 W1 optional observation-based session-log-deepseek reader migration",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The maintainer authority explicitly covers owner-scoped W1 reader, projection, and pre-commit seams while excluding broad lint/compiler changes and repository or release actions.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/evidence/AAA-022/reader-migration-plan-a74.json",
+        ".agent/evidence/AAA-022/session-log-reader-design-a77.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Publication, registry writes, push, merge, release, and final verdict remain outside authority."
+    },
+    {
+      "id": "IR-002",
+      "description": "The selected implementation reuses the existing live-preferred SessionQuery observation seam, preserves a fixed capture cursor, propagates request cancellation, and keeps the sdk-minimal fallback explicit until its composition is separately changed.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-log-reader-design-a77.json",
+        "packages/session-query/session-query/src/observation.ts",
+        "packages/llm/deepseek-llm-api-extensions/src/index.ts",
+        "packages/bundle/base/cordis.patch.yml",
+        "packages/bundle/sdk-minimal/cordis.patch.yml"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The design does not authorize direct persistence paging or a new synchronous Session history alias."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires upload wire-equivalence, fixed-cut append isolation, cancellation, inherited-prefix and watermark behavior, lease disposal, minimal-profile fallback, focused tests, type/lint, documentation, and complete-candidate metric evidence.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-log-reader-design-a77.json",
+        ".agent/evidence/AAA-022/w1-canonical-event-seam-a76.json",
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This gate authorizes implementation only; no implementation result is implied by the gate."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/reader-migration-plan-a74.json",
+    ".agent/evidence/AAA-022/session-log-reader-design-a77.json",
+    ".agent/evidence/AAA-022/w1-canonical-event-seam-a76.json",
+    "packages/session-query/session-query/src/observation.ts",
+    "packages/llm/deepseek-llm-api-extensions/src/index.ts",
+    "packages/bundle/base/cordis.patch.yml",
+    "packages/bundle/sdk-minimal/cordis.patch.yml"
+  ],
+  "candidate_fingerprint": "fc5ea096c7306b58bd6c4cb9df964393589d239a65fd6355820148ca2f8f2bda",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [
+    "Do not make session-query mandatory in sdk-minimal as part of A07.",
+    "Do not change the dsh_session_log wire version or Session format generation.",
+    "Run canonical metrics on a complete candidate before claiming a ratchet PASS."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 REM-028 W0-W4 owner-scoped Session-reader migration and bounded async reader/projection/pre-commit seams",
+    "decision": "Implement the bounded observation-based W1 seam and focused compatibility coverage; broad lint/compiler defaults, released-generation rewrites, publication, repository writes, release, and final verdict remain excluded.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    "expires_or_revalidates": "Revalidate if A07 widens beyond session-log-deepseek/session-query observation, changes sdk-minimal composition, changes durable Session data, or requires external repository actions."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-022:A07 to implement the optional observation-based session-log-deepseek reader seam and its focused equivalence matrix.",
+  "revalidation_triggers": [
+    "The implementation introduces a new synchronous history reader or silently falls back to persisted history for a stale request.",
+    "The captured throughSeq can change after preparation or the acceptance watermark can regress.",
+    "The minimal profile loses dsh_session_log behavior without an explicit composition decision.",
+    "A source-format, wire-version, publication, merge, push, or release change is proposed."
+  ],
+  "supersedes": null
+}

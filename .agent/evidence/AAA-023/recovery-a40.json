@@ -1,0 +1,20 @@
+{
+  "record_id": "EVID-AAA-023-RECOVERY-A40-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A15",
+  "timestamp": "2026-09-22T05:56:34-03:00",
+  "result": "PASS",
+  "scope": "Reconcile the active ExecPlan marker with the persisted AAA-023:A15 action",
+  "observed": {
+    "state_active_action_id": "AAA-023:A15",
+    "backlog_next_action_id": "AAA-023:A15",
+    "execution_log_tail_active_action_id": "AAA-023:A15",
+    "execplan_first_concrete_step_id": "AAA-023:A15",
+    "execplan_marker_repaired_from": "AAA-023:A10",
+    "execplan_marker_repaired_to": "AAA-023:A15",
+    "state_checker": "PASS"
+  },
+  "limitations": [
+    "This recovery repairs control-plane pointer drift only; it does not qualify the dirty candidate or authorize staging, commit, publication, push, merge, release, or final verdict."
+  ]
+}

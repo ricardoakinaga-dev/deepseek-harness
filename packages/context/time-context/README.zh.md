@@ -71,13 +71,14 @@ kind: "package-reference"
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 插件入口：pre-step 监听器、到期调度、读数组合 |
+| [`src/projection.ts`](src/projection.ts) | 仅供 host 使用的持久读数、轮次状态与原始浏览器时区折叠 |
 | [`src/request-zone.ts`](src/request-zone.ts) | 从开放轮次 `user-rpc` 来源派生浏览器时区策略 |
 | [`src/timestamp.ts`](src/timestamp.ts) | `Intl.DateTimeFormat` 创建与时间戳格式化 |
 | [`src/invariant.ts`](src/invariant.ts) | 快照约定的不变式配套模块 |
 
 ### 主要流程
 
-需要注入时，插件采样挂钟时间，从开放轮次的 `user-rpc` 消息派生浏览器时区策略，解析显示时区（请求本地或回退），并渲染三行读数。正数间隔调度会扫描原始持久会话事件，查找最新一条归因于插件的消息——包括被压缩（compaction）遮蔽的读数——因此调度无需进程本地缓存也能在恢复后存续。读数记录的是已进入的步骤，不是已完成或已传输的请求；后续准备失败时，该读数可能留在历史中。
+需要注入时，插件采样挂钟时间，从开放轮次的 `user-rpc` 消息派生浏览器时区策略，解析显示时区（请求本地或回退），并渲染三行读数。仅供 host 使用的 Session 投影会折叠每个持久事件；即使压缩遮蔽了对应消息，仍会保留最新读数与原始浏览器时区。检查点指纹包含 `Intl` 所用 Node、V8、ICU、CLDR 与时区数据库版本，因此运行时变化后会从日志重新折叠状态。读数记录的是已进入的步骤，不是已完成或已传输的请求；后续准备失败时，该读数可能留在历史中。
 
 </details>
 

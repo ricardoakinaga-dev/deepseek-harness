@@ -1,0 +1,81 @@
+{
+  "record_id": "GATE-AAA-023-IMPLEMENTATION-READY-005",
+  "timestamp": "2026-09-22T04:59:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-023 bounded test-only removal of the explicit_any matcher increase",
+  "scope_ref": "AAA-023",
+  "version": 5,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "A11 identifies exactly one added explicit_any match in the cordis-client-runner browser-policy denial test and shows that no production any token was added or offset by a removal.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a36.json",
+        ".agent/verification.jsonl#VER-AAA-023-A11-DIAGNOSIS-A36-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The current worktree is dirty and the complete UI source move is still not represented by one immutable candidate."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation is limited to replacing the new test matcher expect.any(String) with a non-empty string matcher in plugin.client.spec.ts. It does not change production code, canonical metric semantics, baseline budgets, or acceptance thresholds.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a36.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        "packages/extensions/cordis-client-runner/tests/plugin.client.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The assertion remains intentionally stricter than merely checking that a stack field exists: the matched string must contain at least one character."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires the affected client test, the temporary complete-candidate audit with no explicit_any violation for cordis-client-runner, the existing temporary-candidate rescope check, and git diff --check.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a36.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Passing this bounded test correction does not establish same-SHA release qualification or resolve the candidate-tree prerequisite."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-023/diagnosis-a36.json",
+    ".agent/verification.jsonl#VER-AAA-023-A11-DIAGNOSIS-A36-001",
+    ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"
+  ],
+  "candidate_fingerprint": "9ae7042e2c634fc3850f5e8265507a0a09b14f96bec5fc219b7988e9c946f7b3",
+  "confidence": "HIGH",
+  "gaps": [
+    "The complete 16-path UI source move still requires one candidate tree before the real aggregate path gates can run.",
+    "External-provider, coverage, required-platform, upstream-rehearsal, publication, release, and final-critic evidence remain outstanding."
+  ],
+  "conditions": [
+    "Change only the test matcher identified by A11; do not weaken the assertion to accept an empty or non-string stack.",
+    "Do not change canonical metric semantics or baseline budgets to hide the increase.",
+    "Do not stage, commit, publish, push, merge, release, or issue a final verdict as part of this gate."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "Approved local implementation and compatibility validation for the dynamic-extension policy",
+    "decision": "The approved local validation authority covers this behavior-preserving test correction; external publication, registry writes, push, merge, release, and final-verdict actions remain outside scope.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+    "expires_or_revalidates": "Revalidate if the correction changes runtime dynamic-extension behavior, metric policy, or any external repository state."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-023:A12 to replace the metric-only test matcher and run the bounded focused validation.",
+  "revalidation_triggers": [
+    "The matcher change alters the tested failure contract or admits empty stacks.",
+    "The implementation changes production code or metric policy.",
+    "Validation requires actual staging, commit, or external repository state."
+  ],
+  "supersedes": "GATE-AAA-023-IMPLEMENTATION-READY-004"
+}

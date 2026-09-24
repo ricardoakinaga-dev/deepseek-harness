@@ -1,0 +1,395 @@
+{
+  "record_id": "EVID-AAA-022-W2-INTERACTION-READER-DESIGN-A24-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A24",
+  "kind": "W2_INTERACTION_CURRENT_EVENT_AND_INVARIANT_DESIGN",
+  "status": "APPROVED",
+  "timestamp": "2026-09-23T16:43:56-03:00",
+  "authority": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "candidate": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty custom/main preserved",
+    "design_input_fingerprint": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+    "design_input_path_count": 55,
+    "design_input_fingerprint_method": "SHA-256 over the listed paths in manifest order, updating with each UTF-8 relative path, NUL, raw SHA-256 digest of file bytes, NUL.",
+    "design_input_paths": [
+      "AGENTS.md",
+      "docs/AGENTS.md",
+      ".agent/authority.jsonl",
+      ".agent/backlog.json",
+      ".agent/state.json",
+      ".agent/plans/deepseek-harness-aaa.md",
+      ".agent/execution-log.jsonl",
+      ".agent/verification.jsonl",
+      ".agents/customization-policy.json",
+      ".agent/evidence/AAA-022/reader-inventory-a75.json",
+      ".agent/evidence/AAA-022/reader-migration-plan-a74.json",
+      ".agent/evidence/AAA-022/a23-w2-owner-order-disposition-20260923.json",
+      ".agent/evidence/AAA-022/context-reader-design-a21.json",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/src/types.ts",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/src/types.ts",
+      "packages/session/session-projection-cache/src/index.ts",
+      "packages/session/session-projection-cache/src/spec.ts",
+      "packages/interaction/commands/package.json",
+      "packages/interaction/commands/src/index.ts",
+      "packages/interaction/commands/src/invariant.ts",
+      "packages/interaction/commands/tests/commands.spec.ts",
+      "packages/interaction/commands/tests/invariant.spec.ts",
+      "packages/interaction/commands/README.md",
+      "packages/interaction/commands/README.zh.md",
+      "packages/interaction/commands/README.i18n.yaml",
+      "docs/subsystems/commands.md",
+      "docs/subsystems/commands.zh.md",
+      "docs/subsystems/commands.i18n.yaml",
+      "packages/interaction/permission-presets/package.json",
+      "packages/interaction/permission-presets/src/index.ts",
+      "packages/interaction/permission-presets/src/invariant.ts",
+      "packages/interaction/permission-presets/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/tests/projection.spec.ts",
+      "packages/interaction/permission-presets/README.md",
+      "packages/interaction/permission-presets/README.zh.md",
+      "packages/interaction/permission-presets/README.i18n.yaml",
+      "docs/subsystems/permission-presets.md",
+      "docs/subsystems/permission-presets.zh.md",
+      "docs/subsystems/permission-presets.i18n.yaml",
+      "packages/interaction/user-approval/package.json",
+      "packages/interaction/user-approval/src/index.ts",
+      "packages/interaction/user-approval/src/invariant.ts",
+      "packages/interaction/user-approval/tests/approval.spec.ts",
+      "packages/interaction/user-approval/tests/invariant.spec.ts",
+      "packages/interaction/user-approval/README.md",
+      "packages/interaction/user-approval/README.zh.md",
+      "packages/interaction/user-approval/README.i18n.yaml",
+      "docs/subsystems/approval.md",
+      "docs/subsystems/approval.zh.md",
+      "docs/subsystems/approval.i18n.yaml",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "scripts/gen-cordis-catalog.ts"
+    ],
+    "production_changes": []
+  },
+  "traceability": [
+    {
+      "improvement_ids": [
+        "M08",
+        "M22"
+      ],
+      "canonical_task": "AAA-022",
+      "remediation": "REM-028",
+      "relationship": "Continue the owner-ordered W2 Session-reader migration under the A03 authorization and A23 owner-order disposition."
+    }
+  ],
+  "scope": [
+    "REM-028-S041: validate command/done sourceEventSeq against earlier non-command events without Session.eventAt.",
+    "REM-028-S042: maintain commandId pairing and duplicate-run validation without Session.snapshotEvents.",
+    "REM-028-S043: retain configured-preset vocabulary validation for current events and every observed prefix without Session.snapshotEvents.",
+    "REM-028-S044: determine open-turn admission for ApprovalService.request without Session.eventAt.",
+    "REM-028-S045: read the latest approval/policy override without Session.eventAt.",
+    "REM-028-S046: validate approval audit pairs and closed vocabularies without Session.snapshotEvents."
+  ],
+  "inspection": {
+    "inventory": ".agent/evidence/AAA-022/reader-inventory-a75.json#REM-028-S041..S046",
+    "owner_order": ".agent/evidence/AAA-022/a23-w2-owner-order-disposition-20260923.json#successor_action",
+    "session_append_sources": [
+      "packages/core/session/src/index.ts:711-812",
+      "packages/core/session/src/index.ts:1005-1112",
+      "packages/core/session/src/index.ts:1154-1195",
+      "packages/core/session/src/preparation.ts:80-155"
+    ],
+    "projection_sources": [
+      "packages/session/session-projection/src/index.ts:221-255",
+      "packages/session/session-projection/src/index.ts:365-416",
+      "packages/session/session-projection/src/index.ts:428-489",
+      "packages/session/session-projection/src/index.ts:731-825",
+      "packages/session/session-projection-cache/src/index.ts:238-269"
+    ],
+    "current_reader_observations": [
+      {
+        "site": "REM-028-S041",
+        "location": "packages/interaction/commands/src/invariant.ts:31-45",
+        "observation": "A success-only sourceEventSeq must be a safe, non-negative seq earlier than command/done and resolve to an event other than command/run or command/done. The event is checked before Session.append pushes the candidate."
+      },
+      {
+        "site": "REM-028-S042",
+        "location": "packages/interaction/commands/src/invariant.ts:19-55",
+        "observation": "Replay keeps every command/run id for duplicate detection and requires each command/done to name a prior run in the same log. The index is session-local and advances on command events."
+      },
+      {
+        "site": "REM-028-S043",
+        "location": "packages/interaction/permission-presets/src/invariant.ts:17-36",
+        "observation": "Each permission/preset event must name a configured preset or Auto. The existing permissions projection already folds preset events but retains only the latest selection, so late invariant registration cannot validate every distinct historical name from current projection state."
+      },
+      {
+        "site": "REM-028-S044",
+        "location": "packages/interaction/user-approval/src/index.ts:72-85, 192-221",
+        "observation": "request() checks whether the log is currently inside a turn before appending approval/asked; scanning stops at the first turn/start or turn/end."
+      },
+      {
+        "site": "REM-028-S045",
+        "location": "packages/interaction/user-approval/src/index.ts:231-251",
+        "observation": "overrideOf() returns the latest approval/policy event. effectivePolicy() applies the configured default only when the session has no override."
+      },
+      {
+        "site": "REM-028-S046",
+        "location": "packages/interaction/user-approval/src/invariant.ts:21-101",
+        "observation": "The invariant replays turn state and unmatched approval ids, checks asked/decided pairing and closed outcomes, stages transitions during pre-commit dispatch, and commits them on session/event. Unmatched ids currently persist across turn/end."
+      }
+    ]
+  },
+  "decisions": {
+    "command_audit_state": {
+      "decision": "Add one package-private fold entry per exact Session, shared by all concrete CommandRuntime providers observing it. A helper-level WeakMap<Session, Entry> locates the folded state; each entry owns a Set of provider-fiber leases and the exact lastSeq cursor. Each provider fiber owns a tracked Session Set and its own global lifecycle listeners. All observers advance the same fold; duplicate delivery at or below lastSeq is idempotent. The invariant companion reads this shared Session fold. A provider lease release removes only that fiber from the entry and its listeners; sibling leases keep the fold active. The final lease release deletes the entry. On provider activation, install that lease's listeners before reconciling ctx.sessions.list(); acquire an existing exact fold, seed an empty Session from the exact empty prefix, and fail if an eventful Session has no current exact fold. Seed new Sessions from SessionCreationBaseline.events on session/created, advance from each delivered session/event once, and clear on session/disposed. The companion validates the precommit candidate against the prior-prefix fold without mutation.",
+      "state": [
+        "Keep every command/run id in the shared per-Session fold so a later run cannot reuse an id after a matching command/done.",
+        "Keep command/run and command/done seqs in the shared per-Session fold so sourceEventSeq can reject command lifecycle events without retaining non-command event payloads.",
+        "Keep the last observed contiguous event seq and first validation failure in the shared per-Session fold. Require lastSeq === candidate.seq - 1 before validation. Ignore duplicate delivery at or below the shared cursor; a gap before a new seq latches a missing-prefix failure. Releasing one provider lease must preserve the fold while another lease remains."
+      ],
+      "ownership_reason": "Command pairing state is private to the host command/invariant seam and is reconstructed from the exact creation baseline on every restore or fork. It has no client view, so it does not need a persisted generic Session projection or a new package dependency.",
+      "compatibility": [
+        "Use source < candidate.seq plus the known contiguous prefix; a source is valid only when it is a safe non-negative integer and not in the command-event seq set.",
+        "Keep the current check order: command/done first requires a prior command/run, then validates the optional success-only source reference.",
+        "Do not change event payloads, commandId identity, UI output, or which command lifecycle events are emitted."
+      ]
+    },
+    "permission_preset_history": {
+      "decision": "Add one package-private fold entry per exact Session, shared by all concrete PermissionPresetService providers observing it. A helper-level WeakMap<Session, Entry> locates the folded state; each entry owns a Set of provider-fiber leases and the exact lastSeq cursor. Each provider fiber owns a tracked Session Set and its own global lifecycle listeners. All observers advance the same fold; duplicate delivery at or below lastSeq is idempotent. The invariant companion reads this shared Session fold. A provider lease release removes only that fiber from the entry and its listeners; sibling leases keep the fold active. The final lease release deletes the entry. On provider activation, reconcile ctx.sessions.list() after listener installation; acquire an exact existing fold, seed an empty Session from the exact empty prefix, and fail if an eventful Session has no exact fold. Seed from SessionCreationBaseline.events, advance from each delivered session/event once, and clear on session/disposed. The invariant checks the exact prefix cursor and observed-name set at installation/session creation and validates each precommit candidate directly.",
+      "ownership_reason": "The permissions projection already owns the current client value but does not need historical names to calculate that value. Preset history is needed only for same-process invariant validation and is rebuilt from every restore/fork creation baseline, so persisting it would duplicate durable information and cause unnecessary cache invalidation.",
+      "compatibility": "Leave the permissions projection stateVersion and cache schema unchanged. The client-visible view remains exactly { currentValue }; process catalog behavior, Auto admission, settings, default pinning, and knob event ordering stay unchanged."
+    },
+    "approval_session_state": {
+      "decision": "Add one package-private fold entry per exact Session, shared by all concrete ApprovalService providers observing it. A helper-level WeakMap<Session, Entry> locates the folded state; each entry owns a Set of provider-fiber leases and the exact lastSeq cursor. Each provider fiber owns a tracked Session Set and its own global lifecycle listeners. All observers advance the same fold; duplicate delivery at or below lastSeq is idempotent. The invariant companion reads this shared Session fold. A provider lease release removes only that fiber from the entry and its listeners; sibling leases keep the fold active. The final lease release deletes the entry. On provider activation, reconcile ctx.sessions.list() after listener installation; acquire an exact existing fold, seed an empty Session from the exact empty prefix, and fail if an eventful Session has no exact fold. Seed from SessionCreationBaseline.events, advance from each delivered session/event once, require the exact cursor before current reads and precommit checks, and clear on session/disposed.",
+      "ownership_reason": "Approval state is consumed synchronously by the approval service and invariant in one Cordis runtime. Restore and fork supply the complete creation baseline, so a host-local fold preserves current behavior without exposing or persisting another Session projection.",
+      "current_reads": "ApprovalService.request() reads openTurn before any append or abort handling; overrideOf() reads the latest policy override. effectivePolicy() still falls back to config.policy and then ask. No new listener-shaped policy gate or change to never dispatch ordering is introduced.",
+      "pair_semantics": "Preserve the existing pending-id semantics: asked and decided each require an open turn, asked requires a non-empty toolName and a currently unmatched id, decided requires a matching ask and a known outcome, and an unmatched id is not implicitly cleared at turn/end."
+    },
+    "lifecycle_and_failure": {
+      "precommit": "Session.append() collects internal/dispatch callbacks before pushing the candidate to its log. The validators therefore see the exact committed prefix. They check the candidate against that state without committing a transition; a failure leaves Session.seq, log contents, and owner state unchanged. Accepted events advance owner state through session/event after the Session commit point.",
+      "creation_restore_fork": "Each owner seeds from the exact SessionCreationBaseline on session/created only when no entry exists and the live Session still ends at the baseline cut. If another creation listener already seeded the fold, validate the current exact cursor and attach without replaying the captured baseline. This covers constructor replay, restored logs, fork-inherited prefixes, and accepted pre-publication setup appends. Invariant companions inspect the seeded fold on session/created and reject an invalid prefix synchronously, so SessionStore rolls back publication. No constructor-seeded event is expected on session/event.",
+      "preparation": "A detached Session does not publish session/event before entering SessionStore. Preparation-time appends remain accepted into the unpublished baseline and are validated together at session/created, matching the existing pre-publication observation point; this design does not claim an internal/dispatch callback exists before attachment.",
+      "late_registration": "A companion may register after a live Session only when a shared fold exists and is exact through that Session. Provider activation installs lifecycle listeners before reconciling ctx.sessions.list(): acquire an existing fold only when it has no error and lastSeq === session.seq - 1; an empty Session with no fold may start from the exact empty prefix; an eventful Session with no fold or a cursor gap fails explicitly. A sibling lease may keep the fold exact while another provider unloads or reloads. After final lease release, no service or invariant may fall back to eventAt or snapshotEvents.",
+      "teardown": "session/disposed deletes a Session fold and removes the Session from every observing lease; duplicate disposal delivery is idempotent. Provider-fiber teardown removes only that fiber's listeners and lease. A surviving sibling lease keeps the shared fold active, so it can continue current reads, pre-commit validation, and event advancement. Final lease release clears the fold even when the Session remains attached to SessionStore. A later first lease can seed a live empty Session from the exact empty prefix, but fails activation for an eventful Session whose baseline was missed. Approval cancellation still settles through the existing asked/decided pair; abort state itself is not projected.",
+      "provider_lifetime": "Each provider fiber has its own lease and listener set, while all live leases for a Session share one exact fold entry keyed by that Session. On activation, install listeners before reconciling ctx.sessions.list(). If an entry exists, require no latched failure and lastSeq === session.seq - 1 before acquiring it; if no entry exists, only session.seq === 0 may seed the exact empty prefix. An eventful Session with no observed creation baseline makes activation fail explicitly. Every synchronous service read requires lastSeq === session.seq - 1 and no latched failure; every pre-commit candidate requires lastSeq === candidate.seq - 1 and no latched failure. Provider cleanup removes its listeners and lease from each tracked Session. A non-final release leaves the shared entry untouched; final release deletes it. session/disposed deletes the shared fold and removes the Session from every observing lease. Reactivation may reuse an exact entry held by a sibling, but cannot reconstruct history after final release.",
+      "baseline_seeding": "Baseline application is monotonic and idempotent across creation listeners. If no fold entry exists, seed it only when session.seq === baseline.events.length; otherwise latch a missing-prefix failure and reject creation. If an entry already exists, never replay or overwrite it from the callback's captured baseline: require no latched failure and lastSeq === session.seq - 1, then attach this provider lease idempotently. This allows an earlier creation listener to append a live event and advance the shared fold before a later provider callback without rewinding it. A session/event delivered before any valid baseline entry exists latches a missing-prefix failure; a later stale creation baseline cannot repair that failure."
+    },
+    "customization_ownership": {
+      "owner_id": "interaction-session-reader-invariants",
+      "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
+      "summary": "Keep interaction-owned current-event reads and synchronous Session invariants exact across creation, append, restore, and provider lifetimes.",
+      "upstreamPlan": "docs/customization/fork-v2-extraction.md#extraction-matrix",
+      "attributed_paths": [
+        "packages/interaction/commands/src/index.ts",
+        "packages/interaction/commands/src/invariant.ts",
+        "packages/interaction/commands/src/audit-state.ts",
+        "packages/interaction/commands/tests/invariant.spec.ts",
+        "packages/interaction/commands/README.md",
+        "packages/interaction/commands/README.zh.md",
+        "packages/interaction/commands/README.i18n.yaml",
+        "docs/subsystems/commands.md",
+        "docs/subsystems/commands.zh.md",
+        "docs/subsystems/commands.i18n.yaml",
+        "packages/interaction/permission-presets/src/index.ts",
+        "packages/interaction/permission-presets/src/invariant.ts",
+        "packages/interaction/permission-presets/src/preset-history.ts",
+        "packages/interaction/permission-presets/tests/invariant.spec.ts",
+        "packages/interaction/permission-presets/README.md",
+        "packages/interaction/permission-presets/README.zh.md",
+        "packages/interaction/permission-presets/README.i18n.yaml",
+        "docs/subsystems/permission-presets.md",
+        "docs/subsystems/permission-presets.zh.md",
+        "docs/subsystems/permission-presets.i18n.yaml",
+        "packages/interaction/user-approval/src/index.ts",
+        "packages/interaction/user-approval/src/invariant.ts",
+        "packages/interaction/user-approval/src/session-state.ts",
+        "packages/interaction/user-approval/tests/approval.spec.ts",
+        "packages/interaction/user-approval/tests/invariant.spec.ts",
+        "packages/interaction/user-approval/README.md",
+        "packages/interaction/user-approval/README.zh.md",
+        "packages/interaction/user-approval/README.i18n.yaml",
+        "docs/subsystems/approval.md",
+        "docs/subsystems/approval.zh.md",
+        "docs/subsystems/approval.i18n.yaml"
+      ],
+      "existing_owner_paths": {
+        "packages/extensions/tool-cordis/src/api-catalog.ts": [
+          "session-reader-migration",
+          "dynamic-extension-trust"
+        ],
+        ".agents/customization-policy.json": [
+          "upstream-safe-customization-governance"
+        ]
+      },
+      "owner_update": "Add this exact owner entry to .agents/customization-policy.json during A25 implementation. The existing catalog and governance owners retain their current paths; do not add duplicate attribution for those two files."
+    }
+  },
+  "falsifying_cases": [
+    "A rejected command/done source candidate leaves the cursor and audit state unchanged; appending a corrected command/done for the same prior run succeeds.",
+    "A sourceEventSeq that points to a prior command/run or command/done, a future seq, a fractional seq, a negative seq, or a non-success result is rejected before append; an earlier non-command event remains accepted.",
+    "A duplicate command/run id remains rejected after the first run has completed, and an unmatched command/done remains rejected after restore and late invariant registration.",
+    "A seeded, restored, or forked log containing an invalid command lifecycle fails from its creation baseline before SessionStore publication; a valid prefix produces the same next command decisions as replay.",
+    "A configured preset and Auto in prior history remain accepted; an unknown historical or newly appended preset fails when the companion is loaded, when a Session is created, or before the candidate append, as appropriate.",
+    "A version-2 permissions checkpoint remains eligible because the permissions projection state and stateVersion do not change; preset-history validation is rebuilt from the exact creation baseline without adding persisted cache fields.",
+    "The most recent approval/policy controls overrideOf and effectivePolicy after policy changes, restore, and fork; absent override still uses the configured default.",
+    "An ask outside a turn, a duplicate pending id, an unmatched decision, empty toolName, unknown outcome, or unknown policy fails before append and leaves state available for a corrected event.",
+    "An already-aborted request still checks for an open turn first; with an open turn it records asked and cancelled decision events, while a late answer remains discarded.",
+    "Throwing post-commit observers do not leave the audit fold behind the committed log; after disposal and recreation, no pending ids or policy values leak across Session objects.",
+    "Mount two providers for the same package over one live Session. Unload one provider; the sibling still reads current values, validates a pre-commit candidate, and advances the shared fold after accepted events. Reload the first provider while the sibling lease remains and confirm the exact cursor is preserved. Release the final lease, then verify a new provider cannot reconstruct an eventful Session but can seed a live empty Session.",
+    "During session/created, let an early provider callback seed the captured baseline and let a later creation listener append one accepted live event before a second provider callback receives the same baseline. The event advances the shared fold; the later callback attaches its lease without replaying the stale baseline, preserving lastSeq === session.seq - 1. If the live event arrives before any valid baseline fold exists, creation fails closed and the stale captured baseline cannot repair it."
+  ],
+  "implementation_scope": [
+    "packages/interaction/commands/src/index.ts",
+    "packages/interaction/commands/src/invariant.ts",
+    "packages/interaction/commands/src/audit-state.ts",
+    "packages/interaction/commands/tests/invariant.spec.ts",
+    "packages/interaction/commands/README.md",
+    "packages/interaction/commands/README.zh.md",
+    "packages/interaction/commands/README.i18n.yaml",
+    "docs/subsystems/commands.md",
+    "docs/subsystems/commands.zh.md",
+    "docs/subsystems/commands.i18n.yaml",
+    "packages/interaction/permission-presets/src/index.ts",
+    "packages/interaction/permission-presets/src/invariant.ts",
+    "packages/interaction/permission-presets/src/preset-history.ts",
+    "packages/interaction/permission-presets/tests/invariant.spec.ts",
+    "packages/interaction/permission-presets/README.md",
+    "packages/interaction/permission-presets/README.zh.md",
+    "packages/interaction/permission-presets/README.i18n.yaml",
+    "docs/subsystems/permission-presets.md",
+    "docs/subsystems/permission-presets.zh.md",
+    "docs/subsystems/permission-presets.i18n.yaml",
+    "packages/interaction/user-approval/src/index.ts",
+    "packages/interaction/user-approval/src/invariant.ts",
+    "packages/interaction/user-approval/src/session-state.ts",
+    "packages/interaction/user-approval/tests/approval.spec.ts",
+    "packages/interaction/user-approval/tests/invariant.spec.ts",
+    "packages/interaction/user-approval/README.md",
+    "packages/interaction/user-approval/README.zh.md",
+    "packages/interaction/user-approval/README.i18n.yaml",
+    "docs/subsystems/approval.md",
+    "docs/subsystems/approval.zh.md",
+    "docs/subsystems/approval.i18n.yaml",
+    "packages/extensions/tool-cordis/src/api-catalog.ts",
+    ".agents/customization-policy.json"
+  ],
+  "verification_only_paths": [
+    "packages/interaction/commands/tests/commands.spec.ts",
+    "packages/interaction/permission-presets/tests/projection.spec.ts",
+    "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+    "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+    "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+    "packages/core/tools/tests/invariant.spec.ts",
+    "packages/shell/tool-bash/tests/tools.spec.ts",
+    "packages/acp/acp/tests/approval.spec.ts"
+  ],
+  "required_verification": [
+    "Focused command lifecycle tests cover pairing, duplicate run ids after completion, source seq validation, invalid baseline rejection, late companion registration from owner state, and rejected-candidate state preservation.",
+    "Focused permission invariant tests cover configured/Auto history, unknown current and historical names, and session creation rollback; existing permission projection tests confirm its currentValue view and persisted state version are unchanged.",
+    "Focused ApprovalService and invariant tests cover open-turn current reads, latest policy override/default behavior, all existing audit validation order, accepted cancellation pairs, observer failures, restore/fork creation baselines, late companion registration, and state cleanup.",
+    "Run the listed verification-only command and approval consumer tests to confirm user-visible command results and approval integrations do not change.",
+    "Run scoped host TypeScript and Oxlint for the three packages; verify-type-equiv, verify-cordis-catalog, export-JSDoc, translation pairing, package READMEs, scoped doc-typecheck/doc-quick, and git diff --check.",
+    "Confirm the S041-S046 deprecated-reader count decreases by six and no implementation path retains a synchronous eventAt or snapshotEvents call for those sites.",
+    "No SDK projection output or model-visible wording changes are expected; update snapshots only if a focused output assertion demonstrates an actual behavior change.",
+    "For commands, permission-presets, and user-approval, unload the owning provider while a Session remains attached, append an event while its listener is absent, and reactivate. Verify teardown removes the old fold and activation fails closed before a stale current read or invariant check; verify an empty live Session can seed from the empty prefix.",
+    "For commands, permission-presets, and user-approval, create two scoped providers observing one Session. Release one lease and verify the other continues reads, pre-commit validation, and event advancement; reacquire while the sibling lease is active and retain exact state. After final lease release, verify eventful Session activation fails closed and empty Session activation seeds the empty prefix."
+  ],
+  "review_requirements": {
+    "criteria": [
+      "A24-01: S041-S042 preserve command/run uniqueness, done pairing, and exact sourceEventSeq eligibility with validation before Session append commit.",
+      "A24-02: S043 validates all preset names observed in existing, newly created, restored, and forked Sessions without adding persisted projection data, changing cache versions, or changing the wire view.",
+      "A24-03: S044-S045 use owner-maintained current turn and policy state while preserving open-turn-before-append/abort order and configured-default behavior.",
+      "A24-04: S046 preserves audit transition rules, error ordering, pending-id semantics, closed values, and accepted post-commit observer behavior.",
+      "A24-05: Session append candidate checks do not mutate owner state; accepted publication advances each state once, and creation failure rejects before Agent publication.",
+      "A24-06: Restore, resume, fork, pre-publication preparation, cancellation, late companion registration, monotonic/idempotent creation seeding, missing baselines, event gaps, duplicate delivery, Session disposal, provider lease release/reactivation, simultaneous scoped providers, partial unload, final-release cleanup, and empty-session recovery have explicit behavior with no deprecated-history fallback or stale-fold reads.",
+      "A24-07: The exact 33-path implementation scope includes package contracts, Chinese pairs and pairing sidecars, generated API catalog output, and policy ownership. The new interaction-session-reader-invariants owner attributes the 31 interaction/package-doc paths; session-reader-migration and dynamic-extension-trust retain api-catalog.ts, while upstream-safe-customization-governance retains .agents/customization-policy.json. Verification includes focused consumers."
+    ],
+    "implementation_gate": "Prepare an A25 implementation-ready gate only after an independent read-only reviewer approves A24-01 through A24-07 against the listed source fingerprint."
+  },
+  "next_action": {
+    "id": "AAA-022:A25",
+    "kind": "DESIGN",
+    "summary": "Prepare the exact implementation-ready gate for W2 interaction-owned current-event and invariant migrations",
+    "scope": "A24 approved 33-path implementation_scope; interaction-session-reader-invariants owns the 31 interaction/package-documentation paths, while existing catalog and governance owners retain their paths, plus the exact gate-bound verification-only regressions.",
+    "completion_signal": "An A25 task-bound implementation-ready gate binds A03 authority, independent A24 approval, all 33 exact implementation paths, exact customization ownership, focused verification including provider unload/reload, and current preimplementation fingerprints."
+  },
+  "limitations": [
+    "Design inspection only. No source, tests, documentation, generator, customization policy, implementation allowlist, or runtime state was changed for A24 beyond this evidence artifact.",
+    "The working tree remains pre-existing dirty custom/main. No existing modifications are attributed to this design; the listed fingerprint is the design input witness.",
+    "An eventful Session requires an exact shared fold whose creation baseline has been observed. Concurrent provider fibers acquire per-Session leases; teardown removes only its own lease, and final lease release clears the fold. Creation listeners seed monotonically without replaying a stale captured baseline. A new first lease fails explicitly if an eventful Session remained live after final release. No deprecated Session history fallback is available."
+  ],
+  "freshness": "CURRENT",
+  "review_history": [
+    {
+      "review_id": "REVIEW-AAA-022-A24-ROUND-1",
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "BLOCK",
+      "input_fingerprint": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+      "findings": [
+        "A24-06: provider-fiber teardown removes listeners but did not clear module-level folds while Sessions remained attached, allowing stale approval current reads before a later append exposed the gap.",
+        "A24-07: the exact customization owner was deferred to A25 even though the policy update was in A24 implementation scope."
+      ],
+      "baseline_prerequisite": "Confirmed present in the current working tree: SessionStore.announce supplies SessionCreationBaseline; the fingerprint identifies current working-tree bytes, not HEAD.",
+      "resolution": "This candidate revision defines tracked-fold invalidation and fail-closed reactivation, and names exact new-owner paths plus retained existing catalog/governance owners. Request a fresh review before approval."
+    },
+    {
+      "review_id": "REVIEW-AAA-022-A24-ROUND-2",
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "BLOCK",
+      "input_fingerprint": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+      "findings": [
+        "One provider fiber clearing Session folds from a package-level map could invalidate a sibling provider fiber that observes the same Session through global lifecycle delivery."
+      ],
+      "resolution": "The per-provider candidate described here was not sufficient for simultaneous scoped providers. The next revision uses one SessionStore-keyed store with per-fiber listener leases and a shared refcounted fold; only final lease release clears state, and a sibling-provider regression covers partial unload."
+    },
+    {
+      "review_id": "REVIEW-AAA-022-A24-ROUND-3",
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "BLOCK",
+      "input_fingerprint": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+      "findings": [
+        "Per-provider stores rejected valid scoped-provider activation while eventful Sessions remained live, even when a sibling could keep tracking the exact fold. A shared fold cleared by one provider would also invalidate its sibling."
+      ],
+      "resolution": "This SessionStore-keyed draft was not retained because scoped context service wrappers may not have stable object identity. The next revision uses a per-Session shared fold with per-fiber observer leases; partial release leaves sibling state active, only final release clears it, and last-release reactivation fails closed for eventful Sessions."
+    },
+    {
+      "review_id": "REVISION-AAA-022-A24-004",
+      "kind": "DESIGN_REVISION",
+      "input_fingerprint": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+      "decision": "Use per-Session reference-counted fold ownership rather than a SessionStore-keyed store so sibling providers share a stable Session identity and partial unload cannot delete their state.",
+      "falsifier": "Two providers observe one Session; releasing either non-final lease preserves state, event advancement, and pre-commit validation for the survivor; final release clears the entry."
+    },
+    {
+      "review_id": "REVIEW-AAA-022-A24-ROUND-4",
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "BLOCK",
+      "input_fingerprint": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+      "findings": [
+        "The sibling-provider falsifier contradicted the shared-fold design by requiring independent folds.",
+        "Multiple session/created callbacks could replay the same captured baseline after an earlier callback appended a live event and advanced the shared fold."
+      ],
+      "resolution": "This candidate revision removes the contradictory independent-fold case and defines monotonic, idempotent seeding: seed only an absent entry still at the baseline cut; otherwise require a valid cursor at the live Session end and attach without replay. It adds a listener-order falsifier. Request another fresh review."
+    },
+    {
+      "review_id": "REVIEW-AAA-022-A24-ROUND-5",
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "BLOCK",
+      "input_fingerprint": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+      "findings": [
+        "Command audit details described per-provider-instance folds and cursors, contradicting the shared per-Session fold used by all three owners."
+      ],
+      "resolution": "This revision aligns command state and deduplication wording with the shared per-Session lease entry used across providers. Request final confirmation."
+    },
+    {
+      "review_id": "REVIEW-AAA-022-A24-FINAL-001",
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "APPROVE",
+      "input_fingerprint": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+      "findings": [],
+      "resolution": "The reviewer approves A24-01 through A24-07 for A25 implementation-gate preparation. The 55 listed input paths exist and their working-tree fingerprint is unchanged before and after review.",
+      "review_fingerprint_before": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff",
+      "review_fingerprint_after": "7db823c58c601a55b09b272e35d3bb3cf41abfc0d8775dd8152f8c12c8a40bff"
+    }
+  ]
+}

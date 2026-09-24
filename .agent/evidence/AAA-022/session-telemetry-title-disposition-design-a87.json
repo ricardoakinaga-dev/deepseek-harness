@@ -1,0 +1,239 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-TELEMETRY-TITLE-DISPOSITION-DESIGN-A87-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A16",
+  "kind": "W1_SESSION_TELEMETRY_TITLE_READER_DISPOSITION_DESIGN",
+  "status": "PASS_WITH_RETAINED_EXCEPTIONS",
+  "timestamp": "2026-09-23T01:04:24-03:00",
+  "authority": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "candidate": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty custom/main preserved",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false
+  },
+  "traceability": [
+    {
+      "improvement_ids": ["M08", "M22"],
+      "canonical_task": "AAA-022",
+      "remediation": "REM-028",
+      "relationship": "M22 is the per-owner measurement of the same M08 reader migration; continue the existing AAA-022/REM-028 record without creating another task or backlog."
+    }
+  ],
+  "scope": [
+    "REM-028-S071: session-telemetry on-demand bounded suffix capture",
+    "REM-028-S072: session-title all-history provider input",
+    "REM-028-S073: session-title synchronous pre-commit citation validation",
+    "packages/session/session-telemetry/src/coordinator.ts",
+    "packages/session/session-title/src/index.ts",
+    "packages/session/session-title/src/invariant.ts",
+    "packages/session-query/session-query/src/index.ts",
+    "packages/session-query/session-query/src/observation.ts",
+    "packages/session/session-title-llm/src/index.ts",
+    "packages/session/session-title-all-prompts-llm/src/index.ts",
+    "packages/session/session-title-first-prompt-llm/src/index.ts"
+  ],
+  "inspection": {
+    "production_calls": [
+      {
+        "site": "REM-028-S071",
+        "location": "packages/session/session-telemetry/src/coordinator.ts:157",
+        "observation": "captureSession() reads the suffix after a per-Session handoff cursor, optionally stops at inclusive throughSeq, redacts and emits each event in sequence order, and advances the cursor only after emit returns."
+      },
+      {
+        "site": "REM-028-S072",
+        "location": "packages/session/session-title/src/index.ts:776",
+        "observation": "All-history input scans events in order and retains eligible nonempty human text messages only through the generation watermark. Automatic first-prompt work instead uses the titleInput projection. Explicit refresh uses all-history input for either cadence."
+      },
+      {
+        "site": "REM-028-S073",
+        "location": "packages/session/session-title/src/invariant.ts:50",
+        "observation": "Pre-commit title validation requires unique earlier seqs naming any human-sourced user/message, including blank and non-text messages. It rejects other event types and plugin-sourced messages before publication."
+      },
+      {
+        "site": "existing-session invariant bootstrap",
+        "location": "packages/session/session-title/src/invariant.ts:65",
+        "observation": "Invariant installation scans already-live Sessions; newly created Sessions use the exact SessionCreationBaseline from A14. This bootstrap scan remains a separate retained history read."
+      }
+    ],
+    "current_read_count": {
+      "command": "rg -n --glob '*.ts' --glob '!**/tests/**' '\\b(eventAt|snapshotEvents|ownEvents)\\s*\\(' packages/session/session-telemetry/src packages/session/session-title/src",
+      "exit_status": 0,
+      "observed_lines": 4,
+      "sites": ["S071 capture suffix", "S072 all-history title input", "S073 citation lookup", "existing-session title invariant bootstrap"],
+      "expected_after_A17": "Two source occurrences remain: S071 and the existing-session bootstrap scan."
+    },
+    "dependency_direction": {
+      "observed": "session-query imports and peer-depends on session-title; session-title does not depend on session-query.",
+      "safe_provider_path": "session-title-all-prompts-llm/session-title-first-prompt-llm -> session-title-llm -> session-query -> session-title",
+      "cycle_rule": "Do not add session-query to session-title."
+    },
+    "focused_verification": [
+      {
+        "command": "pnpm exec vitest run --no-cache --reporter=dot packages/session/session-telemetry/tests packages/session/session-title/tests/provider.spec.ts packages/session/session-title/tests/invariant.spec.ts packages/session-query/session-query/tests/observation.spec.ts packages/session-query/session-query/tests/session-query.spec.ts",
+        "exit_status": 0,
+        "result": "6 files and 119 tests passed."
+      },
+      {
+        "command": "git diff --check -- packages/core/session packages/session/session-telemetry packages/session/session-title packages/session-query/session-query .agent",
+        "exit_status": 0,
+        "result": "PASS."
+      }
+    ],
+    "independent_design_review": {
+      "reviewer": "fresh read-only A16 design critic",
+      "initial_verdict": "REVISE",
+      "findings": [
+        "S071 remains unchanged because session-query observations copy a full fixed prefix and cannot preserve suffix handoff timing or cursor behavior.",
+        "S072 must load history through a mandatory provider method; first-prompt automatic input stays projection-owned while all-history and explicit refresh use the provider loader.",
+        "S073 must index all earlier human user/message events, including blank and non-text messages, and only update from committed event objects.",
+        "After awaiting a provider loader, SessionTitleService must call assertCurrent(session, work) before invoking generate; cancellation, failure, disposal, session removal, and service teardown need regressions."
+      ],
+      "incorporated_into_A17_gate": true
+    }
+  },
+  "decision": {
+    "solutionType": "upstream-package-change",
+    "problem": "Remove the remaining Session-title consumer reads from deprecated synchronous APIs while preserving telemetry handoff and the title invariant's synchronous veto.",
+    "invariants": [
+      "Telemetry keeps its current synchronous per-event redaction and handoff semantics until a bounded live suffix reader exists.",
+      "Title provider input contains the complete eligible ordered human-text prefix through its captured inclusive watermark, including fork-inherited history, with no later prompt.",
+      "Explicit refresh still uses all eligible messages even when automatic cadence is first-prompt; automatic first-prompt work continues to use titleInput projection state.",
+      "An aborted or superseded history load cannot invoke generation or append a title; the service rechecks its current work immediately after the asynchronous load.",
+      "A title citation names an earlier, unique, human-sourced user/message event; the check remains synchronous and can veto before publication.",
+      "No released Session data, SESSION_FORMAT_VERSION, persistence schema, or wire payload changes."
+    ],
+    "candidates": [
+      {
+        "id": "S071-current-synchronous-suffix",
+        "status": "RETAIN",
+        "reason": "It preserves the exact handoff cursor, inclusive cut, redaction timing, ordered per-event acceptance, and cursor-after-emit behavior."
+      },
+      {
+        "id": "S071-session-query-observation",
+        "status": "REJECT",
+        "reason": "The existing observation materializes a full prefix and adds an asynchronous read/emit window; it cannot preserve bounded suffix work, detached snapshot capture, and current cursor semantics."
+      },
+      {
+        "id": "S072-session-title-direct-query-dependency",
+        "status": "REJECT",
+        "reason": "session-query already depends on session-title, so this direction creates a package cycle."
+      },
+      {
+        "id": "S072-provider-owned-async-load",
+        "status": "SELECT_FOR_A17",
+        "reason": "A mandatory SessionTitleProvider.loadMessages({session, throughSeq, signal}) keeps query ownership in the provider layer, uses the existing session-query fixed-cut observation, and leaves title core dependent on no query package."
+      },
+      {
+        "id": "S073-eventAt-per-citation",
+        "status": "REJECT_FOR_A17",
+        "reason": "It performs one deprecated history lookup per citation even though a local committed-message index can preserve the exact predicate at the synchronous dispatch hook."
+      },
+      {
+        "id": "S073-provider-or-storage-async-check",
+        "status": "REJECT",
+        "reason": "An asynchronous lookup cannot veto the already synchronous Session.append operation."
+      },
+      {
+        "id": "S073-invariant-owned-message-index",
+        "status": "SELECT_FOR_A17",
+        "reason": "A WeakMap keyed by Session stores all human user/message seqs, seeds from existing-session scans and SessionCreationBaseline, and updates after session/event only when isCommittedEvent accepts the exact event."
+      }
+    ],
+    "provider_input_contract": {
+      "method": "SessionTitleProvider.loadMessages({session, throughSeq, signal})",
+      "required": true,
+      "semantics": "Return every eligible nonempty human text message in seq order through inclusive throughSeq. The title service validates the exact returned snapshot and supplies it unchanged to generate.",
+      "call_sites": [
+        "Automatic all-prompts work",
+        "Explicit refresh for both first-prompt and all-prompts providers"
+      ],
+      "first_prompt": "Automatic first-prompt work continues to use the existing titleInput projection and does not call loadMessages.",
+      "query_read": "The shared title-LLM provider helper retains a sessionQuery observation lease only while mapping its captured events, filters events to throughSeq, and then disposes the lease.",
+      "ordering": "ensureFallback remains before message loading; after await loadMessages, the service calls assertCurrent before generate, then keeps the existing post-generate current-work check and result validation.",
+      "failure": "A rejected load follows the current provider failure path; it cannot invoke generate or append a provider title. Automatic logging and explicit-refresh rejection remain service-owned."
+    },
+    "citation_index": {
+      "owner": "packages/session/session-title/src/invariant.ts",
+      "contents": "Every committed human-sourced user/message seq, including blank and non-text messages; do not reuse the narrower title-input eligibility filter.",
+      "seed": "Existing-live Session event scan and SessionCreationBaseline.events for new Sessions.",
+      "update": "Global session/event listener adds only a human user/message event for which session.isCommittedEvent(event) is true.",
+      "validation": "Preserve unique, valid SessionSeq and strict seq < title-event.seq checks, then test index membership inside internal/dispatch before publication.",
+      "lifetime": "WeakMap permits Session collection; one numeric seq is retained per human user/message for the live Session lifetime."
+    },
+    "implementation_paths": [
+      "packages/session/session-title/",
+      "packages/session/session-title-llm/",
+      "packages/session/session-title-all-prompts-llm/",
+      "packages/session/session-title-first-prompt-llm/",
+      "pnpm-lock.yaml",
+      ".agents/customization-policy.json"
+    ],
+    "invalid_cases": [
+      "Appending a prompt after the title watermark while a load is delayed must not place it in provider input.",
+      "Superseding or disposing a provider during load must abort/cancel the read and must not invoke generate or append a title.",
+      "A loader rejection must skip generate and preserve the already accepted fallback title.",
+      "Missing sessionQuery must fail provider plugin loading rather than silently falling back to snapshotEvents.",
+      "A fake user/message session/event emission for a seq owned by a non-message event must not poison the citation index.",
+      "Plugin-sourced messages, other event kinds, current/future seqs, duplicates, and malformed citation seqs must still be rejected before commit.",
+      "A citation to an earlier human user/message with blank or non-text content must remain accepted, matching the current invariant."
+    ],
+    "documentation_and_compatibility": {
+      "public_api": "Update SessionTitleProvider and every package/test consumer because public APIs are pre-stable.",
+      "composition": "Both shipped provider plugins declare and inject sessionQuery; the base bundle already supplies session-query-sqlite. Missing service is a load-time error.",
+      "docs": "Update English and Chinese package READMEs, JSDoc, pairing records, package dependency manifests, and relevant generated module graph after M08 stabilizes.",
+      "model_visibility": "The eligible message array, request framing, message seqs, route, and logged session/title-llm-request remain byte-for-byte equivalent; no snapshot or SDK output change is expected unless regression evidence shows a transcript difference."
+    },
+    "residual_risks": [
+      "session-query observeSession materializes the full fixed prefix; S072 needs the complete message input, but the current API does not provide bounded event pages.",
+      "The citation index adds one retained sequence number per human user/message for each live Session; retain the WeakMap owner and validate this memory cost against real Session sizes before considering a core-wide index."
+    ],
+    "reopen_conditions": [
+      "Revisit S071 when a lower-level reader can provide bounded ordered suffixes for live and detached cuts while preserving emit/redaction/cursor behavior.",
+      "Revisit S072 if a query API provides event pages over one fixed cut or the all-prompts provider contract changes with explicit model-input compatibility evidence.",
+      "Revisit S073 if the citation predicate or Session event ownership changes, or measured index memory justifies moving the index into core/session."
+    ]
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run --no-cache --reporter=dot packages/session/session-telemetry/tests packages/session/session-title/tests/provider.spec.ts packages/session/session-title/tests/invariant.spec.ts packages/session-query/session-query/tests/observation.spec.ts packages/session-query/session-query/tests/session-query.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Six files and 119 tests passed against the unchanged source behavior."
+    },
+    {
+      "command": "git diff --check -- packages/core/session packages/session/session-telemetry packages/session/session-title packages/session-query/session-query .agent",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "limitations": [
+    "A16 changes no production source; the only code-policy change expands the existing session-reader-migration owner to cover the approved A17 provider packages and lockfile.",
+    "The canonical audit-metrics command remains unavailable on this incomplete worktree; A17 must report the focused before/after source call count and rerun canonical metrics only when the candidate tree supports the command.",
+    "Full doc-sync retains four previously recorded catalog/tool-composition failures; A17 must run owner-scoped docs, pairing, generated graph, package, and source checks.",
+    "Vitest may update ignored local cache files; the Gauntlet artifact fingerprint must be explicitly rebaselined after this evidence checkpoint, leaving earlier Gauntlet evidence stale."
+  ],
+  "next_action": {
+    "id": "AAA-022:A17",
+    "kind": "IMPLEMENT",
+    "summary": "Migrate S072 provider history loading and S073 title citation validation under the A17 implementation gate",
+    "scope": [
+      "session-title provider loadMessages contract and current-work checks",
+      "session-title-llm query observation mapping and both shipped provider adapters",
+      "session-title invariant committed-human-message index",
+      "all affected consumers, negative tests, package manifests, bilingual docs, and scoped generated outputs"
+    ],
+    "acceptance": [
+      "Automatic first-prompt generation still uses titleInput and does not load complete history.",
+      "All-history automatic generation and explicit refresh receive the exact ordered human text prefix through inclusive throughSeq, including fork-inherited prompts.",
+      "After async load resolves, stale, cancelled, disposed, or removed-session work is rejected before generate; loader failures do not append a title and fallback ordering remains unchanged.",
+      "Both shipped provider plugins declare sessionQuery and fail load when the service is missing; no package cycle is introduced.",
+      "Citation validation preserves every prior accepted/rejected case and vetoes before publication using the committed-human-message index.",
+      "The scoped deprecated read call count falls from four to two; S071 and existing-session bootstrap remain with local reasons.",
+      "No released Session data, session format version, persistence schema, model-visible input, SDK output, or sealed candidate changes."
+    ],
+    "completion_signal": "Owner package, lifecycle, cancellation, citation, dependency, bilingual documentation, pairing, generated graph, and focused static checks pass; the A17 verification artifact is current."
+  },
+  "freshness": "CURRENT"
+}

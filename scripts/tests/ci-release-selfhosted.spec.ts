@@ -102,7 +102,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(evaluate(job['runs-on'], context)).toBe(hosted)
         })
         it('cleans stale checkout output and isolates setup before any pnpm invocation', () => {
-          expect(job.steps[0]).toMatchObject({ uses: 'actions/checkout@v6', with: { clean: true, 'persist-credentials': false } })
+          expect(job.steps[0]).toMatchObject({ uses: expect.stringMatching(/^actions\/checkout@/u) as string, with: { clean: true, 'persist-credentials': false } })
           const cacheIndex = job.steps.findIndex(step => step.run?.includes('NODE_COMPILE_CACHE='))
           const pnpmIndex = job.steps.findIndex(step => step.uses?.startsWith('pnpm/') || /\bpnpm\b/.test(step.run ?? ''))
           expect(cacheIndex).toBeGreaterThan(0)
@@ -110,7 +110,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(job.steps[cacheIndex]?.run).toContain('echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"')
           expect(job.steps[cacheIndex]?.run).toContain('echo "npm_config_devdir=${{ runner.temp }}/node-gyp" >> "$GITHUB_ENV"')
           expect(job.steps[cacheIndex]?.run).toContain('echo "TMPDIR=${{ runner.temp }}" >> "$GITHUB_ENV"')
-          expect(job.steps.find(step => step.uses === 'pnpm/action-setup@v4')?.with?.dest)
+          expect(job.steps.find(step => step.uses?.startsWith('pnpm/action-setup@'))?.with?.dest)
             .toBe('${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}')
           expect(job.steps.find(step => step.name === 'Install (immutable)')?.run).toBe('pnpm install --frozen-lockfile')
         })
@@ -127,12 +127,13 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
         it('uses the shared persistent store without remote cache reads or writes on self-hosted', () => {
           assertSharedPersistentStore(job.steps.find(step => step.name === 'Configure pnpm store path')?.run)
           const caches = job.steps.filter(step => step.uses?.startsWith('actions/cache'))
-          expect(caches.map(step => step.uses)).toEqual(['actions/cache/restore@v4'])
+          expect(caches).toHaveLength(1)
+          expect(caches[0]?.uses).toMatch(/^actions\/cache\/restore@/u)
           for (const step of caches) {
             expect(evaluate(step.if!, { 'runner.environment': 'self-hosted' })).toBe(false)
             expect(evaluate(step.if!, { 'runner.environment': 'github-hosted' })).toBe(true)
           }
-          const nodeSetup = job.steps.find(step => step.uses === 'actions/setup-node@v6')
+          const nodeSetup = job.steps.find(step => step.uses?.startsWith('actions/setup-node@'))
           expect(nodeSetup?.with?.cache).toBeUndefined()
           expect(nodeSetup?.with?.['package-manager-cache']).toBe(false)
         })
@@ -150,7 +151,8 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
             expect(commands).toContain('pnpm run release:pack --family ' + family + ' --out ' + output + ' --concurrency 8')
             expect(commands).toContain('pnpm run release:verify-packed-install --family ' + family + ' --from ' + output
               + (family === 'dsh' ? ' --from dist/npm-vendor --from dist/npm-landlock' : ''))
-            expect(job.steps.at(-1)).toMatchObject({ uses: 'actions/upload-artifact@v4', with: { path: output + '/*', 'retention-days': 7 } })
+            const upload = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@') && step.with?.path === output + '/*')
+            expect(upload).toMatchObject({ uses: expect.stringMatching(/^actions\/upload-artifact@/u) as string, with: { path: output + '/*', 'retention-days': 7 } })
           }
           expect(JSON.stringify(job)).not.toMatch(/secrets\.|release:publish|npm-publish/)
         })

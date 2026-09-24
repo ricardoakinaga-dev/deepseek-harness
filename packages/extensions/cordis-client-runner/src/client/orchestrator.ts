@@ -355,6 +355,7 @@ export class CordisRunOrchestrator {
       agentId: plan.agentId,
       name: source.name,
       code: source.code,
+      ...(source.browserDelivery === undefined ? {} : { browserDelivery: source.browserDelivery }),
     }).catch((error: unknown) => ({ ok: false, cause: 'evaluate', ...errorDetails(error), error }) as const)
     if (!loaded.ok) {
       await this.finishClientFailure(

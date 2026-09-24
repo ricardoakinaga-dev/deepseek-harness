@@ -6,6 +6,7 @@ import type SessionPersistence from '@deepseek-ai/dsh-session-persistence'
 import type { SessionRecord } from './types.ts'
 import { SessionQueryError } from './config.ts'
 import { readColdSessionLog, type ColdSessionLog } from './cold-read.ts'
+import { SessionObservationReader, type SessionObservation } from './observation.ts'
 import { assertSessionHeadersCompatible } from './sources.ts'
 
 /** Detached source selected for one exact read. */
@@ -39,12 +40,13 @@ export class SessionCorpus {
   constructor(
     private readonly _ctx: Context,
     private readonly _persistedReadConcurrency: number,
+    private readonly _observations: SessionObservationReader,
   ) {
     this._optionalPersistenceFiber = _ctx.inject(['sessionPersistence'], (childCtx: Context) => {
       const service = childCtx.sessionPersistence
       this._persistence = service
       childCtx.effect(() => () => {
-        /* v8 ignore next -- a stale optional-service disposer cannot clear a replacement */
+        /*! v8 ignore next -- a stale optional-service disposer cannot clear a replacement */
         if (this._persistence === service) this._persistence = undefined
       }, 'sessionQuery.persistenceBinding')
     })
@@ -92,7 +94,7 @@ export class SessionCorpus {
     signal?.throwIfAborted()
     const live = this._ctx.sessions.get(sessionId)
     if (live !== undefined) {
-      const snapshot = snapshotLive(live)
+      const snapshot = this.snapshotLive(live, signal)
       signal?.throwIfAborted()
       return snapshot
     }
@@ -105,7 +107,7 @@ export class SessionCorpus {
     signal?.throwIfAborted()
     const attached = this._ctx.sessions.get(sessionId)
     if (attached !== undefined) {
-      const snapshot = snapshotLive(attached)
+      const snapshot = this.snapshotLive(attached, signal)
       signal?.throwIfAborted()
       return snapshot
     }
@@ -143,7 +145,7 @@ export class SessionCorpus {
       if (session === undefined) {
         unresolved.push(id)
       } else {
-        resolved.set(id, projectSource(id, sourceLive(session), project, signal))
+        resolved.set(id, this.projectLive(id, session, project, signal))
       }
     }
     if (unresolved.length === 0) return orderedResults(ids, resolved)
@@ -174,7 +176,7 @@ export class SessionCorpus {
         const attached = this._ctx.sessions.get(sessionId)
         resolved.set(sessionId, attached === undefined
           ? { sessionId, status: 'rejected', reason: notFound(sessionId) }
-          : projectSource(sessionId, sourceLive(attached), project, signal))
+          : this.projectLive(sessionId, attached, project, signal))
         return
       }
       try {
@@ -183,7 +185,7 @@ export class SessionCorpus {
         signal?.throwIfAborted()
         const attached = this._ctx.sessions.get(sessionId)
         if (attached !== undefined) {
-          resolved.set(sessionId, projectSource(sessionId, sourceLive(attached), project, signal))
+          resolved.set(sessionId, this.projectLive(sessionId, attached, project, signal))
           return
         }
         assertSessionHeadersCompatible(loaded.header, listed)
@@ -211,16 +213,48 @@ export class SessionCorpus {
       Array.from({ length: workerCount }, () => worker()),
     )
     if (signal?.aborted) signal.throwIfAborted()
-    /* v8 ignore start -- per-id failures settle inside resolvePersisted; workers reject only on abort above */
+    /*! v8 ignore start -- per-id failures settle inside resolvePersisted; workers reject only on abort above */
     for (const settlement of settlements) {
       if (settlement.status === 'rejected') {
         const reason: unknown = settlement.reason
         throw reason
       }
     }
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
     signal?.throwIfAborted()
     return orderedResults(ids, resolved)
+  }
+
+  private snapshotLive(session: Session, signal?: AbortSignal): LogicalSession {
+    const observation = this._observations.captureLive(session, {
+      projectionMode: 'none',
+      ...signal === undefined ? {} : { signal },
+    })
+    try {
+      return snapshotObservation(observation)
+    } finally {
+      observation[Symbol.dispose]()
+    }
+  }
+
+  private projectLive<Value>(
+    sessionId: SessionId,
+    session: Session,
+    project: (source: LogicalSessionSource) => Value,
+    signal?: AbortSignal,
+  ): LogicalProjectionResult<Value> {
+    const observation = this._observations.captureLive(session, {
+      projectionMode: 'none',
+      ...signal === undefined ? {} : { signal },
+    })
+    try {
+      return projectSource(sessionId, {
+        header: observation.header,
+        events: observation.events,
+      }, project, signal)
+    } finally {
+      observation[Symbol.dispose]()
+    }
   }
 }
 
@@ -236,15 +270,10 @@ function projectSource<Value>(
     signal?.throwIfAborted()
     return { sessionId, status: 'fulfilled', value }
   } catch (reason: unknown) {
-    /* v8 ignore next -- the synchronous projector has no external cancellation yield */
+    /*! v8 ignore next -- the synchronous projector has no external cancellation yield */
     if (signal?.aborted) signal.throwIfAborted()
     return { sessionId, status: 'rejected', reason }
   }
-}
-
-function sourceLive(session: Session): LogicalSessionSource {
-  // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-  return { header: session.header, events: session.snapshotEvents() }
 }
 
 function orderedResults<Value>(
@@ -295,12 +324,11 @@ async function inspectPersisted(
   }
 }
 
-function snapshotLive(session: Session): LogicalSession {
+function snapshotObservation(observation: SessionObservation): LogicalSession {
   return {
-    header: structuredClone(session.header),
-    inheritedEventCount: session.inheritedEventCount,
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    events: session.snapshotEvents().map(event => structuredClone(event)),
+    header: structuredClone(observation.header),
+    inheritedEventCount: observation.inheritedEventCount,
+    events: observation.events.map(event => structuredClone(event)),
   }
 }
 

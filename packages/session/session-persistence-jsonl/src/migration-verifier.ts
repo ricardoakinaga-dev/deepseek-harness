@@ -1,9 +1,18 @@
 /** Isolated verification for a staged or competing current JSONL generation. */
 
 import { Worker } from 'node:worker_threads'
+import { createRequire } from 'node:module'
 import type { WorkerOptions } from 'node:worker_threads'
+import { pathToFileURL } from 'node:url'
 import type { JsonlCompression } from './format.ts'
 import type { JsonlExpectedPrefix, JsonlVerifiedGeneration } from './generation.ts'
+
+const require = createRequire(import.meta.url)
+
+/** Resolve a Worker bootstrap module without Vite's unsupported import.meta.resolve shim. */
+function resolveModuleUrl(specifier: string): string {
+  return pathToFileURL(require.resolve(specifier)).href
+}
 
 interface VerificationRequest {
   readonly path: string
@@ -71,7 +80,7 @@ class VerificationScheduler {
 const verificationScheduler = new VerificationScheduler()
 
 function workerSpawn(request: VerificationRequest): { readonly entry: string | URL; readonly options: WorkerOptions } {
-  /* v8 ignore next 3 -- built-worker coverage owns the bundled path. */
+  /*! v8 ignore next 3 -- built-worker coverage owns the bundled path. */
   if (!import.meta.url.endsWith('.ts')) {
     return {
       entry: new URL('./worker.cjs', import.meta.url),
@@ -80,8 +89,8 @@ function workerSpawn(request: VerificationRequest): { readonly entry: string | U
   }
   const workerEntry = new URL('./worker.ts', import.meta.url)
   const bootstrap = [
-    `import { register as registerEsm } from ${JSON.stringify(import.meta.resolve('tsx/esm/api'))}`,
-    `import { register as registerCjs } from ${JSON.stringify(import.meta.resolve('tsx/cjs/api'))}`,
+    `import { register as registerEsm } from ${JSON.stringify(resolveModuleUrl('tsx/esm/api'))}`,
+    `import { register as registerCjs } from ${JSON.stringify(resolveModuleUrl('tsx/cjs/api'))}`,
     'registerCjs()',
     'registerEsm()',
     `await import(${JSON.stringify(workerEntry.href)})`,
@@ -144,7 +153,7 @@ function runVerificationWorker(
       signal?.removeEventListener('abort', abort)
     }
     const fail = (error: Error): void => {
-      /* v8 ignore next -- a late error/exit races only after another terminal callback settled. */
+      /*! v8 ignore next -- a late error/exit races only after another terminal callback settled. */
       if (settled) return
       settled = true
       cleanup()
@@ -156,7 +165,7 @@ function runVerificationWorker(
       )
     }
     worker.once('message', (value: unknown) => {
-      /* v8 ignore next -- a duplicate message races only after another terminal callback settled. */
+      /*! v8 ignore next -- a duplicate message races only after another terminal callback settled. */
       if (settled) return
       if (typeof value !== 'object' || value === null || typeof (value as { ok?: unknown }).ok !== 'boolean') {
         fail(new Error('migration verifier returned an invalid response'))

@@ -78,6 +78,8 @@ These limits define the current goal surface. They are current package constrain
 
 - **Preset-independent host state** — switching an active session to `minimal` leaves its host-owned goal intact. `/goal` and goal tools disappear, while this strip can still edit, pause, resume, or clear the goal.
 
+**Runtime invariant:** No companion is published. There is a single GoalBar dock registration whose disposal is proven by the HMR-safety spec — durable state arrives on the goal projection, process-local activation arrives through the entry's private hook source, and that source subscribes only while the framework hook observes it.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -87,5 +89,3 @@ These limits define the current goal surface. They are current package constrain
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. There is a single GoalBar dock registration whose disposal is proven by the HMR-safety spec — durable state arrives on the goal projection, process-local activation arrives through the entry's private hook source, and that source subscribes only while the framework hook observes it.

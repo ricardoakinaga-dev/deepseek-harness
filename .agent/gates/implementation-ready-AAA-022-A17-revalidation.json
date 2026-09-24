@@ -1,0 +1,159 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A17-002",
+  "timestamp": "2026-09-23T02:34:19-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 W1 session-title asynchronous provider history loading, synchronous citation-index migration, and exact app-boot startup enforcement for both shipped title providers",
+  "scope_ref": "AAA-022:A17",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "Confirmed authority covers this owner-scoped asynchronous title-history reader and synchronous pre-commit citation seam; S071 telemetry capture, broad lint/compiler changes, released generations, publication, push, merge, release, and final-verdict actions remain excluded.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A17 changes the four session-title owner packages, their declared dependency metadata and lockfile, scoped tests, bilingual docs, generated owner outputs, and the five exact app-boot paths that enforce fail-loud startup when sessionQuery is unavailable. Six other dirty app-boot paths predate A17 and remain outside its attribution."
+    },
+    {
+      "id": "IR-002",
+      "description": "The design preserves automatic first-prompt projection input, loads all eligible ordered human text through the inclusive generation watermark for all-prompts and explicit refresh, keeps query ownership in the provider layer, and adds no session-title to session-query dependency cycle.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+        "packages/session/session-title/src/index.ts",
+        "packages/session/session-title-llm/src/index.ts",
+        "packages/session/session-title-all-prompts-llm/src/index.ts",
+        "packages/session/session-title-first-prompt-llm/src/index.ts",
+        "packages/session-query/session-query/src/observation.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The query observation materializes a fixed full prefix; the loader must filter to the previously captured inclusive throughSeq and dispose its lease after mapping."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance proves fallback-before-load ordering, the post-await current-work assertion before generate, loader rejection without provider-title append, and cancellation or supersession, disposal, session removal, and service teardown behavior.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+        "packages/session/session-title/tests/provider.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A loader failure follows the existing service failure path; a fallback already accepted before the load remains in the Session."
+    },
+    {
+      "id": "IR-004",
+      "description": "Acceptance preserves the exact synchronous citation predicate using an invariant-owned committed-human-message seq index seeded from existing Sessions and SessionCreationBaseline, including blank and non-text human messages, while fake uncommitted events cannot poison the index.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+        "packages/session/session-title/src/invariant.ts",
+        "packages/session/session-title/tests/invariant.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The index retains one sequence number per human user/message for the live Session lifetime; keep it WeakMap-owned and do not broaden it into a core-wide index."
+    },
+    {
+      "id": "IR-005",
+      "description": "Acceptance updates every SessionTitleProvider consumer, both shipped provider plugins and dependency manifests, bilingual package documentation and pairing, scoped generated module outputs, the session-reader-migration customization owner, and the host app-boot audit that rejects both canonical and package-name aliases when their sessionQuery dependency remains unresolved.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+        ".agents/customization-policy.json",
+        "packages/session/session-title/",
+        "packages/session/session-title-llm/",
+        "packages/session/session-title-all-prompts-llm/",
+        "packages/session/session-title-first-prompt-llm/",
+        "pnpm-lock.yaml",
+        ".agent/evidence/AAA-022/session-title-provider-startup-scope-a89.json",
+        "packages/boot/app-boot/src/index.ts",
+        "packages/boot/app-boot/tests/app-boot.spec.ts",
+        "packages/boot/app-boot/README.md",
+        "packages/boot/app-boot/README.zh.md",
+        "packages/boot/app-boot/README.i18n.yaml"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Both shipped provider plugins must fail during startup when sessionQuery is absent, including profiles that assign custom Cordis entry IDs. The app-boot audit intentionally requires canonical IDs and provider package names; missing or explicitly disabled entries retain the existing audit policy."
+    },
+    {
+      "id": "IR-006",
+      "description": "Focused negative coverage rejects watermark leaks, stale generation after load, loader failure append, missing sessionQuery, uncommitted index poisoning, and invalid citation cases; the scoped production direct-read probe falls from four occurrences to two while retaining S071 and the existing-session bootstrap scan.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Run the canonical debt metric only when its complete candidate-tree prerequisite is available; do not claim a repository-wide metric result from this incomplete worktree."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+    "packages/session/session-title/src/index.ts",
+    "packages/session/session-title/src/invariant.ts",
+    "packages/session/session-title-llm/src/index.ts",
+    "packages/session/session-title-all-prompts-llm/src/index.ts",
+    "packages/session/session-title-first-prompt-llm/src/index.ts",
+    ".agents/customization-policy.json",
+    "pnpm-lock.yaml",
+    ".agent/evidence/AAA-022/session-title-provider-startup-scope-a89.json",
+    "packages/boot/app-boot/src/index.ts",
+    "packages/boot/app-boot/tests/app-boot.spec.ts",
+    "packages/boot/app-boot/README.md",
+    "packages/boot/app-boot/README.zh.md",
+    "packages/boot/app-boot/README.i18n.yaml"
+  ],
+  "candidate_fingerprint": "e42f729a62ab9c8e346cc8a8bdde007a964cecf3bd78eb5e6fb8288cc3a7e0ce",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": "Sorted relative paths and working-tree bytes of all tracked files plus non-ignored untracked files under packages/session/session-title, packages/session/session-title-llm, packages/session/session-title-all-prompts-llm, and packages/session/session-title-first-prompt-llm; the five exact app-boot paths listed in session-title-provider-startup-scope-a89.json; pnpm-lock.yaml; and .agents/customization-policy.json. Six pre-existing unrelated app-boot paths are excluded. Each path, NUL, bytes, NUL is hashed.",
+    "file_count": 48
+  },
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [
+    "Keep automatic first-prompt generation on titleInput projection state; load complete history only for all-prompts automatic work and explicit refresh.",
+    "Capture throughSeq before asynchronous loading, preserve the inclusive cut, event order, human text eligibility, fork-inherited prefix, request framing, and logged model request exactly.",
+    "Keep ensureFallback before loading; after load resolves, call assertCurrent(session, work) before generate and retain the existing post-generation current-work check.",
+    "A rejected or cancelled load must not invoke generate or append a provider title. Preserve existing explicit-refresh rejection and automatic failure logging behavior.",
+    "Inject and declare sessionQuery in both shipped provider plugins, fail at plugin load if absent, and keep package direction provider helper to session-query to session-title.",
+    "Seed the citation index from existing-session scans and SessionCreationBaseline.events; add only committed human user/message events and keep pre-commit validation synchronous.",
+    "Do not change SESSION_FORMAT_VERSION, released Session data, persistence schemas, wire payloads, model-visible inputs, SDK outputs, or the sealed candidate.",
+    "Do not change session-telemetry capture in A17; S071 remains because the current observation cannot preserve bounded suffix handoff, redaction, ordering, and cursor semantics."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 REM-028 W0-W4 owner-scoped Session-reader migration and bounded asynchronous reader, projection, and pre-commit seams",
+    "decision": "Implement the approved provider-owned Session-title history loader and invariant-owned committed-human-message citation index; retain the bounded telemetry suffix exception and exclude external release actions.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    "expires_or_revalidates": "Revalidate if A17 changes model-visible input, adds a session-title to session-query dependency, changes released Session data, modifies S071 telemetry semantics, or requires external repository actions."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "A17 scope is reconciled to the implementation and exact fingerprint. Complete the A17 checkpoint after the independent scope review and current verification record are attached.",
+  "revalidation_triggers": [
+    "The implementation changes titleInput eligibility, request framing, the captured inclusive watermark, or fork-inherited history.",
+    "Generation can run after a stale asynchronous load, or a loader failure can append a provider title.",
+    "The citation index accepts an uncommitted event, omits blank or non-text human messages, or changes synchronous veto timing.",
+    "Provider dependency direction, plugin composition, focused cancellation/lifecycle tests, bilingual docs, pairing, or generated outputs are incomplete."
+  ],
+  "supersedes": ".agent/gates/implementation-ready-AAA-022-A17.json#GATE-AAA-022-IMPLEMENTATION-READY-A17-001",
+  "revalidation": {
+    "kind": "SCOPE_AND_FINGERPRINT_RECONCILIATION",
+    "revalidates": ".agent/gates/implementation-ready-AAA-022-A17.json#GATE-AAA-022-IMPLEMENTATION-READY-A17-001",
+    "authority_effect": "No new authority is claimed. Confirmed W0-W4 authority and IR-005 already require missing sessionQuery to fail during load; this record binds the exact host enforcement path discovered during implementation.",
+    "scope_evidence": ".agent/evidence/AAA-022/session-title-provider-startup-scope-a89.json#EVD-AAA-022-A17-STARTUP-SCOPE-REVALIDATION-A89-001"
+  }
+}

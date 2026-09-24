@@ -466,11 +466,11 @@ function SessionTree({
             ? undefined
             : {
               rename: () => {
-              /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
+              /*! v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
                 if (group.workspaceId !== undefined) onRenameRequest(group.workspaceId, group.label)
               },
               delete: () => {
-              /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
+              /*! v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
                 if (group.workspaceId !== undefined) onDeleteRequest(group.workspaceId, group.label)
               },
             }}
@@ -496,13 +496,13 @@ function SessionTree({
             active: sameGroupDrag,
             marker: sameGroupDrag && drag.over?.id === node.id ? drag.over.half : null,
             hover: (half: 'before' | 'after') => {
-            /* v8 ignore next -- narrowing guard: Rows gates hover on `active`, which is false while the drag state is null. */
+            /*! v8 ignore next -- narrowing guard: Rows gates hover on `active`, which is false while the drag state is null. */
               setDrag(d => (d === null ? d : {
                 ...d, over: { id: node.id, half: normalizeHalf(half) },
               }))
             },
             drop: (half: 'before' | 'after') => {
-            /* v8 ignore next -- narrowing guard: Rows gates drop on `active`, which is false while the drag state is null. */
+            /*! v8 ignore next -- narrowing guard: Rows gates drop on `active`, which is false while the drag state is null. */
               if (drag === null) return
               commitSessionDrag(drag, { id: node.id, half: normalizeHalf(half) })
             },
@@ -1093,7 +1093,7 @@ export function WorkspaceBrowser({
     setDeleteError(null)
   }
   const confirmDelete = () => {
-    /* v8 ignore next -- the Modal is absent without a target and its button is disabled while deleting. */
+    /*! v8 ignore next -- the Modal is absent without a target and its button is disabled while deleting. */
     if (deleting || deleteTarget === null) return
     setDeleting(true)
     setDeleteCommittedId(null)

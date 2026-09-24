@@ -33,17 +33,21 @@ kind: "package-reference"
 - name: '@deepseek-ai/dsh-cordis-host-runner'
   config:
     vmTimeoutMs: 5000
+    deployment: host-only
+    browserDelivery: disabled
 ```
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `vmTimeoutMs` | `5000` | host 半在 vm 中同步执行的那部分被中止求值前可运行的毫秒数 |
+| `deployment` | `disabled` | `disabled` 拒绝所有动态运行；`host-only` 只允许 Host 半；`browser` 允许通过 Host 审批的 Client 半 |
+| `browserDelivery` | `disabled` | `unsafe-eval-inline-style` 是浏览器源代码求值和其样式标签所需的显式例外 |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-cordis-host-runner)是每个受支持字段的穷尽式真源。
 
 ### run 会做什么
 
-程序调用方使用 `define`、`run`、`stop` 和 `undefine`；浏览器面板操作已有定义。仅含 Host 的包在本进程激活。带浏览器部分的包等待审批或取消，批准后先加载 Host 再加载 Client。`mode: "run"` 启动当前版本，`mode: "update"` 替换版本。Stop 释放运行中的 effect 并保留定义；undefine 还会移除定义。
+程序调用方使用 `define`、`run`、`stop` 和 `undefine`；浏览器面板操作已有定义。选择 `host-only` 或 `browser` 之前，动态运行保持禁用。带浏览器部分的包必须启用显式浏览器 delivery 策略并持有 Host 铸造的审批请求；没有该请求的面板直接调用会被拒绝。`mode: "run"` 启动当前版本，`mode: "update"` 替换版本。Stop 释放运行中的 effect 并保留定义；undefine 还会移除定义。
 
 ### 定义的去向
 
@@ -51,7 +55,7 @@ kind: "package-reference"
 
 ### 信任立场
 
-沙箱隔离全局变量，但不是安全边界：Node 全局变量不存在，或重定向到 Cordis 服务（`ctx.fs`、`ctx.web`、`ctx.bash` 与定时器 helper），host 半收到的是不含框架内部机制的 façade，但它声明的服务仍会触达存活运行时。对待动态包要像对待 bash 访问一样，参见[自引用工具集 Agent Note](../../../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.zh.md)。
+沙箱隔离全局变量，但不是安全边界：Node 全局变量不存在，或重定向到 Cordis 服务（`ctx.fs`、`ctx.web`、`ctx.bash` 与定时器 helper），host 半收到的是不含框架内部机制的 façade，但它声明的服务仍会触达存活运行时。对待动态包要像对待 bash 访问一样，参见[自引用工具集 Agent Note](../../../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.zh.md)。浏览器 delivery 默认禁用。本包不会发送 CSP header，也不会配置 Trusted Types；显式接受 `unsafe-eval-inline-style` 例外时，这些控制由部署的 Web host 或反向代理负责。
 
 -----
 
@@ -133,6 +137,8 @@ runner 基于两项职责划分。**注册表与沙箱是同一个服务。** `D
 - **运行播报不携带服务声明**——浏览器半声明的 `inject` 是从它在页面里返回的插件上读出的，因此 `cordis/request-run` 只携带元数据，绝无代码或服务清单。
 - **`zod` 是生成的 Typert 契约面的运行时依赖，不是 `src` 的依赖**——`./typert` 与 `./remote` 解析到未打包的 `lib` 文件，其中带有裸的 `import { z } from 'zod'`，所以即使 `src` 里没有任何代码 import zod，本包也要声明它。
 
+**运行时不变式：** 不发布伴生入口。definition registry 位于进程内存中且没有可观察的事件流；它唯一负责的关系是运行中的 definition 拥有已结算的 host-half fiber 及其 handler table，该关系在单个等待完成的操作中建立和解除，因此由包测试直接断言。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -142,5 +148,3 @@ runner 基于两项职责划分。**注册表与沙箱是同一个服务。** `D
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。definition registry 位于进程内存中且没有可观察的事件流；它唯一负责的关系是运行中的 definition 拥有已结算的 host-half fiber 及其 handler table，该关系在单个等待完成的操作中建立和解除，因此由包测试直接断言。

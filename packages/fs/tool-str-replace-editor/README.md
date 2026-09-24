@@ -136,6 +136,8 @@ These limits define when the editor tool is a poor fit or needs special operatio
 - **`str_replace` intentionally rejects zero or multiple matches** — it has no `replace_all` argument.
 - **Every mutation goes through the mounted policy and sandbox** — `fs/write-intent` or `fs/edit-intent` resolves the current session sandbox policy and delegates enforcement to the mounted filesystem and policy plugins, so a deployment without them gets unconditional mutations.
 
+**Runtime invariant:** No companion is published. The tool adapter owns no independent durable state; filesystem mutation relations stay with the provider and policy plugins.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -145,5 +147,3 @@ These limits define when the editor tool is a poor fit or needs special operatio
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The tool adapter owns no independent durable state; filesystem mutation relations stay with the provider and policy plugins.

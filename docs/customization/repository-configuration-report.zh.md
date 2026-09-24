@@ -40,7 +40,7 @@
 
 GitHub 保护 `master` 和 `custom/main`，禁止强制推送和删除。默认分支指向 `custom/main`，因此普通 clone 和 pull 工作流会选择持续维护的产品分支，同时官方镜像仍可用于精确比较。
 
-`Customization policy` 工作流会在 `custom/**` 推送以及以 `custom/main` 为目标的 pull request 上运行。它把变更与 `origin/master` 比较，并拒绝未登记的定制路径、重复路径所有权、不兼容的 `kind` 与 `solutionType`、未声明包根目录的包扩展，以及修改其包根目录之外生产包源代码的扩展。
+`Customization policy` 工作流会在 `custom/**` 推送以及以 `custom/main` 为目标的 pull request 上运行。它会抓取配置的 `deepseek-official/master`，拒绝任何与它不完全相等的 `origin/master` 提交，然后把变更与 `origin/master` 比较，并拒绝未登记的定制路径、重复路径所有权、不兼容的 `kind` 与 `solutionType`、未声明包根目录的包扩展，以及修改其包根目录之外生产包源代码的扩展。
 
 -----
 
@@ -69,6 +69,7 @@ git status --short --branch
 git rev-parse HEAD origin/custom/main
 git rev-parse origin/master deepseek-official/master
 node scripts/verify-customization-policy.mjs --base master
+node scripts/verify-customization-policy.mjs --base origin/master --require-official-mirror
 ```
 
 GitHub 接受 workflow run 只证明已经分派。已完成且为绿色的运行才是精确已推送提交的远端证据。

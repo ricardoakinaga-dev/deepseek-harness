@@ -467,7 +467,7 @@ export function ChatView({
   useLayoutEffect(() => {
     if (scrollSamplePendingRef.current) return
     const local = listRef.current
-    /* v8 ignore next -- ref-null guard: React attaches the ref before layout effects run. */
+    /*! v8 ignore next -- ref-null guard: React attaches the ref before layout effects run. */
     if (local === null) return
     const el = scrollerOf(local)
     // Open completed: jump to the bottom once — unless a scroll position
@@ -512,7 +512,7 @@ export function ChatView({
         anchorRef.current = { key: anchor.key, top: flowTop(row, el) }
       }
       firstSeqRef.current = firstSeq
-      /* v8 ignore next -- ?? arm: a prepend adds nodes, so the flow list here is never empty. */
+      /*! v8 ignore next -- ?? arm: a prepend adds nodes, so the flow list here is never empty. */
       lastKeyRef.current = lastKey
       lastSteeringIdRef.current = lastSteeringId
       lastSubmissionIdRef.current = lastSubmissionId
@@ -544,7 +544,7 @@ export function ChatView({
   const onScrollRef = useRef(() => {})
   onScrollRef.current = () => {
     const local = listRef.current
-    /* v8 ignore next -- ref-null guard: the handler only fires while mounted. */
+    /*! v8 ignore next -- ref-null guard: the handler only fires while mounted. */
     if (local === null) return
     const el = scrollerOf(local)
     // Only reader input may make raw scroll geometry change follow ownership:
@@ -584,7 +584,7 @@ export function ChatView({
   // so growth cannot erase small gestures before they accumulate off the floor.
   useEffect(() => {
     const local = listRef.current
-    /* v8 ignore next -- ref-null guard: effect runs after the list node commits. */
+    /*! v8 ignore next -- ref-null guard: effect runs after the list node commits. */
     if (local === null) return
     const el = scrollerOf(local)
     let sampleTimer: number | undefined
@@ -705,7 +705,7 @@ export function ChatView({
 
   const loadOlderAnchored = (): void => {
     const local = listRef.current
-    /* v8 ignore next -- ref-null guard: the paging button renders inside the list tree. */
+    /*! v8 ignore next -- ref-null guard: the paging button renders inside the list tree. */
     if (local !== null) {
       const el = scrollerOf(local)
       const row = pagingAnchor(local, el)
@@ -834,7 +834,7 @@ export function ChatView({
               aria-label={t('chat.toBottom')}
               onClick={() => {
                 const local = listRef.current
-                /* v8 ignore next -- ref-null guard: the button only renders alongside the mounted list. */
+                /*! v8 ignore next -- ref-null guard: the button only renders alongside the mounted list. */
                 if (local !== null) toBottom(scrollerOf(local))
               }}
             >

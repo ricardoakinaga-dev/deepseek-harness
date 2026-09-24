@@ -436,7 +436,7 @@ function messageOf(error: unknown): string {
  * @returns its start time, or undefined when unavailable.
  */
 export function readProcessStart(pid: number): string | undefined {
-  /* v8 ignore next -- one arm per platform: the Linux coverage lane always takes the read path, and Darwin always this one. */
+  /*! v8 ignore next -- one arm per platform: the Linux coverage lane always takes the read path, and Darwin always this one. */
   if (process.platform !== 'linux') return undefined
   try {
     const stat = readFileSync(`/proc/${String(pid)}/stat`, 'utf8')
@@ -477,7 +477,7 @@ export function resolvePythonBin(bin: string): string | undefined {
   if (isAbsolute(bin)) return executableFile(bin)
   if (bin.includes('/')) return executableFile(resolve(bin))
   const path = process.env.PATH
-  /* v8 ignore next -- PATH is set in every environment the runtime boots in; the guard is defensive. */
+  /*! v8 ignore next -- PATH is set in every environment the runtime boots in; the guard is defensive. */
   if (path === undefined) return undefined
   for (const dir of path.split(delimiter)) {
     // An empty PATH segment (a `::`, implicitly CWD on POSIX) and a RELATIVE
@@ -934,7 +934,7 @@ export class PythonPtcRuntime extends PtcRuntime {
         // by the subprocess load test, but subprocess runs are not
         // coverage-instrumented, so the note's arm is not schedulable from the
         // instrumented suite (whose heap never binds).
-        /* v8 ignore next -- the heap-constrained message arm needs a host heap below the protocol cap. */
+        /*! v8 ignore next -- the heap-constrained message arm needs a host heap below the protocol cap. */
         const heapNote = this.frameParseCapBytes < FRAME_PARSE_CAP_BYTES ? ` — this host's heap limits the parse to ${this.frameParseCapBytes} bytes, so the protocol cap of ${FRAME_PARSE_CAP_BYTES} would be unsafe` : ''
         throw new Error(`dsh-ptc-runtime-python: config.${key} must not exceed ${limit} (a payload that large cannot cross the fd-3 frame PARSER, which rejects raw frames past ${this.frameParseCapBytes} bytes before decoding to bound host memory${heapNote} — a larger budget would admit a config whose honest child frames the host then rejects as a worker-exit), got ${String(this.config[key])}`)
       }
@@ -1207,7 +1207,7 @@ export class PythonPtcRuntime extends PtcRuntime {
       // so we narrow at the boundary rather than smearing casts below. Stdout
       // and stderr are guaranteed non-null under `'pipe'` and typed as such.
       proto = child.stdio[3] as Duplex | null
-      /* v8 ignore next 3 -- `'pipe'` stdio always populates fd 3; guarding Node's `Stream | null` typing widening. */
+      /*! v8 ignore next 3 -- `'pipe'` stdio always populates fd 3; guarding Node's `Stream | null` typing widening. */
       if (proto === null) {
         throw new Error('dsh-ptc-runtime-python: python subprocess spawned without a fd-3 pipe')
       }
@@ -1478,7 +1478,7 @@ export class PythonPtcRuntime extends PtcRuntime {
         // trailing incomplete sequence is real truncated input and the U+FFFD is the
         // honest render.
         let keep: Buffer | undefined
-        /* v8 ignore next 18 -- mid-sequence budget-flush boundary is not schedulable from a test. */
+        /*! v8 ignore next 18 -- mid-sequence budget-flush boundary is not schedulable from a test. */
         if (retainPartialTail && stray.utf8.expected > 0) {
           const drop = Math.min(stray.utf8.width - stray.utf8.expected, full.length)
           keep = full.subarray(full.length - drop)
@@ -1529,7 +1529,7 @@ export class PythonPtcRuntime extends PtcRuntime {
       proto.on('data', (chunk: Buffer) => {
         // Once settled, stop accumulating: a hostile child that keeps flooding
         // fd 3 between finish() and close must not regrow the host buffer.
-        /* v8 ignore next -- post-settlement data needs the child to outrace close after we decided. */
+        /*! v8 ignore next -- post-settlement data needs the child to outrace close after we decided. */
         if (settled) return
         // Schedule ONE post-batch outstanding-call check per macrotask. The
         // check must see the TRUE count — the live count is inflated by this
@@ -1547,7 +1547,7 @@ export class PythonPtcRuntime extends PtcRuntime {
           postBatchCheckPending = true
           setImmediate(() => {
             postBatchCheckPending = false
-            /* v8 ignore next -- the done frame can settle the run between the schedule and this callback. */
+            /*! v8 ignore next -- the done frame can settle the run between the schedule and this callback. */
             if (settled) return
             if (pendingCalls > MAX_PENDING_REPLIES) {
               finish({ error: { kind: 'worker-exit', message: `call backlog exceeded ${MAX_PENDING_REPLIES} in-flight binding calls (a binding never settled)` } })
@@ -1656,7 +1656,7 @@ export class PythonPtcRuntime extends PtcRuntime {
           while ((newline = buffered.indexOf(0x0a)) >= 0) {
             const line = buffered.subarray(0, newline)
             buffered = buffered.subarray(newline + 1)
-            /* v8 ignore next -- an empty line comes only from a forged `\n\n` write. */
+            /*! v8 ignore next -- an empty line comes only from a forged `\n\n` write. */
             if (line.length === 0) continue
             // No per-line cap check here: the pre-join counter (single unframed
             // line) and the first-frame check (newline-bearing chunk) above
@@ -1732,7 +1732,7 @@ export class PythonPtcRuntime extends PtcRuntime {
       // reassignment through the closure).
       const bootAckGate: { run?: () => void } = {}
       const handleFrame = (message: ChildToHost): void => {
-        /* v8 ignore next -- late frame after settlement; defensive against forged post-settlement traffic. */
+        /*! v8 ignore next -- late frame after settlement; defensive against forged post-settlement traffic. */
         if (settled) return
         switch (message.type) {
           case 'boot-ack':
@@ -1813,7 +1813,7 @@ export class PythonPtcRuntime extends PtcRuntime {
               // this frame's own content (the quotes and separator ride on the
               // first fragment) and push the merged entry once. Cap is
               // logBudget + 2 for the same reason as a continuation.
-              /* v8 ignore next -- logsTruncated is an invariant false here: an open
+              /*! v8 ignore next -- logsTruncated is an invariant false here: an open
                * frame that would trip the ledger resets openParts, so a non-empty
                * hold implies the ledger never truncated. The guard is defensive. */
               if (!logsTruncated) {
@@ -1949,7 +1949,7 @@ export class PythonPtcRuntime extends PtcRuntime {
                 // suppression land on the `if`: `settled` flips true mid-wait,
                 // invisible to the type-aware lint, which narrows it to false.)
                 /* oxlint-disable typescript/no-unnecessary-condition */
-                /* v8 ignore next -- a rejection arriving after settlement is not schedulable from a test. */
+                /*! v8 ignore next -- a rejection arriving after settlement is not schedulable from a test. */
                 if (settled) return
                 /* oxlint-enable typescript/no-unnecessary-condition */
                 sendReply({ type: 'reply', id: message.id, ok: false, message: messageOf(error) })
@@ -2032,7 +2032,7 @@ export class PythonPtcRuntime extends PtcRuntime {
           while (head < replyQueue.length) {
             // Needs the run to settle between two queued frames. Measured queue
             // depths reach 11 without the wall clock landing inside that window.
-            /* v8 ignore next -- see above; not schedulable from a test. */
+            /*! v8 ignore next -- see above; not schedulable from a test. */
             if (settled) break
             // A pipe destroyed under us (child exited, close deadline) will
             // never emit 'drain' again; short-circuit before the write so the
@@ -2081,7 +2081,7 @@ export class PythonPtcRuntime extends PtcRuntime {
         }
       }
       const sendReply = (payload: ReplyMessage): void => {
-        /* v8 ignore next -- `settled` covers a race where the child exits between decision and write. */
+        /*! v8 ignore next -- `settled` covers a race where the child exits between decision and write. */
         if (settled) return
         // A child that stops reading fd 3 leaves the drain loop blocked on
         // `drain` forever while its call frames keep resolving into replies:
@@ -2127,7 +2127,7 @@ export class PythonPtcRuntime extends PtcRuntime {
       const leaderStarted = child.pid === undefined ? undefined : readProcessStart(child.pid)
       const killGroup = (sig: NodeJS.Signals): void => {
         try {
-          /* v8 ignore next -- undefined pid means spawn never produced a process; finish() short-circuits before reaching kill(). */
+          /*! v8 ignore next -- undefined pid means spawn never produced a process; finish() short-circuits before reaching kill(). */
           if (child.pid === undefined) return
           // A pid alone cannot answer this: `process.kill(pid, 0)` succeeds just
           // as well for a REPLACEMENT process holding the recycled number. Only
@@ -2145,7 +2145,7 @@ export class PythonPtcRuntime extends PtcRuntime {
           // The refusal arm needs a real pid recycled into a new group leader
           // between spawn and teardown, which no test can schedule; the reader
           // itself is covered directly by the process-identity test.
-          /* v8 ignore next -- unreachable without real pid reuse; see above. */
+          /*! v8 ignore next -- unreachable without real pid reuse; see above. */
           if (leaderStarted !== undefined && nowStarted !== undefined && nowStarted !== leaderStarted) return
           process.kill(-child.pid, sig)
         } catch {
@@ -2153,7 +2153,7 @@ export class PythonPtcRuntime extends PtcRuntime {
         }
       }
       const kill = (): void => {
-        /* v8 ignore next -- kill() is idempotent; tests do not double-invoke it. */
+        /*! v8 ignore next -- kill() is idempotent; tests do not double-invoke it. */
         if (killing) return
         killing = true
         killGroup('SIGTERM')
@@ -2171,7 +2171,7 @@ export class PythonPtcRuntime extends PtcRuntime {
       // group (`kill(-pid, 0)`) throws ESRCH when empty (EPERM would still mean a
       // member exists). Only meaningful once a spawn produced a pid.
       const groupEmpty = (): boolean => {
-        /* v8 ignore next -- pid is always defined once escalation runs; the guard narrows the type. */
+        /*! v8 ignore next -- pid is always defined once escalation runs; the guard narrows the type. */
         if (child.pid === undefined) return true
         try {
           process.kill(-child.pid, 0)
@@ -2288,7 +2288,7 @@ export class PythonPtcRuntime extends PtcRuntime {
           // deterministically across CI platforms, not because the branch is
           // unreachable; finalizing here bounds the wait so such a deployment
           // still goes quiescent within `graceMs + 2 * CLOSE_REAP_MARGIN_MS`.
-          /* v8 ignore next 4 -- reachable only in a PID-1-doesn't-reap container (zombie survivor); not deterministically buildable. */
+          /*! v8 ignore next 4 -- reachable only in a PID-1-doesn't-reap container (zombie survivor); not deterministically buildable. */
           if (hardDeadline !== 0 && Date.now() >= hardDeadline) {
             finalize()
             return
@@ -2443,7 +2443,7 @@ export class PythonPtcRuntime extends PtcRuntime {
         try {
           proto.write(`${JSON.stringify({ type: 'run', program: request.program })}\n`)
         } catch (error: unknown) {
-          /* v8 ignore next -- the child exited between its ack and this write; the run settles as worker-exit. */
+          /*! v8 ignore next -- the child exited between its ack and this write; the run settles as worker-exit. */
           finish({ error: { kind: 'worker-exit', message: `failed to boot python subprocess: ${messageOf(error)}` } })
         }
       }

@@ -11,8 +11,7 @@ import {
   installConnection,
   type ConnectionHandle,
 } from '@deepseek-ai/dsh-client-connection/client'
-import { bootClient } from '@deepseek-ai/dsh-client-web/src/boot-client.ts'
-import { mountClient } from '@deepseek-ai/dsh-client-web/src/mount.ts'
+import { bootClient, mountClient } from '@deepseek-ai/dsh-client-web'
 import type { RemoteMock } from '@deepseek-ai/dsh-remote-mock'
 import { act } from '@testing-library/react'
 import { createInProcessModules, loadPluginModules } from './modules.ts'

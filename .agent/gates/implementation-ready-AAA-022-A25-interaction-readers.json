@@ -1,0 +1,353 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A25-INTERACTION-READERS-002",
+  "timestamp": "2026-09-23T18:52:28-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "Confirmed A03 W0-W4 authority, the current independent A24 approval, and the corrected A25 authority record authorize local implementation and verification of exactly the 33 reviewed paths; the 31 interaction paths use interaction-session-reader-invariants, while api-catalog.ts and customization-policy.json retain their existing owners.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A25-INTERACTION-READERS-002",
+        ".agent/evidence/AAA-022/interaction-reader-design-review-a24-postcheckpoint-20260923.json#REVIEW-AAA-022-A24-POSTCHECKPOINT-003",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This gate permits only local A26 implementation and verification within the exact listed scope. External repository actions remain excluded."
+    },
+    {
+      "id": "IR-002",
+      "description": "A26 implements A24-01 through A24-06: exact command and approval pairing, source-event eligibility, preset-history validation, owner-maintained current reads, synchronous precommit checks that do not mutate state, creation/restore/fork baseline handling, fail-closed prefix checks, and reference-counted provider leases with exact cleanup and reactivation behavior.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/interaction-reader-design-a24.json",
+        ".agent/evidence/AAA-022/interaction-reader-design-review-a24-postcheckpoint-20260923.json#REVIEW-AAA-022-A24-POSTCHECKPOINT-003"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The behavior is designed and independently approved but has not been implemented or tested. Every A24 lifecycle, failure, and provider-lease regression remains required before A26 verification can pass."
+    },
+    {
+      "id": "IR-003",
+      "description": "The gate binds all 33 exact implementation paths, 8 disjoint verification-only consumer tests, the exact 31-path interaction owner, the retained catalog and governance owners, and 61 existing fingerprint inputs within the 64-path union. The three planned helper paths are named; all focused behavior, consumer, type, lint, API, documentation, pairing, policy, and whitespace checks are specified.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/interaction-reader-design-a24.json",
+        ".agent/evidence/AAA-022/interaction-reader-design-review-a24-postcheckpoint-20260923.json#REVIEW-AAA-022-A24-POSTCHECKPOINT-003",
+        ".agent/evidence/AAA-022/a25-implementation-gate-fingerprint-20260923.json",
+        ".agents/customization-policy.json",
+        "packages/interaction/commands/tests/commands.spec.ts",
+        "packages/interaction/permission-presets/tests/projection.spec.ts",
+        "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+        "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+        "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+        "packages/core/tools/tests/invariant.spec.ts",
+        "packages/shell/tool-bash/tests/tools.spec.ts",
+        "packages/acp/acp/tests/approval.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The three helper paths do not exist yet. A26 must create only the approved helper paths, execute all gate-bound verification, and report product test results separately from repository-wide limitations."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-A25-INTERACTION-READERS-002",
+    ".agent/evidence/AAA-022/interaction-reader-design-a24.json",
+    ".agent/evidence/AAA-022/interaction-reader-design-review-a24-postcheckpoint-20260923.json#REVIEW-AAA-022-A24-POSTCHECKPOINT-003",
+    ".agent/evidence/AAA-022/a25-implementation-gate-fingerprint-20260923.json",
+    ".agents/customization-policy.json",
+    ".agent/evidence/AAA-022/a19-scope-34-fingerprint-refresh-20260923.json",
+    ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-A22-CONTEXT-READERS-001"
+  ],
+  "candidate_fingerprint": "082281d2dc81bd6a9208e3091437831de43c8f4cfa0a40dd9b2c2ebad62cfeac",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agent/authority.jsonl",
+      ".agent/backlog.json",
+      ".agent/evidence/AAA-022/a23-w2-owner-order-disposition-20260923.json",
+      ".agent/evidence/AAA-022/context-reader-design-a21.json",
+      ".agent/evidence/AAA-022/reader-inventory-a75.json",
+      ".agent/evidence/AAA-022/reader-migration-plan-a74.json",
+      ".agent/execution-log.jsonl",
+      ".agent/plans/deepseek-harness-aaa.md",
+      ".agent/state.json",
+      ".agent/verification.jsonl",
+      ".agents/customization-policy.json",
+      "AGENTS.md",
+      "docs/AGENTS.md",
+      "docs/subsystems/approval.i18n.yaml",
+      "docs/subsystems/approval.md",
+      "docs/subsystems/approval.zh.md",
+      "docs/subsystems/commands.i18n.yaml",
+      "docs/subsystems/commands.md",
+      "docs/subsystems/commands.zh.md",
+      "docs/subsystems/permission-presets.i18n.yaml",
+      "docs/subsystems/permission-presets.md",
+      "docs/subsystems/permission-presets.zh.md",
+      "packages/acp/acp/tests/approval.spec.ts",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/src/types.ts",
+      "packages/core/tools/tests/invariant.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+      "packages/interaction/commands/README.i18n.yaml",
+      "packages/interaction/commands/README.md",
+      "packages/interaction/commands/README.zh.md",
+      "packages/interaction/commands/package.json",
+      "packages/interaction/commands/src/index.ts",
+      "packages/interaction/commands/src/invariant.ts",
+      "packages/interaction/commands/tests/commands.spec.ts",
+      "packages/interaction/commands/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/README.i18n.yaml",
+      "packages/interaction/permission-presets/README.md",
+      "packages/interaction/permission-presets/README.zh.md",
+      "packages/interaction/permission-presets/package.json",
+      "packages/interaction/permission-presets/src/index.ts",
+      "packages/interaction/permission-presets/src/invariant.ts",
+      "packages/interaction/permission-presets/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+      "packages/interaction/permission-presets/tests/projection.spec.ts",
+      "packages/interaction/user-approval/README.i18n.yaml",
+      "packages/interaction/user-approval/README.md",
+      "packages/interaction/user-approval/README.zh.md",
+      "packages/interaction/user-approval/package.json",
+      "packages/interaction/user-approval/src/index.ts",
+      "packages/interaction/user-approval/src/invariant.ts",
+      "packages/interaction/user-approval/tests/approval.spec.ts",
+      "packages/interaction/user-approval/tests/invariant.spec.ts",
+      "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+      "packages/session/session-projection-cache/src/index.ts",
+      "packages/session/session-projection-cache/src/spec.ts",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/src/types.ts",
+      "packages/shell/tool-bash/tests/tools.spec.ts",
+      "scripts/gen-cordis-catalog.ts"
+    ],
+    "hash_rule": "Sort existing relative paths; for each input update SHA-256 with UTF-8 relative path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+    "file_count": 61,
+    "path_union_count": 64,
+    "design_input_path_count": 55,
+    "implementation_path_count": 33,
+    "verification_only_path_count": 8,
+    "unmaterialized_scope_paths": [
+      "packages/interaction/commands/src/audit-state.ts",
+      "packages/interaction/permission-presets/src/preset-history.ts",
+      "packages/interaction/user-approval/src/session-state.ts"
+    ],
+    "preexisting_dirty_worktree": true,
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "design_review_fingerprint": "99d90111f9086133730ae0b1b8deddc942dfe0941eccf09c1a294b86fd76c424",
+    "design_review_ref": ".agent/evidence/AAA-022/interaction-reader-design-review-a24-postcheckpoint-20260923.json#REVIEW-AAA-022-A24-POSTCHECKPOINT-003",
+    "snapshot_state_revision": 244,
+    "snapshot_state_updated_at": "2026-09-23T18:42:11-03:00",
+    "post_gate_transition_note": "This is the pre-transition A25 gate snapshot. The required successor checkpoint updates backlog, plan, execution log, and runtime state after the gate is created; those control-plane paths are among the recorded design inputs. No A25 product implementation, tests, or generators were run."
+  },
+  "implementation_scope": [
+    "packages/interaction/commands/src/index.ts",
+    "packages/interaction/commands/src/invariant.ts",
+    "packages/interaction/commands/src/audit-state.ts",
+    "packages/interaction/commands/tests/invariant.spec.ts",
+    "packages/interaction/commands/README.md",
+    "packages/interaction/commands/README.zh.md",
+    "packages/interaction/commands/README.i18n.yaml",
+    "docs/subsystems/commands.md",
+    "docs/subsystems/commands.zh.md",
+    "docs/subsystems/commands.i18n.yaml",
+    "packages/interaction/permission-presets/src/index.ts",
+    "packages/interaction/permission-presets/src/invariant.ts",
+    "packages/interaction/permission-presets/src/preset-history.ts",
+    "packages/interaction/permission-presets/tests/invariant.spec.ts",
+    "packages/interaction/permission-presets/README.md",
+    "packages/interaction/permission-presets/README.zh.md",
+    "packages/interaction/permission-presets/README.i18n.yaml",
+    "docs/subsystems/permission-presets.md",
+    "docs/subsystems/permission-presets.zh.md",
+    "docs/subsystems/permission-presets.i18n.yaml",
+    "packages/interaction/user-approval/src/index.ts",
+    "packages/interaction/user-approval/src/invariant.ts",
+    "packages/interaction/user-approval/src/session-state.ts",
+    "packages/interaction/user-approval/tests/approval.spec.ts",
+    "packages/interaction/user-approval/tests/invariant.spec.ts",
+    "packages/interaction/user-approval/README.md",
+    "packages/interaction/user-approval/README.zh.md",
+    "packages/interaction/user-approval/README.i18n.yaml",
+    "docs/subsystems/approval.md",
+    "docs/subsystems/approval.zh.md",
+    "docs/subsystems/approval.i18n.yaml",
+    "packages/extensions/tool-cordis/src/api-catalog.ts",
+    ".agents/customization-policy.json"
+  ],
+  "verification_only_paths": [
+    "packages/interaction/commands/tests/commands.spec.ts",
+    "packages/interaction/permission-presets/tests/projection.spec.ts",
+    "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+    "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+    "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+    "packages/core/tools/tests/invariant.spec.ts",
+    "packages/shell/tool-bash/tests/tools.spec.ts",
+    "packages/acp/acp/tests/approval.spec.ts"
+  ],
+  "customization_owner": {
+    "id": "interaction-session-reader-invariants",
+    "path_count": 31,
+    "paths": [
+      "packages/interaction/commands/src/index.ts",
+      "packages/interaction/commands/src/invariant.ts",
+      "packages/interaction/commands/src/audit-state.ts",
+      "packages/interaction/commands/tests/invariant.spec.ts",
+      "packages/interaction/commands/README.md",
+      "packages/interaction/commands/README.zh.md",
+      "packages/interaction/commands/README.i18n.yaml",
+      "docs/subsystems/commands.md",
+      "docs/subsystems/commands.zh.md",
+      "docs/subsystems/commands.i18n.yaml",
+      "packages/interaction/permission-presets/src/index.ts",
+      "packages/interaction/permission-presets/src/invariant.ts",
+      "packages/interaction/permission-presets/src/preset-history.ts",
+      "packages/interaction/permission-presets/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/README.md",
+      "packages/interaction/permission-presets/README.zh.md",
+      "packages/interaction/permission-presets/README.i18n.yaml",
+      "docs/subsystems/permission-presets.md",
+      "docs/subsystems/permission-presets.zh.md",
+      "docs/subsystems/permission-presets.i18n.yaml",
+      "packages/interaction/user-approval/src/index.ts",
+      "packages/interaction/user-approval/src/invariant.ts",
+      "packages/interaction/user-approval/src/session-state.ts",
+      "packages/interaction/user-approval/tests/approval.spec.ts",
+      "packages/interaction/user-approval/tests/invariant.spec.ts",
+      "packages/interaction/user-approval/README.md",
+      "packages/interaction/user-approval/README.zh.md",
+      "packages/interaction/user-approval/README.i18n.yaml",
+      "docs/subsystems/approval.md",
+      "docs/subsystems/approval.zh.md",
+      "docs/subsystems/approval.i18n.yaml"
+    ],
+    "other_scope_owners": {
+      "packages/extensions/tool-cordis/src/api-catalog.ts": [
+        "session-reader-migration",
+        "dynamic-extension-trust"
+      ],
+      ".agents/customization-policy.json": [
+        "upstream-safe-customization-governance"
+      ]
+    }
+  },
+  "verification_commands": [
+    {
+      "id": "A26-TESTS",
+      "command": "pnpm exec vitest run packages/interaction/commands/tests/invariant.spec.ts packages/interaction/permission-presets/tests/invariant.spec.ts packages/interaction/user-approval/tests/approval.spec.ts packages/interaction/user-approval/tests/invariant.spec.ts packages/interaction/commands/tests/commands.spec.ts packages/interaction/permission-presets/tests/projection.spec.ts packages/interaction/permission-presets/tests/permission-presets.spec.ts packages/plan/plan-mode/tests/plan-mode.spec.ts packages/feedback/command-feedback/tests/command-feedback.spec.ts packages/core/tools/tests/invariant.spec.ts packages/shell/tool-bash/tests/tools.spec.ts packages/acp/acp/tests/approval.spec.ts",
+      "purpose": "Run the four implementation test files and all eight verification-only consumers."
+    },
+    {
+      "id": "A26-TYPES",
+      "command": "pnpm exec tsc -b packages/interaction/commands/tsconfig.json packages/interaction/permission-presets/tsconfig.json packages/interaction/user-approval/tsconfig.json packages/plan/plan-mode/tsconfig.json packages/feedback/command-feedback/tsconfig.json packages/core/tools/tsconfig.json packages/shell/tool-bash/tsconfig.json packages/acp/acp/tsconfig.json --pretty false",
+      "purpose": "Build the three owner packages and five direct consumer project configurations through TypeScript project references."
+    },
+    {
+      "id": "A26-OXLINT",
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/interaction/commands/src packages/interaction/commands/tests packages/interaction/permission-presets/src packages/interaction/permission-presets/tests packages/interaction/user-approval/src packages/interaction/user-approval/tests packages/plan/plan-mode/tests packages/feedback/command-feedback/tests packages/core/tools/tests packages/shell/tool-bash/tests packages/acp/acp/tests",
+      "purpose": "Lint owner source/tests and the eight consumer test surfaces."
+    },
+    {
+      "id": "A26-TYPE-EQUIV",
+      "command": "pnpm run verify-type-equiv",
+      "purpose": "Check public TypeScript declaration and documented type equivalence."
+    },
+    {
+      "id": "A26-CORDIS-CATALOG",
+      "command": "pnpm run verify-cordis-catalog",
+      "purpose": "Verify the generated Cordis API catalog."
+    },
+    {
+      "id": "A26-EXPORT-JSDOC",
+      "command": "pnpm run verify-export-jsdoc",
+      "purpose": "Check public export documentation for the changed APIs."
+    },
+    {
+      "id": "A26-PAIRING",
+      "command": "pnpm run verify-translation-pairing -- packages/interaction/commands/README.md packages/interaction/permission-presets/README.md packages/interaction/user-approval/README.md docs/subsystems/commands.md docs/subsystems/permission-presets.md docs/subsystems/approval.md",
+      "purpose": "Verify the six English/Chinese package and subsystem documentation pairs and sidecars."
+    },
+    {
+      "id": "A26-DOC-TYPECHECK",
+      "command": "pnpm run doc-typecheck",
+      "purpose": "Compile fenced documentation examples after code and docs changes."
+    },
+    {
+      "id": "A26-DOC-QUICK",
+      "command": "pnpm run test:docs",
+      "purpose": "Run the quick documentation gates."
+    },
+    {
+      "id": "A26-CUSTOMIZATION-POLICY",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "purpose": "Validate current customization ownership against the fork base."
+    },
+    {
+      "id": "A26-DIFF-CHECK",
+      "command": "git diff --check -- packages/interaction/commands/src/index.ts packages/interaction/commands/src/invariant.ts packages/interaction/commands/src/audit-state.ts packages/interaction/commands/tests/invariant.spec.ts packages/interaction/commands/README.md packages/interaction/commands/README.zh.md packages/interaction/commands/README.i18n.yaml docs/subsystems/commands.md docs/subsystems/commands.zh.md docs/subsystems/commands.i18n.yaml packages/interaction/permission-presets/src/index.ts packages/interaction/permission-presets/src/invariant.ts packages/interaction/permission-presets/src/preset-history.ts packages/interaction/permission-presets/tests/invariant.spec.ts packages/interaction/permission-presets/README.md packages/interaction/permission-presets/README.zh.md packages/interaction/permission-presets/README.i18n.yaml docs/subsystems/permission-presets.md docs/subsystems/permission-presets.zh.md docs/subsystems/permission-presets.i18n.yaml packages/interaction/user-approval/src/index.ts packages/interaction/user-approval/src/invariant.ts packages/interaction/user-approval/src/session-state.ts packages/interaction/user-approval/tests/approval.spec.ts packages/interaction/user-approval/tests/invariant.spec.ts packages/interaction/user-approval/README.md packages/interaction/user-approval/README.zh.md packages/interaction/user-approval/README.i18n.yaml docs/subsystems/approval.md docs/subsystems/approval.zh.md docs/subsystems/approval.i18n.yaml packages/extensions/tool-cordis/src/api-catalog.ts .agents/customization-policy.json packages/interaction/commands/tests/commands.spec.ts packages/interaction/permission-presets/tests/projection.spec.ts packages/interaction/permission-presets/tests/permission-presets.spec.ts packages/plan/plan-mode/tests/plan-mode.spec.ts packages/feedback/command-feedback/tests/command-feedback.spec.ts packages/core/tools/tests/invariant.spec.ts packages/shell/tool-bash/tests/tools.spec.ts packages/acp/acp/tests/approval.spec.ts",
+      "purpose": "Check whitespace only for the exact implementation and verification scope."
+    }
+  ],
+  "required_verification": [
+    "Focused command lifecycle tests cover pairing, duplicate run ids after completion, source seq validation, invalid baseline rejection, late companion registration from owner state, and rejected-candidate state preservation.",
+    "Focused permission invariant tests cover configured/Auto history, unknown current and historical names, and session creation rollback; existing permission projection tests confirm its currentValue view and persisted state version are unchanged.",
+    "Focused ApprovalService and invariant tests cover open-turn current reads, latest policy override/default behavior, all existing audit validation order, accepted cancellation pairs, observer failures, restore/fork creation baselines, late companion registration, and state cleanup.",
+    "Run the listed verification-only command and approval consumer tests to confirm user-visible command results and approval integrations do not change.",
+    "Run scoped host TypeScript and Oxlint for the three packages; verify-type-equiv, verify-cordis-catalog, export-JSDoc, translation pairing, package READMEs, scoped doc-typecheck/doc-quick, and git diff --check.",
+    "Confirm the S041-S046 deprecated-reader count decreases by six and no implementation path retains a synchronous eventAt or snapshotEvents call for those sites.",
+    "No SDK projection output or model-visible wording changes are expected; update snapshots only if a focused output assertion demonstrates an actual behavior change.",
+    "For commands, permission-presets, and user-approval, unload the owning provider while a Session remains attached, append an event while its listener is absent, and reactivate. Verify teardown removes the old fold and activation fails closed before a stale current read or invariant check; verify an empty live Session can seed from the empty prefix.",
+    "For commands, permission-presets, and user-approval, create two scoped providers observing one Session. Release one lease and verify the other continues reads, pre-commit validation, and event advancement; reacquire while the sibling lease is active and retain exact state. After final lease release, verify eventful Session activation fails closed and empty Session activation seeds the empty prefix."
+  ],
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+    "decision": "Apply confirmed A03 W0-W4 migration authority and the independently revalidated A24 design to implement exactly the 33 A24 paths for REM-028-S041 through REM-028-S046. The 31 interaction/package-documentation paths use interaction-session-reader-invariants; api-catalog.ts and customization-policy.json retain their existing owners. Local implementation and verification only; external repository actions are excluded.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A25-INTERACTION-READERS-002",
+    "expires_or_revalidates": "This authorizes only the exact A25 implementation and verification paths. Preserve Session format, released generations, persistence schema, wire fields, and model-visible behavior; do not push, merge, publish, write registries, release, or issue a final verdict."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Implement A24-01 through A24-07 within the exact 33 paths; execute the focused lifecycle and lease regressions, eight existing consumer tests, scoped type and lint builds, API/catalog/JSDoc checks, paired documentation checks, customization-policy validation, and scoped whitespace check.",
+  "revalidation_triggers": [
+    "Any implementation or verification path changes, including creation of a helper outside the exact three named unmaterialized paths.",
+    "Any change to A24 behavior, failure ordering, provider lease semantics, public API, Session format, released data, persistence schema, wire fields, or model-visible output.",
+    "Any mismatch between the exact 31-path interaction owner and A24-approved ownership, or any change to the retained API-catalog or customization-policy owners.",
+    "Any A24 lifecycle or provider-lease falsifier fails during implementation or verification."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-A22-CONTEXT-READERS-001",
+  "design_review_fingerprint": "99d90111f9086133730ae0b1b8deddc942dfe0941eccf09c1a294b86fd76c424",
+  "revalidation": {
+    "kind": "SUCCESSOR_ACTION",
+    "previous_record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A22-CONTEXT-READERS-001",
+    "previous_candidate_fingerprint": "714a1dbe3df54df12f58a655e65d246a516169f4d6cf492530853e60f8674fcf",
+    "reason": "A24 is independently approved at the current 55-path fingerprint; A25 is the implementation-ready gate preparation for the next owner-scoped W2 migration action.",
+    "authority_effect": "A03 remains the source of local W0-W4 authority; AUTH-002 narrows implementation to the exact reviewed A24 paths and owner attribution."
+  },
+  "verification_requirements": [
+    "Focused command lifecycle tests cover pairing, duplicate run ids after completion, source seq validation, invalid baseline rejection, late companion registration from owner state, and rejected-candidate state preservation.",
+    "Focused permission invariant tests cover configured/Auto history, unknown current and historical names, and session creation rollback; existing permission projection tests confirm its currentValue view and persisted state version are unchanged.",
+    "Focused ApprovalService and invariant tests cover open-turn current reads, latest policy override/default behavior, all existing audit validation order, accepted cancellation pairs, observer failures, restore/fork creation baselines, late companion registration, and state cleanup.",
+    "Run the listed verification-only command and approval consumer tests to confirm user-visible command results and approval integrations do not change.",
+    "Run scoped host TypeScript and Oxlint for the three packages; verify-type-equiv, verify-cordis-catalog, export-JSDoc, translation pairing, package READMEs, scoped doc-typecheck/doc-quick, and git diff --check.",
+    "Confirm the S041-S046 deprecated-reader count decreases by six and no implementation path retains a synchronous eventAt or snapshotEvents call for those sites.",
+    "No SDK projection output or model-visible wording changes are expected; update snapshots only if a focused output assertion demonstrates an actual behavior change.",
+    "For commands, permission-presets, and user-approval, unload the owning provider while a Session remains attached, append an event while its listener is absent, and reactivate. Verify teardown removes the old fold and activation fails closed before a stale current read or invariant check; verify an empty live Session can seed from the empty prefix.",
+    "For commands, permission-presets, and user-approval, create two scoped providers observing one Session. Release one lease and verify the other continues reads, pre-commit validation, and event advancement; reacquire while the sibling lease is active and retain exact state. After final lease release, verify eventful Session activation fails closed and empty Session activation seeds the empty prefix."
+  ]
+}

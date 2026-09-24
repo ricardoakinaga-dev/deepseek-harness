@@ -1,0 +1,171 @@
+{
+  "record_id": "EVD-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001",
+  "task": "AAA-022",
+  "action": "AAA-022:A17",
+  "kind": "IMPLEMENTATION_AND_FOCUSED_VERIFICATION",
+  "timestamp": "2026-09-23T02:59:48-03:00",
+  "status": "PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "design_ref": ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+  "gate_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json#GATE-AAA-022-IMPLEMENTATION-READY-A17-003",
+  "traceability": [
+    {
+      "improvement_ids": [
+        "M08",
+        "M22"
+      ],
+      "canonical_task": "AAA-022",
+      "remediation": "REM-028",
+      "relationship": "M22 measures the same owner-scoped deprecated-reader migration as M08; no parallel backlog was created."
+    }
+  ],
+  "candidate": {
+    "branch": "custom/main",
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty work preserved",
+    "scoped_worktree_fingerprint": "995b992f73be674179ce219af6d4248871ab5cd03690c55c9a9f32edd8d54a00",
+    "scoped_file_count": 56,
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false
+  },
+  "scope": {
+    "title_owner_roots": [
+      "packages/session/session-title/",
+      "packages/session/session-title-llm/",
+      "packages/session/session-title-all-prompts-llm/",
+      "packages/session/session-title-first-prompt-llm/"
+    ],
+    "exact_app_boot_paths": [
+      "packages/boot/app-boot/src/index.ts",
+      "packages/boot/app-boot/tests/app-boot.spec.ts",
+      "packages/boot/app-boot/README.md",
+      "packages/boot/app-boot/README.zh.md",
+      "packages/boot/app-boot/README.i18n.yaml"
+    ],
+    "exact_generated_and_public_paths": [
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "scripts/type-equiv.manifest.json",
+      "docs/subsystems/session-title.md",
+      "docs/subsystems/session-title.zh.md",
+      "docs/subsystems/session-title.i18n.yaml",
+      "docs/module-graph.md",
+      "docs/module-graph.zh.md",
+      "docs/module-graph.i18n.yaml"
+    ],
+    "dependency_and_owner_paths": [
+      "pnpm-lock.yaml",
+      ".agents/customization-policy.json"
+    ],
+    "excluded_preexisting_app_boot_paths_ref": ".agent/evidence/AAA-022/session-title-provider-scope-reconciliation-a90.json#scope_extension.unchanged_preexisting_app_boot_paths"
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run --no-cache --reporter=dot packages/boot/app-boot/tests/app-boot.spec.ts packages/session/session-title/tests/*.spec.ts packages/session/session-title-llm/tests/llm.spec.ts packages/session/session-title-first-prompt-llm/tests/provider.spec.ts packages/session/session-title-first-prompt-llm/tests/loader-composition.spec.ts packages/session/session-title-all-prompts-llm/tests/provider.spec.ts",
+      "exit_status": 0,
+      "result": "PASS: 12 files, 163 tests; independently rerun by the fresh critic."
+    },
+    {
+      "command": "pnpm exec tsc -b --pretty false packages/boot/app-boot/tsconfig.json packages/session/session-title/tsconfig.json packages/session/session-title-llm/tsconfig.json packages/session/session-title-first-prompt-llm/tsconfig.json packages/session/session-title-all-prompts-llm/tsconfig.json",
+      "exit_status": 0,
+      "result": "PASS."
+    },
+    {
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/boot/app-boot/src packages/boot/app-boot/tests packages/session/session-title/src packages/session/session-title/tests packages/session/session-title-llm/src packages/session/session-title-llm/tests packages/session/session-title-first-prompt-llm/src packages/session/session-title-first-prompt-llm/tests packages/session/session-title-all-prompts-llm/src packages/session/session-title-all-prompts-llm/tests",
+      "exit_status": 0,
+      "result": "PASS."
+    },
+    {
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "result": "PASS: 22 gates."
+    },
+    {
+      "command": "pnpm run verify-translation-pairing docs/subsystems/session-title.md packages/boot/app-boot/README.md",
+      "exit_status": 0,
+      "result": "PASS for the affected bilingual docs."
+    },
+    {
+      "command": "pnpm run verify-type-equiv",
+      "exit_status": 0,
+      "result": "PASS: 437 type-equivalence blocks."
+    },
+    {
+      "command": "pnpm run verify-package-dependencies",
+      "exit_status": 0,
+      "result": "PASS: 65 packages."
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "exit_status": 0,
+      "result": "PASS."
+    },
+    {
+      "command": "pnpm run verify-module-graph && pnpm run verify-cordis-api && pnpm run verify-cordis-catalog",
+      "exit_status": 0,
+      "result": "PASS for generated module and public API catalogs."
+    },
+    {
+      "command": "rg -n --glob '*.ts' --glob '!**/tests/**' '\\b(eventAt|snapshotEvents|ownEvents)\\s*\\(' packages/session/session-telemetry/src packages/session/session-title/src",
+      "exit_status": 0,
+      "result": "Two remaining production history reads: S071 telemetry suffix capture and the existing-session title-invariant bootstrap scan; the A16 inventory recorded four sites before S072/S073 migrated."
+    },
+    {
+      "command": "targeted validateCustomizationPolicy() check for the five exact app-boot paths",
+      "exit_status": 0,
+      "result": "PASS: each path has exactly one compatible session-reader-migration owner."
+    },
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base origin/master",
+      "exit_status": 1,
+      "result": "FAIL on the broader pre-existing dirty tree with unrelated unowned paths and existing multiple-owner diagnostics; none of the five exact A17 app-boot paths was reported."
+    },
+    {
+      "command": "pnpm run doc-sync",
+      "exit_status": 1,
+      "result": "39 gates passed and four existing failures remained in tool catalog, config catalog, persistence catalog, and persistence type history; doc-typecheck, documentation build, translation pairing, and app-boot README checks passed."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "result": "PASS."
+    }
+  ],
+  "independent_review": {
+    "critic_id": "AAA-022-A17-I1-20260923-01",
+    "decision": "APPROVE",
+    "independence": "I1",
+    "mechanism": "fresh same-model context with fork_turns none; read-only shared workspace",
+    "sealed_packet": true,
+    "criterion_results": {
+      "IR-001": "PASS",
+      "IR-002": "PASS",
+      "IR-003": "PASS",
+      "IR-004": "PASS",
+      "IR-005": "PASS",
+      "IR-006": "PASS"
+    },
+    "focus_suite": "PASS: 12 files, 163 tests.",
+    "scope_sentinel": "56 paths / SHA-256 995b992f73be674179ce219af6d4248871ab5cd03690c55c9a9f32edd8d54a00 before and after review.",
+    "lead_repository_mutation_sentinel": {
+      "scope": "repository+state",
+      "pre_sha256": "bab2a034e0542e979dd5436109ad8b3df9080375d649ba566d63162dffa9382c",
+      "post_sha256": "bab2a034e0542e979dd5436109ad8b3df9080375d649ba566d63162dffa9382c",
+      "clean": true
+    },
+    "limitations": "The critic assessed the branch worktree and could not resolve the sealed candidate commit object locally. It did not rerun full doc-sync, broad customization policy, or the canonical repository debt metric."
+  },
+  "limitations": [
+    "The canonical repository debt metric remains unavailable on this incomplete dirty worktree; no repository-wide metric is claimed.",
+    "Full doc-sync retains four repository failures and the broad customization-policy command reports unrelated pre-existing dirty-tree issues.",
+    "The sealed candidate remains unchanged and does not contain the A17 work; it must not be cited as qualification evidence for A17.",
+    "No push, merge, publication, release, or final Triple-A verdict was performed."
+  ],
+  "next_action": {
+    "id": "AAA-022:A18",
+    "kind": "DESIGN",
+    "summary": "Design the W2 core/agent-loop Session-reader replacements",
+    "target": "REM-028-S020 through S023 in packages/core/agent-loop",
+    "completion_signal": "Record an owner-backed behavior classification and falsifying coverage for the stored suffix flush, request reconstruction invariant, and runtime-context/system-prompt projections before any new production gate."
+  }
+}

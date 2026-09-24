@@ -111,6 +111,8 @@ These limits define when the package is a poor fit. They are current package con
 - **Model-authored programs receive no proxy settings** — the Node ptc-runtime process and workflow worker do not inherit a proxy URL that may contain `user:password`. Their direct requests need their own configuration and remain subject to the execution sandbox.
 - **The regression gate sees source, not dependencies** — `verify-no-bare-dispatcher` parses `packages/*/*/src` and `apps/*/src`; tests, scripts, and the internals of a third-party SDK are outside it. That is why every outbound call site also carries an `egress.spec.ts`.
 
+**Runtime invariant:** No companion is published. The one piece of mutable state here — the active policy — is asserted against the dispatcher it installs by unit tests that dispose the registration and observe a real loopback proxy.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -120,5 +122,3 @@ These limits define when the package is a poor fit. They are current package con
 Reaching Node's built-in `fetch` from a userland undici relies on both writing the legacy `Symbol.for('undici.globalDispatcher.1')` slot. That is an implicit cross-version coupling, not a contract — see [corepack#834](https://github.com/nodejs/corepack/issues/834) for it breaking. `tests/install.spec.ts` asserts a real request reaches a loopback proxy, so a version bump that breaks the coupling fails there rather than in the field.
 
 </details>
-
-**Runtime invariant:** No companion is published. The one piece of mutable state here — the active policy — is asserted against the dispatcher it installs by unit tests that dispose the registration and observe a real loopback proxy.

@@ -59,7 +59,7 @@ export function configLedgerSource(ctx: ClientContext): HostObservable<ConfigLed
         revision = current
         ledger = {
           items: ctx.slots.entries('plugins.item').map(entry => ({
-            /* v8 ignore next -- list-slot registration requires id */
+            /*! v8 ignore next -- list-slot registration requires id */
             id: entry.options.id ?? '',
             label: resolveSlotLabel(entry.options.label) ?? '',
           })),

@@ -1,0 +1,295 @@
+{
+  "record_id": "EVID-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-FINGERPRINT-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-IMPLEMENT",
+  "kind": "IMPLEMENTATION_GATE_CANDIDATE_FINGERPRINT",
+  "timestamp": "2026-09-24T05:39:16-03:00",
+  "candidate_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "algorithm": "Sort relative paths; for each path update SHA-256 with UTF-8 path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+  "candidate_fingerprint": "82b301bbe6ed757904e7c253cab1476de3b453b56dff2c9925b098230b00013e",
+  "input_count": 56,
+  "implementation_path_count": 29,
+  "verification_only_path_count": 6,
+  "protected_exclusion_path_count": 3,
+  "inputs": [
+    {
+      "path": ".agent/authority.jsonl",
+      "sha256": "b73aeee779d9acd5e4efffb412640b6bf4ab6c0d3c311475c511b356cfcf5fa4"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-review-w2-20260924.json",
+      "sha256": "7d8dd403ff6feba19621563b17465a01d87727343910d7378289e83e17476ae2"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+      "sha256": "07d9cdcafd24cd813c55ba307393fe34b73e313b89ae933a1e4ba3af8f3b1e65"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json",
+      "sha256": "d8746d37c326b50f8591bf2b351bf5572ea3af36ce681f66bfb79147c862e19b"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+      "sha256": "f883b16be399e284786983d76f55460abb10b9a07e53d34423d470b3b3f94ed3"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-preparation-successor-design-review-20260924.json",
+      "sha256": "3a80c8e0229f950d007129cf4e0d11327e154d2257b37add9253e3f774f4b6e4"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-preparation-successor-policy-validation-20260924.json",
+      "sha256": "670a39bf3b769fd1837d8aa5606e37a7e681853f5e84c7369bf0c1929d92eda2"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/w2-projection-spec-predecessor-failure-20260924.txt",
+      "sha256": "9866c2a429e88c0174a1c3728c924871debd568d05e450f6bb6da3aa663cbec7"
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-W2-schedule-readers.json",
+      "sha256": "14eac9b6827096b3d6758f21047768d22d8cab10c1c7dbd22ec80926998eeda8"
+    },
+    {
+      "path": ".agents/customization-policy.json",
+      "sha256": "f6d00b07afbb28f2ad7e8f55a0d204dc956453760020090ff4d9f1381fe79b5a"
+    },
+    {
+      "path": ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      "sha256": "9502de3402984cbc98f79ac2bbc3109a2e1df1096444a8dfdacf95d0388d9b2e"
+    },
+    {
+      "path": ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      "sha256": "0e1dfdca480f4a5cc574db9fdb4a45dc1f6fa8b3f02c9dd65b19a60551a43fe8"
+    },
+    {
+      "path": ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "sha256": "01ab695dc299233d912772d7b6a0cb40c69eae636002384427c5169e1a72c7fe"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "7aa6243a1a3aaf8f98a8ce241c27dafeba53f74e4935117d9c8996d2ef031f4e"
+    },
+    {
+      "path": "apps/web/tests/schedule-after.e2e.ts",
+      "sha256": "a7477f033f4d7a5bada8b90db82ccf34f69182f64c7023b8bd8ab160c1650915"
+    },
+    {
+      "path": "docs/AGENTS.md",
+      "sha256": "64b91092a704c5f4b8689b106eeda0ac4e6262c066c043d158781d9f72d46ccb"
+    },
+    {
+      "path": "docs/subsystems/schedule.i18n.yaml",
+      "sha256": "22735f10f3a83f7d78223d4454e368eb7d55b479484fd2ab7058ef74608d1ac6"
+    },
+    {
+      "path": "docs/subsystems/schedule.md",
+      "sha256": "91abf91bff0b747a9b411697c37c73b5c52860e70f84ac69fdb883265aefa9f1"
+    },
+    {
+      "path": "docs/subsystems/schedule.zh.md",
+      "sha256": "efcb30d63910a3891d344d27add991b9d5257a01c24b0e8745e0ab6e2b9a8122"
+    },
+    {
+      "path": "docs/subsystems/session-projection.i18n.yaml",
+      "sha256": "3ee16458a103bd59d966151bb26089eaccfe3cc5c864aed240b43fef2a52aa4c"
+    },
+    {
+      "path": "docs/subsystems/session-projection.md",
+      "sha256": "e923abf355abeba04224751344d304f48e20153440417b9bc8a0c23261369da0"
+    },
+    {
+      "path": "docs/subsystems/session-projection.zh.md",
+      "sha256": "6f314c2b7392420de17d96f1dc2d98691f882942abe1e37d73579f0b23008951"
+    },
+    {
+      "path": "packages/AGENTS.md",
+      "sha256": "963fb95f390bc420e4fa70d5e016ed1fbff629214fb2c5143b95e4b747401e86"
+    },
+    {
+      "path": "packages/bundle/base/cordis.patch.yml",
+      "sha256": "a395d4e6b1b4de3694d354ab21901c174f59a30557d906f6324a474f486b2cc8"
+    },
+    {
+      "path": "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "sha256": "9aa8c1783865a1ef6d073e084ee0cb18316aedf8d6457f51e0cc3f4da85b6979"
+    },
+    {
+      "path": "packages/core/agent-loop/src/index.ts",
+      "sha256": "963798db801edaf2b83d17fc096128398bd9cc6d50ff64977573345975da2648"
+    },
+    {
+      "path": "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "sha256": "15875f85893196edd68f8c01b15ef866d9ee98529fb4ee15fb7c68689f5c28d3"
+    },
+    {
+      "path": "packages/core/session/src/index.ts",
+      "sha256": "879b8eba7fe61a1e08c4c8af08b5e2137a3f682ae0b642bfeda18feb8d08bed0"
+    },
+    {
+      "path": "packages/core/session/src/preparation.ts",
+      "sha256": "d8f32d4c74cdd77267d56b0092161e69c84de95452d7cf7ee9d051c655228b3f"
+    },
+    {
+      "path": "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "sha256": "7065b42bd782b54417c1850e2f5dcc173c6d5e8bf3b5fda20f61b5f06466e13a"
+    },
+    {
+      "path": "packages/schedule/schedule/README.i18n.yaml",
+      "sha256": "a7438599837289f4736d93c5905e63833655e7bafb4bb2725aad4c2558cc6809"
+    },
+    {
+      "path": "packages/schedule/schedule/README.md",
+      "sha256": "8f0f39e120fb1679f2a1e43bc84cb5564a8e9dc92546e4b9c434e10786262d98"
+    },
+    {
+      "path": "packages/schedule/schedule/README.zh.md",
+      "sha256": "8712a2fcd48d863d88f19fe8254ceac6eea20cca8c4dd10fd4dbcad92e898cf0"
+    },
+    {
+      "path": "packages/schedule/schedule/package.json",
+      "sha256": "f2eb32d55c6b677c36631d48479da35dd27d08382c87368b992d6e282ac63b4d"
+    },
+    {
+      "path": "packages/schedule/schedule/src/domain.ts",
+      "sha256": "75b640a1f1e0a638de21f183f6e48b910a6a2fb87c8813439aab79b02063fbc0"
+    },
+    {
+      "path": "packages/schedule/schedule/src/index.ts",
+      "sha256": "74bbd68f15bdf8ba45ce4f9673917830bbff09c684727aa36da20f4e5f1e32eb"
+    },
+    {
+      "path": "packages/schedule/schedule/src/invariant.ts",
+      "sha256": "e07825f91a79db572b58436dca26e9ce98ca07e9eda4c5111a1814fb72e1bef0"
+    },
+    {
+      "path": "packages/schedule/schedule/src/projection.ts",
+      "sha256": "53a9ea848187ee60fb69eb67df8fa6c34c82bd0a9b2d9ad4351bfd7e1001109b"
+    },
+    {
+      "path": "packages/schedule/schedule/src/runtime.ts",
+      "sha256": "4f66add224eba7e03fa9cc3012464b7b66509161bfdc7605fadaed89ed11717e"
+    },
+    {
+      "path": "packages/schedule/schedule/src/tools.ts",
+      "sha256": "3ea849e5f9786f5025b4bcc6042d6d99f6177f9e9a376cc5731369346d30239d"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/invariant.spec.ts",
+      "sha256": "c0174d7ff4483e1421b07ee7e2eff60d24130974bfff57e6dfe1899bfaa07b12"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "sha256": "7cbe58a3e3268f77721c41baa6a42f12d364a538eb6e3ca535782391a6afc86b"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/plugin.spec.ts",
+      "sha256": "60dc646c3e3a5b0921b9569636ea607112238363fd28b07dbbcd4721f770dc48"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/projection.spec.ts",
+      "sha256": "b9862a27f934eb7ce683fe0bc863b62db130ad719801b054fa5f85affc20e53d"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/runtime.spec.ts",
+      "sha256": "da0d8c0225169c4f673c1916b1ff826f46accaa36812acecbeded256185177c4"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/tools.spec.ts",
+      "sha256": "b30c98a17b30ef88dc83d85d0ed079dc01836cca78149e9d9f2ca0e13174b0a9"
+    },
+    {
+      "path": "packages/session/session-projection/README.i18n.yaml",
+      "sha256": "537ec57d9e816a2888f942b4a399b87799edd820073439b846453dd0b0242031"
+    },
+    {
+      "path": "packages/session/session-projection/README.md",
+      "sha256": "088f5c75ae940a8520e6d2b2a85165e503236d6bb6d054ffa8762ad5831177e6"
+    },
+    {
+      "path": "packages/session/session-projection/README.zh.md",
+      "sha256": "d11390564021aae5b4478c65a060a6527c44446d74935d93e36b8a784a9a46f3"
+    },
+    {
+      "path": "packages/session/session-projection/package.json",
+      "sha256": "ac9c30bd6b5687e9ae8fddc32af37148bf1554291472bb7d77bdcce31f4baec7"
+    },
+    {
+      "path": "packages/session/session-projection/src/index.ts",
+      "sha256": "5c31245f90025e0cfb62dfd0760f1d2ca2ea8c8bdc5077ffc9b9b975b21818c7"
+    },
+    {
+      "path": "packages/session/session-projection/tests/registry.spec.ts",
+      "sha256": "49d210ab6283da3b11096182a47f2999a4ca80dafe83946870f65dfbf755dcc1"
+    },
+    {
+      "path": "packages/subagent/subagent/tests/continuation.spec.ts",
+      "sha256": "cd697accf3e164d19466e14c8bb43cc99fc3ec00984fa5c353194a0b8bd78a3c"
+    },
+    {
+      "path": "packages/test-support/agent-loop-testkit/src/index.ts",
+      "sha256": "54cb829cbf2078930cd50858b4f337acacb21aac3693b3a5c3a4b883c9a3abaa"
+    },
+    {
+      "path": "scripts/gen-cordis-catalog.ts",
+      "sha256": "9f6d86a19fbcef191eefcbc1b3007970098535c2ffce14f8c1b6599d9de7bd38"
+    },
+    {
+      "path": "scripts/test-invariants.ts",
+      "sha256": "983478b86d303e3e8939adee533564cca90bba71b810e0d3fcf7540f52d3e8a6"
+    }
+  ],
+  "excluded": [
+    ".agent/evidence/AAA-022/schedule-reader-preparation-successor-fingerprint-20260924.json",
+    ".agent/gates/implementation-ready-AAA-022-W2-schedule-preparation-successor.json"
+  ],
+  "implementation_paths": [
+    ".agents/customization-policy.json",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+    "docs/subsystems/schedule.i18n.yaml",
+    "docs/subsystems/schedule.md",
+    "docs/subsystems/schedule.zh.md",
+    "docs/subsystems/session-projection.i18n.yaml",
+    "docs/subsystems/session-projection.md",
+    "docs/subsystems/session-projection.zh.md",
+    "packages/extensions/tool-cordis/src/api-catalog.ts",
+    "packages/schedule/schedule/README.i18n.yaml",
+    "packages/schedule/schedule/README.md",
+    "packages/schedule/schedule/README.zh.md",
+    "packages/schedule/schedule/src/index.ts",
+    "packages/schedule/schedule/src/invariant.ts",
+    "packages/schedule/schedule/src/runtime.ts",
+    "packages/schedule/schedule/src/tools.ts",
+    "packages/schedule/schedule/tests/invariant.spec.ts",
+    "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+    "packages/schedule/schedule/tests/plugin.spec.ts",
+    "packages/schedule/schedule/tests/projection.spec.ts",
+    "packages/schedule/schedule/tests/runtime.spec.ts",
+    "packages/schedule/schedule/tests/tools.spec.ts",
+    "packages/session/session-projection/README.i18n.yaml",
+    "packages/session/session-projection/README.md",
+    "packages/session/session-projection/README.zh.md",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session/session-projection/tests/registry.spec.ts"
+  ],
+  "verification_only_paths": [
+    "apps/web/tests/schedule-after.e2e.ts",
+    "packages/bundle/base/cordis.patch.yml",
+    "packages/bundle/sdk-minimal/cordis.patch.yml",
+    "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+    "packages/subagent/subagent/tests/continuation.spec.ts",
+    "packages/test-support/agent-loop-testkit/src/index.ts"
+  ],
+  "protected_exclusion_paths": [
+    "packages/schedule/schedule/package.json",
+    "packages/schedule/schedule/src/domain.ts",
+    "packages/schedule/schedule/src/projection.ts"
+  ],
+  "preservation": {
+    "prior_schedule_gate": "GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-READERS-001",
+    "old_gate_and_events": "immutable append-only history",
+    "retained_baseline": "FAIL-358 across 23 diagnostic classes; exact zero delta required at closeout",
+    "sealed_candidate": "/home/ricardo/dsh-aaa023-candidate.A28.Pqciac at 0b85fbd2df5d378e1f2ae7107a54b9cad8de2023; tree e5db2822132da3cdcc48aad11d087cb3a3d32ab1"
+  },
+  "limitations": "This fingerprint binds current candidate inputs and protected files before implementation changes. It is not an implementation verification, clean commit, A28 successor, or release artifact."
+}

@@ -55,7 +55,11 @@ const definition = {
 
 ### 注册与读取
 
-`register(definition)` 安装单元；具有相同 key 和 `stateVersion` 的注册方共享其 cell，版本不兼容或 `stateVersion` 非法时会 throw。注册是挂在调用方 fiber 上的 effect，因此最后一个注册方卸载后会移除 key 及其缓存 cell。载体用 `snapshot(session)` 对每个客户端可见单元读取一致的同步切面——`{ asOfSeq, values }`，其中 `asOfSeq` 是所有值共同反映到的最后一个事件的 seq——并用 `onChanged(listener)` 订阅逐变更通知。`stateOf(session, key)` 读取一个单元的实时只读 host 状态，不计算无关视图。
+`register(definition)` 安装单元；具有相同 key、`stateVersion` 与可选 `cacheFingerprint` 的注册方共享其 cell，身份不兼容或 `stateVersion` 非法时会 throw。已定义的 fingerprint 用于标识 Intl 数据等进程相关的折叠输入；缺省本身也是身份的一部分。创建时从临时的 `session/created` baseline 初始化 cell；若已有事件的实时 Session 缺少新 key 所需的基线，注册会失败。注册是挂在调用方 fiber 上的 effect，因此最后一个注册方卸载后会移除 key 及其缓存 cell。载体用 `snapshot(session)` 对每个客户端可见单元读取一致的同步切面——`{ asOfSeq, values }`，其中 `asOfSeq` 是所有值共同反映到的最后一个事件的 seq——并用 `onChanged(listener)` 订阅逐变更通知。`stateOf(session, key)` 读取一个单元的实时只读 host 状态，不计算无关视图。
+
+构造 Agent 前，`prepareSession(preparation)` 会从构造基线初始化已注册的 cell，并按顺序重放准备期间已接受的追加。每次新追加都会在 Session 接受事件前计算并校验所有下一状态；失败时，日志和所有投影 cell 都停留在原切面。Session 进入 store 时会封存 feed，live `session/event` 路由从相同 seq 水位继续推进。
+
+`onBeforePrepareSession(listener)` 会在基线结构检查后、折叠投影 cell 或注册表附加自己的追加 consumer 前同步运行。listener 可以校验领域基线状态并订阅 `preparation` 追加；已接受的后缀事件会按顺序重放，之后无效的追加会在 Session 变更前失败。释放 listener 会阻止后续 preparation 调用它，但已附加到某个 preparation 的 consumer 会保留到 feed 被封存或释放。
 
 ```text
 const dispose = ctx.sessionProjections.register(definition)
@@ -80,7 +84,7 @@ const { asOfSeq, values } = ctx.sessionProjections.snapshot(session)
 
 ### 设计理念
 
-本包是能力 seam 的 Service Definition 与驱动角色：框架负责驱动，领域负责计算。注册表只订阅一次 `session/event`；每个已提交事件都会主动经过每个已注册单元的 `apply`（cell 在首次触达时惰性构建）。第一层 `Object.is` 闸门在 state 引用不变时跳过 view 工作；live drive 的双槽缓存复用前一个原始 view，第二层 `Object.is` 闸门在原始 view 引用不变时抑制发布。载体在切出页面切片的同一 tick 内读取 `snapshot()`，`asOfSeq` 之所以是一个一致切面正系于此；误写成异步的 view 会返回 Promise，并被 `wire.viewSchema.parse` 拒绝。
+本包是能力 seam 的 Service Definition 与驱动角色：框架负责驱动，领域负责计算。注册表只订阅一次 `session/event`；创建 baseline 与明确的 restore/hydrate 切面初始化 cell，之后每个已提交事件都会主动经过每个已注册单元的 `apply`。第一层 `Object.is` 闸门在 state 引用不变时跳过 view 工作；live drive 的双槽缓存复用前一个原始 view，第二层 `Object.is` 闸门在原始 view 引用不变时抑制发布。载体在切出页面切片的同一 tick 内读取 `snapshot()`，`asOfSeq` 之所以是一个一致切面正系于此；误写成异步的 view 会返回 Promise，并被 `wire.viewSchema.parse` 拒绝。
 
 ### 源码地图
 
@@ -92,7 +96,7 @@ const { asOfSeq, values } = ctx.sessionProjections.snapshot(session)
 
 ### 驱动与检查点流程
 
-一个已提交事件按注册顺序驱动每个已注册单元；原始 view 通过 `Object.is` 判定为变化的客户端可见单元会以经 schema 校验的视图与致因 seq 通知变更流。live drive 保留前后两个原始 view；snapshot 与冷读仍是彼此独立的完整读取。`checkpoint(session)` 为持久缓存返回每个单元一份独立的 `(key → {ver, seq, val})` 行；`restoreFloor` 把尾部读取锚定在最低可用水位之前一个事件处，使缩短的日志可被检出；`restore` 把持久行在存储后缀上重新折叠，丢弃任何 `ver` 不匹配或声称越过存储末尾的行。
+一个已提交事件按注册顺序驱动每个已注册单元；原始 view 通过 `Object.is` 判定为变化的客户端可见单元会以经 schema 校验的视图与致因 seq 通知变更流。live drive 保留前后两个原始 view；snapshot 与冷读仍是彼此独立的完整读取。`checkpoint(session)` 为持久缓存返回每个单元一份独立的 `(key → {ver, cacheFingerprint?, seq, val})` 行；`restoreFloor` 把尾部读取锚定在最低可用水位之前一个事件处，使缩短的日志可被检出；`restore` 把持久行在存储后缀上重新折叠，丢弃版本或 fingerprint 不同（包括缺省不一致）或声称越过存储末尾的行。
 
 </details>
 
@@ -130,7 +134,7 @@ const { asOfSeq, values } = ctx.sessionProjections.snapshot(session)
 - **每个尾页携带每个 client-visible key**——尚无逐 key 的 opt-out 或惰性 key 请求形状；在值都是 UI 量级的全量状态时可以接受，若某领域的值变大再重议。
 - **单元表是进程级的，因此 key 是否存在不能当作逐会话的能力信号**——任何 agent preset 注册的 key 都会出现在每个会话的快照里；客户端必须读值，不能把 key 缺席当作功能缺席。
 - **主动驱动逐事件触达每个单元**——按构造开销很低（全量值规则与 state/view 引用闸门），但若出现热点路径，可加按单元的事件类型预过滤。
-- **注册表 cell 只活在内存里**——重启后首次触达时靠折叠日志重建；挂载了 `dsh-session-projection-cache` 的组合改由持久行播种该折叠。
+- **实时 cell 需要精确 baseline**——创建流程提供临时 baseline，prepared 或 cold Session 必须使用 `hydrate` 或 `restore`；已有事件后注册新 key 会失败，不会静默重新折叠历史。
 - **单元同步纪律只有部分可机械把关**——`wire.viewSchema.parse` 能拒绝返回 Promise 的 view，但阻塞的 `apply`、或读取撕裂的非会话状态的 `apply`，只能靠评审把关。
 
 <a id="dev-note"></a>

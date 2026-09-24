@@ -67,11 +67,11 @@ dsh web --patch apps/cli/config/examples/schedule/cordis.yml
 
 ### 作用域与组合
 
-插件声明 `inject = ['agents', 'sessions', 'tools', 'sessionPersistence']`，因此缺少持久化服务会直接构成组合错误。它只观察加载后发布的 `agent/created` 事件，在这些根 agent 上安装，并通过完全相同的 `agent.ctx` 注册全部三个工具；加载时已经 live 的 agent 与运行时子 agent 永远不会获得 Schedule。
+插件声明 `inject = ['agents', 'sessions', 'tools', 'sessionPersistence', 'sessionProjections']`，因此缺少持久化或 projection 服务会直接构成组合错误。它只观察加载后发布的 `agent/created` 事件，在这些根 agent 上安装，并通过完全相同的 `agent.ctx` 注册全部三个工具；加载时已经 live 的 agent 与运行时子 agent 永远不会获得 Schedule。
 
 Time-context 不是 Schedule 的依赖。官方 Web overlay 挂载 `@deepseek-ai/dsh-time-context`，让模型能够按浏览器请求本地时区解释自然语言；但模型仍必须向 `schedule_create` 传入显式偏移量或 `time_zone`；Schedule 绝不会从模型上下文导入或推断该值。
 
-Session projection 是可选能力。`ctx.sessionProjections` 存在时，插件会注册严格的 `schedule` 单元并公开完整的活动 `ScheduleRecord[]`；不带注册表的 headless 组合仍保留相同工具与 runtime。浏览器安全的记录词汇可从纯类型导出 `@deepseek-ai/dsh-schedule/client` 获取。随附 Web bundle 通过 disabled row 解析 `ui-schedule`，显式 Schedule overlay 再与 Host Schedule 服务一起启用该 row。
+Session projection 注册表是必需的。Schedule 会注册严格的 `schedule` 单元，并让 runtime、工具、idle 检查与 invariant 配套模块读取其实时状态；没有该服务的组合无法使用 Schedule。该单元还会向客户端公开完整的活动 `ScheduleRecord[]`。浏览器安全的记录词汇可从纯类型导出 `@deepseek-ai/dsh-schedule/client` 获取。随附 Web bundle 通过 disabled row 解析 `ui-schedule`，显式 Schedule overlay 再与 Host Schedule 服务一起启用该 row。
 
 ### 设计理念
 
@@ -91,18 +91,20 @@ Session projection 是可选能力。`ctx.sessionProjections` 存在时，插件
 | [`src/domain.ts`](src/domain.ts) | 严格解码、折叠、时间校验、framing、occurrence 算术 |
 | [`src/runtime.ts`](src/runtime.ts) | live timer owner：maintenance 认领、follow-up、dispatch barrier |
 | [`src/persistence.ts`](src/persistence.ts) | Schedule 对共享会话持久化 barrier 的使用 |
-| [`src/projection.ts`](src/projection.ts) | 可选的 seed-aware Session projection 与严格检查点 schema |
+| [`src/projection.ts`](src/projection.ts) | 必需的 seed-aware Session projection 与严格检查点 schema |
 | [`src/client.ts`](src/client.ts) | 浏览器安全的纯类型 `ScheduleRecord` 导出 |
 | [`src/transaction.ts`](src/transaction.ts) | 读取与持久变更的 agent 范围串行化 |
-| [`src/invariant.ts`](src/invariant.ts) | 位于 `./invariant` 的 `schedule-invariant` 配套模块，对现有日志与候选事件应用回放策略 |
+| [`src/invariant.ts`](src/invariant.ts) | 位于 `./invariant` 的 `schedule-invariant` 配套模块，在追加前检查 baseline projection state 与候选事件 |
 
 ### 持久状态与回放
 
-普通会话折叠完整事件流。fork 只折叠 `session.ownEvents()`，因此子会话永远不会继承父会话的提醒。Schedule projection 从投影注册表接收 Session 的精确 `inheritedEventCount`，并在该切点之后应用同一个 transition 函数。每条 create 记录都携带稳定的会话本地 `ScheduleId`、已 trim 的提示词与四位年份 RFC 3339 UTC `scheduledAt`；`after` 记录还存储 `afterSeconds`，`at` 记录不保留所提交的偏移量或本地字段，`every` 记录存储 `everySeconds`，并把 `scheduledAt` 视为尚未 dispatch 的最早创建锚点对齐发生时点。delete 与一次性 dispatch 只携带 id；`every` dispatch 会附加 `acceptedAt`，回放直接推进到该决策时点之后的第一个锚点对齐目标。
+普通 Session projection 会折叠完整事件流。fork projection 使用精确的 `inheritedEventCount`，因此子会话保留历史但不会接管父会话的提醒。完成持久化 preflight 后，live runtime 与工具会读取同一 projection state；invariant 配套模块会在追加前根据该状态检查候选事件。每条 create 记录都携带稳定的会话本地 `ScheduleId`、已 trim 的提示词与四位年份 RFC 3339 UTC `scheduledAt`；`after` 记录还存储 `afterSeconds`，`at` 记录不保留所提交的偏移量或本地字段，`every` 记录存储 `everySeconds`，并把 `scheduledAt` 视为尚未 dispatch 的最早创建锚点对齐发生时点。delete 与一次性 dispatch 只携带 id；`every` dispatch 会附加 `acceptedAt`，回放直接推进到该决策时点之后的第一个锚点对齐目标。
+
+invariant 配套模块会在安装 projection cell 前校验准备中的构造基线，并在 Session 接受 setup 追加前订阅它们。畸形基线或无效 Schedule 转换会抛出本包拥有的 `InvariantError`；被拒绝的 setup 追加不会改变 Session 序列或 Schedule 状态，因此 setup 可以在相同序列重试。直接 `SessionStore` 创建仍由 `session/created` preflight 校验。
 
 ### 客户端 projection
 
-可选的 `schedule` projection 将 `{ inheritedEventCount, active, seenIds }` 作为严格的纯 JSON 检查点，并且只发布完整的 `active` 数组。其 schema 复用持久 Schedule decoder，拒绝重复或不一致的 id，并让损坏的持久事件通过既有 Session 读取失败传播，而不是发布部分目录。live 惰性构建、事件驱动构建、cold restore、history 读取与 detached Subagent 读取都使用精确 Session 切点与同一套自有后缀 transition。
+必需的 `schedule` projection 将 `{ inheritedEventCount, active, seenIds }` 作为严格的纯 JSON 检查点，并且只发布完整的 `active` 数组。其 schema 复用持久 Schedule decoder，拒绝重复或不一致的 id，并让损坏的持久事件通过既有 Session 读取失败传播，而不是发布部分目录。live 事件驱动状态、cold restore、history 读取与 detached Subagent 读取都使用精确 Session 切点与同一套自有后缀 transition。
 
 projection 只携带持久记录。它不持久化或传输 scheduled／overdue 状态、本地化文本、相对时间、浏览器本地时间、排序状态、popover 状态、runtime 存活或交付回执。[`dsh-client-ui-schedule`](../../client/ui-schedule/README.zh.md) 从完整数组与查看方浏览器时钟派生目录呈现。[`dsh-client-ui-workspace`](../../client/ui-workspace/README.zh.md) 只派生列表值是否为非空数组，因此持久 projection cache 缺失或陈旧时，普通行与搜索行中的闹钟可能短暂漏显或残留。
 
@@ -120,7 +122,7 @@ projection 只携带持久记录。它不持久化或传输 scheduled／overdue 
 
 owner 把长等待拆分为有界的 timer 段，并在每次唤醒后重新读取墙钟。到期工作认领 idle maintenance phase、采样一个决策时点、在 `followup()` 之前构造完整的转义 framing、只在同步入队返回后追加 dispatch、释放 maintenance，然后等待持久化。错过的固定速率间隔永远不会被枚举：整数运算选择每条记录最新一个已到期且与创建锚点对齐的发生时点，并直接推进到第一个未来目标。
 
-逾期提醒首先为持久化建立检查点，然后通过 `runMaintenance()` 认领 agent 的 idle maintenance phase；如果某个轮次或另一项 maintenance task 已占用 agent，认领会失败，记录保持活动，owner 在 `whenIdle()` 后重试。获准的 maintenance task 会重新折叠、采样一个决策时点、构造固定 framing、同步将 `followup()` 入队，并在释放 phase 前追加 dispatch。dispatch 表示 follow-up 已入队并被记录，不表示模型成功或用户已读取回答。framing 构造或同步 follow-up 失败不会写入 dispatch；追加失败会使 owner 进入故障状态，因为消息可能已经入队；barrier 拒绝则把 dispatch 留给后续普通 preflight。agent 或插件执行资源释放时取消 timer 并停止新工作，但不删除持久记录。
+逾期提醒首先为持久化建立检查点，然后通过 `runMaintenance()` 认领 agent 的 idle maintenance phase；如果某个轮次或另一项 maintenance task 已占用 agent，认领会失败，记录保持活动，owner 在 `whenIdle()` 后重试。获准的 maintenance task 会读取当前 projection state、采样一个决策时点、构造固定 framing、同步将 `followup()` 入队，并在释放 phase 前追加 dispatch。dispatch 表示 follow-up 已入队并被记录，不表示模型成功或用户已读取回答。framing 构造或同步 follow-up 失败不会写入 dispatch；追加失败会使 owner 进入故障状态，因为消息可能已经入队；barrier 拒绝则把 dispatch 留给后续普通 preflight。agent 或插件执行资源释放时取消 timer 并停止新工作，但不删除持久记录。
 
 </details>
 

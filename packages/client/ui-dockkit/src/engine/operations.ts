@@ -129,7 +129,7 @@ function applyMerge(state: LayoutState, op: Extract<LayoutOp, { type: 'merge' }>
   }
 
   const siblingId = parent.children[1 - index]
-  /* v8 ignore next -- a split holds at least two children, so one survives the merged pane. */
+  /*! v8 ignore next -- a split holds at least two children, so one survives the merged pane. */
   if (siblingId === undefined) throw new Error('layout: merge found a split without a sibling')
   const collapsed = withNodes(replaceInParent(state, parent.id, siblingId), {
     [op.paneId]: null,
@@ -261,7 +261,7 @@ function applyInsertPane(state: LayoutState, op: Extract<LayoutOp, { type: 'inse
         inverse,
       }
     }
-    /* v8 ignore next 2 -- closed-union backstop; the compiler rejects a new attachment mode here. */
+    /*! v8 ignore next 2 -- closed-union backstop; the compiler rejects a new attachment mode here. */
     default:
       return assertNever(attach, 'layout: insertPane attachment')
   }
@@ -448,7 +448,7 @@ export function applyOp(state: LayoutState, op: LayoutOp): ApplyResult {
         inverse: [{ type: 'setMode', mode: state.mode }],
       }
     case 'restoreFocus': return applyRestoreFocus(state, op)
-    /* v8 ignore next -- closed-union backstop; the compiler rejects a new operation type here. */
+    /*! v8 ignore next -- closed-union backstop; the compiler rejects a new operation type here. */
     default: return assertNever(op, 'layout: operation')
   }
 }

@@ -112,7 +112,7 @@ async run( agent: Agent, pluginId: CordisDynamicPluginId, packageId: CordisDynam
  * @param pluginId - Stable Plugin identity to activate.
  * @param packageId - Immutable Package version to activate.
  * @param mode - Whether to run the current version or switch versions.
- * @param requestId - Model-driven request identity, or null for a direct user gesture.
+ * @param requestId - Host-minted model request identity, or null for a host-only direct gesture.
  * @param approveFutureVersions - Whether this approval covers later Packages of the same Plugin.
  * @returns The exact Host activation or a failure message.
  */

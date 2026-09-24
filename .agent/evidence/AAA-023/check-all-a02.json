@@ -1,0 +1,90 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A02-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "timestamp": "2026-09-21T08:50:08-03:00",
+  "command": "pnpm run check:all",
+  "executed": true,
+  "aggregate_exit_status": 1,
+  "observed_status": "FAIL",
+  "aggregate_summary": {
+    "passed_gates": 55,
+    "failed_gates": 6,
+    "skipped_gates": 6,
+    "failed_gate_names": [
+      "client domain graph",
+      "test",
+      "build",
+      "repository references",
+      "concrete terms",
+      "module graph"
+    ],
+    "skipped_gate_names": [
+      "test:snapshot",
+      "test:expected",
+      "publint",
+      "built package invariants",
+      "node-next types",
+      "doc-typecheck:contracts-ready"
+    ]
+  },
+  "blocking_gates": [
+    {
+      "command": "pnpm run verify-client-domain-graph",
+      "exit_status": 1,
+      "violation_count": 38,
+      "summary": "The client-domain verifier reports the same 38 ownership/import violations recorded by AAA-009."
+    },
+    {
+      "command": "pnpm run build",
+      "exit_status": 1,
+      "summary": "TypeScript reports missing temporary oxlint-contract files under packages/client/ui-primitives/src and website."
+    },
+    {
+      "command": "pnpm run verify-module-graph",
+      "exit_status": 1,
+      "summary": "docs/module-graph.md, docs/module-graph.zh.md, and docs/module-graph.i18n.yaml are stale."
+    },
+    {
+      "command": "pnpm run verify-repository-references",
+      "exit_status": 1,
+      "summary": "The retained historical commit-hash token in .agent/execution-log.jsonl is still reported."
+    },
+    {
+      "command": "pnpm run verify-concrete-terms",
+      "exit_status": 1,
+      "summary": "The retained historical forbidden wording in docs/customization/repository-audit-2026-09-20.md is still reported."
+    }
+  ],
+  "test_gate": {
+    "exit_status": 1,
+    "failed_test_files": 11,
+    "failed_tests": 20,
+    "passed_tests": 26165,
+    "skipped_tests": 181,
+    "expected_failures": 1,
+    "notable_failures": [
+      "packages/skill/skill-office/tests/checkers.spec.ts",
+      "packages/spill/spill-local/tests/loader-composition.spec.ts",
+      "packages/spill/spill-policy/tests/spill-policy.spec.ts",
+      "apps/desktop/tests/primary-runtime-preparation.spec.ts",
+      "packages/client/ui-primitives/tests/code-block.client.spec.tsx",
+      "packages/boot/plugin-manager/tests/manager.spec.ts",
+      "packages/deliverables/workspace-changes/tests/git.spec.ts",
+      "packages/ptc-runtime/ptc-runtime-node/tests/runtime.spec.ts",
+      "packages/deliverables/workspace-changes/tests/plugin.spec.ts",
+      "scripts/oxlint-contract.spec.ts",
+      "packages/terminal/terminal-bash/tests/local.spec.ts"
+    ]
+  },
+  "summary": "The aggregate runner completed on the current worktree and returned a non-zero result. It reproduced the 38 client-domain violations, stale module-graph artifacts, retained historical documentation-gate findings, a build failure caused by missing temporary contract files, and 20 failing tests across 11 files. Six dependent release gates were skipped after the build failure; the candidate remains unqualified.",
+  "limitations": "This run is not a sealed candidate qualification. Windows, supported Node versions, credentialed providers, packed-install qualification, upstream merge rehearsal, and the final independent audit remain unexecuted. The test failures were recorded as observed current behavior; no product change or environment workaround was inferred from them.",
+  "evidence_refs": [
+    ".agent/evidence/AAA-009/findings.json",
+    ".agent/evidence/AAA-010/verify-a01.json",
+    ".agent/evidence/AAA-023/check-all-a01.json",
+    "scripts/run-gates.ts",
+    "scripts/verify-client-domain-graph.ts",
+    "scripts/gen-module-graph.ts"
+  ]
+}

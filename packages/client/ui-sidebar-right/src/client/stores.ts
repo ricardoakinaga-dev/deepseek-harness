@@ -403,7 +403,7 @@ export function createSidebarRightStore(
         d.bySession = seat(d, sessionId, s => advance(s, (state) => {
           const floated = getPane(state, paneId).tabs[0]
           const plan = (): readonly LayoutOp[] => planUnfloatPane(state, paneId)
-          /* v8 ignore next -- a floating pane holds exactly one tab. */
+          /*! v8 ignore next -- a floating pane holds exactly one tab. */
           return floated === undefined ? plan() : arriving(state, floated, activeDockPaneId(state), plan)
         }, seed))
       },

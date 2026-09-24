@@ -1,0 +1,230 @@
+{
+  "record_id": "EVID-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-FINGERPRINT-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-DESIGN",
+  "kind": "IMPLEMENTATION_GATE_CANDIDATE_FINGERPRINT",
+  "timestamp": "2026-09-24T03:58:17-03:00",
+  "candidate_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "algorithm": "Sort relative paths; for each path update SHA-256 with UTF-8 path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+  "candidate_fingerprint": "4c42bbba1bae3b485c68eea97c065355f52bc7fc767f27dbd13796ae7d39e812",
+  "input_count": 37,
+  "implementation_path_count": 19,
+  "verification_only_path_count": 7,
+  "protected_exclusion_path_count": 3,
+  "inputs": [
+    {
+      "path": ".agent/authority.jsonl",
+      "sha256": "487b11aa0ad85da78a32f3cb89bcc720ea4fc6bbb605994ad64cda07b1445f76"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-review-w2-20260924.json",
+      "sha256": "7d8dd403ff6feba19621563b17465a01d87727343910d7378289e83e17476ae2"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+      "sha256": "07d9cdcafd24cd813c55ba307393fe34b73e313b89ae933a1e4ba3af8f3b1e65"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-fingerprint-revalidation-w2-20260924.json",
+      "sha256": "60940b6c9987a1e4befd197414f51bd69634ccb9cb904c9ca59a8dc6df3d3349"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+      "sha256": "f883b16be399e284786983d76f55460abb10b9a07e53d34423d470b3b3f94ed3"
+    },
+    {
+      "path": ".agents/customization-policy.json",
+      "sha256": "ac0d8490a7c87ed8ed3ac034e12d47057346a4894af962195b82610cc83f376f"
+    },
+    {
+      "path": ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      "sha256": "8f8166bc9586af59cc056a4552563eff94e1501464593fdc014a405276cdbc8a"
+    },
+    {
+      "path": ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      "sha256": "98384c4a0b0509ede8b4b2df38736aa65d57069019ff26a81b77494207ab9754"
+    },
+    {
+      "path": ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "sha256": "fb77fd319b9defc9e1c00d96e58b2947277ef5498f1ce1de79ccc3a473a4ab1d"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "7aa6243a1a3aaf8f98a8ce241c27dafeba53f74e4935117d9c8996d2ef031f4e"
+    },
+    {
+      "path": "apps/web/tests/schedule-after.e2e.ts",
+      "sha256": "a7477f033f4d7a5bada8b90db82ccf34f69182f64c7023b8bd8ab160c1650915"
+    },
+    {
+      "path": "docs/AGENTS.md",
+      "sha256": "64b91092a704c5f4b8689b106eeda0ac4e6262c066c043d158781d9f72d46ccb"
+    },
+    {
+      "path": "docs/subsystems/schedule.i18n.yaml",
+      "sha256": "0221769c2c7650b52a5ec858fd76ee9af563693f94801b910ae970bfb94c915c"
+    },
+    {
+      "path": "docs/subsystems/schedule.md",
+      "sha256": "8995300780ad7c8e323b0fd54a8d9812f9a63adb8e4d68d875f11a4eedb337c9"
+    },
+    {
+      "path": "docs/subsystems/schedule.zh.md",
+      "sha256": "ec6df5d8bf6d67f67a585526da967e7746e494acb00be0aed294ae44d42b3da0"
+    },
+    {
+      "path": "packages/AGENTS.md",
+      "sha256": "963fb95f390bc420e4fa70d5e016ed1fbff629214fb2c5143b95e4b747401e86"
+    },
+    {
+      "path": "packages/bundle/base/cordis.patch.yml",
+      "sha256": "a395d4e6b1b4de3694d354ab21901c174f59a30557d906f6324a474f486b2cc8"
+    },
+    {
+      "path": "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "sha256": "9aa8c1783865a1ef6d073e084ee0cb18316aedf8d6457f51e0cc3f4da85b6979"
+    },
+    {
+      "path": "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "sha256": "15875f85893196edd68f8c01b15ef866d9ee98529fb4ee15fb7c68689f5c28d3"
+    },
+    {
+      "path": "packages/schedule/schedule/README.i18n.yaml",
+      "sha256": "82f3a96c0f10e2013a2eba4733998a7a99cae95d61df19d26bb8c4f5b35157a3"
+    },
+    {
+      "path": "packages/schedule/schedule/README.md",
+      "sha256": "bbede5c7d3e1b6cf76b0fb488003a69400faf50df24707ca9df3c6b28ea96dba"
+    },
+    {
+      "path": "packages/schedule/schedule/README.zh.md",
+      "sha256": "7ec1cbd8514c5e5d025da1005885ae424a5e27d9899cba49d1d330e6040dbc68"
+    },
+    {
+      "path": "packages/schedule/schedule/package.json",
+      "sha256": "f2eb32d55c6b677c36631d48479da35dd27d08382c87368b992d6e282ac63b4d"
+    },
+    {
+      "path": "packages/schedule/schedule/src/domain.ts",
+      "sha256": "75b640a1f1e0a638de21f183f6e48b910a6a2fb87c8813439aab79b02063fbc0"
+    },
+    {
+      "path": "packages/schedule/schedule/src/index.ts",
+      "sha256": "42b3422e129909f6b844eda1a53108a75cd5e38b44fc79051199665625727213"
+    },
+    {
+      "path": "packages/schedule/schedule/src/invariant.ts",
+      "sha256": "f2bfd13437d5528f4b6b07aa93e3bf8703e6e639ea62db3866fe5e5ebb8ecc3b"
+    },
+    {
+      "path": "packages/schedule/schedule/src/projection.ts",
+      "sha256": "53a9ea848187ee60fb69eb67df8fa6c34c82bd0a9b2d9ad4351bfd7e1001109b"
+    },
+    {
+      "path": "packages/schedule/schedule/src/runtime.ts",
+      "sha256": "84e00f4e161e7c75ca73adb1b8ad694ee93351f695592500051d26b6137a1164"
+    },
+    {
+      "path": "packages/schedule/schedule/src/tools.ts",
+      "sha256": "06da345bbce2eda67f3c43945b2b43f515be5abd6a0a93c95a41c2d326fbc1e7"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/invariant.spec.ts",
+      "sha256": "3f7e59a41cd5a5f5724f2aaa154f08c84db57432a76c485457d5c59a6606c996"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "sha256": "76e229f5e3104319c894c080393ef5b5b5df26ad780d8cdfc6a19fe47873ce76"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/plugin.spec.ts",
+      "sha256": "a9600276a0f064102ac6e269e03409edd862829b39544cdc5b80ebf8f0dad4ea"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/projection.spec.ts",
+      "sha256": "b9862a27f934eb7ce683fe0bc863b62db130ad719801b054fa5f85affc20e53d"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/runtime.spec.ts",
+      "sha256": "7c86831ddafcc81fc3b1f1318353616798b231f14581c0c0a8812b5dccb98a07"
+    },
+    {
+      "path": "packages/schedule/schedule/tests/tools.spec.ts",
+      "sha256": "4531f9ff4b20303b001b09e46dd08148ed0311a9f077b731597ab5c208c64002"
+    },
+    {
+      "path": "packages/subagent/subagent/tests/continuation.spec.ts",
+      "sha256": "cd697accf3e164d19466e14c8bb43cc99fc3ec00984fa5c353194a0b8bd78a3c"
+    },
+    {
+      "path": "packages/test-support/agent-loop-testkit/src/index.ts",
+      "sha256": "54cb829cbf2078930cd50858b4f337acacb21aac3693b3a5c3a4b883c9a3abaa"
+    }
+  ],
+  "scope": {
+    "implementation_paths": [
+      ".agents/customization-policy.json",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "docs/subsystems/schedule.i18n.yaml",
+      "docs/subsystems/schedule.md",
+      "docs/subsystems/schedule.zh.md",
+      "packages/schedule/schedule/README.i18n.yaml",
+      "packages/schedule/schedule/README.md",
+      "packages/schedule/schedule/README.zh.md",
+      "packages/schedule/schedule/src/index.ts",
+      "packages/schedule/schedule/src/invariant.ts",
+      "packages/schedule/schedule/src/runtime.ts",
+      "packages/schedule/schedule/src/tools.ts",
+      "packages/schedule/schedule/tests/invariant.spec.ts",
+      "packages/schedule/schedule/tests/plugin.spec.ts",
+      "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "packages/schedule/schedule/tests/runtime.spec.ts",
+      "packages/schedule/schedule/tests/tools.spec.ts"
+    ],
+    "verification_only_paths": [
+      "packages/schedule/schedule/tests/projection.spec.ts",
+      "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "packages/subagent/subagent/tests/continuation.spec.ts",
+      "apps/web/tests/schedule-after.e2e.ts",
+      "packages/bundle/base/cordis.patch.yml",
+      "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "packages/test-support/agent-loop-testkit/src/index.ts"
+    ],
+    "protected_exclusion_paths": [
+      "packages/schedule/schedule/package.json",
+      "packages/schedule/schedule/src/domain.ts",
+      "packages/schedule/schedule/src/projection.ts"
+    ],
+    "context_paths": [
+      ".agent/authority.jsonl",
+      ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-review-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-fingerprint-revalidation-w2-20260924.json",
+      "AGENTS.md",
+      "docs/AGENTS.md",
+      "packages/AGENTS.md"
+    ],
+    "preexisting_coverage_markers": [
+      {
+        "path": "packages/schedule/schedule/src/invariant.ts",
+        "line": "/*! v8 ignore next -- foldScheduleEvents normalizes every rejected stream to ScheduleLogError. */"
+      },
+      {
+        "path": "packages/schedule/schedule/src/runtime.ts",
+        "line": "/*! v8 ignore next -- only the exact stored run installs this callback. */"
+      },
+      {
+        "path": "packages/schedule/schedule/src/runtime.ts",
+        "line": "/*! v8 ignore next -- covers a trigger in the promise-settlement microtask gap. */"
+      }
+    ]
+  },
+  "limitations": [
+    "This fingerprint binds exact pre-implementation bytes and design evidence; it does not authorize edits outside the 19 implementation paths.",
+    "The 7 verification-only paths and 3 protected Schedule exclusions must remain byte-identical.",
+    "Post-implementation validation must run the official customization-policy validator; the recorded candidate was validated in-memory only."
+  ]
+}

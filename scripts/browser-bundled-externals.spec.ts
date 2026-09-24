@@ -96,9 +96,9 @@ describe('browser dependency discovery', () => {
   })
 
   it.each([
-    ['Rollup', false, false], ['Rollup', true, false], ['Rollup', true, true],
-    ['Rolldown', false, false], ['Rolldown', true, false], ['Rolldown', true, true],
-  ] as const)('follows shell aliases, CSS and lazy imports without writing output (%s, symlinked root: %s, retained alias: %s)', async (bundler, linked, preserveAlias) => {
+    ['apps/web Vite', false, false], ['apps/web Vite', true, false], ['apps/web Vite', true, true],
+    ['Vitest Vite', false, false], ['Vitest Vite', true, false], ['Vitest Vite', true, true],
+  ] as const)('follows shell aliases, CSS and lazy imports without writing output (%s, symlinked root: %s, retained alias: %s)', async (viteOwner, linked, preserveAlias) => {
     const root = fixture()
     library(root, 'shell-lib')
     library(root, 'lazy-lib')
@@ -116,9 +116,13 @@ describe('browser dependency discovery', () => {
     ].join('\n'))
     const app = join(root, 'apps/web')
     write(root, 'apps/web/package.json', '{"name":"@fixture/web","type":"module","exports":{"./dist/*":"./dist/*"}}')
-    const owner = bundler === 'Rollup' ? resolve(repositoryRoot, 'apps/web/package.json')
+    const owner = viteOwner === 'apps/web Vite' ? resolve(repositoryRoot, 'apps/web/package.json')
       : createRequire(resolve(repositoryRoot, 'package.json')).resolve('vitest/package.json')
     const viteDirectory = dirname(createRequire(owner).resolve('vite/package.json'))
+    const viteManifest = JSON.parse(readFileSync(join(viteDirectory, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+    const expectedBundler = viteManifest.dependencies?.rolldown === undefined ? 'Rollup' : 'Rolldown'
     const viteLink = join(app, 'node_modules/vite')
     mkdirSync(dirname(viteLink), { recursive: true })
     symlinkSync(viteDirectory, viteLink, 'junction')
@@ -134,7 +138,7 @@ describe('browser dependency discovery', () => {
             name: 'fixture-bundler-engine',
             generateBundle() {
               const actual = typeof this.meta.rolldownVersion === 'string' ? 'Rolldown' : 'Rollup'
-              if (actual !== ${JSON.stringify(bundler)}) throw new Error('unexpected bundler: ' + actual)
+              if (actual !== ${JSON.stringify(expectedBundler)}) throw new Error('unexpected bundler: ' + actual)
             },
           }],
           build: { rollupOptions: { input: { index: ${JSON.stringify(join(app, 'index.html'))}, preview: "missing-preview.ts" } } }

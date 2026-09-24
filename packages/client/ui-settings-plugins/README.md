@@ -102,6 +102,8 @@ These limits define which plugins get a page and how fresh the group is; they ar
 - **The served namespaces re-read on two signals only** — the wire announces settings-document commits and connection resets, not registrations, so a namespace whose owner registers after the mirror's read joins the Official group on the next document commit or reconnect.
 - **The shell page follows the composed executor** — the POSIX and PowerShell executor families share the `shell` namespace because a host composes exactly one of them, so the served schema differs by platform (PowerShell adds `pwshPath`) even though the page edits the same two fields on both.
 
+**Runtime invariant:** No companion is published. This is a browser-side settings surface whose node half owns no event stream or mutable runtime data; the layering and write refusals are Host contracts covered by the owning plugins and the api-proxy.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -111,5 +113,3 @@ These limits define which plugins get a page and how fresh the group is; they ar
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This is a browser-side settings surface whose node half owns no event stream or mutable runtime data; the layering and write refusals are Host contracts covered by the owning plugins and the api-proxy.

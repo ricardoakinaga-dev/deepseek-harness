@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-016",
+  "action_id": "AAA-016:A02",
+  "candidate_ref": "current customization-policy verifier correction",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T22:10:29-03:00",
+  "source_documents": [
+    {
+      "id": "policy-verifier",
+      "location": "scripts/verify-customization-policy.mjs:36-42,109-119",
+      "role": "The verifier now separates packaged and non-packaged extension solution types and rejects packageRoots on the latter."
+    },
+    {
+      "id": "policy-tests",
+      "location": "scripts/verify-customization-policy.spec.ts:75-103",
+      "role": "The focused suite now asserts one actionable rejection for configuration, profile-patch, and skill records."
+    },
+    {
+      "id": "policy-standard",
+      "location": "docs/customization/improvement-development-standard.md:97-101; docs/customization/improvement-development-standard.zh.md:97-101",
+      "role": "The bilingual standard states that non-packaged solution types must omit packageRoots and packaged types must declare package roots."
+    },
+    {
+      "id": "policy-note",
+      "location": ".agents/notes/implemented/bug-fix/2026-09-20-customization-policy-package-roots.md",
+      "role": "The implemented Agent Note records the false-green cause, rejected alternatives, owner, and removal-safe consequences."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-016-PACKAGEROOTS-FALSE-GREEN",
+      "source_refs": ["policy-verifier", "policy-tests"],
+      "source_location": "scripts/verify-customization-policy.mjs:115-119",
+      "observed_status": "RESOLVED",
+      "classification": "FORBIDDEN_PACKAGE_ROOTS_REJECTED",
+      "owner": "AAA-016",
+      "severity": "CRITICAL",
+      "summary": "The verifier now rejects packageRoots on configuration, profile-patch, and skill records with a type-specific diagnostic while preserving packaged extension validation.",
+      "limitations": "The rule is governance validation; it does not inspect runtime package behavior."
+    },
+    {
+      "id": "F-AAA-016-INVALID-FIXTURE-GAP",
+      "source_refs": ["policy-tests", "policy-standard"],
+      "source_location": "scripts/verify-customization-policy.spec.ts:75-103",
+      "observed_status": "RESOLVED",
+      "classification": "NEGATIVE_FIXTURES_ADDED",
+      "owner": "AAA-016",
+      "severity": "HIGH",
+      "summary": "The focused suite now covers all three non-packaged extension types and expects the actionable forbidden-packageRoots diagnostic for each.",
+      "limitations": "The full repository documentation aggregate remains a separate gate."
+    }
+  ],
+  "implementation": {
+    "changes": [
+      "Added an explicit non-packaged extension type set to the policy verifier.",
+      "Rejected packageRoots whenever configuration, profile-patch, or skill declares the field.",
+      "Added parameterized invalid fixtures for all three non-packaged solution types while retaining existing positive coverage.",
+      "Updated the bilingual improvement standard and added a paired implemented Agent Note.",
+      "Extended the existing governance policy owner to include the new Agent Note path."
+    ],
+    "unchanged": [
+      "Packaged extension types still require non-empty packages/*/ roots.",
+      "No runtime package, profile, or released Session JSONL data changed.",
+      "No second policy owner was introduced for the verifier paths."
+    ]
+  },
+  "decision": {
+    "result": "AAA-016:A02 PASS — forbidden packageRoots rule and invalid fixtures implemented and verified",
+    "product_change": true,
+    "diagnosis": "The false-green policy path is closed at the owning verifier and focused test surfaces. Diagnostics identify the exact non-packaged solution type and the forbidden field.",
+    "next_action": "Complete AAA-016 and advance to the next independent task; retain the policy rule as part of the existing governance improvement."
+  },
+  "validation": {
+    "commands": [
+      "pnpm exec vitest run scripts/verify-customization-policy.spec.ts",
+      "node --input-type=module -e probe configuration, profile-patch, and skill with packageRoots",
+      "node scripts/verify-customization-policy.mjs --base master",
+      "pnpm run verify-agent-note-format -- .agents/notes/implemented/bug-fix/2026-09-20-customization-policy-package-roots.md",
+      "pnpm run verify-translation-pairing docs/customization/improvement-development-standard.md .agents/notes/implemented/bug-fix/2026-09-20-customization-policy-package-roots.md",
+      "git diff --check"
+    ],
+    "raw_output_files": [
+      ".artifacts/aaa-016/aaa-016-a02-2026-09-20/focused-policy.log",
+      ".artifacts/aaa-016/aaa-016-a02-2026-09-20/invalid-package-roots-matrix.log",
+      ".artifacts/aaa-016/aaa-016-a02-2026-09-20/top-level-policy.log",
+      ".artifacts/aaa-016/aaa-016-a02-2026-09-20/note-pairing.log"
+    ],
+    "raw_output_sha256": {
+      "focused-policy.log": "df2f4ffe1617c5371bfe4939c01ba8df15f70dcb00df8ceb0c21501b4fe25666",
+      "invalid-package-roots-matrix.log": "c460ff4c2e14825686c0253781dd72d2b4ea99a3ac49ecea26061830040a6774",
+      "top-level-policy.log": "0c59771997daeede1003aecbf697ba61e3e32d40a3831824f4cb722fd4e7bfbc",
+      "note-pairing.log": "75b21d41368ea011e97a50b284fc69e8ccb0bc4dfad21c07a26d1305480820f1"
+    },
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T22:10:29-03:00"
+  }
+}

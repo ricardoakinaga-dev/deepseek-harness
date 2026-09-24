@@ -1,0 +1,1297 @@
+{
+  "record_id": "EVID-AAA-022-READER-INVENTORY-A75-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A04",
+  "kind": "W0_RECONCILED_SESSION_READER_INVENTORY",
+  "status": "PASS_WITH_RETAINED_EXCEPTIONS",
+  "candidate": {
+    "path": "/home/ricardo/dsh-aaa023-candidate.A28.Pqciac",
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "clean": true
+  },
+  "probe": {
+    "command": "rg -n --glob '*.ts' --glob '*.tsx' --glob '!**/tests/**' '\\b(eventAt|snapshotEvents|ownEvents)\\s*\\(' packages python",
+    "exit_status": 0,
+    "raw_match_lines": 87,
+    "raw_files": 57,
+    "raw_sha256": "e109c2d740eb4d4e1f45d229322dfc3dd4654960704ca88e3e3984c29a4242c3",
+    "call_site_lines": 81,
+    "call_site_files": 56,
+    "non_call_matches": 6,
+    "non_call_details": [
+      {
+        "file": "packages/skill/tool-skill/src/index.ts",
+        "line": 341,
+        "text": " * `agent.session.snapshotEvents()` may contain a resumed, forked, or externally written seed,",
+        "reason": "source_comment",
+        "scope": "excluded_from_call_site_corpus"
+      },
+      {
+        "file": "packages/core/session/src/index.ts",
+        "line": 632,
+        "text": "  eventAt(seq: SessionSeq): SessionEvent | undefined {",
+        "reason": "api_declaration",
+        "scope": "excluded_from_call_site_corpus"
+      },
+      {
+        "file": "packages/core/session/src/index.ts",
+        "line": 646,
+        "text": "  snapshotEvents(",
+        "reason": "api_declaration",
+        "scope": "excluded_from_call_site_corpus"
+      },
+      {
+        "file": "packages/core/session/src/index.ts",
+        "line": 663,
+        "text": "  ownEvents(): readonly SessionEvent[] {",
+        "reason": "api_declaration",
+        "scope": "excluded_from_call_site_corpus"
+      },
+      {
+        "file": "packages/core/session/src/index.ts",
+        "line": 781,
+        "text": "   * form of `foldRequestHeader(session.snapshotEvents())`: each header event is folded",
+        "reason": "source_comment",
+        "scope": "excluded_from_call_site_corpus"
+      },
+      {
+        "file": "packages/extensions/tool-cordis/src/api-catalog.ts",
+        "line": 5673,
+        "text": "    declaration: 'export class Session {\\n    get surface(): SessionSurface;\\n    readonly header: SessionHeader;\\n    readonly inheritedEventCount: SessionLogOffset;\\n    get id(): SessionId;\\n    readonly firstLiveSeq: SessionLogOffset;\\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset, projections?: readonly SessionMessageProjection[]): Session;\\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState, projections?: readonly SessionMessageProjection[]): Session;\\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\\n    ownEvents(): readonly SessionEvent[];\\n    isOwnSeq(seq: SessionSeq): boolean;\\n    get seq(): SessionLogOffset;\\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\\n        opts: SurfaceIntent<T>\\n    ] : [\\n    ]): SessionEvent<T>;\\n    requestHeader(): EpochHeader | undefined;\\n    requestContext(): RequestContext | undefined;\\n    deriveMessages(): Message[];\\n    deriveEventMessage(event: SessionEvent): Message | null;\\n}',",
+        "reason": "generated_declaration",
+        "scope": "excluded_from_call_site_corpus"
+      }
+    ],
+    "test_only_observations_in_scope": 0,
+    "excluded_paths": [
+      "**/tests/**",
+      "**/lib/** (ripgrep default ignored artifact path)"
+    ]
+  },
+  "reconciliation": {
+    "frozen_audit_scope": {
+      "exception_lines": 79,
+      "production_api_files": 54,
+      "source": "docs/audits/prompt-codex-remediacao-2026-09-21.md and retained audit package"
+    },
+    "previous_AAA_022_inventory": {
+      "waiver_calls": 82,
+      "package_paths": 44,
+      "source": ".agent/evidence/AAA-022/scout-a01.json"
+    },
+    "A74_diagnostic": {
+      "match_lines": 87,
+      "files": 57,
+      "source": ".agent/evidence/AAA-022/reader-migration-plan-a74.json"
+    },
+    "canonical_metric": {
+      "name": "deprecated_reader",
+      "count": 89,
+      "budget": 90,
+      "unit": "source lines containing no-deprecated",
+      "source": ".agent/evidence/AAA-022/reader-migration-plan-a74.json"
+    },
+    "selected_corpus": "The line-level production call-site corpus is the 81/56 result above. The 79/54 frozen exception count, 82/44 prior waiver inventory, 87/57 diagnostic probe, and 89-line canonical metric measure different populations and remain preserved rather than silently rewritten.",
+    "migration_rule": "Every actual call site receives one owner, wave, classification, rationale, and retained-until condition. Declarations, comments, and generated API text are tracked as exclusions and are not treated as migration debt."
+  },
+  "classification_definitions": {
+    "projection_state": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+    "bounded_historical_window": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+    "complete_history_operation": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+    "synchronous_invariant": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+    "current_event": "Use the delivered committed event or an owned projection instead of looking up an arbitrary historical position."
+  },
+  "waves": {
+    "W1": "session, core/session, session-query; reader/projection seams and title/log/telemetry/query consumers",
+    "W2": "core runtime, context, interaction, schedule, goal, todo, plan, workflow, hooks, sandbox, feedback",
+    "W3": "compaction, subagent, llm, bundle, skill, API, experimental",
+    "W4": "generated declarations and paired documentation after W1-W3; no generated file is edited by W0"
+  },
+  "sites": [
+    {
+      "file": "packages/api/session-controller/src/commands.ts",
+      "line": 549,
+      "text": "      return { id: attached.id, header: attached.header, events: attached.snapshotEvents() }",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S001",
+      "owner": "packages/api/session-controller",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/api/session-controller/src/commands.ts",
+      "line": 596,
+      "text": "  return agent.session.snapshotEvents().some((event) => {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S002",
+      "owner": "packages/api/session-controller",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/api/session-controller/src/history.ts",
+      "line": 158,
+      "text": "      const suffix = session.snapshotEvents(snapshotCursor === undefined",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S003",
+      "owner": "packages/api/session-controller",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/api/session-controller/src/index.ts",
+      "line": 211,
+      "text": "        events: attached.snapshotEvents(),",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S004",
+      "owner": "packages/api/session-controller",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/bundle/headless/src/index.ts",
+      "line": 81,
+      "text": "    const event = session.eventAt(SessionSeq(seq))",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S005",
+      "owner": "packages/bundle/headless",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/bundle/headless/src/index.ts",
+      "line": 181,
+      "text": "    const event = session.eventAt(SessionSeq(seq))",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S006",
+      "owner": "packages/bundle/headless",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/compaction/compaction-basic/src/region.ts",
+      "line": 104,
+      "text": "  const head = session.eventAt(headSeq)!",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S007",
+      "owner": "packages/compaction/compaction-basic",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/compaction/compaction-basic/src/region.ts",
+      "line": 558,
+      "text": "    .map(seq => session.deriveEventMessage(session.eventAt(seq)!))",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S008",
+      "owner": "packages/compaction/compaction-basic",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/compaction/compaction-basic/src/region.ts",
+      "line": 576,
+      "text": "    const event = session.eventAt(SessionSeq(seq))!",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S009",
+      "owner": "packages/compaction/compaction-basic",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/compaction/compaction-image-offload/src/image-offload.ts",
+      "line": 22,
+      "text": "    const event = session.eventAt(seq)!",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S010",
+      "owner": "packages/compaction/compaction-image-offload",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/compaction/compaction-tool-result-pruner/src/index.ts",
+      "line": 140,
+      "text": "      const event = session.eventAt(seq)",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S011",
+      "owner": "packages/compaction/compaction-tool-result-pruner",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/compaction/compaction/src/invariant.ts",
+      "line": 302,
+      "text": "    const events = session.snapshotEvents()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S012",
+      "owner": "packages/compaction/compaction",
+      "wave": "W3",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/compaction/compaction/src/tool-pairing.ts",
+      "line": 54,
+      "text": "    const event = session.eventAt(seq)",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S013",
+      "owner": "packages/compaction/compaction",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/context/agent-instructions/src/index.ts",
+      "line": 57,
+      "text": "    const event = agent.session.eventAt(seq)",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S014",
+      "owner": "packages/context/agent-instructions",
+      "wave": "W2",
+      "classification": "current_event",
+      "rationale": "Use the delivered committed event or an owned projection instead of looking up an arbitrary historical position.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/context/agent-instructions/src/index.ts",
+      "line": 233,
+      "text": "        const event = agent.session.eventAt(seq)",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S015",
+      "owner": "packages/context/agent-instructions",
+      "wave": "W2",
+      "classification": "current_event",
+      "rationale": "Use the delivered committed event or an owned projection instead of looking up an arbitrary historical position.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/context/agent-instructions/src/state.ts",
+      "line": 143,
+      "text": "    const event = agent.session.eventAt(seq)",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S016",
+      "owner": "packages/context/agent-instructions",
+      "wave": "W2",
+      "classification": "current_event",
+      "rationale": "Use the delivered committed event or an owned projection instead of looking up an arbitrary historical position.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/context/time-context/src/index.ts",
+      "line": 84,
+      "text": "    const event = agent.session.eventAt(SessionSeq(seq))",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S017",
+      "owner": "packages/context/time-context",
+      "wave": "W2",
+      "classification": "current_event",
+      "rationale": "Use the delivered committed event or an owned projection instead of looking up an arbitrary historical position.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/context/time-context/src/invariant.ts",
+      "line": 165,
+      "text": "  const events = session.snapshotEvents()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S018",
+      "owner": "packages/context/time-context",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/context/time-context/src/invariant.ts",
+      "line": 185,
+      "text": "    validateReading(session.snapshotEvents(), event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S019",
+      "owner": "packages/context/time-context",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/core/agent-loop/src/index.ts",
+      "line": 755,
+      "text": "    const suffix = session.snapshotEvents(SessionLogOffset(stored.storedCount))",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S020",
+      "owner": "packages/core/agent-loop",
+      "wave": "W2",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/core/agent-loop/src/invariant.ts",
+      "line": 32,
+      "text": "    const events = session.snapshotEvents()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S021",
+      "owner": "packages/core/agent-loop",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/core/agent-loop/src/runtime-context.ts",
+      "line": 49,
+      "text": "  return session.snapshotEvents().toReversed()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S022",
+      "owner": "packages/core/agent-loop",
+      "wave": "W2",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/core/agent-loop/src/runtime-context.ts",
+      "line": 68,
+      "text": "      const event = this.session.eventAt(seq)",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S023",
+      "owner": "packages/core/agent-loop",
+      "wave": "W2",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/core/session/src/index.ts",
+      "line": 665,
+      "text": "    return this.snapshotEvents(this.inheritedEventCount)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S024",
+      "owner": "packages/core/session",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/core/session/src/index.ts",
+      "line": 1255,
+      "text": "    const lastEvent = session.snapshotEvents().at(-1)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S025",
+      "owner": "packages/core/session",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/core/session/src/index.ts",
+      "line": 1278,
+      "text": "    const boundaryEvent = session.eventAt(boundary)",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S026",
+      "owner": "packages/core/session",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/core/session/src/index.ts",
+      "line": 1286,
+      "text": "    const events = session.snapshotEvents(SessionLogOffset(0), SessionLogOffset(boundary + 1))",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S027",
+      "owner": "packages/core/session",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/core/session/src/invariant.ts",
+      "line": 214,
+      "text": "    for (const event of session.snapshotEvents()) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S028",
+      "owner": "packages/core/session",
+      "wave": "W1",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/core/tools/src/invariant.ts",
+      "line": 62,
+      "text": "    for (const event of session.snapshotEvents()) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S029",
+      "owner": "packages/core/tools",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/experimental/agent-team/src/mailbox.ts",
+      "line": 303,
+      "text": "    const suffix = session.snapshotEvents(session.inheritedEventCount)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S030",
+      "owner": "packages/experimental/agent-team",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/experimental/agent-team/src/roster.ts",
+      "line": 379,
+      "text": "        const suffix = session.snapshotEvents(session.inheritedEventCount)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S031",
+      "owner": "packages/experimental/agent-team",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/experimental/agent-team/src/roster.ts",
+      "line": 487,
+      "text": "    return foldSubagentDescriptor(agent.session.snapshotEvents(agent.session.inheritedEventCount)) !== undefined",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S032",
+      "owner": "packages/experimental/agent-team",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/experimental/auto-review/src/index.ts",
+      "line": 366,
+      "text": "  const events = session.snapshotEvents()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S033",
+      "owner": "packages/experimental/auto-review",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/feedback/message-feedback/src/index.ts",
+      "line": 234,
+      "text": "      return operation(live.snapshotEvents(), async (event) => {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S034",
+      "owner": "packages/feedback/message-feedback",
+      "wave": "W2",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/feedback/message-feedback/src/index.ts",
+      "line": 239,
+      "text": "        const last = live.snapshotEvents().at(-1)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S035",
+      "owner": "packages/feedback/message-feedback",
+      "wave": "W2",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/goal/goal-round-driver/src/invariant.ts",
+      "line": 65,
+      "text": "    for (const event of session.snapshotEvents()) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S036",
+      "owner": "packages/goal/goal-round-driver",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/goal/goal-round-driver/src/invariant.ts",
+      "line": 75,
+      "text": "    validateEvent(session.snapshotEvents(), event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S037",
+      "owner": "packages/goal/goal-round-driver",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/goal/goal/src/invariant.ts",
+      "line": 47,
+      "text": "    for (const event of session.snapshotEvents()) applyChecked(state, event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S038",
+      "owner": "packages/goal/goal",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/goal/tool-goal/src/authority.ts",
+      "line": 34,
+      "text": "  const events = agent.session.snapshotEvents()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S039",
+      "owner": "packages/goal/tool-goal",
+      "wave": "W2",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/hooks/hook-protocol/src/invariant.ts",
+      "line": 78,
+      "text": "    for (const event of session.snapshotEvents()) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S040",
+      "owner": "packages/hooks/hook-protocol",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/interaction/commands/src/invariant.ts",
+      "line": 39,
+      "text": "    const sourceEvent = source === undefined ? undefined : session.eventAt(source)",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S041",
+      "owner": "packages/interaction/commands",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/interaction/commands/src/invariant.ts",
+      "line": 51,
+      "text": "    for (const event of session.snapshotEvents()) validateEvent(session, event)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S042",
+      "owner": "packages/interaction/commands",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/interaction/permission-presets/src/invariant.ts",
+      "line": 28,
+      "text": "    for (const event of session.snapshotEvents()) validateEvent(ctx, event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S043",
+      "owner": "packages/interaction/permission-presets",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/interaction/user-approval/src/index.ts",
+      "line": 80,
+      "text": "    const type = session.eventAt(SessionSeq(seq))?.type",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S044",
+      "owner": "packages/interaction/user-approval",
+      "wave": "W2",
+      "classification": "current_event",
+      "rationale": "Use the delivered committed event or an owned projection instead of looking up an arbitrary historical position.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/interaction/user-approval/src/index.ts",
+      "line": 248,
+      "text": "      const event = session.eventAt(SessionSeq(seq))",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S045",
+      "owner": "packages/interaction/user-approval",
+      "wave": "W2",
+      "classification": "current_event",
+      "rationale": "Use the delivered committed event or an owned projection instead of looking up an arbitrary historical position.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/interaction/user-approval/src/invariant.ts",
+      "line": 68,
+      "text": "    for (const event of session.snapshotEvents()) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S046",
+      "owner": "packages/interaction/user-approval",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/llm/llm-retry/src/invariant.ts",
+      "line": 151,
+      "text": "  const events = session.snapshotEvents()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S047",
+      "owner": "packages/llm/llm-retry",
+      "wave": "W3",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/llm/llm-retry/src/invariant.ts",
+      "line": 166,
+      "text": "    if (event.type === 'llm/retry') validateRetry(session.snapshotEvents(), event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S048",
+      "owner": "packages/llm/llm-retry",
+      "wave": "W3",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/llm/llm-retry/src/invariant.ts",
+      "line": 168,
+      "text": "    else if (event.type === 'llm/retry-started') validateStarted(session.snapshotEvents(), event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S049",
+      "owner": "packages/llm/llm-retry",
+      "wave": "W3",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/llm/token-meter/src/index.ts",
+      "line": 235,
+      "text": "      const event = session.eventAt(SessionSeq(state.consumedEvents))!",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S050",
+      "owner": "packages/llm/token-meter",
+      "wave": "W3",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/plan/plan-mode/src/invariant.ts",
+      "line": 32,
+      "text": "    for (const event of session.snapshotEvents()) validateEvent(event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S051",
+      "owner": "packages/plan/plan-mode",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/sandbox/sandbox-policy/src/invariant.ts",
+      "line": 27,
+      "text": "    for (const event of session.snapshotEvents()) validateEvent(event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S052",
+      "owner": "packages/sandbox/sandbox-policy",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/schedule/schedule/src/index.ts",
+      "line": 59,
+      "text": "          if (status === 'idle' && agent.session.snapshotEvents().some(event => event.type === 'schedule/change')) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S053",
+      "owner": "packages/schedule/schedule",
+      "wave": "W2",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/schedule/schedule/src/invariant.ts",
+      "line": 34,
+      "text": "    validate(session.ownEvents(), fail)",
+      "methods": [
+        "ownEvents"
+      ],
+      "site_id": "REM-028-S054",
+      "owner": "packages/schedule/schedule",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/schedule/schedule/src/invariant.ts",
+      "line": 38,
+      "text": "    validate(session.ownEvents(), fail)",
+      "methods": [
+        "ownEvents"
+      ],
+      "site_id": "REM-028-S055",
+      "owner": "packages/schedule/schedule",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/schedule/schedule/src/invariant.ts",
+      "line": 45,
+      "text": "    validate([...session.ownEvents(), event], fail)",
+      "methods": [
+        "ownEvents"
+      ],
+      "site_id": "REM-028-S056",
+      "owner": "packages/schedule/schedule",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/schedule/schedule/src/runtime.ts",
+      "line": 209,
+      "text": "      return foldScheduleEvents(this.agent.session.ownEvents())",
+      "methods": [
+        "ownEvents"
+      ],
+      "site_id": "REM-028-S057",
+      "owner": "packages/schedule/schedule",
+      "wave": "W2",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/schedule/schedule/src/tools.ts",
+      "line": 225,
+      "text": "    return foldScheduleEvents(agent.session.ownEvents())",
+      "methods": [
+        "ownEvents"
+      ],
+      "site_id": "REM-028-S058",
+      "owner": "packages/schedule/schedule",
+      "wave": "W2",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/session-query/session-query-sqlite/src/index.ts",
+      "line": 873,
+      "text": "  return observeSession(session.header, session.inheritedEventCount, session.snapshotEvents())",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S059",
+      "owner": "packages/session-query/session-query-sqlite",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session-query/session-query/src/corpus.ts",
+      "line": 247,
+      "text": "  return { header: session.header, events: session.snapshotEvents() }",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S060",
+      "owner": "packages/session-query/session-query",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session-query/session-query/src/corpus.ts",
+      "line": 303,
+      "text": "    events: session.snapshotEvents().map(event => structuredClone(event)),",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S061",
+      "owner": "packages/session-query/session-query",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session-query/session-query/src/observation.ts",
+      "line": 293,
+      "text": "          materialized ??= session.snapshotEvents(SessionLogOffset(0), seq)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S062",
+      "owner": "packages/session-query/session-query",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-log-deepseek/src/index.ts",
+      "line": 124,
+      "text": "    const event = session.eventAt(SessionSeq(index))",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S063",
+      "owner": "packages/session/session-log-deepseek",
+      "wave": "W1",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-log-deepseek/src/index.ts",
+      "line": 169,
+      "text": "      const snapshot = session.snapshotEvents()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S064",
+      "owner": "packages/session/session-log-deepseek",
+      "wave": "W1",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-log-deepseek/src/index.ts",
+      "line": 173,
+      "text": "      const suffix = session.snapshotEvents(SessionLogOffset(afterSeq + 1))",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S065",
+      "owner": "packages/session/session-log-deepseek",
+      "wave": "W1",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-log-deepseek/src/invariant.ts",
+      "line": 48,
+      "text": "  for (const event of session.snapshotEvents()) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S066",
+      "owner": "packages/session/session-log-deepseek",
+      "wave": "W1",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-projection/src/index.ts",
+      "line": 623,
+      "text": "        session.snapshotEvents(),",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S067",
+      "owner": "packages/session/session-projection",
+      "wave": "W1",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-projection/src/index.ts",
+      "line": 642,
+      "text": "      const event = session.eventAt(SessionSeq(seq))",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S068",
+      "owner": "packages/session/session-projection",
+      "wave": "W1",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-projection/src/index.ts",
+      "line": 669,
+      "text": "          session.snapshotEvents(SessionLogOffset(0), SessionLogOffset(event.seq)),",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S069",
+      "owner": "packages/session/session-projection",
+      "wave": "W1",
+      "classification": "projection_state",
+      "rationale": "Replace repeated history folding with a restored, incrementally maintained projection or current-state field; preserve fork and resume semantics.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-telemetry-otel/src/index.ts",
+      "line": 250,
+      "text": "      if (session.eventAt(event.seq) !== event) {",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S070",
+      "owner": "packages/session/session-telemetry-otel",
+      "wave": "W1",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-telemetry/src/coordinator.ts",
+      "line": 157,
+      "text": "    for (const event of session.snapshotEvents(SessionLogOffset(cursor + 1))) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S071",
+      "owner": "packages/session/session-telemetry",
+      "wave": "W1",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-title/src/index.ts",
+      "line": 776,
+      "text": "    return collectSessionTitleMessages(session.snapshotEvents(), throughSeq)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S072",
+      "owner": "packages/session/session-title",
+      "wave": "W1",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-title/src/invariant.ts",
+      "line": 50,
+      "text": "    const cited = checked < event.seq ? session.eventAt(checked) : undefined",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S073",
+      "owner": "packages/session/session-title",
+      "wave": "W1",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/session/session-title/src/invariant.ts",
+      "line": 60,
+      "text": "    for (const event of session.snapshotEvents()) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S074",
+      "owner": "packages/session/session-title",
+      "wave": "W1",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W1"
+    },
+    {
+      "file": "packages/skill/tool-skill/src/index.ts",
+      "line": 366,
+      "text": "    const event = agent.session.eventAt(SessionSeq(index))",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S075",
+      "owner": "packages/skill/tool-skill",
+      "wave": "W3",
+      "classification": "bounded_historical_window",
+      "rationale": "Replace the in-memory range lookup with an asynchronous bounded/paged reader carrying sequence, cancellation, and inherited-prefix semantics.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/subagent/subagent-fork-in-process/src/index.ts",
+      "line": 50,
+      "text": "  const events = parent.session.snapshotEvents()",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S076",
+      "owner": "packages/subagent/subagent-fork-in-process",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/subagent/subagent-in-process-driver/src/index.ts",
+      "line": 219,
+      "text": "  const own = child.session.snapshotEvents(boundary)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S077",
+      "owner": "packages/subagent/subagent-in-process-driver",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/subagent/subagent/src/lifecycle.ts",
+      "line": 202,
+      "text": "      const own = child.session.snapshotEvents(boundary)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S078",
+      "owner": "packages/subagent/subagent",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/subagent/tool-subagent/src/index.ts",
+      "line": 624,
+      "text": "      && target.eventAt(SessionSeq(0))?.type !== 'session/end-seed'",
+      "methods": [
+        "eventAt"
+      ],
+      "site_id": "REM-028-S079",
+      "owner": "packages/subagent/tool-subagent",
+      "wave": "W3",
+      "classification": "complete_history_operation",
+      "rationale": "Keep the operation until an explicit storage-backed complete/inherited-history reader proves equivalent ordering, errors, and fork/replay behavior.",
+      "retained_until": "W3"
+    },
+    {
+      "file": "packages/todo/tool-todo/src/invariant.ts",
+      "line": 64,
+      "text": "  for (const event of session.snapshotEvents()) {",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S080",
+      "owner": "packages/todo/tool-todo",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    },
+    {
+      "file": "packages/workflow/tool-workflow/src/invariant.ts",
+      "line": 139,
+      "text": "    for (const event of session.snapshotEvents().filter(isWorkflowRecordEvent)) applyEvent(trace, event, fail)",
+      "methods": [
+        "snapshotEvents"
+      ],
+      "site_id": "REM-028-S081",
+      "owner": "packages/workflow/tool-workflow",
+      "wave": "W2",
+      "classification": "synchronous_invariant",
+      "rationale": "The current caller validates an append/restore or identity invariant synchronously; replace it only with an equivalent pre-commit or owned validation seam.",
+      "retained_until": "W2"
+    }
+  ],
+  "excluded_matches": [
+    {
+      "file": "packages/skill/tool-skill/src/index.ts",
+      "line": 341,
+      "text": " * `agent.session.snapshotEvents()` may contain a resumed, forked, or externally written seed,",
+      "reason": "source_comment",
+      "scope": "excluded_from_call_site_corpus"
+    },
+    {
+      "file": "packages/core/session/src/index.ts",
+      "line": 632,
+      "text": "  eventAt(seq: SessionSeq): SessionEvent | undefined {",
+      "reason": "api_declaration",
+      "scope": "excluded_from_call_site_corpus"
+    },
+    {
+      "file": "packages/core/session/src/index.ts",
+      "line": 646,
+      "text": "  snapshotEvents(",
+      "reason": "api_declaration",
+      "scope": "excluded_from_call_site_corpus"
+    },
+    {
+      "file": "packages/core/session/src/index.ts",
+      "line": 663,
+      "text": "  ownEvents(): readonly SessionEvent[] {",
+      "reason": "api_declaration",
+      "scope": "excluded_from_call_site_corpus"
+    },
+    {
+      "file": "packages/core/session/src/index.ts",
+      "line": 781,
+      "text": "   * form of `foldRequestHeader(session.snapshotEvents())`: each header event is folded",
+      "reason": "source_comment",
+      "scope": "excluded_from_call_site_corpus"
+    },
+    {
+      "file": "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "line": 5673,
+      "text": "    declaration: 'export class Session {\\n    get surface(): SessionSurface;\\n    readonly header: SessionHeader;\\n    readonly inheritedEventCount: SessionLogOffset;\\n    get id(): SessionId;\\n    readonly firstLiveSeq: SessionLogOffset;\\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset, projections?: readonly SessionMessageProjection[]): Session;\\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState, projections?: readonly SessionMessageProjection[]): Session;\\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\\n    ownEvents(): readonly SessionEvent[];\\n    isOwnSeq(seq: SessionSeq): boolean;\\n    get seq(): SessionLogOffset;\\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\\n        opts: SurfaceIntent<T>\\n    ] : [\\n    ]): SessionEvent<T>;\\n    requestHeader(): EpochHeader | undefined;\\n    requestContext(): RequestContext | undefined;\\n    deriveMessages(): Message[];\\n    deriveEventMessage(event: SessionEvent): Message | null;\\n}',",
+      "reason": "generated_declaration",
+      "scope": "excluded_from_call_site_corpus"
+    }
+  ],
+  "acceptance": {
+    "status": "PASS_WITH_RETAINED_EXCEPTIONS",
+    "summary": "W0 names every candidate-bound production call-site line in the selected corpus, reconciles the incompatible historical units, assigns an owner and migration wave, and leaves source, lint, compiler defaults, and released Session generations unchanged.",
+    "remaining": "W1-W3 must prove each replacement before its retained exception is removed; W4 must regenerate generated declarations and documentation from the resulting public API."
+  },
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001"
+}

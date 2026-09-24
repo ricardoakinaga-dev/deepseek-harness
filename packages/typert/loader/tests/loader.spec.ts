@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { dirname, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
@@ -119,7 +119,7 @@ async function boot(): Promise<Context> {
 async function linkZod(base: string): Promise<void> {
   const { symlink } = await import('node:fs/promises')
   const target = join(base, 'node_modules', 'zod')
-  const source = fileURLToPath(new URL('.', import.meta.resolve('zod/package.json')))
+  const source = dirname(createRequire(import.meta.url).resolve('zod/package.json'))
   await mkdir(join(base, 'node_modules'), { recursive: true })
   await symlink(source, target, process.platform === 'win32' ? 'junction' : 'dir')
 }

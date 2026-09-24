@@ -78,6 +78,8 @@ The package contributes no stable request prefix, so it does not invalidate mode
 - **Header evidence is architecture-specific** — the committed ABI probe and layout constants cover the repository's current 64-bit Windows targets. A new pointer width or incompatible Windows ABI requires updating the probe before support is claimed.
 
 
+**Runtime invariant:** No companion is published. Operations own only call-local native handles.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -87,5 +89,3 @@ The package contributes no stable request prefix, so it does not invalidate mode
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Operations own only call-local native handles.

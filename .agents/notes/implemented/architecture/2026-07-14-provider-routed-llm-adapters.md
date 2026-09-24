@@ -79,13 +79,13 @@ Current seed/load validation rejects request headers and assistant messages that
 - `dsh-llm-pi-ai` rejects stop sequences because pi-ai's common stream API cannot express them; the native DeepSeek adapter retains its stop support.
 - Replay state is portable only within the adapter instance that owns both the historical and target providers. Cross-provider and cross-model restoration is an adapter responsibility, and another adapter receives provider-neutral history without the opaque state.
 - Current Session JSONL requires provider/model on request headers and assistant messages. The v0 edge migrates only frozen shapes that already carry reconstructable request identity.
+- The provider/model change spans request construction, adapter registration, application protocols, fixtures, and persisted v0 events without compatibility aliases; released historical recovery belongs to the adjacent Session-format edge.
+- Provider exclusivity prevents two implementations of one upstream from coexisting in a context. The lockfile and adapter e2e matrix define the provider/model set validated for the installed pi-ai dependency.
+- Custom `baseURL` endpoints inherit the selected catalog model's protocol and cannot repair an incompatible proxy. Catalog-external model descriptors and multimodal content are unsupported.
+- pi-ai replay state may contain opaque encrypted reasoning signatures required for continuity; the state is persisted in the existing session record and is not rendered or logged elsewhere.
 
 ## Testing
 
 - Unit coverage exercises registry conflicts, request reconstruction, session validation, profile resolution, single-attempt option forwarding, native API selection including OpenAI Responses, conversion, replay validation, error mapping, caller cancellation, idle-timeout transport termination, content rewrites, and same-instance versus different-instance replay dispatch.
 - Keyless loop/session tests and ACP snapshots exercise durable provider/model metadata, resume and fork propagation, workflow/subagent overrides, and unchanged user-visible transcripts; the key-gated DeepSeek e2e retains real provider streaming and tool follow-up coverage.
 - Public JSDoc, package READMEs, architecture and subsystem docs, generated catalogs, examples, session fixtures, and Python SDK pairs use provider/model targets consistently and are checked by the repository documentation and type-equivalence gates.
-
-## Risks
-
-This was a repo-wide API break when introduced: model-only request construction, adapter registration, app protocols, fixtures, and persisted v0 event shapes changed together, with no compatibility aliases. Released historical recovery now belongs to the adjacent Session-format edge. The provider exclusivity rule deliberately prevents two implementations of the same upstream from coexisting in one context. A pi-ai dependency update can change the accepted provider/model catalog, so the lockfile and adapter e2e matrix define the tested set. Custom `baseURL` endpoints inherit the chosen catalog model's protocol assumptions and cannot repair an incompatible proxy. Catalog-external model descriptors and multimodal content remain unsupported. pi-ai replay state may contain opaque encrypted reasoning signatures; it is persisted because the provider requires it for continuity, but it is never rendered or logged outside the existing session record.

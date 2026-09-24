@@ -1,0 +1,18 @@
+{
+  "record_id":"GATE-AAA-014-IMPLEMENTATION-READY-001",
+  "timestamp":"2026-09-21T23:52:01-03:00",
+  "gate_id":"IMPLEMENTATION_READY",
+  "scope":"AAA-014 approved aggregate HTTP/RPC buffered-memory limiter",
+  "scope_ref":"AAA-014",
+  "version":1,
+  "criteria":[
+    {"id":"IR-001","description":"The authority confirms one instance-owned aggregate limiter with conservative reservation, deterministic bounded rejection, and release after cancellation, disconnect, and owned work quiesce.","required":true,"status":"PASS","evidence_refs":[".agent/evidence/AAA-014/scout-a01.json",".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"],"confidence":"HIGH","limitations":"The policy does not claim a measured production OOM threshold."},
+    {"id":"IR-002","description":"The implementation is bounded to buffered connection bridge entry points, RPC host/request coordination, focused lifecycle fixtures, and paired package documentation.","required":true,"status":"PASS","evidence_refs":["packages/client/connection/src/http-bridge.ts","packages/client/connection/src/rpc-host.ts","packages/client/connection/src/rpc.ts",".agent/evidence/AAA-014/implementation-a19.json"],"confidence":"HIGH","limitations":"Streaming routes remain outside buffered-memory accounting."},
+    {"id":"IR-003","description":"Acceptance requires connection tests, host/client typechecks, focused lint, bilingual pairing, and whitespace checks to pass.","required":true,"status":"PASS","evidence_refs":[".agent/evidence/AAA-014/implementation-a19.json"],"confidence":"HIGH","limitations":"Completion still requires a current verification record."}
+  ],
+  "evidence":[".agent/evidence/AAA-014/scout-a01.json",".agent/evidence/AAA-014/implementation-a19.json",".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"],
+  "candidate_fingerprint":"0e8609a2d2e0ba5081d36937030da984dc2c85ab63a15cfa489c308521554182",
+  "confidence":"HIGH","gaps":[],"conditions":[],
+  "authority":{"required":true,"state":"CONFIRMED","actor":"Ricardo Akinaga","scope":"AAA-014 approved aggregate HTTP/RPC buffered-memory limiter","decision":"Use one instance-owned aggregate limiter with conservative reservation, deterministic bounded rejection, and release after cancellation, disconnect, and owned work quiesce.","evidence_ref":".agent/authority.jsonl#AUTH-AAA-014-IMPLEMENTATION-A20-001","expires_or_revalidates":"Revalidate if buffered route ownership, reservation semantics, or streaming scope changes."},
+  "residual_risk":"HIGH","decision":"PASS","next_action":"Start AAA-014:A02 to validate the approved aggregate memory policy and retain current focused evidence.","revalidation_triggers":["A new buffered entry point bypasses the limiter.","The rejection or release point changes.","The implementation expands to streaming payload accounting."],"supersedes":null
+}

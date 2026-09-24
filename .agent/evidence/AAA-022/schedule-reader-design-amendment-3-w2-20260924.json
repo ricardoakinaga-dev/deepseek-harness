@@ -1,0 +1,215 @@
+{
+  "record_id": "EVID-AAA-022-W2-SCHEDULE-DESIGN-AMENDMENT-3-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-DESIGN",
+  "kind": "OWNER_SCOPED_READER_MIGRATION_DESIGN_AMENDMENT",
+  "timestamp": "2026-09-24T03:47:00-03:00",
+  "status": "PROPOSED_FOR_INDEPENDENT_REVIEW",
+  "supersedes_for_gate_use": ".agent/evidence/AAA-022/schedule-reader-design-amendment-2-w2-20260924.json",
+  "preserves_history": true,
+  "review": ".agent/evidence/AAA-022/schedule-reader-design-amendment-review-2-w2-20260924.json#REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-2-20260924-001",
+  "fingerprint_revalidation": ".agent/evidence/AAA-022/schedule-reader-fingerprint-revalidation-w2-20260924.json",
+  "corrections": {
+    "input_fingerprint_sha256": "a3282a316bfd5fe279a38527bebc63f8a1679f8812e826093dcfd480003a0849",
+    "input_path_count": 42,
+    "method": "Sort relative paths; for each path update SHA-256 with UTF-8 path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+    "revalidation_result": "all 42 per-file hashes and the recorded HEAD match; aggregate digest recomputed exactly"
+  },
+  "design_additions": [
+    {
+      "id": "W2-AC-07",
+      "requirement": "The Schedule plugin requires SessionProjectionRegistry; absent provider or key is a fail-closed composition/capability error and must never become a corrupt-log or ordinary internal tool result. Runtime unavailable-state diagnostics must be distinct from corrupt-log diagnostics.",
+      "paths": [
+        "packages/schedule/schedule/src/index.ts",
+        "packages/schedule/schedule/src/runtime.ts",
+        "packages/schedule/schedule/src/tools.ts",
+        "packages/schedule/schedule/README.md",
+        "packages/schedule/schedule/README.zh.md",
+        "packages/schedule/schedule/README.i18n.yaml",
+        "docs/subsystems/schedule.md",
+        "docs/subsystems/schedule.zh.md",
+        "docs/subsystems/schedule.i18n.yaml"
+      ],
+      "tests": [
+        {
+          "path": "packages/schedule/schedule/tests/plugin.spec.ts",
+          "assertions": [
+            "Schedule composition rejects a missing SessionProjectionRegistry before runtime/tool registration."
+          ]
+        },
+        {
+          "path": "packages/schedule/schedule/tests/tools.spec.ts",
+          "assertions": [
+            "A missing schedule key is surfaced as a composition/capability failure and is not converted to corrupt_schedule_log or internal_error."
+          ]
+        },
+        {
+          "path": "packages/schedule/schedule/tests/runtime.spec.ts",
+          "assertions": [
+            "A missing schedule key faults/stops the runtime with a distinct unavailable-projection diagnostic, not a corrupt-log diagnostic."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W2-AC-08",
+      "requirement": "Preserve package-attributed InvariantError for invalid creation baselines: register a prepend global session/created preflight that transiently applies scheduleProjectionDefinition from exact inheritedEventCount over SessionCreationBaseline.events; catch only ScheduleLogError and call fail(). After the projection registry initializes, retain a post-projection stateOf check. Do not use ownEvents or snapshotEvents.",
+      "paths": [
+        "packages/schedule/schedule/src/invariant.ts",
+        "packages/schedule/schedule/tests/invariant.spec.ts"
+      ]
+    },
+    {
+      "id": "W2-AC-09",
+      "requirement": "Prove shared key refcounting through both contributor disposal orders. With Schedule and schedule-invariant registered, disposing either contributor must leave the other able to read exact state and perform its applicable runtime/pre-append role; disposing the final contributor removes the key.",
+      "paths": [
+        "packages/schedule/schedule/tests/plugin.spec.ts",
+        "packages/schedule/schedule/tests/invariant.spec.ts"
+      ]
+    },
+    {
+      "id": "W2-AC-10",
+      "requirement": "Prove live restore and fork behavior: assert inheritedEventCount, active and seenIds after persisted resume; assert terminal IDs remain reserved; and exercise an inherited-only fork runtime that does not flush or wake while an owned suffix remains visible and operative.",
+      "paths": [
+        "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+        "packages/schedule/schedule/tests/runtime.spec.ts",
+        "packages/schedule/schedule/tests/plugin.spec.ts"
+      ]
+    }
+  ],
+  "scope": {
+    "implementation_path_count": 19,
+    "implementation_paths": [
+      ".agents/customization-policy.json",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "docs/subsystems/schedule.i18n.yaml",
+      "docs/subsystems/schedule.md",
+      "docs/subsystems/schedule.zh.md",
+      "packages/schedule/schedule/README.i18n.yaml",
+      "packages/schedule/schedule/README.md",
+      "packages/schedule/schedule/README.zh.md",
+      "packages/schedule/schedule/src/index.ts",
+      "packages/schedule/schedule/src/invariant.ts",
+      "packages/schedule/schedule/src/runtime.ts",
+      "packages/schedule/schedule/src/tools.ts",
+      "packages/schedule/schedule/tests/invariant.spec.ts",
+      "packages/schedule/schedule/tests/plugin.spec.ts",
+      "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "packages/schedule/schedule/tests/runtime.spec.ts",
+      "packages/schedule/schedule/tests/tools.spec.ts"
+    ],
+    "verification_only_path_count": 7,
+    "verification_only_paths": [
+      "packages/schedule/schedule/tests/projection.spec.ts",
+      "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "packages/subagent/subagent/tests/continuation.spec.ts",
+      "apps/web/tests/schedule-after.e2e.ts",
+      "packages/bundle/base/cordis.patch.yml",
+      "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "packages/test-support/agent-loop-testkit/src/index.ts"
+    ],
+    "excluded": [
+      "packages/schedule/schedule/package.json (already dirty for the separate source-export owner; preserve its edit)",
+      "packages/schedule/schedule/src/domain.ts (already dirty for coverage-marker work; no Schedule transition changes)",
+      "packages/schedule/schedule/src/projection.ts (reuse stateVersion 2; no checkpoint schema change)",
+      "schedule/change payloads and SESSION_FORMAT_VERSION",
+      "Session, persistence, or query service definitions",
+      "tool catalog, Cordis API catalog, persistence catalog/schema, and generated TypeScript outputs (no public service/tool schema changes)",
+      "all other owners, external repository actions, and A28 candidate data"
+    ],
+    "change_from_reviewed_candidate": "Move packages/schedule/schedule/tests/jsonl-restart.spec.ts from verification-only to implementation scope so the gate authorizes the required live resume assertions.",
+    "customization_owner": {
+      "owner_id": "schedule-session-projection-readers",
+      "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
+      "status": "active",
+      "summary": "Use exact Session projection state for Schedule runtime, tools, and invariants while preserving fork semantics, pre-append rejection, and the existing V8 coverage annotations in the two source files.",
+      "upstreamPlan": "docs/customization/fork-v2-extraction.md#extraction-matrix",
+      "path_count": 18,
+      "paths": [
+        ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+        ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+        ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+        "docs/subsystems/schedule.i18n.yaml",
+        "docs/subsystems/schedule.md",
+        "docs/subsystems/schedule.zh.md",
+        "packages/schedule/schedule/README.i18n.yaml",
+        "packages/schedule/schedule/README.md",
+        "packages/schedule/schedule/README.zh.md",
+        "packages/schedule/schedule/src/index.ts",
+        "packages/schedule/schedule/src/invariant.ts",
+        "packages/schedule/schedule/src/runtime.ts",
+        "packages/schedule/schedule/src/tools.ts",
+        "packages/schedule/schedule/tests/invariant.spec.ts",
+        "packages/schedule/schedule/tests/plugin.spec.ts",
+        "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+        "packages/schedule/schedule/tests/runtime.spec.ts",
+        "packages/schedule/schedule/tests/tools.spec.ts"
+      ],
+      "path_rule": "Every implementation path is attributed except .agents/customization-policy.json, which is the owner declaration itself.",
+      "reassigned_existing_paths": {
+        "from_owner": "coverage-marker-preservation",
+        "paths": [
+          "packages/schedule/schedule/src/invariant.ts",
+          "packages/schedule/schedule/src/runtime.ts"
+        ],
+        "to_owner": "schedule-session-projection-readers",
+        "reason": "The customization validator assigns one owner per changed file. The implementation changes these exact files, which already contain unrelated V8 coverage marker edits; retaining their existing owner would make the implementation path ambiguous. The new owner accepts the whole path while the three current V8 comments remain byte-identical."
+      }
+    },
+    "exclude": [
+      "packages/schedule/schedule/package.json (already dirty for the separate source-export owner; preserve its edit)",
+      "packages/schedule/schedule/src/domain.ts (already dirty for coverage-marker work; no Schedule transition changes)",
+      "packages/schedule/schedule/src/projection.ts (reuse stateVersion 2; no checkpoint schema change)",
+      "schedule/change payloads and SESSION_FORMAT_VERSION",
+      "Session, persistence, or query service definitions",
+      "tool catalog, Cordis API catalog, persistence catalog/schema, and generated TypeScript outputs (no public service/tool schema changes)",
+      "all other owners, external repository actions, and A28 candidate data"
+    ]
+  },
+  "nonchanges": [
+    "No product or documentation bytes were changed in this amendment.",
+    "A task-bound implementation-ready gate has not been created or passed."
+  ],
+  "next_action": "Obtain independent review of this amendment; only after PASS, create a fresh task-bound gate from the then-current exact scope and fingerprint.",
+  "amendments": [
+    "Resolve exact path-level owner collision by removing only packages/schedule/schedule/src/invariant.ts and packages/schedule/schedule/src/runtime.ts from coverage-marker-preservation, then assign those two files to schedule-session-projection-readers with the other 16 non-policy implementation paths.",
+    "Add explicit acceptance that the three existing dirty V8 coverage-marker comments in those source files remain byte-for-byte unchanged.",
+    "Bind the in-memory candidate policy check across the current custom delta plus all 19 planned implementation paths; the exact 18-path Schedule owner has no overlaps or gaps."
+  ],
+  "review_resolution": {
+    "first_review": "REVIEW-AAA-022-W2-SCHEDULE-INITIAL-20260924-001",
+    "second_review": "REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-20260924-001",
+    "third_review": "REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-2-20260924-001",
+    "new_finding": "The candidate policy validator found two file-level owner collisions with coverage-marker-preservation. Amendment 3 resolves them; this amendment remains unreviewed."
+  },
+  "policy_candidate": {
+    "validation_artifact": ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+    "base_policy_sha256": "ac0d8490a7c87ed8ed3ac034e12d47057346a4894af962195b82610cc83f376f",
+    "current_custom_delta_count": 1732,
+    "planned_implementation_path_count": 19,
+    "combined_path_count": 1748,
+    "owner_collisions": 0,
+    "validator_errors": 0,
+    "result": "PASS_CANDIDATE",
+    "modification_status": "in-memory only; .agents/customization-policy.json has not changed"
+  },
+  "preexisting_dirty_change_preservation": {
+    "files": [
+      {
+        "path": "packages/schedule/schedule/src/invariant.ts",
+        "line_text": "/*! v8 ignore next -- foldScheduleEvents normalizes every rejected stream to ScheduleLogError. */"
+      },
+      {
+        "path": "packages/schedule/schedule/src/runtime.ts",
+        "line_texts": [
+          "/*! v8 ignore next -- only the exact stored run installs this callback. */",
+          "/*! v8 ignore next -- covers a trigger in the promise-settlement microtask gap. */"
+        ]
+      }
+    ],
+    "required_after_change": "Keep these exact coverage marker lines and all other pre-existing bytes in these files. New Schedule-reader hunks may be added without rewriting or moving those comments."
+  }
+}

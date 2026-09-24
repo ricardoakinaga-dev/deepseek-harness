@@ -1,0 +1,212 @@
+{
+  "record_id": "EVID-AAA-022-W2-CORE-AGENT-LOOP-READER-DESIGN-A92-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A18",
+  "kind": "W2_CORE_AGENT_LOOP_READER_DISPOSITION_DESIGN",
+  "status": "PASS_WITH_RETAINED_EXCEPTIONS",
+  "timestamp": "2026-09-23T03:14:00-03:00",
+  "authority": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "candidate": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty custom/main preserved",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false
+  },
+  "traceability": [
+    {
+      "improvement_ids": ["M08", "M22"],
+      "canonical_task": "AAA-022",
+      "remediation": "REM-028",
+      "relationship": "M22 measures the same M08 Session-reader migration by owner; continue AAA-022 and REM-028 without creating another backlog."
+    }
+  ],
+  "scope": [
+    "REM-028-S020: prepublication stored-suffix flush",
+    "REM-028-S021: loop-request reconstruction invariant",
+    "REM-028-S022: system-prompt surface projection",
+    "REM-028-S023: runtime-context snapshot projection",
+    "packages/core/agent-loop/src/index.ts",
+    "packages/core/agent-loop/src/invariant.ts",
+    "packages/core/agent-loop/src/runtime-context.ts",
+    "packages/core/session/src/preparation.ts",
+    "packages/core/session/src/index.ts",
+    "packages/session/session-projection/src/index.ts"
+  ],
+  "inspection": {
+    "inventory": ".agent/evidence/AAA-022/reader-inventory-a75.json#REM-028-S020..S023",
+    "source_decision": ".agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md",
+    "production_calls": [
+      {
+        "site": "REM-028-S020",
+        "location": "packages/core/agent-loop/src/index.ts:752-759",
+        "observation": "The writer flush reads the full not-yet-stored suffix, appends it to its owned handle, then advances storedCount by the accepted batch length. A concurrently appended event stays beyond the cursor for a later flush."
+      },
+      {
+        "site": "REM-028-S021",
+        "location": "packages/core/agent-loop/src/invariant.ts:32-40",
+        "observation": "The synchronous pre-dispatch invariant scans for step/start and folds request/header before comparing the immutable request with Session.deriveMessages(). Session.requestHeader() already maintains the header fold, and AgentLoop's turnBoundary projection already tracks lastStepStartSeq."
+      },
+      {
+        "site": "REM-028-S022",
+        "location": "packages/core/agent-loop/src/runtime-context.ts:47-95",
+        "observation": "SystemPromptProjection repeatedly reads active surface nodes and resolves each node through eventAt() to recover the system-message text needed for append, replacement, clear, and series-reset decisions."
+      },
+      {
+        "site": "REM-028-S023",
+        "location": "packages/core/agent-loop/src/runtime-context.ts:108-141",
+        "observation": "RuntimeContextProjection scans the full log newest-first at construction, then watches committed events to retain or clear the latest system-prompt-owned user snapshot. The restore path selects the latest still-visible owned message."
+      }
+    ],
+    "prepared_session_lifecycle": {
+      "observed": "AgentLoop.create/createAgent/resume prepare an unpublished Session and construct ReactLoopAgent before SessionStore.enter/announce. SessionProjectionRegistry initializes live cells from session/created or explicit hydrate, so stateOf(turnBoundary) can fail during Agent construction before either initializer runs.",
+      "source": [
+        "packages/core/agent-loop/src/index.ts:405-419",
+        "packages/core/agent-loop/src/index.ts:608-650",
+        "packages/core/agent-loop/src/index.ts:687-760",
+        "packages/core/agent-loop/src/index.ts:884-930",
+        "packages/core/agent-loop/src/agent.ts:97-110",
+        "packages/session/session-projection/src/index.ts:206-224",
+        "packages/session/session-projection/src/index.ts:251-312",
+        "packages/session/session-projection/src/index.ts:341-350",
+        "packages/session/session-projection/src/index.ts:574-616"
+      ],
+      "consequence": "A prepared-session baseline and prepublication append path must initialize and advance projections before Agent construction and setup. Publication must not expose the Session before its initial persistence batch is accepted."
+    },
+    "unpublished_reader_constraints": {
+      "observed": "SessionQuery resolves live Sessions through ctx.sessions and cold history through sessionPersistence. The fresh Session is not in the live store before publication; a newly created write handle owns writes and does not provide a safe independent query path for the unpublished in-memory suffix.",
+      "source": [
+        "packages/session-query/session-query/src/corpus.ts:45-70",
+        "packages/session-query/session-query/src/observation.ts:75-132",
+        "packages/session/session-persistence/src/handle.ts:59-99",
+        "packages/session/session-persistence-jsonl/src/storage.ts:482-540"
+      ],
+      "consequence": "Do not replace S020 with a SessionQuery read, publish the Session early, or add another synchronous arbitrary-history alias."
+    },
+    "session_projections": {
+      "observed": "SessionProjectionRegistry already supports exact restore/hydrate cuts, eager pure folds, host-only JSON state, and per-cell sequence watermarks. Cache restoration falls back to a full event read when a new projection key has no usable checkpoint row.",
+      "source": [
+        "packages/session/session-projection/src/index.ts:49-98",
+        "packages/session/session-projection/src/index.ts:517-616",
+        "packages/session/session-projection/src/index.ts:621-676",
+        "packages/session/session-projection/README.md#known-limitations-and-deferred-work",
+        "packages/session/session-projection-cache/src/index.ts:200-250"
+      ]
+    },
+    "focused_verification": [
+      {
+        "command": "pnpm exec vitest run --no-cache --reporter=dot packages/core/agent-loop/tests/resume.spec.ts packages/core/agent-loop/tests/invariant.spec.ts packages/core/agent-loop/tests/runtime-context.spec.ts packages/core/agent-loop/tests/system-prompt-projection.spec.ts packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+        "exit_status": 1,
+        "result": "5 files: 2 failed and 3 passed; 48 tests failed and 29 passed. resume.spec.ts and system-prompt-admission.spec.ts fail before their expected behavior with `session projection \"turnBoundary\" requires an exact baseline ... cell was not initialized before the read`. runtime-context.spec.ts, invariant.spec.ts, and system-prompt-projection.spec.ts passed. Vitest also reported three unhandled rejections from the same missing cell and one existing unawaited-assertion warning."
+      },
+      {
+        "command": "rg -n --glob '*.ts' --glob '!**/tests/**' '\\b(eventAt|snapshotEvents|ownEvents)\\s*\\(' packages/core/agent-loop/src",
+        "exit_status": 0,
+        "result": "Four production calls remain, exactly matching S020-S023."
+      }
+    ],
+    "production_changes": []
+  },
+  "decisions": {
+    "shared_prepublication_source": {
+      "decision": "Add one SessionPreparation-owned event source that carries the exact constructor baseline and every accepted append until publication. The source exposes ordered bounded asynchronous pages through a fixed inclusive watermark, cancellation, and a committed sequence cursor; it is lifecycle-scoped rather than a general Session history API.",
+      "owners": {
+        "definition_and_provider": "dsh-session owns the exact prepared baseline and captures accepted appends before the Session is announced.",
+        "projection_consumer": "dsh-session-projection initializes each registered cell from the prepared baseline and advances it from captured appends; after announcement, its sequence watermark suppresses duplicate session/event delivery.",
+        "persistence_consumer": "dsh-agent-loop drains pages into its owned SessionHandle before publication; it advances storedCount only after append resolves, then hands later committed events to the existing backend live route."
+      },
+      "preserved_behavior": [
+        "Fresh, seeded, forked, and resumed Sessions persist the complete ordered log from seq 0 exactly once; inheritedEventCount remains separate lineage metadata.",
+        "Resume starts the stored cursor after the cold-read prefix and synthetic crash-repair closers, then includes setup-time appends.",
+        "Events committed while a page append is pending remain visible after the fixed watermark and are drained before publication or routed after publication without gaps or duplicates.",
+        "A page advances its source and storage cursors only after the corresponding handle append succeeds; failure, cancellation, or owner disposal prevents publication and releases the handle and preparation.",
+        "An empty fresh Session still follows existing materialization behavior; no seed marker or Session log event is invented."
+      ],
+      "rejected_paths": [
+        "SessionQuery cannot address the not-yet-published in-memory Session and would not capture setup-time events.",
+        "Entering or announcing the Session before persistence accepts its constructor/setup prefix would make an incomplete Session observable.",
+        "A new synchronous Session reader would retain the residency dependency forbidden by the active deprecation decision."
+      ],
+      "gate_conditions": [
+        "The source has one immutable cut per drain, preserves contiguous seq order and inherited-prefix metadata, and bounds each returned page.",
+        "The final prepublication drain and live writer handoff have one observable ordering point with no missed or duplicated event under concurrent append and cancellation.",
+        "Fresh create, createAgent setup, seeded create, resume repair, append rejection, cancellation, owner unload, retry-after-failure, and immediate post-publication append are falsifying cases."
+      ]
+    },
+    "request_invariant": {
+      "decision": "Keep the llm/stream check synchronous and fail-closed. Use session.requestHeader() for the latest canonical header, session.deriveMessages() for the current message projection, and the initialized turnBoundary.lastStepStartSeq for the step/start precondition; remove the event scan and foldRequestHeader call from the invariant.",
+      "preserved_behavior": [
+        "Non-loop requests pass through unchanged.",
+        "Loop requests still require frozen options, a live Session id, frozen messages, at least one step/start, an existing request/header, exact message equality, and matching request-header fields before the provider dispatches.",
+        "Missing projection state is an explicit load-order or lifecycle failure, never treated as an empty Session."
+      ],
+      "falsifying_cases": [
+        "No step/start and no request/header fail synchronously.",
+        "Open-step context included in deriveMessages passes; unlogged prefixes, suffixes, or message divergence fail.",
+        "Header model, system, temperature, maxTokens, stop, or tools divergence fails before the provider is entered.",
+        "A fresh unpublished Session and a resumed Session have the exact projection baseline before the invariant runs."
+      ]
+    },
+    "system_prompt_projection": {
+      "decision": "Replace repeated surface-node eventAt lookups with a host-only projection of active system/message nodes in surface order. Apply append and replacement operations using the accepted surface range; retain the current empty-content and non-single-text distinctions used by SystemPromptProjection.",
+      "preserved_behavior": [
+        "The system prompt remains surface node 0 and in-history replacements still normalize surviving versions.",
+        "Plain routes, broken request series, empty rendered prompts, unchanged prompts, and capable continuing series keep their current append/replacement decisions.",
+        "No model-visible prompt is changed by projection restoration alone."
+      ],
+      "falsifying_cases": [
+        "Seeded/resumed system head plus active tails restore in the exact surface order.",
+        "A replacement range that shadows system nodes removes exactly those nodes; appends preserve later active nodes.",
+        "Empty and multi-block messages retain their distinct current text classifications.",
+        "Projection state and current request derivation agree before and after compact/retry paths."
+      ]
+    },
+    "runtime_context_projection": {
+      "decision": "Replace the reverse history scan with a host-only projection of the latest active user/message owned by `@deepseek-ai/dsh-system-prompt`, updated from committed surface events and seeded from the exact prepared baseline.",
+      "restore_semantics": "The existing cold constructor chooses the latest still-visible owned message. Make live updates converge to that same active-surface result when a replacement shadows the newest snapshot but an earlier owned snapshot remains visible.",
+      "preserved_behavior": [
+        "Other sessions, non-owned messages, and log-only events do not alter the retained runtime-context value.",
+        "No snapshot ever remains distinct from an explicit cleared marker, and non-single-text content remains distinct from empty text.",
+        "The projection only suppresses or proposes the existing system-prompt-owned user/message; that model-visible event remains logged through the existing append path."
+      ],
+      "falsifying_cases": [
+        "The latest owned snapshot remains unchanged after unrelated events and session traffic.",
+        "Replacement of the latest owned node selects the newest older owned node still on the active surface, matching restore behavior.",
+        "Replacement of every owned node produces the cleared state; a new owned snapshot replaces it.",
+        "Live, seeded, and resumed projection states agree for the same durable events."
+      ]
+    },
+    "compatibility": {
+      "decision": "No SessionEventMap member, SESSION_FORMAT_VERSION, released Session record, persistence schema, wire field, or provider request field changes. Host-only projection rows remain derived cache state; old rows missing new keys must refold from seq 0 and produce the same state.",
+      "required_checks": [
+        "Focused lifecycle, persistence, request-invariant, runtime-context, and system-prompt suites.",
+        "SessionProjectionRegistry restore/hydrate and missing-checkpoint-key fallback.",
+        "Scoped typecheck, lint, package dependency, type-equivalence, API/catalog/module-graph, bilingual README/doc checks, ownership, direct-reader count, and whitespace gates."
+      ]
+    }
+  },
+  "review_requirements": {
+    "criteria": [
+      "W2-01: S020 captures unpublished seed and setup appends through a bounded fixed-cut source and hands off to live persistence without loss or duplication.",
+      "W2-02: S021 retains a synchronous pre-dispatch veto using current maintained state, with missing baseline failing loudly.",
+      "W2-03: S022 and S023 state is restored and incrementally maintained with live/resume parity and unchanged model-visible prompt behavior.",
+      "W2-04: New projection cache keys are recomputable from old checkpoints without Session-format or released-data changes.",
+      "W2-05: The implementation gate must include a fix for the observed unpublished-session `turnBoundary` baseline failure before adding dependent projection reads."
+    ],
+    "implementation_gate": "Do not create the A19 implementation gate until a fresh independent reviewer approves W2-01 through W2-05."
+  },
+  "next_action": {
+    "id": "AAA-022:A19",
+    "kind": "DESIGN_REVIEW",
+    "summary": "Independently review the W2 prepared-session source and agent-loop projection design",
+    "scope": "W2-01 through W2-05 in this record",
+    "completion_signal": "A fresh read-only critic approves the source ownership, publication ordering, failure cases, projection parity, compatibility, and the explicit test baseline blocker; then prepare the scoped implementation gate."
+  },
+  "limitations": [
+    "The focused W2 baseline run fails 48 tests across resume and system-prompt admission because Agent construction reads an uninitialized turnBoundary projection for an unpublished prepared Session; the separate invariant, runtime-context, and projection tests pass.",
+    "The new projection cache-key fallback is specified but not yet implemented or exercised with an old checkpoint fixture.",
+    "The canonical repository debt metric remains unavailable on this incomplete dirty worktree; no repository-wide metric is claimed.",
+    "No production source, released Session data, the sealed candidate, or external publication state changed."
+  ],
+  "freshness": "CURRENT"
+}

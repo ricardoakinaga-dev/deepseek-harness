@@ -1,0 +1,36 @@
+{
+  "record_id": "EVID-AAA-023-IMPLEMENTATION-A32-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A07",
+  "timestamp": "2026-09-22T04:07:58-03:00",
+  "result": "PASS",
+  "scope": "Test-owned source-policy compatibility for the Web plugin-manager expected fixture",
+  "changes": [
+    "The generated fixture overlay now patches the existing plugin-manager row by id, allowing registry and path sources while retaining the @deepseek-ai publisher allowlist; it no longer inserts a nameless replacement row.",
+    "The temporary bundle declares publisher @deepseek-ai so the manager's publisher verification accepts it.",
+    "The initial fixture installation passes enabled: true because bundle installation is inert unless activation is explicitly requested; the shipped Web row remains registry-only.",
+    "The temporary diagnostic fixture used to classify the malformed overlay was removed after the cause was confirmed."
+  ],
+  "commands": [
+    {
+      "command": "pnpm exec vitest run --config vitest.expected.config.ts apps/cli/tests/profiles/web/tests/creator-plugin-manager.expected.e2e.ts",
+      "result": "PASS",
+      "observed": "1 test passed in 3.79 seconds after the corrected overlay; the clean rerun after removing diagnostics passed 1 test in 4.41 seconds."
+    },
+    {
+      "command": "pnpm exec vitest run packages/boot/plugin-manager/tests/manager.spec.ts -t \"denies unconfigured sources|real pnpm dependency script|lists bundle versions\"",
+      "result": "PASS",
+      "observed": "3 tests passed and 39 were skipped."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "policy_observation": "The shipped Web policy in packages/bundle/web-app/cordis.patch.yml remains allowedSources: [registry] with allowedPublishers: ['@deepseek-ai']; only the test-generated overlay permits path for this local fixture.",
+  "limitations": [
+    "The aggregate 77-gate matrix has not been rerun after A07.",
+    "The tracked/untracked ui-conversation source move still blocks canonical audit metrics and vendor-rescope gates until one candidate tree represents it.",
+    "The worktree is dirty and no immutable candidate, publication, push, merge, release, or final verdict is claimed."
+  ]
+}

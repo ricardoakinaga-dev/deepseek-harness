@@ -22,7 +22,6 @@
       "types": "./lib/types/notice.d.ts",
       "default": "./lib/types/notice.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [

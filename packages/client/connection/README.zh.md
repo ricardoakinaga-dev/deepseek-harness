@@ -67,10 +67,12 @@ API Gateway Client 把内部 `$events` 逻辑流注册为唯一 generation sourc
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **缓冲型 `/api` 路由会把每个请求体保留在内存里**：`maxRequestBodyBytes`（默认 300 MiB，按默认 200 MiB 图片总量上限经 base64 膨胀加信封余量得出）限制普通图片与 RPC 信封。显式启用的流式路由接收带背压的分块并绕过总量上限；路由实现负责持久化、取消与存储配额。
+- **缓冲请求准入按每个 Connection 实例设有总量上限**：`maxRequestBodyBytes`（默认 300 MiB，按默认 200 MiB 图片总量上限经 base64 膨胀加信封余量得出）同时是单个请求体上限，也是 `/api` bridge 与专用 RPC 通道共享的聚合预留预算。读取前会预留声明的 `Content-Length`；缺失或无效的长度会预留整个上限。无法立即预留的请求收到 HTTP 429 和 `buffered request capacity exhausted`；超过单个请求上限的请求收到 HTTP 413。只有请求体读取、handler 工作、响应传输与断开取消都静默后才释放预留。显式启用的流式路由接收带背压的分块并绕过此缓冲体预算；路由实现负责持久化、取消与存储配额。
 - **浏览器 cookie 不带 `Secure`**：当前随产品提供的传输方式是 loopback HTTP；若部署经明文网络暴露同一 authority，bearer cookie 可能在传输中泄露。
 - **没有 logout 操作**：清除浏览器 cookie 会结束单个浏览器会话；删除 owner 凭据记录并重启 `dsh` 会撤销全部会话。
 
+
+**运行时不变式：** 不发布伴生入口。浏览器会话验证会在请求授权工作时异步读取凭据记录，而记录的 commit-event 生命周期由 credentials 伴生入口负责；流与重连的时序及 rpcId 往返约束由行为规范直接验证，路由注册与 dispose（资源释放）的对称性由 webserver 伴生入口审计。
 
 <a id="dev-note"></a>
 ### 开发备注
@@ -81,5 +83,3 @@ API Gateway Client 把内部 `$events` 逻辑流注册为唯一 generation sourc
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。浏览器会话验证会在请求授权工作时异步读取凭据记录，而记录的 commit-event 生命周期由 credentials 伴生入口负责；流与重连的时序及 rpcId 往返约束由行为规范直接验证，路由注册与 dispose（资源释放）的对称性由 webserver 伴生入口审计。

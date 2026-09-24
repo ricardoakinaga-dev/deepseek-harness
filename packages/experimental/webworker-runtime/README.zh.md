@@ -64,6 +64,8 @@ kind: "package-library"
 - **transport、worker-host、页面半的覆盖需要浏览器级 harness**——这些模块未达 per-file 覆盖门；单测覆盖 storage、ALS、transform 与 stub 契约。
 
 
+**运行时不变式：** 不发布伴生入口。这是 Cordis 启动前的平台 glue；其启动的产品树运行各包自己的不变式，image 与 tunnel 约定在 boot 时失败。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -73,5 +75,3 @@ kind: "package-library"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。这是 Cordis 启动前的平台 glue；其启动的产品树运行各包自己的不变式，image 与 tunnel 约定在 boot 时失败。

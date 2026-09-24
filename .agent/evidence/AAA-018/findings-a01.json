@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-018",
+  "action_id": "AAA-018:A01",
+  "candidate_ref": "current custom/main worktree",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T22:27:00-03:00",
+  "source_documents": [
+    {
+      "id": "metrics-program",
+      "location": "docs/customization/aaa-quality-program.md:42,60",
+      "role": "The quality program requires comparable audit metrics and declining owner-scoped static debt but does not define the command or corpus."
+    },
+    {
+      "id": "english-community",
+      "location": "README.md:43-47",
+      "role": "The English community section lists GitHub Discussions, the plugin topic, and Discord."
+    },
+    {
+      "id": "chinese-community",
+      "location": "README.zh.md:47-74",
+      "role": "The Chinese community section lists GitHub Discussions, the plugin topic, and WeCom/WeChat QR material instead of Discord."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-018-METRIC-CORPUS-UNDEFINED",
+      "source_refs": ["metrics-program"],
+      "source_location": "docs/customization/aaa-quality-program.md:42,60",
+      "observed_status": "GAP_REPRODUCED",
+      "classification": "NO_CANONICAL_METRIC_COMMAND_OR_CORPUS",
+      "owner": "AAA-018",
+      "severity": "HIGH",
+      "summary": "No dedicated audit-metric command or machine-readable corpus/exclusion contract was found; exploratory grep counts are sensitive to file families and token context.",
+      "limitations": "The exploratory counts are diagnostic only and must not become acceptance values until the canonical schema and corpus are implemented."
+    },
+    {
+      "id": "F-AAA-018-LOCALE-CHANNEL-PARITY-UNDECIDED",
+      "source_refs": ["english-community", "chinese-community"],
+      "source_location": "README.md:43-47 and README.zh.md:47-74",
+      "observed_status": "DECISION_PENDING",
+      "classification": "LOCALE_COMMUNITY_CHANNELS_DIFFER",
+      "owner": "AAA-018",
+      "severity": "MEDIUM",
+      "summary": "The English page advertises Discord while the Chinese page advertises WeCom/WeChat QR material; shared Discussions and plugin-topic links are aligned.",
+      "limitations": "The difference may be an intentional locale-owned channel addition or semantic drift; an agent must not choose between those policies."
+    }
+  ],
+  "design": {
+    "solution_type": "repository-automation",
+    "metric_schema": {
+      "required_fields": ["schema_version", "commit", "captured_at", "environment", "corpus", "metrics"],
+      "metric_fields": ["name", "count", "unit", "globs", "exclusions"],
+      "initial_names": ["deprecated_reader", "lint_suppression", "todo_marker", "explicit_any", "selected_skip"],
+      "recording_rule": "Emit JSON to a retained artifact and include exact commit, environment, glob, exclusion, and counting semantics."
+    },
+    "corpus_policy": {
+      "include": ["tracked source files under packages/, apps/, scripts/, python/, native/, benchmarks/"],
+      "exclude": ["node_modules", "lib", "generated outputs", "vendor unless explicitly owned", "snapshots unless the metric names snapshots"],
+      "requirement": "The command must print the resolved file list or a digest of it so later counts are comparable."
+    },
+    "channel_decision_options": [
+      "Treat Discord and WeCom/WeChat as intentional locale-owned additions and document the exception.",
+      "Require both locales to advertise the same community channels and remove or add the differing channel.",
+      "Use a shared canonical channel list with explicit locale-specific annotations."
+    ],
+    "implementation_scope": [
+      "Add the metric command and focused positive/invalid corpus fixtures.",
+      "Record the maintainer channel decision before changing README content.",
+      "Add a documentation parity check that distinguishes approved locale additions from accidental omissions."
+    ]
+  },
+  "validation": {
+    "commands": [
+      "printf head/node/pnpm/platform identity",
+      "scan for existing metric commands and metric contracts",
+      "run exploratory source counts for deprecated, suppression, TODO, any, and skip patterns",
+      "extract and compare the English and Chinese community sections",
+      "git diff --check"
+    ],
+    "raw_output_files": [
+      ".artifacts/aaa-018/aaa-018-a01-2026-09-20/environment.log",
+      ".artifacts/aaa-018/aaa-018-a01-2026-09-20/metric-owner-scan.log",
+      ".artifacts/aaa-018/aaa-018-a01-2026-09-20/exploratory-counts.log",
+      ".artifacts/aaa-018/aaa-018-a01-2026-09-20/community-parity.log",
+      ".artifacts/aaa-018/aaa-018-a01-2026-09-20/diff-check.log"
+    ],
+    "raw_output_sha256": {
+      "environment.log": "4ac690831421a774e48e65e7ff1fec53f5d08d37ab38ee9e2e8558064a06e98f",
+      "metric-owner-scan.log": "78f54f37b1e840b6e9a53a399d202c5de3552475d754b705a42ad4c7f6f62fe8",
+      "exploratory-counts.log": "c56fe7c6a8a53e616f8572b8497b41588181b98b9ce416c435709efca7f6e9bc",
+      "community-parity.log": "af03b16e53b87ea0b6459cc3971bf7656028e3af1da7d7e476edcbd3142fbfa2",
+      "diff-check.log": "724214dd0dc55f09aca532ad98b48749307cab8c647d0472a213b7cc8a0af4f1"
+    },
+    "validation_status": "PASS_DESIGN_ONLY",
+    "validated_at": "2026-09-20T22:27:00-03:00"
+  },
+  "decision": {
+    "result": "AAA-018:A01 PASS — metric and documentation-parity design specified; locale-channel policy remains maintainer-owned",
+    "product_change": false,
+    "diagnosis": "The repository has comparable-metric intent but no canonical metric owner or corpus, and the English/Chinese community pages differ in one channel family. The implementation must wait for the explicit channel policy decision.",
+    "next_action": "Obtain the locale-channel decision, then implement the metric schema and documentation-parity command under the approved policy."
+  }
+}

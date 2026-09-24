@@ -81,6 +81,8 @@ These limits define the current preset surfaces. They are current package constr
 - **A revealed path is display text, not a link** — where the host has no desktop opener the row shows the directory to copy by hand; the browser cannot open a host filesystem location itself.
 - **Composition edits are invisible to the page** — the files are edited outside the browser and nothing on the wire announces a file change, so the roster re-reads on its own actions, `settings/document-updated`, and `connection/reset`, not on every disk edit.
 
+**Runtime invariant:** No companion is published. This is a browser-side surface plugin whose node half owns no event stream or mutable runtime data; the roster and the settings write are host contracts covered there.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -90,5 +92,3 @@ These limits define the current preset surfaces. They are current package constr
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This is a browser-side surface plugin whose node half owns no event stream or mutable runtime data; the roster and the settings write are host contracts covered there.

@@ -1,0 +1,42 @@
+{
+  "record_id": "EVID-AAA-022-W2-OWNER-ORDER-DISPOSITION-A23-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A23",
+  "kind": "W2_OWNER_ORDER_RECONCILIATION",
+  "status": "PASS",
+  "timestamp": "2026-09-23T15:27:00-03:00",
+  "candidate": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty custom/main preserved",
+    "production_changes": []
+  },
+  "inputs": [
+    ".agent/evidence/AAA-022/reader-migration-plan-a74.json#proposed_waves.W2",
+    ".agent/evidence/AAA-022/reader-inventory-a75.json#REM-028-S029",
+    ".agent/evidence/AAA-022/reader-inventory-a75.json#REM-028-S041..S046",
+    "packages/core/tools/src/invariant.ts",
+    "packages/core/tools/tests/invariant.spec.ts"
+  ],
+  "observation": {
+    "site": "REM-028-S029",
+    "file": "packages/core/tools/src/invariant.ts",
+    "classification": "synchronous_invariant",
+    "behavior": "The invariant seeds open-turn and PTC dispatch-root state from the Session event log, validates PTC parent/root relationships, and rejects PTC dispatch outside an open turn before append. A75 assigns the site to W2, while A74's W2 owner list omits packages/core/tools."
+  },
+  "decision": {
+    "disposition": "KEEP_IN_W2_AS_EXPLICIT_OWNER_SLICE",
+    "owner_order": "Append packages/core/tools after packages/feedback as the final W2 owner. Keep the relative order of every owner already listed in A74.",
+    "retained_behavior": "Keep REM-028-S029 until an equivalent synchronous, package-owned projection or validation seam preserves startup/restore seeding, dispatch ancestry checks, open-turn checks, and pre-commit failure behavior.",
+    "reason": "A75 is the reconciled 81-call/56-file corpus authorized by A03 and explicitly assigns S029 to W2. Appending the omitted owner after the A74 sequence preserves the approved relative order without deleting or reclassifying an inventory site.",
+    "next_owner": "packages/interaction, covering REM-028-S041 through REM-028-S046, remains next under the A74 owner order."
+  },
+  "authority": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "scope_effect": "Plan reconciliation only. A74 and A75 remain immutable, no implementation path is added to A22, and no source, owner allowlist, gate, or public API is changed.",
+  "successor_action": {
+    "id": "AAA-022:A24",
+    "kind": "DESIGN",
+    "summary": "Design the next W2 interaction-owned current-event and synchronous-invariant migrations",
+    "target": "REM-028-S041 through REM-028-S046 in packages/interaction/commands, permission-presets, and user-approval",
+    "completion_signal": "Each site has an owner projection or delivered-event decision, exact lifecycle and pre-commit behavior, restore/fork/cancellation/teardown expectations, owned falsifiers, and an exact implementation path set before any implementation gate."
+  }
+}

@@ -137,7 +137,7 @@ function containsClosingFence(text: string, marker: '`' | '~', markerLength: num
     if (end === text.length) return false
     start = text[end] === '\r' && text[end + 1] === '\n' ? end + 2 : end + 1
   }
-  /* v8 ignore next -- each loop iteration returns at EOF or advances past a line terminator. */
+  /*! v8 ignore next -- each loop iteration returns at EOF or advances past a line terminator. */
   return false
 }
 
@@ -206,14 +206,14 @@ export class IncrementalMarkdownParser {
     const startOffset = node.position?.start.offset
     const end = node.position?.end
     if (startOffset === undefined || end?.offset === undefined) return null
-    /* v8 ignore next -- the caller's parse slice ends at text.length, so its final node ends there. */
+    /*! v8 ignore next -- the caller's parse slice ends at text.length, so its final node ends there. */
     if (base + end.offset !== text.length) return null
     const source = text.slice(base)
     const previousLf = source.lastIndexOf('\n', startOffset - 1)
     const previousCr = source.lastIndexOf('\r', startOffset - 1)
     const lineStart = Math.max(previousLf, previousCr) + 1
     const terminatorEnd = lineTerminatorEnd(source, startOffset)
-    /* v8 ignore next -- a parser-confirmed fenced code node requires its opening line terminator. */
+    /*! v8 ignore next -- a parser-confirmed fenced code node requires its opening line terminator. */
     if (terminatorEnd === undefined) return null
     if (terminatorEnd === source.length && source.endsWith('\r')) return null
     const openingLine = source.slice(lineStart, terminatorEnd).replace(/[\r\n]+$/, '')
@@ -221,7 +221,7 @@ export class IncrementalMarkdownParser {
     if (opening === null) return null
     const indent = opening[1] as string
     const run = opening[2] as string
-    /* v8 ignore next -- mdast positions a fenced code node at the matched delimiter after indentation. */
+    /*! v8 ignore next -- mdast positions a fenced code node at the matched delimiter after indentation. */
     if (lineStart + indent.length !== startOffset) return null
     const marker = run[0] as '`' | '~'
     const contentStart = base + terminatorEnd

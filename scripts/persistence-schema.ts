@@ -145,7 +145,12 @@ function hostSourceFiles(root: string, configPath: string, seen = new Set<string
   const errors = parsed.errors.filter(error => error.code !== 18003)
   if (errors.length > 0) throw new PersistenceSchemaError(errors.map(diagnosticText).join('\n'))
   return [
-    ...parsed.fileNames.filter(file => /^packages\/[^/]+\/[^/]+\/src\//.test(slash(relative(root, file)))),
+    ...parsed.fileNames.filter((file) => {
+      const relativePath = slash(relative(root, file))
+      // Oxlint's repository-level contract tests create short-lived source probes; they are not persisted Session declarations.
+      return /^packages\/[^/]+\/[^/]+\/src\//.test(relativePath)
+        && !/(?:^|\/)oxlint-contract-[^/]+\.(?:ts|tsx)$/u.test(relativePath)
+    }),
     ...(parsed.projectReferences ?? []).flatMap(reference =>
       hostSourceFiles(root, extname(reference.path) === '.json' ? reference.path : resolve(reference.path, 'tsconfig.json'), seen)),
   ]

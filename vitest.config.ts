@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { availableParallelism } from 'node:os'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { resolvePwshPath } from './packages/shell/pwsh-local/src/resolve.ts'
 import { defineConfig } from 'vitest/config'
@@ -18,6 +19,15 @@ const uncoveredLocationsReporter = fileURLToPath(new URL('./scripts/coverage-unc
 // map applies to every test file. paths must win over package exports so built
 // lib/ never loads a second module-singleton copy.
 const pathsPlugin = (): ReturnType<typeof tsconfigPaths> => tsconfigPaths({ projects: ['./tsconfig.base.json'] })
+
+/** Preserve V8 ignore hints through esbuild, which otherwise removes ordinary comments. */
+const coverageIgnoreCommentPlugin = {
+  name: 'dsh-coverage-ignore-comments',
+  enforce: 'post' as const,
+  transform(code: string): string | undefined {
+    return code.includes('/*! v8 ignore') ? code.replaceAll('/*! v8 ignore', '/*  v8 ignore') : undefined
+  },
+}
 
 const windowsUnsupportedPackages = process.platform === 'win32'
   ? [
@@ -127,6 +137,10 @@ const testIncludes = [
   'website/tests/**/*.spec.ts',
 ]
 
+// Keep subprocess-heavy fixtures responsive on hosts that expose many CPUs;
+// CI or a focused invocation can still override this with --maxWorkers.
+const testMaxWorkers = Math.min(8, availableParallelism())
+
 // The instrumented coverage gate sets this env; the exempt heavy suites then
 // run beside it uninstrumented (membership contract in scripts/coverage-exempt.ts).
 // A set-but-not-'1' value is a misconfiguration, not a silent no-op.
@@ -156,11 +170,22 @@ const processBoundTests = [
   'packages/llm/llm-pi-ai/tests/adapter.spec.ts',
   'packages/boot/app-boot/tests/app-boot.spec.ts',
   'packages/workflow/workflow-ptc/tests/workflow-ptc.spec.ts',
+  // These files mutate process TMP variables while exercising real git
+  // snapshots; keep them out of the aggregate thread-safe pool.
+  'packages/deliverables/workspace-changes/tests/git.spec.ts',
+  'packages/deliverables/workspace-changes/tests/plugin.spec.ts',
+  // This file drives real PTYs and /dev/tty readiness; keep its timing-sensitive
+  // terminal I/O out of the aggregate thread-safe pool as well.
+  'packages/terminal/terminal-bash/tests/local.spec.ts',
 ]
 
 export default defineConfig({
-  plugins: [pathsPlugin(), standardDecoratorPlugin()],
+  plugins: [pathsPlugin(), standardDecoratorPlugin(), coverageIgnoreCommentPlugin],
+  // Test files live beside, not inside, package client compiler includes. Keep
+  // their TSX transform aligned with tsconfig.base.client.json explicitly.
+  esbuild: { jsx: 'automatic' },
   test: {
+    maxWorkers: testMaxWorkers,
     setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-invariants.ts'],
     // .tsx: client component specs (jsdom via per-file @vitest-environment pragma).
     include: testIncludes,
@@ -169,9 +194,12 @@ export default defineConfig({
     // Node stability; process-bound suites stay separate for inventory control.
     projects: [
       {
-        plugins: [pathsPlugin(), standardDecoratorPlugin()],
+        plugins: [pathsPlugin(), standardDecoratorPlugin(), coverageIgnoreCommentPlugin],
+        esbuild: { jsx: 'automatic' },
         test: {
           name: 'thread-safe',
+          sequence: { groupOrder: 1 },
+          maxWorkers: testMaxWorkers,
           execArgv: vitestExecArgv,
           // Node 24 has aborted in its CJS lexer (v8::ToLocalChecked Empty
           // MaybeLocal in cjs_lexer::Parse) from worker threads on macOS,
@@ -187,9 +215,14 @@ export default defineConfig({
         },
       },
       {
-        plugins: [pathsPlugin(), standardDecoratorPlugin()],
+        plugins: [pathsPlugin(), standardDecoratorPlugin(), coverageIgnoreCommentPlugin],
+        esbuild: { jsx: 'automatic' },
         test: {
           name: 'process-bound',
+          // Run after the thread-safe project: real PTYs and other process-bound
+          // host resources must not overlap with the aggregate worker pool.
+          sequence: { groupOrder: 2 },
+          maxWorkers: testMaxWorkers,
           execArgv: vitestExecArgv,
           pool: 'forks',
           setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-invariants.ts'],
@@ -277,6 +310,12 @@ export default defineConfig({
         // Keep already-complete Inspector modules under the per-file gate and
         // enumerate the remaining direct-test debt instead of exempting src/**.
         // TODO(inspector): close these branch gaps and remove the entries.
+        'packages/experimental/inspector/src/host/index.ts',
+        'packages/experimental/inspector/src/shared/index.ts',
+        'packages/experimental/inspector/src/shared/bridge/codec.ts',
+        'packages/experimental/inspector/src/shared/bridge/validation.ts',
+        'packages/experimental/inspector/src/shared/bridge/messages/query/index.ts',
+        'packages/experimental/inspector/src/shared/cdp/index.ts',
         'packages/experimental/inspector/src/host/plugin.ts',
         'packages/experimental/inspector/src/shared/bridge/{control-codec,rpc}.ts',
         'packages/experimental/inspector/src/shared/bridge/messages/observation.ts',

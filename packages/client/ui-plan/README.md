@@ -89,6 +89,8 @@ These limits define the current plan chip. They are current package constraints,
 - **The chip belongs to the default composer** — a pending whole-composer interaction such as plan review temporarily replaces the InputBar and its chip.
 - **No inactive plan control** — entry uses the shared Command source; a session with the capability but inactive mode shows no plan affordance in the tool row.
 
+**Runtime invariant:** No companion is published. Plan state and boundary ownership are audited by dsh-plan-mode, while the control is a slot effect whose declaration, registration, and teardown are exercised by this package.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -98,5 +100,3 @@ These limits define the current plan chip. They are current package constraints,
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Plan state and boundary ownership are audited by dsh-plan-mode, while the control is a slot effect whose declaration, registration, and teardown are exercised by this package.

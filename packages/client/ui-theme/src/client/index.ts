@@ -323,7 +323,7 @@ export class ThemeRuntime {
     // Both built-ins always exist; a registered preference id resolves or has
     // been reset by its disposer, so the lookup cannot miss.
     const active = this.themes.find(t => t.id === resolvedId)
-    /* v8 ignore next 2 -- needs a registry without light/dark, which register()/dispose() cannot produce */
+    /*! v8 ignore next 2 -- needs a registry without light/dark, which register()/dispose() cannot produce */
     if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
     return Object.freeze({
       preference: this.preference,
@@ -366,7 +366,7 @@ export class ThemeRuntime {
  * schema default; the durable settings adoption still lands afterwards.
  */
 function bootstrapFontSize(): number {
-  /* v8 ignore next -- needs a documentless run (node e2e booting the client tree), not constructible under jsdom */
+  /*! v8 ignore next -- needs a documentless run (node e2e booting the client tree), not constructible under jsdom */
   if (typeof document === 'undefined') return DEFAULT_FONT_SIZE
   const raw = document.body.style.getPropertyValue('--dsh-content-font-size')
   const parsed = Number.parseInt(raw, 10)

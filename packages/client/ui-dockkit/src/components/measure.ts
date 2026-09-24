@@ -33,7 +33,7 @@ export function paneElements(root: HTMLElement): readonly (readonly [PaneId, HTM
     // The attribute is the kit's own PaneId written on render; the DOM hands it
     // back as a bare string, so the brand is restored here and nowhere else.
     const paneId = pane.dataset.dockkitPane as PaneId | undefined
-    /* v8 ignore next -- the selector admits only elements carrying the attribute. */
+    /*! v8 ignore next -- the selector admits only elements carrying the attribute. */
     if (paneId === undefined) continue
     panes.push([paneId, pane])
   }
@@ -74,7 +74,7 @@ function splitControlFootprint(pane: HTMLElement): number {
   const width = control.getBoundingClientRect().width
   if (!(width > 0)) return 0
   const strip = pane.querySelector('[data-dockkit-strip]')
-  /* v8 ignore next -- the control only renders inside a strip. */
+  /*! v8 ignore next -- the control only renders inside a strip. */
   return width + (strip === null ? 0 : px(getComputedStyle(strip).columnGap))
 }
 

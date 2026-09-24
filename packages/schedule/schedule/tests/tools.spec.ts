@@ -8,6 +8,9 @@ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import { ScheduleLogError } from '../src/domain.ts'
+import { scheduleProjectionDefinition } from '../src/projection.ts'
 import { registerScheduleTools } from '../src/tools.ts'
 import { runScheduleTransaction } from '../src/transaction.ts'
 import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
@@ -47,6 +50,8 @@ async function harness(withPersistence = true): Promise<ToolHarness> {
   const ctx = new Context()
   contexts.push(ctx)
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  ctx.sessionProjections.register(scheduleProjectionDefinition)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(SystemPrompt, {})
   await ctx.plugin(ToolRuntime)
@@ -351,22 +356,18 @@ describe('Schedule tool protocol', () => {
 describe('Schedule persistence failure boundaries', () => {
   it('does not fold an unconfirmed corrupt live suffix before preflight succeeds', async () => {
     const test = await harness()
-    Object.defineProperty(test.agent.session, 'snapshotEvents', {
-      configurable: true,
-      value: () => [{
-        type: 'schedule/change',
-        seq: 0,
-        time: Date.now(),
-        data: { version: 2, operation: 'create', schedule: {} },
-      }],
+    const stateOf = vi.spyOn(test.ctx.sessionProjections, 'stateOf').mockImplementation(() => {
+      throw new ScheduleLogError('invalid stored schedule event')
     })
     test.flushes.outcomes.push('reject', 'resolve')
     expect(value(await execute(test, 'schedule_list', {}))).toMatchObject({
       code: 'persistence_uncertain', operation: 'list',
     })
+    expect(stateOf).not.toHaveBeenCalled()
     expect(value(await execute(test, 'schedule_list', {}))).toEqual({
       code: 'corrupt_schedule_log', message: 'The session schedule log is corrupt.',
     })
+    expect(stateOf).toHaveBeenCalledTimes(1)
   })
 
   it('reports a create barrier rejection with the known appended id and recovers on list preflight', async () => {
@@ -507,27 +508,24 @@ describe('Schedule persistence failure boundaries', () => {
     expect(deleteTest.agent.session.snapshotEvents().at(-1)?.data).toMatchObject({ operation: 'create' })
   })
 
-  it('maps corrupt and unreadable folds for create, list, and delete', async () => {
+  it('maps corrupt projection state and exposes an unavailable required key', async () => {
     const corrupt = await harness()
-    Object.defineProperty(corrupt.agent.session, 'snapshotEvents', {
-      configurable: true,
-      value: () => [{
-        type: 'schedule/change', seq: 0, time: Date.now(),
-        data: { version: 9, operation: 'delete', id: 'schedule-1' },
-      }],
+    vi.spyOn(corrupt.ctx.sessionProjections, 'stateOf').mockImplementation(() => {
+      throw new ScheduleLogError('invalid stored schedule event')
     })
     expect(value(await execute(corrupt, 'schedule_create', { prompt: 'x', after_seconds: 1 })))
       .toMatchObject({ code: 'corrupt_schedule_log' })
     expect(value(await execute(corrupt, 'schedule_delete', { id: 'schedule-1' })))
       .toMatchObject({ code: 'corrupt_schedule_log' })
 
-    const unreadable = await harness()
-    Object.defineProperty(unreadable.agent.session, 'snapshotEvents', {
-      configurable: true,
-      value: () => { throw 'unreadable log' },
-    })
-    expect(value(await execute(unreadable, 'schedule_list', {})))
-      .toEqual({ code: 'internal_error', message: 'The schedule operation failed.' })
+    const unavailable = await harness()
+    vi.spyOn(unavailable.ctx.sessionProjections, 'stateOf').mockImplementation(() => undefined)
+    const result = await execute(unavailable, 'schedule_list', {})
+    expect(result.isError).toBe(true)
+    const block = result.content[0]
+    expect(block?.type).toBe('text')
+    if (block?.type !== 'text') throw new Error('expected a text error result')
+    expect(block.text).toContain('required schedule session projection is unavailable')
   })
 
   it('reports a delete barrier rejection and lets the next preflight clarify the terminal record', async () => {

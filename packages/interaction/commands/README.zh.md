@@ -80,13 +80,18 @@ ctx.commands.register({
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | `CommandRuntime` 服务：注册、作用域、分派、生命周期事件 |
+| [`src/audit-state.ts`](src/audit-state.ts) | 按确切会话对象共享的连续命令审计折叠状态与提供方租约 |
 | [`src/types.ts`](src/types.ts) | 命令定义、描述符、执行与结果类型 |
 | [`src/brand.ts`](src/brand.ts) | 稳定命令定义标识和每次执行的生命周期 id |
-| [`src/invariant.ts`](src/invariant.ts) | 不变式伴生插件：按会话日志配对 `command/run` 与 `command/done` |
+| [`src/invariant.ts`](src/invariant.ts) | 不变式伴生插件：在 Session 追加前检查命令生命周期候选事件 |
 
 ### 生命周期事件
 
 `execute()` 会生成一个 `commandId`，在处理器运行前追加 `command/run`，并在结算时追加携带结果类型与原样文本的 `command/done`；确切载荷字段见 [`src/index.ts`](src/index.ts)。成功结果可以通过 `sourceEventSeq` 指向更早的一条非命令权威领域事件；处理器抛出或被中止时以 `kind: 'error'` 结算。两个事件都作为仅用于日志的事件直接独立追加：没有轮次包裹它们，持久化机制会在常规检查点和销毁期间排空这些事件。未通过准入的输入（语法无效或名称未知）不记录任何事件。
+
+### 生命周期验证
+
+提供方会在按确切 Session 对象索引的折叠状态中保存运行 id、命令事件位置和连续游标。被拒绝的生命周期候选事件不会修改折叠状态，包括候选游标揭示前缀缺失时。已提交事件出现缺口，或当前前缀读取发现游标过期时，会锁存失败。创建基线只为尚无状态的会话播种，已接受事件会在提交后推进状态，多个提供方通过引用计数共享同一状态。最后一个租约释放时会清除状态；空 Session 可以重新播种，缺少当前精确前缀的非空 Session 会快速失败，且不会通过已弃用的历史读取来重建。
 
 ### 作用域
 

@@ -184,7 +184,7 @@ Returning real paths keeps the local backend simple and matches proven agent-too
 
 The local-backend value proposition depends on the existing `read`/`grep` tools being able to inspect the returned local path, even when the spill directory is outside the session cwd. That holds because the filesystem policy records observations and write guards but does not confine reads to the workspace. A future workspace-confinement policy must either allow local spill paths explicitly or use a non-file spill backend whose retrieval hint points at a supported reader.
 
-**Snapshot gap.** No ACP snapshot scenario covers the transcript-visible `web_fetch` spill notice yet. The ACP snapshot harness replays keyless and cannot hit the live web, and a `web_fetch` spill requires a real over-cap HTTP body; a deterministic scenario would need a seeded loopback fetch target the replay tree does not currently wire (the examples do not load `tool-web` at all). The behavior is covered instead by the `dsh-tool-web` integration test against a loopback server. Closing the gap is follow-up work: wire `tool-web` + a seeded fetch target into the ACP example, then record a `web-fetch-spill` scenario.
+**Snapshot gap.** No ACP snapshot scenario covers the transcript-visible `web_fetch` spill notice. The ACP snapshot harness is keyless and cannot hit the live web; the behavior is covered by the `dsh-tool-web` integration test against a loopback server.
 
 The policy can become too large if it starts owning tool-specific semantics. It stays narrow: plain-text final results only. Tool-owned early spill remains future work.
 

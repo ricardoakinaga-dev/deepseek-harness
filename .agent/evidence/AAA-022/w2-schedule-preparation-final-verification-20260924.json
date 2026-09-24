@@ -1,0 +1,134 @@
+{
+  "record_id": "EVID-AAA-022-W2-SCHEDULE-PREPARATION-FINAL-VERIFICATION-20260924-001",
+  "record_kind": "SCOPED_IMPLEMENTATION_VERIFICATION",
+  "observed_at": "2026-09-24T06:31:37-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-IMPLEMENT",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm workspace at custom/main HEAD 60b5295027f6fb7652a1a350a68c6275715b5dbd.",
+  "gate_ref": ".agent/gates/implementation-ready-AAA-022-W2-schedule-preparation-successor.json#GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-PREPARATION-SUCCESSOR-001",
+  "candidate_fingerprint": "82b301bbe6ed757904e7c253cab1476de3b453b56dff2c9925b098230b00013e",
+  "scope": {
+    "implementation_paths": 29,
+    "verification_only_paths": 6,
+    "protected_exclusions": 3
+  },
+  "result": "PASS_WITH_RETAINED_REPOSITORY_LIMITATIONS",
+  "checks": [
+    {
+      "id": "focused-tests",
+      "command": "pnpm exec vitest run packages/session/session-projection/tests/registry.spec.ts packages/schedule/schedule/tests/projection.spec.ts packages/schedule/schedule/tests/invariant.spec.ts packages/schedule/schedule/tests/plugin.spec.ts packages/schedule/schedule/tests/jsonl-restart.spec.ts packages/schedule/schedule/tests/runtime.spec.ts packages/schedule/schedule/tests/tools.spec.ts",
+      "exit_status": 0,
+      "observation": "7 files and 110 tests passed.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-focused-tests-20260924.txt"
+    },
+    {
+      "id": "focused-tests-post-type-fix",
+      "command": "pnpm exec vitest run packages/schedule/schedule/tests/plugin.spec.ts packages/session/session-projection/tests/registry.spec.ts",
+      "exit_status": 0,
+      "observation": "2 files and 44 tests passed after correcting strict fixture typing.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-post-type-fix-tests-20260924.txt"
+    },
+    {
+      "id": "source-typecheck",
+      "command": "pnpm exec tsc -b packages/session/session-projection/tsconfig.json packages/schedule/schedule/tsconfig.json --pretty false",
+      "exit_status": 0,
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-source-typecheck-20260924.txt"
+    },
+    {
+      "id": "scoped-oxlint",
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/session/session-projection/src packages/session/session-projection/tests packages/schedule/schedule/src packages/schedule/schedule/tests",
+      "exit_status": 0,
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-final-oxlint-20260924.txt"
+    },
+    {
+      "id": "customization-policy",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 0,
+      "observation": "1,773 custom paths attributed across 23 improvements.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-policy-final-20260924.txt"
+    },
+    {
+      "id": "documentation-quick",
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "observation": "22 quick documentation gates passed.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-doc-quick-20260924.txt"
+    },
+    {
+      "id": "documentation-typecheck",
+      "command": "pnpm run doc-typecheck",
+      "exit_status": 0,
+      "observation": "84 blocks compiled; 842 type-equiv/catalog blocks and 1,005 paired derivatives checked.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-doc-typecheck-retry-20260924.txt"
+    },
+    {
+      "id": "type-equivalence",
+      "command": "pnpm run verify-type-equiv",
+      "exit_status": 0,
+      "observation": "437 blocks and paired derivatives passed.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-type-equiv-20260924.txt"
+    },
+    {
+      "id": "Cordis-catalog",
+      "command": "pnpm run verify-cordis-catalog",
+      "exit_status": 0,
+      "observation": "111 generated regions are up to date.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-catalog-20260924.txt"
+    },
+    {
+      "id": "translation-pairing",
+      "command": "pnpm exec tsx scripts/verify-translation-pairing.ts packages/session/session-projection/README.md docs/subsystems/session-projection.md packages/schedule/schedule/README.md docs/subsystems/schedule.md .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      "exit_status": 0,
+      "observation": "Five changed bilingual document pairs passed.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-pairing-20260924.txt"
+    },
+    {
+      "id": "export-jsdoc",
+      "command": "pnpm run verify-export-jsdoc",
+      "exit_status": 0,
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-export-jsdoc-20260924.txt"
+    },
+    {
+      "id": "doc-budgets",
+      "command": "pnpm run verify-doc-budgets",
+      "exit_status": 0,
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-doc-budgets-20260924.txt"
+    },
+    {
+      "id": "doc-sync",
+      "command": "pnpm run doc-sync",
+      "exit_status": 1,
+      "observation": "38 passed and 5 failed: stale event-producer-consumer graph; plugin-manager tool-catalog manifest does not mount ctx.tools, ctx.pluginManager, ctx.sandboxPolicy; stale config catalog; stale persistence catalog and persistence schema. These findings are outside the exact 29 implementation paths and were not edited.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-doc-sync-20260924.txt"
+    },
+    {
+      "id": "state-baseline",
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness --contracts-root /home/ricardo/.agents/skills/engineering-framework",
+      "exit_status": 1,
+      "observation": "FAIL (pass=6 warn=0 fail=358); all findings match the retained A27 baseline with zero additions, removals, or changes.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-final-state-check-20260924.txt"
+    },
+    {
+      "id": "scope-integrity",
+      "command": "Gate fingerprint comparison, V8 marker preservation, and scoped git diff --check",
+      "exit_status": 0,
+      "observation": "All 6 verification-only and 3 protected paths are unchanged; all three V8 markers remain byte-present; implementation diff check passes.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-scope-integrity-20260924.json"
+    },
+    {
+      "id": "independent-review",
+      "command": "Fresh read-only review of Schedule integration and SessionProjectionRegistry cleanup tests",
+      "exit_status": null,
+      "observation": "Independent reviewer returned PASS.",
+      "artifact": ".agent/evidence/AAA-022/w2-schedule-preparation-final-review-20260924.json"
+    }
+  ],
+  "limitations": [
+    "The canonical state checker remains at the user-selected FAIL-358 baseline; this is not an overall state-check PASS.",
+    "The complete doc-sync aggregate remains partial at 38/43 because five unrelated repository-wide findings are outside the authorized gate paths.",
+    "The known M09 audit:metrics ENOENT limitation is preserved.",
+    "The sealed A28 candidate is unchanged. No push, merge, publication, registry write, release, or final verdict was performed."
+  ],
+  "scope_integrity_ref": ".agent/evidence/AAA-022/w2-schedule-preparation-scope-integrity-20260924.json",
+  "independent_review_ref": ".agent/evidence/AAA-022/w2-schedule-preparation-final-review-20260924.json"
+}

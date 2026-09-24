@@ -196,9 +196,9 @@ export class TeamMailbox {
   ): Promise<boolean> {
     const targetId = message.targetId
     const prior = this.dispatchTails.get(targetId) ?? Promise.resolve()
-    /* v8 ignore next -- dispatch tails absorb rejection, so the recovery callback is a fail-safe backstop. */
+    /*! v8 ignore next -- dispatch tails absorb rejection, so the recovery callback is a fail-safe backstop. */
     const run = prior.then(operation, operation)
-    /* v8 ignore next -- dispatchOnce contains delivery failures and serializeDispatch itself does not throw. */
+    /*! v8 ignore next -- dispatchOnce contains delivery failures and serializeDispatch itself does not throw. */
     const tail = run.then(() => undefined, () => undefined)
     this.dispatchTails.set(targetId, tail)
     try {

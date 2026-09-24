@@ -184,6 +184,21 @@ describe('SessionObservationReader live path', () => {
     await ctx.fiber.dispose()
   })
 
+  it('captures a supplied live Session without resolving persistence and keeps its cut fixed', async () => {
+    const ctx = await readerContext()
+    const session = ctx.sessions.create(SessionId('capture-live-owner'))
+    session.append('turn/start', { turn: 1 })
+    const reader = new SessionObservationReader(ctx)
+
+    using observed = reader.captureLive(session, { projectionMode: 'none' })
+    session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+
+    expect(observed.source).toBe('live')
+    expect(observed.cursor).toBe(0)
+    expect(observed.events.map(event => event.type)).toEqual(['turn/start'])
+    await ctx.fiber.dispose()
+  })
+
   it('keeps a live cut fixed when the log grows before events are first read', async () => {
     const ctx = await readerContext()
     const session = ctx.sessions.create(SessionId('live-fixed-cut'))

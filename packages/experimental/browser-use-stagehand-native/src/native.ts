@@ -151,7 +151,7 @@ export async function openNativeBrowser(config: NativeBrowserConfig): Promise<Na
             : await stagehand.extract(args.instruction, z.fromJSONSchema(args.schema), options)
           return textResult(result)
         }
-        /* v8 ignore next -- closed-union exhaustiveness guard; Worker methods are parsed before dispatch. */
+        /*! v8 ignore next -- closed-union exhaustiveness guard; Worker methods are parsed before dispatch. */
         default: return assertNever(method, 'Stagehand browser operation')
       }
     },

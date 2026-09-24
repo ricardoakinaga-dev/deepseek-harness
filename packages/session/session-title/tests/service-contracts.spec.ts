@@ -9,7 +9,9 @@ import SessionTitleService, {
   type SessionTitleProvider,
   type SessionTitleProviderRequest,
   type SessionTitleProviderResult,
+  type SessionTitleUserMessage,
 } from '@deepseek-ai/dsh-session-title'
+import { loadTestSessionTitleMessages } from './provider-fixtures.ts'
 
 const CONFIG = {
   fallbackMaxWords: 5,
@@ -77,6 +79,7 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     withProvider.sessionTitle.register({
       id: SessionTitleProviderId('empty-provider'),
       automatic: 'first-prompt',
+      loadMessages: loadTestSessionTitleMessages,
       generate,
     })
     const providerEmpty = withProvider.sessions.create(SessionId('empty-provider'))
@@ -97,6 +100,7 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     ctx.sessionTitle.register({
       id: SessionTitleProviderId('explicit-no-route'),
       automatic: 'first-prompt',
+      loadMessages: loadTestSessionTitleMessages,
       async generate(request) {
         observed = request
         return { title: 'Explicit title', messageSeqs: [request.messages[0]!.seq] }
@@ -115,37 +119,52 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
 
   it('propagates explicit cancellation and session disposal to active work', async () => {
     const callerCtx = await setup()
-    const callerPending = deferred<SessionTitleProviderResult>()
+    const callerPending = deferred<readonly SessionTitleUserMessage[]>()
+    const callerLoadStarted = deferred<undefined>()
     let callerSignal: AbortSignal | undefined
+    const callerGenerate = vi.fn(async (request: SessionTitleProviderRequest): Promise<SessionTitleProviderResult> => ({
+      title: 'Should not generate after cancellation',
+      messageSeqs: request.messages.map(message => message.seq),
+    }))
     callerCtx.sessionTitle.register({
       id: SessionTitleProviderId('caller-cancel'),
       automatic: 'first-prompt',
-      generate(request) {
+      loadMessages(request) {
         callerSignal = request.signal
+        callerLoadStarted.resolve(undefined)
         return callerPending.promise
       },
+      generate: callerGenerate,
     })
     const callerSession = startSession(callerCtx, 'caller-cancel')
     const callerMessage = appendPrompt(callerSession, 'Cancel this refresh')
     await settle()
     const controller = new AbortController()
     const refresh = callerCtx.sessionTitle.refresh(callerSession, controller.signal)
-    await settle()
+    await callerLoadStarted.promise
     controller.abort(new Error('caller cancelled'))
-    callerPending.resolve({ title: 'ignored', messageSeqs: [callerMessage.seq] })
+    callerPending.resolve([{ seq: callerMessage.seq, text: 'Cancel this refresh' }])
     await expect(refresh).rejects.toThrow('caller cancelled')
     expect(callerSignal?.aborted).toBe(true)
+    expect(callerGenerate).not.toHaveBeenCalled()
 
     const disposeCtx = await setup()
-    const disposePending = deferred<SessionTitleProviderResult>()
+    const disposePending = deferred<readonly SessionTitleUserMessage[]>()
+    const disposeLoadStarted = deferred<undefined>()
     let disposeSignal: AbortSignal | undefined
+    const disposeGenerate = vi.fn(async (request: SessionTitleProviderRequest): Promise<SessionTitleProviderResult> => ({
+      title: 'Should not generate after session disposal',
+      messageSeqs: request.messages.map(message => message.seq),
+    }))
     disposeCtx.sessionTitle.register({
       id: SessionTitleProviderId('session-dispose'),
       automatic: 'first-prompt',
-      generate(request) {
+      loadMessages(request) {
         disposeSignal = request.signal
+        disposeLoadStarted.resolve(undefined)
         return disposePending.promise
       },
+      generate: disposeGenerate,
     })
     const disposed = disposeCtx.sessions.prepare(SessionId('session-dispose'))
     const detach = disposeCtx.sessions.enter(disposed)
@@ -156,11 +175,12 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     const disposedMessage = appendPrompt(disposed, 'Dispose this session')
     await settle()
     const disposedRefresh = disposeCtx.sessionTitle.refresh(disposed)
-    await settle()
+    await disposeLoadStarted.promise
     detach()
-    disposePending.resolve({ title: 'ignored', messageSeqs: [disposedMessage.seq] })
+    disposePending.resolve([{ seq: disposedMessage.seq, text: 'Dispose this session' }])
     await expect(disposedRefresh).rejects.toThrow(/session disposed/)
     expect(disposeSignal?.aborted).toBe(true)
+    expect(disposeGenerate).not.toHaveBeenCalled()
   })
 
   it('shares one fallback across concurrent refreshes', async () => {
@@ -218,6 +238,7 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     ctx.sessionTitle.register({
       id: SessionTitleProviderId('refresh-order'),
       automatic: 'first-prompt',
+      loadMessages: loadTestSessionTitleMessages,
       generate(request) {
         requests.push(request)
         const result = deferred<SessionTitleProviderResult>()
@@ -294,15 +315,22 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     const fiber = await ctx.plugin(SessionTitleService, CONFIG)
-    const result = deferred<SessionTitleProviderResult>()
-    const requests: SessionTitleProviderRequest[] = []
+    const history = deferred<readonly SessionTitleUserMessage[]>()
+    const loadStarted = deferred<undefined>()
+    const loadSignals: AbortSignal[] = []
+    const generate = vi.fn(async (request: SessionTitleProviderRequest): Promise<SessionTitleProviderResult> => ({
+      title: 'Should not generate after service unload',
+      messageSeqs: request.messages.map(message => message.seq),
+    }))
     ctx.sessionTitle.register({
       id: SessionTitleProviderId('service-unload'),
       automatic: 'all-prompts',
-      generate(request) {
-        requests.push(request)
-        return result.promise
+      loadMessages(request) {
+        loadSignals.push(request.signal)
+        loadStarted.resolve(undefined)
+        return history.promise
       },
+      generate,
     })
     const active = startSession(ctx, 'service-unload-active')
     const activeMessage = appendPrompt(active, 'Active provider work')
@@ -312,8 +340,9 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
       () => undefined,
       (error: unknown) => error,
     )
-    await settle()
-    expect(requests).toHaveLength(1)
+    await loadStarted.promise
+    expect(loadSignals).toHaveLength(1)
+    expect(generate).not.toHaveBeenCalled()
     const pending = startSession(ctx, 'service-unload-pending')
     appendPrompt(pending, 'Pending provider work')
 
@@ -321,13 +350,14 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     let disposed = false
     void disposal.then(() => { disposed = true })
     await settle()
-    expect(requests[0]?.signal.aborted).toBe(true)
+    expect(loadSignals[0]?.aborted).toBe(true)
     expect(disposed).toBe(false)
-    result.resolve({ title: 'Ignored service abort', messageSeqs: [activeMessage.seq] })
+    history.resolve([{ seq: activeMessage.seq, text: 'Active provider work' }])
     await disposal
 
     expect(disposed).toBe(true)
     await expect(refreshOutcome).resolves.toEqual(expect.objectContaining({ message: 'session-title service disposed' }))
+    expect(generate).not.toHaveBeenCalled()
   })
 
   it('warns when a detached session prevents queued fallback publication', async () => {
@@ -370,23 +400,33 @@ describe('SessionTitleService Provider validation and stale scheduling', () => {
     expect(() => ctx.sessionTitle.register({
       id: 1,
       automatic: 'first-prompt',
+      loadMessages: loadTestSessionTitleMessages,
       generate,
     } as unknown as SessionTitleProvider)).toThrow(/id must be a non-empty string/)
     expect(() => ctx.sessionTitle.register({
       id: SessionTitleProviderId(''),
       automatic: 'first-prompt',
+      loadMessages: loadTestSessionTitleMessages,
       generate,
     })).toThrow(/id must be a non-empty string/)
     expect(() => ctx.sessionTitle.register({
       id: SessionTitleProviderId('bad-mode'),
       automatic: 'sometimes' as never,
+      loadMessages: loadTestSessionTitleMessages,
       generate,
     })).toThrow(/automatic mode is invalid/)
     expect(() => ctx.sessionTitle.register({
       id: SessionTitleProviderId('missing-generate'),
       automatic: 'first-prompt',
+      loadMessages: loadTestSessionTitleMessages,
       generate: undefined,
     } as unknown as SessionTitleProvider)).toThrow(/requires generate/)
+    expect(() => ctx.sessionTitle.register({
+      id: SessionTitleProviderId('missing-loader'),
+      automatic: 'first-prompt',
+      loadMessages: undefined,
+      generate,
+    } as unknown as SessionTitleProvider)).toThrow(/requires loadMessages/)
   })
 
   it('drops automatic work when its provider is disposed before the queued start', async () => {
@@ -398,6 +438,7 @@ describe('SessionTitleService Provider validation and stale scheduling', () => {
     const dispose = ctx.sessionTitle.register({
       id: SessionTitleProviderId('queued-dispose'),
       automatic: 'all-prompts',
+      loadMessages: loadTestSessionTitleMessages,
       generate,
     })
     const session = startSession(ctx, 'queued-dispose')
@@ -422,6 +463,7 @@ describe('SessionTitleService Provider validation and stale scheduling', () => {
     ctx.sessionTitle.register({
       id: SessionTitleProviderId('invalid-results'),
       automatic: 'first-prompt',
+      loadMessages: loadTestSessionTitleMessages,
       generate: async () => result as SessionTitleProviderResult,
     })
     const session = startSession(ctx, 'invalid-results')

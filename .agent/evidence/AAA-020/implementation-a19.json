@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "record_id": "EVID-AAA-020-A02-IMPLEMENTATION-A19-001",
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-020",
+  "action_id": "AAA-020:A02",
+  "candidate_ref": "custom/main working tree at 60b5295027f6fb7652a1a350a68c6275715bdbd",
+  "captured_at": "2026-09-21T23:49:53-03:00",
+  "decision_status": "CONFIRMED",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+  "scope": "Approved removal of ordinary published `./src/*` exports with source-plane compiler aliases and public-entry consumer migration.",
+  "implementation": "Ordinary DSH manifests no longer publish `./src/*`; source-plane tsconfig aliases preserve repository test/tooling resolution, and affected runtime imports use declared public entries exported by their owning packages. Private fork-only packages have no source publication path.",
+  "commands": [
+    {"command":"pnpm exec vitest run scripts/check-workspace-constraints.spec.ts --maxWorkers=1","exit_status":0,"result":"PASS","observation":"One file and 23 tests passed, including source-export policy fixtures."},
+    {"command":"pnpm run constraints","exit_status":0,"result":"PASS","observation":"Workspace manifest and source-export constraints passed."},
+    {"command":"pnpm run publint","exit_status":0,"result":"PASS","observation":"All 293 packages passed publint."},
+    {"command":"pnpm run verify-node-next-types","exit_status":0,"result":"PASS","observation":"302 workspace declaration APIs compiled under NodeNext."},
+    {"command":"pnpm exec tsc -p packages/api/session-controller/tsconfig.client.json --noEmit && pnpm exec tsc -p packages/client/ui-renderer/tsconfig.json --noEmit && pnpm exec tsc -p packages/client/web/tsconfig.json --noEmit && pnpm exec tsc -p packages/test-support/client-runtime/tsconfig.json --noEmit && pnpm exec tsc -p packages/sandbox/sandbox-local/tsconfig.json --noEmit","exit_status":0,"result":"PASS","observation":"Affected public-entry and source-plane resolver faces typechecked."}
+  ],
+  "acceptance": {"status":"PASS","summary":"Published source exports are removed, repository-only aliases are explicit, runtime consumers use public entries, and constraints, publint, NodeNext, and affected typechecks pass."},
+  "limitations": ["No external consumer inventory or publication was performed; compatibility is supported by the retained source-plane test aliases and affected local typechecks.","The evidence is from an uncommitted working tree and is not immutable release evidence."],
+  "freshness": "CURRENT"
+}

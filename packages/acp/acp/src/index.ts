@@ -125,11 +125,11 @@ export function apply(ctx: Context, config: AcpConfig): void {
   const notify = async (notification: SessionNotification): Promise<void> => {
     try {
       await conn.notify(methods.client.session.update, notification)
-    /* v8 ignore start -- the ACP SDK contains notification-handler failures; only a transport write failure reaches this guard. */
+    /*! v8 ignore start -- the ACP SDK contains notification-handler failures; only a transport write failure reaches this guard. */
     } catch (error: unknown) {
       logger.warn(`acp: session/update failed: ${String(error)}`)
     }
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
 
   ctx.on('session/event', (session, event) => {
@@ -216,7 +216,7 @@ export function apply(ctx: Context, config: AcpConfig): void {
         if (error instanceof AcpMcpConfigError) throw invalidParams(error.message)
         throw error
       }
-      /* v8 ignore next 4 -- a real stdio close can race an in-flight create. */
+      /*! v8 ignore next 4 -- a real stdio close can race an in-flight create. */
       if (closed) {
         await record.close('connection closed during session/new')
         throw internalError('connection closed during session/new')
@@ -267,13 +267,13 @@ export function apply(ctx: Context, config: AcpConfig): void {
           if (error instanceof AcpMcpConfigError) throw invalidParams(error.message)
           throw error
         }
-        /* v8 ignore start -- the persisted header was checked before resume; the factory restores that exact header. */
+        /*! v8 ignore start -- the persisted header was checked before resume; the factory restores that exact header. */
         if (!await sameDirectory(record.agent.session.header.cwd, params.cwd)) {
           await record.close('session/resume cwd mismatch')
           throw invalidParams(`session cwd does not match: ${params.cwd}`)
         }
-        /* v8 ignore stop */
-        /* v8 ignore next 4 -- a real stdio close can race an in-flight resume. */
+        /*! v8 ignore stop */
+        /*! v8 ignore next 4 -- a real stdio close can race an in-flight resume. */
         if (closed) {
           await record.close('connection closed during session/resume')
           throw internalError('connection closed during session/resume')
@@ -370,7 +370,7 @@ export function apply(ctx: Context, config: AcpConfig): void {
     },
   }
 
-  /* v8 ignore next 4 -- production stdio wiring; tests inject config.stream. */
+  /*! v8 ignore next 4 -- production stdio wiring; tests inject config.stream. */
   const stream: Stream = config.stream ?? ndJsonStream(
     Writable.toWeb(process.stdout) as WritableStream<Uint8Array>,
     Readable.toWeb(process.stdin) as ReadableStream<Uint8Array>,
@@ -401,7 +401,7 @@ export function apply(ctx: Context, config: AcpConfig): void {
     quiescing = (async () => {
       const disposals = await Promise.allSettled(records.map(record => record.close('ACP bridge disposed')))
       for (const record of records) {
-        /* v8 ignore next -- closed blocks concurrent handlers; each captured record remains mapped until this loop. */
+        /*! v8 ignore next -- closed blocks concurrent handlers; each captured record remains mapped until this loop. */
         if (sessions.get(record.agent.session.id) === record) sessions.delete(record.agent.session.id)
       }
       const failures: unknown[] = []
@@ -422,7 +422,7 @@ export function apply(ctx: Context, config: AcpConfig): void {
     return quiescing
   }
 
-  /* v8 ignore start -- production transport rejection and teardown failure. */
+  /*! v8 ignore start -- production transport rejection and teardown failure. */
   void connection.closed
     .catch((error: unknown) => {
       logger.warn(`acp: connection closed with an error: ${String(error)}`)
@@ -431,7 +431,7 @@ export function apply(ctx: Context, config: AcpConfig): void {
     .catch((error: unknown) => {
       logger.warn(`acp: connection-close teardown failed: ${String(error)}`)
     })
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 
   ctx.effect(() => quiesce, 'acp.connection')
 }
@@ -463,11 +463,11 @@ interface SessionListCursor {
 /** Resolve and validate the deployment-owned session page limit. */
 function resolveSessionListPageSize(value: number | undefined): number {
   const resolved = value ?? DEFAULT_SESSION_LIST_PAGE_SIZE
-  /* v8 ignore start -- Cordis applies the positive-integer Config schema; this protects direct apply callers. */
+  /*! v8 ignore start -- Cordis applies the positive-integer Config schema; this protects direct apply callers. */
   if (!Number.isSafeInteger(resolved) || resolved < 1) {
     throw new Error('acp: sessionListPageSize must be a positive safe integer')
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
   return resolved
 }
 

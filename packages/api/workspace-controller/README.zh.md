@@ -45,6 +45,8 @@ Client 入口提供 `ClientWorkspaceModel` 和 `createWorkspaceStateStream()`。
 - 进程内删除标记只会在 Client 模型生命周期内阻止延迟数据复活已移除的 Workspace。
 
 
+**运行时不变式：** 不发布伴生入口。Workspace 注册表负责持久化，每次流生成都是完整投影。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -54,5 +56,3 @@ Client 入口提供 `ClientWorkspaceModel` 和 `createWorkspaceStateStream()`。
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。Workspace 注册表负责持久化，每次流生成都是完整投影。

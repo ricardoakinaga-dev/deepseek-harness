@@ -87,7 +87,7 @@ export function $composerLayout(): ComposerLayout {
       } else if ($isLineBreakNode(kid)) {
         pushLeaf('linebreak', kid, '\n', '\n')
       } else if ($isElementNode(kid)) {
-        /* v8 ignore next 4 -- plain-text composition nests no block elements today; the walk stays total for imported states. */
+        /*! v8 ignore next 4 -- plain-text composition nests no block elements today; the walk stays total for imported states. */
         walkElement(kid)
       }
       // Unknown inline decorators contribute nothing: this composer registers

@@ -31,7 +31,7 @@ Use it when you compose or build a browser client plugin: the package turns a pa
 
 ### Declaring a client plugin
 
-A browser plugin package declares `dsh.client` in its `package.json` with `platform: 'web'`, exports a `./client` bundle, and lists any non-baseline module requests under `dsh.client.external`. The host half turns each declaration into a served bundle under `/plugins`, ordered so dynamic providers load before their consumers.
+A browser plugin package declares `dsh.client` in its `package.json` with `platform: 'web'`, exports a `./client` bundle, and lists any non-baseline module requests under `dsh.client.external`. A source-evaluating package may mark `dsh.client.dynamic: true`; its graph row then carries the explicit dynamic-delivery marker. The host half turns each declaration into a served bundle under `/plugins`, ordered so dynamic providers load before their consumers.
 
 ### What the browser loads
 
@@ -47,7 +47,7 @@ The shell seeds a frozen module table (`PLATFORM_MODULES`: React, Cordis, and st
 
 ### Build requirements
 
-The host serves built client bundles, so `pnpm run build` must have produced each `lib/client.js` before launch; a missing bundle fails activation loudly with one build instruction and a package/path list. Source launch maps host imports to TypeScript source but still consumes the built client export. The package accepts no plugin config of its own.
+The host serves built client bundles, so `pnpm run build` must have produced each `lib/client.js` before launch; a missing bundle fails activation loudly with one build instruction and a package/path list. Source launch maps host imports to TypeScript source but still consumes the built client export. The package accepts no plugin config of its own; dynamic browser delivery is selected by the composed row and remains disabled when that row is absent.
 
 -----
 
@@ -77,7 +77,7 @@ The Node half snapshots each `client.js` entry before publication and creates co
 
 The bundle route follows the injected `webServer` lifetime: it registers when the service is ready and is removed and re-registered when that service is replaced. Module composition and `fetchBundle()` remain available without a Web server.
 
-The host contributes structured index rows that inject, into `<head>`: the `window.__ModuleLoader__` queue facade, advisory preloads for every application combo, the parser-blocking bootstrap combo scripts, then the boot graph before the shell reads it. A Web carrier renders those rows into its index response; a shell-owned carrier can render the same rows without a Web server. The facade's `create()` materializes the modules bundle, delegates construction to its `createClientModuleSystem` export, and leaves the same facade in live-registration mode. The shell installs that returned system as its Loader's `internal`; the modules plugin publishes that instance as `ctx.modules`, so separate Cordis trees never select an instance through module-global state.
+The host contributes structured index rows that inject, into `<head>`: the `window.__ModuleLoader__` queue facade, advisory preloads for every application combo, the parser-blocking bootstrap combo scripts, an explicit dynamic-delivery marker, then the boot graph before the shell reads it. A Web carrier renders those rows into its index response; a shell-owned carrier can render the same rows without a Web server. The marker is `disabled` when no dynamic row is composed and `unsafe-eval-inline-style` when one is explicitly composed. This package does not emit a CSP header or Trusted Types policy; those remain deployment-owned controls. The facade's `create()` materializes the modules bundle, delegates construction to its `createClientModuleSystem` export, and leaves the same facade in live-registration mode. The shell installs that returned system as its Loader's `internal`; the modules plugin publishes that instance as `ctx.modules`, so separate Cordis trees never select an instance through module-global state.
 
 ### Entry ownership
 

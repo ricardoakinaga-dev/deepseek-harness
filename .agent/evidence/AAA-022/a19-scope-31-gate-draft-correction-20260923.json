@@ -1,0 +1,479 @@
+{
+  "record_id": "A19-SCOPE-31-GATE-DRAFT-CORRECTION-20260923-001",
+  "timestamp": "2026-09-23T17:24:59-03:00",
+  "record_kind": "FAILED_LOCAL_GATE_DRAFT_PRESERVED",
+  "reason": "The draft gate scope text differed from the predecessor scope, causing an authority-scope mismatch and one gate-history mismatch. The failed draft was rolled back to the last valid state before reapplying the same approved scope with the exact predecessor scope string.",
+  "failed_gate_record": {
+    "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-002",
+    "timestamp": "2026-09-23T17:24:58-03:00",
+    "gate_id": "AUDIT_RESOLVED",
+    "scope": "AAA-022:A19 exact 31-input scope and owner attribution refreshed after subsequent shared-input changes",
+    "scope_ref": "AAA-022",
+    "version": 1,
+    "criteria": [
+      {
+        "id": "AR-001-BASELINE-GAPS",
+        "description": "The original 24-input A19 implementation gate, the historical 34-input documentation gate, and the prior exact 31-input scope resolution remain unchanged; the current approved scope adds exactly the seven user-authorized paths.",
+        "required": true,
+        "status": "PASS",
+        "evidence_refs": [
+          ".agent/evidence/AAA-022/a19-scope-31-current-revalidation-20260923.json",
+          ".agent/gates/implementation-ready-AAA-022-A19.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+          ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+          ".agent/gates/audit-resolved-AAA-022-A19-scope-31.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001"
+        ],
+        "confidence": "HIGH",
+        "limitations": "The three prior gates remain immutable; this successor refreshes current scope evidence and does not reopen A19 implementation."
+      },
+      {
+        "id": "AR-002-RESOLUTION-EVIDENCE",
+        "description": "The 31 approved fingerprint inputs reproduce 24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e; the active prepared-session owner remains exactly 29 paths, the three docs/subsystems/session.* paths are excluded, and the generated API catalog remains under its two existing owners.",
+        "required": true,
+        "status": "PASS",
+        "evidence_refs": [
+          ".agent/evidence/AAA-022/a19-scope-31-current-revalidation-20260923.json",
+          ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-31-CURRENT-REVALIDATION-001",
+          ".agents/customization-policy.json"
+        ],
+        "confidence": "HIGH",
+        "limitations": "The fingerprint covers current shared working-tree inputs; later authorized edits to those paths will require another refresh."
+      },
+      {
+        "id": "AR-003-ACCEPTANCE-OR-ROUTING",
+        "description": "The exact scope revalidation is bound to a current confirmed GATE authority record; A19 stays closed and AAA-022:A25 remains the active design action.",
+        "required": true,
+        "status": "PASS",
+        "evidence_refs": [
+          ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-CURRENT-001",
+          ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-31-CURRENT-REVALIDATION-001",
+          ".agent/execution-log.jsonl#EVT-AAA-022-GATE-A19-SCOPE-31-CURRENT-001-107"
+        ],
+        "confidence": "HIGH",
+        "limitations": "The full doc-sync remains PARTIAL at 37/43; this gate only passes the exact A19 scope attribution and required scoped documentation/API checks."
+      }
+    ],
+    "evidence": [
+      ".agent/evidence/AAA-022/a19-scope-31-current-revalidation-20260923.json",
+      ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-31-CURRENT-REVALIDATION-001",
+      ".agent/verification.jsonl#VER-AAA-022-DOC-SYNC-CURRENT-20260923-001",
+      ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-CURRENT-001",
+      ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-001",
+      ".agent/gates/audit-resolved-AAA-022-A19-scope-31.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+      ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+      ".agents/customization-policy.json",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/session-projection.md",
+      "packages/extensions/tool-cordis/src/api-catalog.ts"
+    ],
+    "candidate_fingerprint": "24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e",
+    "fingerprint_scope": {
+      "algorithm": "SHA-256",
+      "inputs": [
+        ".agents/customization-policy.json",
+        "docs/architecture.i18n.yaml",
+        "docs/architecture.md",
+        "docs/architecture.zh.md",
+        "docs/subsystems/persistence.i18n.yaml",
+        "docs/subsystems/persistence.md",
+        "docs/subsystems/persistence.zh.md",
+        "docs/subsystems/session-projection.i18n.yaml",
+        "docs/subsystems/session-projection.md",
+        "docs/subsystems/session-projection.zh.md",
+        "packages/core/agent-loop/README.i18n.yaml",
+        "packages/core/agent-loop/README.md",
+        "packages/core/agent-loop/README.zh.md",
+        "packages/core/agent-loop/src/index.ts",
+        "packages/core/agent-loop/tests/invariant.spec.ts",
+        "packages/core/agent-loop/tests/resume.spec.ts",
+        "packages/core/agent-loop/tests/runtime-context.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+        "packages/core/session/README.i18n.yaml",
+        "packages/core/session/README.md",
+        "packages/core/session/README.zh.md",
+        "packages/core/session/src/index.ts",
+        "packages/core/session/src/preparation.ts",
+        "packages/core/session/tests/session.spec.ts",
+        "packages/extensions/tool-cordis/src/api-catalog.ts",
+        "packages/session/session-projection/README.i18n.yaml",
+        "packages/session/session-projection/README.md",
+        "packages/session/session-projection/README.zh.md",
+        "packages/session/session-projection/src/index.ts",
+        "packages/session/session-projection/tests/registry.spec.ts"
+      ],
+      "hash_rule": "For each listed relative path in this order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+      "file_count": 31,
+      "preexisting_dirty_worktree": true
+    },
+    "confidence": "HIGH",
+    "gaps": [],
+    "conditions": [],
+    "authority": {
+      "required": true,
+      "state": "CONFIRMED",
+      "actor": "Ricardo Akinaga",
+      "scope": "AAA-022:A19 exact 31-input scope and current fingerprint revalidation",
+      "decision": "The user explicitly approved expanding A19 from its exact 24-input scope to the exact 31-input scope, including the persistence and session-projection documentation pairs and sidecars plus packages/extensions/tool-cordis/src/api-catalog.ts. Revalidate the current fingerprint and the existing owner allowlist; preserve A19 runtime scope and do not authorize A20 storage work or external repository actions.",
+      "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-CURRENT-001",
+      "expires_or_revalidates": "Revalidate if the exact 31-input set, the 29-path active owner, either existing api-catalog.ts owner, or the approved A19 behavior scope changes."
+    },
+    "residual_risk": "MEDIUM",
+    "decision": "PASS",
+    "next_action": "Continue AAA-022:A25 implementation-gate preparation in BUILD/DESIGN; retain the exact A19 31-input scope and do not reopen A19.",
+    "revalidation_triggers": [
+      "Any of the exact 31 fingerprint inputs changes again.",
+      "The prepared-session owner gains, loses, or changes an approved path.",
+      "Either existing api-catalog.ts owner changes or a third owner is proposed.",
+      "A19 is proposed to modify Session data, a projection key, model-visible input, SDK output, A20 storage draining, or an external repository state."
+    ],
+    "supersedes": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+    "revalidation": {
+      "kind": "FINGERPRINT_REFRESH",
+      "previous_record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+      "previous_candidate_fingerprint": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+      "reason": "Subsequent AAA-022 owner work changed shared files among the exact 31 inputs after the prior scope resolution. Refresh only the working-tree fingerprint and typed authority binding; keep path membership and A19 ownership unchanged.",
+      "authority_effect": "The user reaffirmed the same exact 31-input expansion. A03 continues to authorize A19 runtime work; this record authorizes only the already approved local docs/catalog scope and current fingerprint attribution."
+    }
+  },
+  "failed_authority_record": {
+    "id": "AUTH-AAA-022-A19-SCOPE-31-CURRENT-001",
+    "timestamp": "2026-09-23T17:24:57-03:00",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022:A19 exact 31-input scope and current fingerprint revalidation",
+    "scope_ref": "AAA-022",
+    "subject_type": "GATE",
+    "subject_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-002",
+    "decision": "The user explicitly approved expanding A19 from its exact 24-input scope to the exact 31-input scope, including the persistence and session-projection documentation pairs and sidecars plus packages/extensions/tool-cordis/src/api-catalog.ts. Revalidate the current fingerprint and the existing owner allowlist; preserve A19 runtime scope and do not authorize A20 storage work or external repository actions.",
+    "status": "CONFIRMED",
+    "evidence": "Current user replies selected “Expand scope (Recommended)” and “Expand to 31 paths (Recommended)” and authorized updating the allowlist, fingerprint, and authority/gate record; the earlier exact-scope record is .agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-001.",
+    "limitations": "This confirmation applies only to the existing exact 31-input A19 scope and its current fingerprint/authority binding. The active prepared-session owner remains 29 paths, the three docs/subsystems/session.* paths remain excluded, api-catalog.ts retains its two existing owners, A19 is not reopened, and no external action is authorized.",
+    "expires_at": null
+  },
+  "failed_verification_records": [
+    {
+      "id": "VER-AAA-022-A19-SCOPE-31-CURRENT-REVALIDATION-001",
+      "task": "AAA-022",
+      "timestamp": "2026-09-23T17:24:56-03:00",
+      "scope": "AAA-022:A19 exact 31-input scope membership, owner allowlist, shared API-catalog attribution, and required documentation/API checks",
+      "procedure": "Recompute the recorded 31-input SHA-256 fingerprint; compare the exact input set with the user-approved seven additions to the preserved 24-input gate; inspect the active prepared-session owner and the two existing API-catalog owners; run pnpm run verify-type-equiv, pnpm run verify-cordis-catalog, pnpm run test:docs, and git diff --check over the 31 approved inputs.",
+      "procedure_status": "EXECUTED",
+      "evidence_kind": "COMMAND",
+      "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; preserved dirty custom/main worktree at HEAD 60b5295027f6fb7652a1a350a68c6275715b5dbd.",
+      "result": "PASS",
+      "exit_status": 0,
+      "evidence": "The current 31-input fingerprint is 24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e; all seven requested additions exactly match the difference from the preserved 24-input scope. The active prepared-session owner has the exact 29 authorized paths and excludes docs/subsystems/session.*; api-catalog.ts remains with session-reader-migration and dynamic-extension-trust. verify-type-equiv passes 437/437 blocks and derivatives, verify-cordis-catalog passes 111 generated file/region outputs, test:docs passes 22/22, and the scoped diff check exits 0.",
+      "artifacts": [
+        ".agent/evidence/AAA-022/a19-scope-31-current-revalidation-20260923.json",
+        ".agent/gates/audit-resolved-AAA-022-A19-scope-31-current.json",
+        ".agents/customization-policy.json",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-CURRENT-001"
+      ],
+      "limitations": "This is a scope and documentation/API catalog revalidation. The separate repository-wide doc-sync run remains PARTIAL and is recorded in .agent/verification.jsonl#VER-AAA-022-DOC-SYNC-CURRENT-20260923-001.",
+      "observed_at": "2026-09-23T17:24:55-03:00",
+      "freshness": "CURRENT"
+    },
+    {
+      "id": "VER-AAA-022-DOC-SYNC-CURRENT-20260923-001",
+      "task": "AAA-022",
+      "timestamp": "2026-09-23T17:24:56-03:00",
+      "scope": "AAA-022:repository-wide documentation sync observed during the A19 31-input scope revalidation",
+      "procedure": "Run pnpm run doc-sync after the scoped type-equivalence, Cordis catalog, and quick documentation checks.",
+      "procedure_status": "EXECUTED",
+      "evidence_kind": "COMMAND",
+      "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; preserved dirty custom/main worktree at HEAD 60b5295027f6fb7652a1a350a68c6275715b5dbd.",
+      "result": "PARTIAL",
+      "exit_status": 1,
+      "evidence": "The documentation sync reports 37 passed and 6 failed in 135.03 seconds. Failures: doc-typecheck (branded Session offset/cursor and test typing errors in other packages); stale docs/event-producer-consumer.md graph; plugin-manager tool catalog harvest missing mounted services; stale docs/config-catalog.md; stale persistence catalog and schema outputs; stale persistence type history because docs/persistence-schema.json is stale.",
+      "artifacts": [
+        ".agent/evidence/AAA-022/a19-scope-31-current-revalidation-20260923.json"
+      ],
+      "limitations": "This is not a repository-wide docs pass. The A19-scoped type-equivalence, Cordis catalog, quick documentation, and pairing gates pass; the six broader findings remain outside this 31-input scope revalidation and are retained for their owning workstreams.",
+      "observed_at": "2026-09-23T17:24:55-03:00",
+      "freshness": "CURRENT"
+    }
+  ],
+  "failed_execution_event": {
+    "event_id": "EVT-AAA-022-GATE-A19-SCOPE-31-CURRENT-001-107",
+    "timestamp": "2026-09-23T17:24:59-03:00",
+    "type": "GATE_PASSED",
+    "task": "AAA-022",
+    "action": "Bind the current A19 exact 31-input scope revalidation",
+    "result": "PASS",
+    "verification": ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-31-CURRENT-REVALIDATION-001",
+    "decision": "The current A19 scope fingerprint is 24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e; the 29-path prepared-session owner and the two existing API-catalog owners match the approved scope. verify-type-equiv, verify-cordis-catalog, test:docs, and the scoped diff check pass. Preserve the full doc-sync PARTIAL result at 37/43. A19 remains closed; AAA-022:A25 remains active.",
+    "next_state": "AAA-022 remains IN_PROGRESS in BUILD/DESIGN at AAA-022:A25; A19 scope revalidation only; the next gate remains TECHNICALLY_SPECIFIED.",
+    "active_action_id": "AAA-022:A25",
+    "gate_ref": ".agent/gates/audit-resolved-AAA-022-A19-scope-31-current.json",
+    "gate_record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-002",
+    "gate_decision": "PASS",
+    "gate_fingerprint": "6684bc3b897cda477771b478377ac3780f566be3fc9bde95708c49f2e1f952f4",
+    "candidate_fingerprint": "24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e",
+    "scope_ref": "AAA-022"
+  },
+  "state_before_draft": {
+    "state_revision": 232,
+    "last_event_id": "EVT-AAA-022-CHECKPOINT-A25-PHASE-001-106",
+    "updated_at": "2026-09-23T16:52:06-03:00",
+    "active_action_id": "AAA-022:A25"
+  },
+  "state_after_failed_draft": {
+    "state_revision": 233,
+    "last_event_id": "EVT-AAA-022-GATE-A19-SCOPE-31-CURRENT-001-107",
+    "updated_at": "2026-09-23T17:24:59-03:00",
+    "active_task": "AAA-022",
+    "active_activity": "DESIGN",
+    "active_action_id": "AAA-022:A25",
+    "next_gate": "TECHNICALLY_SPECIFIED"
+  },
+  "scope_verification_artifact": {
+    "record_id": "A19-SCOPE-31-CURRENT-REVALIDATION-20260923-001",
+    "timestamp": "2026-09-23T17:24:55-03:00",
+    "record_kind": "A19_SCOPE_FINGERPRINT_REFRESH",
+    "scope": "AAA-022:A19 exact 31-input scope, current prepared-session owner allowlist, and existing API-catalog attribution",
+    "prior_scope_gate": {
+      "path": ".agent/gates/audit-resolved-AAA-022-A19-scope-31.json",
+      "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+      "candidate_fingerprint": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+      "fingerprint_input_count": 31,
+      "disposition": "preserved unchanged; superseded only by the current fingerprint refresh"
+    },
+    "preserved_implementation_gates": [
+      {
+        "path": ".agent/gates/implementation-ready-AAA-022-A19.json",
+        "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+        "input_count": 24,
+        "sha256": "45fed73113fd6d0b9a716513c66a6ea664896b4de209d1051977b1fe8980b355"
+      },
+      {
+        "path": ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json",
+        "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+        "input_count": 34,
+        "sha256": "bb7d59a1072b202a18f9efd7cfbd6a48b5d3446062f6feebf95ec448dddae9b5"
+      }
+    ],
+    "user_approved_expansion": {
+      "from_input_count": 24,
+      "to_exact_input_count": 31,
+      "approval": "User selected “Expand to 31 paths (Recommended)” and authorized updating the allowlist, fingerprint, and authority/gate record.",
+      "added_paths": [
+        "docs/subsystems/persistence.i18n.yaml",
+        "docs/subsystems/persistence.md",
+        "docs/subsystems/persistence.zh.md",
+        "docs/subsystems/session-projection.i18n.yaml",
+        "docs/subsystems/session-projection.md",
+        "docs/subsystems/session-projection.zh.md",
+        "packages/extensions/tool-cordis/src/api-catalog.ts"
+      ],
+      "excluded_from_active_a19_owner_allowlist": [
+        "docs/subsystems/session.i18n.yaml",
+        "docs/subsystems/session.md",
+        "docs/subsystems/session.zh.md"
+      ]
+    },
+    "active_owner_allowlist": {
+      "improvement_id": "prepared-session-projection-baseline",
+      "status": "active",
+      "path_count": 29,
+      "paths": [
+        "packages/core/session/src/index.ts",
+        "packages/core/session/src/preparation.ts",
+        "packages/core/session/tests/session.spec.ts",
+        "packages/core/session/README.md",
+        "packages/core/session/README.zh.md",
+        "packages/core/session/README.i18n.yaml",
+        "packages/session/session-projection/src/index.ts",
+        "packages/session/session-projection/tests/registry.spec.ts",
+        "packages/session/session-projection/README.md",
+        "packages/session/session-projection/README.zh.md",
+        "packages/session/session-projection/README.i18n.yaml",
+        "packages/core/agent-loop/src/index.ts",
+        "packages/core/agent-loop/tests/resume.spec.ts",
+        "packages/core/agent-loop/tests/invariant.spec.ts",
+        "packages/core/agent-loop/tests/runtime-context.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+        "packages/core/agent-loop/README.md",
+        "packages/core/agent-loop/README.zh.md",
+        "packages/core/agent-loop/README.i18n.yaml",
+        "docs/subsystems/persistence.md",
+        "docs/subsystems/persistence.zh.md",
+        "docs/subsystems/persistence.i18n.yaml",
+        "docs/subsystems/session-projection.md",
+        "docs/subsystems/session-projection.zh.md",
+        "docs/subsystems/session-projection.i18n.yaml",
+        "docs/architecture.md",
+        "docs/architecture.zh.md",
+        "docs/architecture.i18n.yaml"
+      ],
+      "excludes": [
+        "docs/subsystems/session.i18n.yaml",
+        "docs/subsystems/session.md",
+        "docs/subsystems/session.zh.md"
+      ],
+      "matches_approved_scope": true
+    },
+    "api_catalog_attribution": {
+      "path": "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "owners": [
+        "session-reader-migration",
+        "dynamic-extension-trust"
+      ],
+      "matches_existing_owners": true
+    },
+    "candidate_fingerprint": "24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e",
+    "fingerprint_scope": {
+      "algorithm": "SHA-256",
+      "inputs": [
+        ".agents/customization-policy.json",
+        "docs/architecture.i18n.yaml",
+        "docs/architecture.md",
+        "docs/architecture.zh.md",
+        "docs/subsystems/persistence.i18n.yaml",
+        "docs/subsystems/persistence.md",
+        "docs/subsystems/persistence.zh.md",
+        "docs/subsystems/session-projection.i18n.yaml",
+        "docs/subsystems/session-projection.md",
+        "docs/subsystems/session-projection.zh.md",
+        "packages/core/agent-loop/README.i18n.yaml",
+        "packages/core/agent-loop/README.md",
+        "packages/core/agent-loop/README.zh.md",
+        "packages/core/agent-loop/src/index.ts",
+        "packages/core/agent-loop/tests/invariant.spec.ts",
+        "packages/core/agent-loop/tests/resume.spec.ts",
+        "packages/core/agent-loop/tests/runtime-context.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+        "packages/core/session/README.i18n.yaml",
+        "packages/core/session/README.md",
+        "packages/core/session/README.zh.md",
+        "packages/core/session/src/index.ts",
+        "packages/core/session/src/preparation.ts",
+        "packages/core/session/tests/session.spec.ts",
+        "packages/extensions/tool-cordis/src/api-catalog.ts",
+        "packages/session/session-projection/README.i18n.yaml",
+        "packages/session/session-projection/README.md",
+        "packages/session/session-projection/README.zh.md",
+        "packages/session/session-projection/src/index.ts",
+        "packages/session/session-projection/tests/registry.spec.ts"
+      ],
+      "hash_rule": "For each listed relative path in this order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+      "file_count": 31,
+      "file_sha256": {
+        ".agents/customization-policy.json": "3bf74531e04533d680948bbcdab0af2dd9fa3a00616ec7cec34e3fc322c86066",
+        "docs/architecture.i18n.yaml": "13adf22627b605e5102b21afba489eaa8e54dcebad5058d0eaeb2298466bbb22",
+        "docs/architecture.md": "196c453bd14b1486fad83f1cc7b7b2de4e81399e76c7e83a191622bff0de7438",
+        "docs/architecture.zh.md": "50c0ba09896eb0042ba1348c1c8e108f477984a1407d7903e1e4c19711f9a0d8",
+        "docs/subsystems/persistence.i18n.yaml": "dfb4afc298b72624345ec71b571314d781016c5356586a112d82c6ce9b985d37",
+        "docs/subsystems/persistence.md": "a97d5a521c76fdaac1e910778564d74fcf13546391caf2063850ad7a1b9e2640",
+        "docs/subsystems/persistence.zh.md": "bf32617f5bec0187b626b740c33c39e56faeffbb9ce864143002724ee16b06ad",
+        "docs/subsystems/session-projection.i18n.yaml": "3ee16458a103bd59d966151bb26089eaccfe3cc5c864aed240b43fef2a52aa4c",
+        "docs/subsystems/session-projection.md": "e923abf355abeba04224751344d304f48e20153440417b9bc8a0c23261369da0",
+        "docs/subsystems/session-projection.zh.md": "6f314c2b7392420de17d96f1dc2d98691f882942abe1e37d73579f0b23008951",
+        "packages/core/agent-loop/README.i18n.yaml": "3e5bc5b664005f2aae65eeaa013ac32e33571f4df9eb7ff9ccf6a30a46b0678f",
+        "packages/core/agent-loop/README.md": "ccce148e349087c0beed2c6652215daa743b88466f5d87f3c48fdbdb434e368e",
+        "packages/core/agent-loop/README.zh.md": "e04a35de8347cd23a0ec00319ec3f0826afe3fcfffff18e15e04ac8d000fd708",
+        "packages/core/agent-loop/src/index.ts": "963798db801edaf2b83d17fc096128398bd9cc6d50ff64977573345975da2648",
+        "packages/core/agent-loop/tests/invariant.spec.ts": "aceaecfec38556bc876b4284dba17287b2dec2d888f7772f51604af5888fa8dd",
+        "packages/core/agent-loop/tests/resume.spec.ts": "558c57bc23e157ada7e780de9c4e40e9a67dc48add7d47c06d24c8eff26aba5b",
+        "packages/core/agent-loop/tests/runtime-context.spec.ts": "e3e4cdddc2d7f73915afe79fa2bd19715c7f57b11c7ac662d4e31752734b2ba9",
+        "packages/core/agent-loop/tests/system-prompt-admission.spec.ts": "4a53d24b33e687b64cda8674998c9b3ba1b80edc6b1d5be7f345dbc0f096fa40",
+        "packages/core/agent-loop/tests/system-prompt-projection.spec.ts": "cf64519e1b37072d929c5b97592aa2da60696d4de8781d90ac233450ae01dc07",
+        "packages/core/session/README.i18n.yaml": "4f919a919b9adb3e5c7f93c2408e4f98e2915bc0de75fed8cb4cf03b9b382b85",
+        "packages/core/session/README.md": "679c439f61d9fff72c366980a9ebf63b2f85717ecae4df90ba98b48d574be0de",
+        "packages/core/session/README.zh.md": "1accdab6d9bfaaf424676dc43df8bf9cef5f4e5a9986ee52641c10c1f799e9a0",
+        "packages/core/session/src/index.ts": "879b8eba7fe61a1e08c4c8af08b5e2137a3f682ae0b642bfeda18feb8d08bed0",
+        "packages/core/session/src/preparation.ts": "d8f32d4c74cdd77267d56b0092161e69c84de95452d7cf7ee9d051c655228b3f",
+        "packages/core/session/tests/session.spec.ts": "6609cd47052a4d720ea4334840c725fd197a190cd3179b3cc7ec5c8f78a5639e",
+        "packages/extensions/tool-cordis/src/api-catalog.ts": "08ee1728154fb482147fca28c75a21d38d6efca0881654c844ed0e46edb04c79",
+        "packages/session/session-projection/README.i18n.yaml": "537ec57d9e816a2888f942b4a399b87799edd820073439b846453dd0b0242031",
+        "packages/session/session-projection/README.md": "088f5c75ae940a8520e6d2b2a85165e503236d6bb6d054ffa8762ad5831177e6",
+        "packages/session/session-projection/README.zh.md": "d11390564021aae5b4478c65a060a6527c44446d74935d93e36b8a784a9a46f3",
+        "packages/session/session-projection/src/index.ts": "5c31245f90025e0cfb62dfd0760f1d2ca2ea8c8bdc5077ffc9b9b975b21818c7",
+        "packages/session/session-projection/tests/registry.spec.ts": "49d210ab6283da3b11096182a47f2999a4ca80dafe83946870f65dfbf755dcc1"
+      },
+      "preexisting_dirty_worktree": true
+    },
+    "fingerprint_change": {
+      "previous": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+      "current": "24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e",
+      "explanation": "The approved path set and A19 owner attribution are unchanged. Later AAA-022 work updated shared fingerprint inputs, including the customization policy, projection subsystem pages/source, and generated API catalog; this record refreshes the digest without reopening A19 or widening its path set."
+    },
+    "verification": {
+      "verify_type_equiv": {
+        "command": "pnpm run verify-type-equiv",
+        "exit_status": 0,
+        "result": "PASS",
+        "summary": "437 type-equiv blocks match source structure and JSDoc; 437 paired derivatives."
+      },
+      "verify_cordis_catalog": {
+        "command": "pnpm run verify-cordis-catalog",
+        "exit_status": 0,
+        "result": "PASS",
+        "summary": "111 generated file/region outputs are up to date."
+      },
+      "test_docs": {
+        "command": "pnpm run test:docs",
+        "exit_status": 0,
+        "result": "PASS",
+        "summary": "22 passed, 0 failed, 0 skipped."
+      },
+      "scoped_diff_check": {
+        "command": "git diff --check -- <31 approved fingerprint inputs>",
+        "exit_status": 0,
+        "result": "PASS"
+      },
+      "doc_sync": {
+        "command": "pnpm run doc-sync",
+        "exit_status": 1,
+        "result": "PARTIAL",
+        "passed": 37,
+        "failed": 6,
+        "failures": [
+          {
+            "gate": "doc-typecheck",
+            "summary": "Host doc typecheck fails on existing branded SessionLogOffset/SessionSeq fixture values, ContentBlock narrowing, and Promise<undefined> test typing in context, agent-loop, and session-projection-cache packages."
+          },
+          {
+            "gate": "doc graphs",
+            "summary": "docs/event-producer-consumer.md is stale."
+          },
+          {
+            "gate": "tool catalog",
+            "summary": "plugin-manager was booted without registering a tool; the catalog reports missing ctx.tools, ctx.pluginManager, and ctx.sandboxPolicy composition."
+          },
+          {
+            "gate": "config catalog",
+            "summary": "docs/config-catalog.md is stale."
+          },
+          {
+            "gate": "persistence catalog",
+            "summary": "docs/persistence-catalog.md, docs/persistence-catalog.zh.md, docs/persistence-catalog.i18n.yaml, and docs/persistence-schema.json are stale."
+          },
+          {
+            "gate": "persistence type history",
+            "summary": "docs/persistence-schema.json is stale."
+          }
+        ]
+      }
+    },
+    "authority_binding": {
+      "new_authority_id": "AUTH-AAA-022-A19-SCOPE-31-CURRENT-001",
+      "successor_gate_path": ".agent/gates/audit-resolved-AAA-022-A19-scope-31-current.json",
+      "successor_gate_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-002",
+      "previous_authority_id": "AUTH-AAA-022-A19-SCOPE-31-001",
+      "scope_effect": "Refresh the current fingerprint and bind the same user-approved 31-input scope; do not alter runtime behavior or the existing api-catalog.ts owners."
+    },
+    "lifecycle_effect": "A19 remains closed; AAA-022:A25 remains active in BUILD/DESIGN at TECHNICALLY_SPECIFIED. No A19 implementation is reopened, and no external repository action is authorized.",
+    "limitations": [
+      "The full repository doc-sync remains partial at 37/43 with the six failures above; no repository-wide docs pass is claimed.",
+      "This record revalidates scope membership, current fingerprint, owner attribution, and required type/catalog/quick-doc checks only.",
+      "No product tests or generators in write mode were run for this scope revalidation."
+    ]
+  },
+  "state_check": {
+    "exit_status": 1,
+    "result": "FAIL",
+    "summary": "362 findings, three above the preserved 359 baseline; all three are gate/authority scope mismatches in this draft.",
+    "transcript": ".agent/evidence/AAA-022/a19-scope-31-gate-draft-state-check-20260923.txt"
+  }
+}

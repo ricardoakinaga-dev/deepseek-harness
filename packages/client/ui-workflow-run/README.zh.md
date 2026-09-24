@@ -89,6 +89,8 @@ kind: "package-reference"
 - **导航刻意只面向实时运行**：终态成员继续保留供复盘，但本节点永不为其提供冷会话入口。
 - **节点只显示运行、阶段、成员身份与状态**：脚本、输出、错误、日志、用量、静态拓扑与控制操作都不属于本界面。
 
+**运行时不变式：** 不发布伴生入口。浏览器插件只贡献由 effect 持有的 Conversation Definition、keyed renderer 与 dictionary；测试证明资源释放时会撤销这三项贡献；Host tool 包负责持久事件不变式。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -98,5 +100,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。浏览器插件只贡献由 effect 持有的 Conversation Definition、keyed renderer 与 dictionary；测试证明资源释放时会撤销这三项贡献；Host tool 包负责持久事件不变式。

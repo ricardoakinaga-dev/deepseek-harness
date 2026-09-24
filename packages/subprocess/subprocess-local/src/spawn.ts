@@ -134,7 +134,7 @@ function signalTree(
   child: ChildProcess,
   taskkill: (pid: number) => void,
 ): void {
-  /* v8 ignore next -- kill/terminate gate on treeAlive(), which is false without a pid; this guard protects direct callers only. */
+  /*! v8 ignore next -- kill/terminate gate on treeAlive(), which is false without a pid; this guard protects direct callers only. */
   if (pid === undefined) return
   if (platform === 'win32') {
     taskkill(pid)
@@ -143,14 +143,14 @@ function signalTree(
   try {
     process.kill(-pid, sig)
   } catch {
-    /* v8 ignore start -- the fallback needs a live child whose group signal fails
+    /*! v8 ignore start -- the fallback needs a live child whose group signal fails
        (EPERM-style), which POSIX CI cannot stage; the swallow keeps teardown idempotent. */
     try {
       child.kill(sig)
     } catch {
       // The direct child already exited; teardown remains idempotent.
     }
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
 }
 
@@ -182,14 +182,14 @@ function directChildResult(child: ChildProcess): Promise<SubprocessOutcome> {
   return new Promise((resolve, reject) => {
     let completed = false
     child.once('error', (error) => {
-      /* v8 ignore next -- ChildProcess may report a later operational error after its
+      /*! v8 ignore next -- ChildProcess may report a later operational error after its
          terminal exit event; the first terminal event owns the result. */
       if (completed) return
       completed = true
       reject(error)
     })
     child.once('exit', (exitCode, signal) => {
-      /* v8 ignore next -- a spawn/kill error may be followed by exit; a Promise can publish only the first terminal event. */
+      /*! v8 ignore next -- a spawn/kill error may be followed by exit; a Promise can publish only the first terminal event. */
       if (completed) return
       completed = true
       resolve({ exitCode, signal })
@@ -223,10 +223,10 @@ function fallbackOwner(
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code
       if (code === 'ESRCH') return false
-      /* v8 ignore start -- EPERM and non-POSIX negative-pid failures are platform defenses. */
+      /*! v8 ignore start -- EPERM and non-POSIX negative-pid failures are platform defenses. */
       if (code === 'EPERM') return true
       return child.exitCode === null && child.signalCode === null
-      /* v8 ignore stop */
+      /*! v8 ignore stop */
     }
   }
 
@@ -239,7 +239,7 @@ function fallbackOwner(
       signalTree(platform, pid, signal, child, taskkill)
     },
     waitForExit: async () => {
-      /* v8 ignore next -- bindManagedProcess memoizes this owner wait; the guard only
+      /*! v8 ignore next -- bindManagedProcess memoizes this owner wait; the guard only
          protects direct internal re-entry after signal() observed absence. */
       if (stopped) return
       observation ??= (async () => {
@@ -421,13 +421,13 @@ export function bindManagedProcess(
   }
 
   return {
-    /* v8 ignore start -- pipe-mode streams exist on every conforming launch;
+    /*! v8 ignore start -- pipe-mode streams exist on every conforming launch;
        the null-coalesces guard an internal adapter defect only. */
     stdin: stdinMode === 'pipe' ? stdin ?? undefined : undefined,
     stdout: outMode === 'pipe' ? stdout ?? undefined : undefined,
     stderr: errMode === 'pipe' ? stderr ?? undefined : undefined,
     control: launch.control,
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
     collected: {
       ...stdoutCollector !== undefined ? { stdout: stdoutCollector } : {},
       ...stderrCollector !== undefined ? { stderr: stderrCollector } : {},

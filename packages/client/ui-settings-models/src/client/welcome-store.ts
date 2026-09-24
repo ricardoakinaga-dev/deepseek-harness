@@ -34,7 +34,7 @@ export function decodeWelcomeSection(section: unknown): WelcomeSection {
     : {}
 }
 
-/* v8 ignore next 3 -- closed-union default only defends future source widening */
+/*! v8 ignore next 3 -- closed-union default only defends future source widening */
 function assertNever(_value: never): never {
   throw new Error('unexpected welcome settings status')
 }
@@ -133,7 +133,7 @@ export class WelcomeNoticeStore {
         })
         return
       }
-      /* v8 ignore next -- every current settings scope status is handled above */
+      /*! v8 ignore next -- every current settings scope status is handled above */
       default: return assertNever(scope.status)
     }
   }

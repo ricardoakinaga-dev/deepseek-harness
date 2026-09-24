@@ -23,8 +23,8 @@ import type {
 } from '@deepseek-ai/dsh-agent'
 import { errorChain, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-settings'
-import { interruptedTurnClosers, SessionLogOffset, SessionPreparation, SessionSeq } from '@deepseek-ai/dsh-session'
-import type { Session, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
+import { interruptedTurnClosers, SessionPreparation, SessionSeq } from '@deepseek-ai/dsh-session'
+import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-session-projection'
@@ -33,7 +33,9 @@ import { SessionPersistenceNotFoundError } from '@deepseek-ai/dsh-session-persis
 import type { SessionHandle, SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 import { ReactLoopAgent } from './agent.ts'
 import { inboxProjectionDefinition } from './inbox.ts'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the constants module owns that behavior. */
 import { DEFAULT_MAX_PARALLEL_TOOL_CALLS } from './constants.ts'
+/*! v8 ignore stop */
 
 /** Fiber states that cannot own or serve a new lifecycle. */
 const INACTIVE_STATES: ReadonlySet<FiberState> = new Set([
@@ -41,6 +43,12 @@ const INACTIVE_STATES: ReadonlySet<FiberState> = new Set([
   FiberState.DISPOSED,
   FiberState.FAILED,
 ])
+
+/** Default count of Session events written by one prepublication append call. */
+const DEFAULT_PREPUBLICATION_APPEND_BATCH_SIZE = 128
+
+/** Maximum count of Session events written by one prepublication append call. */
+const MAX_PREPUBLICATION_APPEND_BATCH_SIZE = 4096
 
 const turnBoundaryProjectionSchema: zod.ZodType<TurnBoundaryProjection> = zod.object({
   openTurnStartSeq: zod.number().int().nonnegative().transform(SessionSeq).nullable(),
@@ -195,6 +203,27 @@ function resolveMaxParallelToolCalls(value: number | undefined): number {
   return maxParallelToolCalls
 }
 
+/** Resolve the bounded Session append page size at the owning config boundary. */
+function resolvePrepublicationAppendBatchSize(value: number | undefined): number {
+  const batchSize = value ?? DEFAULT_PREPUBLICATION_APPEND_BATCH_SIZE
+  if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > MAX_PREPUBLICATION_APPEND_BATCH_SIZE) {
+    throw new Error(`prepublicationAppendBatchSize must be a positive safe integer no greater than ${MAX_PREPUBLICATION_APPEND_BATCH_SIZE}`)
+  }
+  return batchSize
+}
+
+/** Convert any caller abort reason into the Error used by agent lifecycle APIs. */
+function agentAbortError(signal: AbortSignal, id: SessionId): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new Error(`agent "${id}" creation aborted`, { cause: signal.reason })
+}
+
+/** Throw the normalized lifecycle error when the supplied signal has aborted. */
+function throwIfAborted(signal: AbortSignal, id: SessionId): void {
+  if (signal.aborted) throw agentAbortError(signal, id)
+}
+
 /** Reject an output-token cap that cannot be represented exactly on the request wire. */
 function assertAgentOptions(options: AgentOptions): void {
   if (options.maxTokens !== undefined
@@ -203,10 +232,13 @@ function assertAgentOptions(options: AgentOptions): void {
   }
 }
 
-/** One session's owned write handle plus the count of events already stored through it. */
+/** One session's write handle and ordered events available to its prepublication writer. */
 interface StoredSession {
   readonly handle: SessionHandle
+  readonly initialEvents: readonly SessionEvent[]
+  readonly pendingEvents: SessionEvent[]
   storedCount: number
+  detachPreparation?: () => void
 }
 
 /** Prepared-but-unpublished agent resources sharing one memoized teardown. */
@@ -321,6 +353,11 @@ export interface Config {
    * omission defaults to {@link DEFAULT_MAX_PARALLEL_TOOL_CALLS}.
    */
   maxParallelToolCalls?: number
+  /**
+   * Maximum Session events per append call while preparing a fresh or resumed agent.
+   * Defaults to 128 and is capped at 4096.
+   */
+  prepublicationAppendBatchSize?: number
   /** Agents created or resumed at plugin startup. */
   agents: (AgentOptions & {
     /** Stable config label used in logs and as the fresh combined-id prefix. */
@@ -335,7 +372,7 @@ export interface Config {
 }
 
 /** Agent-loop configuration after defaults and load-time validation. */
-type ResolvedConfig = Config & { maxParallelToolCalls: number }
+type ResolvedConfig = Config & { maxParallelToolCalls: number; prepublicationAppendBatchSize: number }
 
 /** Reject self-contained identity conflicts before any configured agent starts. */
 function validateConfiguredAgents(agents: Config['agents']): void {
@@ -362,6 +399,11 @@ export class AgentLoop extends Service implements AgentFactory {
   /** Runtime schema for declarative agents. */
   static Config = z.object({
     maxParallelToolCalls: z.number().step(1).min(1).default(DEFAULT_MAX_PARALLEL_TOOL_CALLS),
+    prepublicationAppendBatchSize: z.number()
+      .step(1)
+      .min(1)
+      .max(MAX_PREPUBLICATION_APPEND_BATCH_SIZE)
+      .default(DEFAULT_PREPUBLICATION_APPEND_BATCH_SIZE),
     agents: z.array(z.object({
       id: z.string().required(),
       sessionId: z.string().min(1),
@@ -386,10 +428,12 @@ export class AgentLoop extends Service implements AgentFactory {
     const entry: AgentLoopSettings = {
       maxParallelToolCalls: resolveMaxParallelToolCalls(config.maxParallelToolCalls),
     }
+    const prepublicationAppendBatchSize = resolvePrepublicationAppendBatchSize(config.prepublicationAppendBatchSize)
     let source: () => AgentLoopSettings = () => entry
     this.config = {
       ...config,
       agents: applyLauncherIdentities(config.agents, ctx.get(CONFIGURED_AGENT_IDENTITIES_KEY)),
+      prepublicationAppendBatchSize,
       // Read through on every scheduler decision: `tool-calls.ts` destructures
       // this at the start of each group, so a committed change caps the next
       // group without disturbing the one in flight.
@@ -532,17 +576,18 @@ export class AgentLoop extends Service implements AgentFactory {
     ownerCtx: Context,
     id: SessionId,
     options: AgentOptions,
-    session: Session,
+    preparation: SessionPreparation,
     callerSignal?: AbortSignal,
-    handle?: SessionHandle,
+    stored?: StoredSession,
     parentAgent?: Agent,
   ): PreparedAgent {
+    const session = preparation.session
     assertAgentOptions(options)
     ownerCtx.fiber.assertActive()
     // Every caller reaches prepare() synchronously from a service method
     // whose Cordis dispatch already requires the live factory fiber, or
     // re-checks ownership itself after its awaits (resume's load barrier).
-    /* v8 ignore next -- unreachable backstop, see above */
+    /*! v8 ignore next -- unreachable backstop, see above */
     if (!this.ownership.isActive()) throw new Error('agent loop is not active')
     if (callerSignal?.aborted) {
       throw callerSignal.reason instanceof Error
@@ -550,6 +595,12 @@ export class AgentLoop extends Service implements AgentFactory {
         : new Error(`agent "${id}" creation aborted`, { cause: callerSignal.reason })
     }
     const loopCtx = this.runtime.ctx
+    loopCtx.sessionProjections.prepareSession(preparation)
+    if (stored !== undefined) {
+      stored.detachPreparation = preparation.subscribeAppends(event => () => {
+        stored.pendingEvents.push(event)
+      })
+    }
 
     // Deactivation fuses three owners, each with its own reason: the caller's
     // cancellation signal, the owner fiber's unload, and factory teardown.
@@ -589,9 +640,9 @@ export class AgentLoop extends Service implements AgentFactory {
         // Disposal IS a disposed-cause cancel followed by quiescence. New work
         // sent after this point is the sender's bug — the registries are about
         // to drop the agent, so nothing should still hold it.
-        /* v8 ignore next -- Cordis effect teardown waits for synchronous setup before observing the machine slot. */
+        /*! v8 ignore next -- Cordis effect teardown waits for synchronous setup before observing the machine slot. */
         if (machine === undefined) await machineReady.promise
-        /* v8 ignore next -- setup failure untracks this disposer before resolving without a machine. */
+        /*! v8 ignore next -- setup failure untracks this disposer before resolving without a machine. */
         if (machine !== undefined) {
           machine.cancel({ kind: 'disposed' })
           await machine.whenIdle()
@@ -605,7 +656,9 @@ export class AgentLoop extends Service implements AgentFactory {
       // path. The close drain can be the first operation that surfaces a
       // durability failure, so its error is retained, not logged away.
       try {
-        await handle?.close()
+        stored?.detachPreparation?.()
+        if (stored !== undefined) delete stored.detachPreparation
+        await stored?.handle.close()
       } catch (error: unknown) {
         failures.push(error)
       }
@@ -636,26 +689,27 @@ export class AgentLoop extends Service implements AgentFactory {
           return dispose(true)
         }
       }, `agentLoop.lifecycle(${id})`)
-      /* v8 ignore start -- ctx.effect throws only on an inactive fiber, which assertActive() above already rejected */
+      /*! v8 ignore start -- ctx.effect throws only on an inactive fiber, which assertActive() above already rejected */
     } catch (error: unknown) {
       machineReady.resolve()
       untrack()
+      stored?.detachPreparation?.()
       callerSignal?.removeEventListener('abort', onCallerAbort)
       this.ownership.signal.removeEventListener('abort', onFactoryTeardown)
       throw error
     }
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
 
     const assertLive = (): void => {
       if (!abort.signal.aborted) return
       // Every fused abort source carries an Error reason: onCallerAbort and
       // raceAbort wrap non-Error caller reasons, and the factory/lifecycle
       // owners abort with constructed Errors.
-      /* v8 ignore next -- unreachable String() arm, see above */
+      /*! v8 ignore next -- unreachable String() arm, see above */
       throw abort.signal.reason instanceof Error ? abort.signal.reason : new Error(String(abort.signal.reason))
     }
     try {
-      /* v8 ignore next -- a synchronous effect exhausts the generator before returning */
+      /*! v8 ignore next -- a synchronous effect exhausts the generator before returning */
       if (machine === undefined) throw new Error(`agent "${id}" lifecycle did not construct its driver`)
       const agent = machine
       assertLive()
@@ -703,58 +757,117 @@ export class AgentLoop extends Service implements AgentFactory {
    */
   async create(id: SessionId, options: AgentOptions = {}, meta: Pick<SessionHeader, 'cwd'> = {}): Promise<Agent> {
     using preparation = SessionPreparation.create(this.runtime.ctx.sessions.prepare(id, { meta }))
-    const stored = await this.createStoredSession(preparation.session)
+    const stored = await this.createStoredSession(preparation)
     let prepared: PreparedAgent
     try {
-      prepared = this.prepare(this.ctx, id, options, preparation.session, undefined, stored?.handle)
+      prepared = this.prepare(this.ctx, id, options, preparation, undefined, stored)
     } catch (error: unknown) {
       await stored?.handle.close().catch(() => {})
       throw error
     }
     return (await this.initializeAgent(prepared, async () => {
-      await this.appendUnstoredSuffix(stored, preparation.session)
-      return await prepared.publish('startup')
+      return await this.persistAndPublish(stored, preparation.session, prepared, 'startup')
     })).agent
   }
 
   /**
    * Take a fresh session's write ownership when persistence is mounted.
-   * Nothing is appended here: the constructor seed (which never re-emits
-   * through `session/event`) is stored by `appendUnstoredSuffix` at the
-   * publication commit point, so a failed or cancelled validation or setup
-   * closes an unmaterialized handle and leaves no stored residue — the same
-   * id can be created again.
-   * @param session - the unpublished session to store.
+   * Nothing is appended here: the constructor baseline and preparation-time
+   * events are stored in bounded pages immediately before publication, so a
+   * failed or cancelled validation or setup closes an unmaterialized handle
+   * and leaves no stored residue — the same id can be created again.
+   * @param preparation - the unpublished Session and its accepted append feed.
    * @param signal - optional cancellation forwarded to the backend create.
    * @returns the owned handle and stored cursor, or `undefined` without a backend.
    */
-  private async createStoredSession(session: Session, signal?: AbortSignal): Promise<StoredSession | undefined> {
+  private async createStoredSession(preparation: SessionPreparation, signal?: AbortSignal): Promise<StoredSession | undefined> {
     const persistence = this.runtime.ctx.get('sessionPersistence')
     if (persistence === undefined) return undefined
+    const { session } = preparation
     const handle = await persistence.create(session.header, {
       inheritedEventCount: session.inheritedEventCount,
       ...signal === undefined ? {} : { signal },
     })
-    return { handle, storedCount: 0 }
+    return {
+      handle,
+      initialEvents: preparation.baseline.events,
+      pendingEvents: [],
+      storedCount: 0,
+    }
   }
 
   /**
-   * Durably store the session events appended since the last stored cursor.
-   * Pre-publication appends (constructor seed markers, setup-window events
-   * such as delegation policy records) never re-emit through `session/event`,
-   * so publication must flush them through the handle before live events
-   * start routing into it.
-   * @param stored - the session's owned handle and stored cursor, if any.
-   * @param session - the unpublished session whose suffix is stored.
+   * Persist prepublication events in bounded pages, then publish synchronously
+   * after the cursor catches the Session's current sequence.
+   * @param stored - the owned handle, baseline, and accepted preparation appends.
+   * @param session - the unpublished Session whose events must be stored.
+   * @param prepared - the unpublished agent and its lifecycle signal.
+   * @param source - the reason for creating or resuming the agent.
+   * @returns the published agent handle.
    */
-  private async appendUnstoredSuffix(stored: StoredSession | undefined, session: Session): Promise<void> {
-    if (stored === undefined) return
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    const suffix = session.snapshotEvents(SessionLogOffset(stored.storedCount))
-    if (suffix.length > 0) await stored.handle.append(suffix)
-    // Advance by what was stored, not to `session.seq`: an event appended
-    // during the await must stay unstored for the next flush.
-    stored.storedCount += suffix.length
+  private async persistAndPublish(
+    stored: StoredSession | undefined,
+    session: Session,
+    prepared: PreparedAgent,
+    source: SessionStartSource,
+  ): Promise<AgentHandle> {
+    if (stored === undefined) return prepared.publish(source)
+    while (true) {
+      prepared.signal.throwIfAborted()
+      const fixedCut = session.seq
+      while (stored.storedCount < fixedCut) {
+        prepared.signal.throwIfAborted()
+        const pageEnd = Math.min(fixedCut, stored.storedCount + this.config.prepublicationAppendBatchSize)
+        const events: SessionEvent[] = []
+        for (let seq = stored.storedCount; seq < pageEnd; seq++) {
+          const event = seq < stored.initialEvents.length
+            ? stored.initialEvents[seq]
+            : stored.pendingEvents[seq - stored.initialEvents.length]
+          if (event === undefined || event.seq !== seq) {
+            throw new Error(`session "${session.id}" prepublication writer is missing seq ${seq}`)
+          }
+          events.push(event)
+        }
+        await stored.handle.append(events, { signal: prepared.signal })
+        stored.storedCount += events.length
+      }
+      prepared.signal.throwIfAborted()
+      if (stored.storedCount !== session.seq) continue
+      // PreparedAgent.publish enters SessionStore synchronously, which seals
+      // the preparation feed before the first await and routes later events live.
+      const publication = prepared.publish(source)
+      stored.detachPreparation?.()
+      delete stored.detachPreparation
+      stored.pendingEvents.length = 0
+      return publication
+    }
+  }
+
+  /**
+   * Append an existing log's synthetic repair events in bounded pages.
+   * @param handle - the exact-id write handle used to read the interrupted log.
+   * @param events - contiguous synthetic repair events in sequence order.
+   * @param signal - cancellation fused with the resume owner.
+   * @returns a promise that settles after every page resolves; rejected pages are not retried.
+   */
+  private async appendRepairPages(
+    handle: SessionHandle,
+    events: readonly SessionEvent[],
+    signal: AbortSignal,
+    id: SessionId,
+  ): Promise<void> {
+    for (let offset = 0; offset < events.length;) {
+      throwIfAborted(signal, id)
+      const page = events.slice(offset, offset + this.config.prepublicationAppendBatchSize)
+      try {
+        await handle.append(page, { signal })
+      } catch (error: unknown) {
+        if (signal.aborted) throw agentAbortError(signal, id)
+        throw error
+      }
+      offset += page.length
+    }
+    throwIfAborted(signal, id)
   }
 
   /**
@@ -775,9 +888,9 @@ export class AgentLoop extends Service implements AgentFactory {
         // raceAbortCall normalizes a pre-aborted or mid-create abort and
         // closes a handle that finishes creating after abandonment.
         stored = options.signal === undefined
-          ? await this.createStoredSession(preparation.session)
+          ? await this.createStoredSession(preparation)
           : await raceAbortCall(
-            () => this.createStoredSession(preparation.session, options.signal),
+            () => this.createStoredSession(preparation, options.signal),
             options.signal,
             options.sessionId,
             (abandoned) => { void abandoned?.handle.close().catch(() => {}) },
@@ -818,7 +931,7 @@ export class AgentLoop extends Service implements AgentFactory {
     const session = ownedPreparation.session
     let prepared: PreparedAgent
     try {
-      prepared = this.prepare(ownerCtx, id, agentOptions, session, signal, stored?.handle, parentAgent)
+      prepared = this.prepare(ownerCtx, id, agentOptions, ownedPreparation, signal, stored, parentAgent)
     } catch (error: unknown) {
       await stored?.handle.close().catch(() => {})
       throw error
@@ -826,8 +939,7 @@ export class AgentLoop extends Service implements AgentFactory {
     return await this.initializeAgent(prepared, async () => {
       const setupCommit = await raceAbort(setup?.(prepared.agent.ctx, prepared.agent), prepared.signal, id)
       setupCommit?.commit()
-      await this.appendUnstoredSuffix(stored, session)
-      return await prepared.publish(source)
+      return await this.persistAndPublish(stored, session, prepared, source)
     })
   }
 
@@ -902,18 +1014,22 @@ export class AgentLoop extends Service implements AgentFactory {
           // synthetic closers (missing tool errors, step/end, turn/end) that
           // are appended through the same handle as an ordinary batch.
           const coldRead = await handle.read(0, undefined, { signal: fused })
-          fused.throwIfAborted()
+          throwIfAborted(fused, id)
           const persisted = coldRead.events
           const closers = interruptedTurnClosers(persisted)
-          if (closers.length > 0) await handle.append(closers)
+          await this.appendRepairPages(handle, closers, fused, id)
           preparation = SessionPreparation.create(this.runtime.ctx.sessions.prepare(id, {
             seed: [...persisted, ...closers],
             meta: structuredClone(handle.header),
             inheritedEventCount: handle.inheritedEventCount,
             eventState: coldRead.eventState,
           }))
-          stored = { handle, storedCount: persisted.length + closers.length }
-          await this.appendUnstoredSuffix(stored, preparation.session)
+          stored = {
+            handle,
+            initialEvents: preparation.baseline.events,
+            pendingEvents: [],
+            storedCount: persisted.length + closers.length,
+          }
         } finally {
           await unfollowOwner()
         }

@@ -92,6 +92,10 @@ type CommandResult =
 
 `sourceEventSeq` is optional and success-only. When present, it names an earlier non-command event in the receiving session log; `command/done` persists the same reference so a client can combine the command lifecycle with that domain projection without parsing `text` or relying on adjacent rows.
 
+## Command lifecycle integrity
+
+The invariant companion requires each `command/done` id to have a prior `command/run` and rejects reuse of any run id. It accepts `sourceEventSeq` only for an earlier non-command event. Rejected candidates leave the audit fold unchanged, including when their cursor exposes a missing prefix. A committed event gap or a stale current-prefix read latches a failure. The provider folds creation baselines and committed events into contiguous state shared by provider leases. Final release clears the fold; an empty Session can seed a new fold, and an eventful Session without a current prefix fails closed without deprecated history reads.
+
 ## Discovery and parsing views
 
 Adapters receive handler-free immutable descriptors after scope resolution. `parseCommand()` returns `ParsedCommand` before registry resolution; syntax-valid input can still name an unavailable command.

@@ -1,0 +1,43 @@
+{
+  "record_id": "EVID-AAA-023-IMPLEMENTATION-A37-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A12",
+  "timestamp": "2026-09-22T05:03:46-03:00",
+  "result": "PASS",
+  "scope": "Behavior-preserving removal of the explicit_any test-matcher increase",
+  "changes": [
+    "The browser-policy denial assertion in packages/extensions/cordis-client-runner/tests/plugin.client.spec.ts now uses expect.stringMatching(/./u) instead of expect.any(String). It still requires a non-empty stack string and no production code or metric policy changed."
+  ],
+  "commands": [
+    {
+      "command": "pnpm exec vitest run packages/extensions/cordis-client-runner/tests/plugin.client.spec.ts",
+      "result": "PASS",
+      "observed": "1 test file and 15 tests passed."
+    },
+    {
+      "command": "git diff --no-ext-diff -U0 HEAD -- packages/extensions/cordis-client-runner | rg '^\\+[^+].*\\bany\\b'",
+      "result": "PASS",
+      "observed": "No added any-token line remains in the affected package."
+    },
+    {
+      "command": "Temporary GIT_INDEX_FILE with all 16 UI moves; pnpm run audit:metrics",
+      "result": "PASS",
+      "observed": "No candidate tracked path is missing and the canonical audit ratchet reports status passed; the previous cordis-client-runner explicit_any violation is gone."
+    },
+    {
+      "command": "Temporary GIT_INDEX_FILE with all 16 UI moves; pnpm run rescope-vendor:check",
+      "result": "PASS",
+      "observed": "Vendor rescope verifies 7,356 tracked candidate paths with no residue."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "limitations": [
+    "The actual worktree index still does not represent the 16-path source move, so the ordinary current-worktree path gates have not been rerun on a real candidate.",
+    "This is scoped compatibility evidence on a temporary candidate index, not same-SHA release qualification.",
+    "No staging, commit, publication, push, merge, release, or final verdict was performed."
+  ],
+  "next_action": "Re-run the bounded aggregate path gates on one authorized candidate tree, then reconcile the wider release matrix without claiming release qualification."
+}

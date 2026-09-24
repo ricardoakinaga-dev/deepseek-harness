@@ -40,15 +40,15 @@ jobs:
       matrix:
         python: ['3.10', '3.14']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@v6.3.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.python }}
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: deepseek_harness_*
           path: dist
@@ -80,14 +80,18 @@ jobs:
     needs: [build, python-compat]
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@v6.3.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.10'
 
@@ -134,7 +138,7 @@ jobs:
             }
           fi
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: deepseek_harness_*
           path: dist
@@ -169,13 +173,45 @@ jobs:
           python -m pip install twine==6.2.0
           python -m twine check dist/*.whl
 
+      - name: Generate release SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: dist
+          format: spdx-json
+          output-file: dist/python-release.spdx.json
+          artifact-name: python-release-sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate release artifact attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/*.whl
+
+      - name: Generate release SBOM attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/*.whl
+          sbom-path: dist/python-release.spdx.json
+
+      - name: Verify release attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for artifact in dist/*.whl; do
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY" \
+              --predicate-type https://spdx.dev/Document/v2.3
+          done
+
       - name: Record artifact hashes
         run: |
           cd dist
           sha256sum *.whl | sort -k2 > SHA256SUMS
           cat SHA256SUMS
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: python-release-${{ steps.version.outputs.version }}
           path: dist/*
@@ -192,8 +228,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      attestations: read
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: python-release-${{ needs.validate.outputs.version }}
           path: dist
@@ -201,13 +238,24 @@ jobs:
       - name: Verify release artifact hashes
         run: cd dist && sha256sum -c SHA256SUMS
 
+      - name: Verify release attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for artifact in dist/deepseek_harness_runtime_bin-*.whl; do
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY" \
+              --predicate-type https://spdx.dev/Document/v2.3
+          done
+
       - name: Select runtime wheels
         run: |
           mkdir -p dist/runtime
           mv dist/deepseek_harness_runtime_bin-*.whl dist/runtime/
 
       - name: Publish runtime wheels
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           packages-dir: dist/runtime/
           # Public attestations reveal the private publisher repository. OIDC
@@ -227,8 +275,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      attestations: read
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: python-release-${{ needs.validate.outputs.version }}
           path: dist
@@ -236,13 +285,24 @@ jobs:
       - name: Verify release artifact hashes
         run: cd dist && sha256sum -c SHA256SUMS
 
+      - name: Verify release attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for artifact in dist/deepseek_harness_sdk-*.whl; do
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY" \
+              --predicate-type https://spdx.dev/Document/v2.3
+          done
+
       - name: Select SDK wheel
         run: |
           mkdir -p dist/sdk
           mv dist/deepseek_harness_sdk-*.whl dist/sdk/
 
       - name: Publish SDK wheel
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           packages-dir: dist/sdk/
           attestations: false

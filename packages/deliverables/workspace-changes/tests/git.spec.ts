@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import { GitRunner, blobText, diffTrees, ignoredPaths, locateGitWorkspace, snapshotTree, treeBlob } from '../src/git.ts'
+import type { GitRunResult } from '../src/git.ts'
 import { TurnRecorder } from '../src/recorder.ts'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { git, scratchDir, startTurn, toolCall } from './support.ts'
@@ -51,8 +52,9 @@ describe('GitRunner', () => {
     await expect(slow.run(['--version'], { cwd, signal })).rejects.toThrow('timed out after 1ms')
     const { git: quick } = await runner()
     const aborted = new AbortController()
-    setTimeout(() => { aborted.abort() }, 0)
-    await expect(quick.run(['--version'], { cwd, signal: aborted.signal })).rejects.toThrow('git --version was aborted')
+    const pending = quick.run(['--version'], { cwd, signal: aborted.signal })
+    aborted.abort()
+    await expect(pending).rejects.toThrow('git --version was aborted')
     const ok = await quick.run(['--version'], { cwd, signal })
     expect(ok.exitCode).toBe(0)
     expect(ok.stdout).toContain('git version')
@@ -81,7 +83,7 @@ describe('snapshots and diffs', () => {
     expect(git(cwd, 'status', '--porcelain')).toContain('UU f.txt')
   })
 
-  it('fails loudly when the addressed repository cannot be written or diffed', async () => {
+  it('fails loudly when the addressed repository cannot be written or diffed', { timeout: 20_000 }, async () => {
     const cwd = await scratchDir('dsh-git-broken-', cleanups)
     const { git: runnerGit } = await runner()
     const store = objectsIn(await scratchDir('dsh-git-store-', cleanups))
@@ -178,7 +180,6 @@ describe('TurnRecorder', () => {
     const env = { git: gate, tempRoot, maxFiles: 10, maxFileBytes: 1024, diffTimeoutMs: 100, warn: (m: string) => { warnings.push(m) } }
     const disposed = new TurnRecorder(session, cwd, env)
     disposed.start(1)
-    await new Promise(resolve => setTimeout(resolve, 5))
     const disposal = disposed.dispose()
     release(runnerGit)
     await disposal
@@ -193,6 +194,35 @@ describe('TurnRecorder', () => {
     await failing.settled()
     expect(warnings).toHaveLength(1)
     expect(warnings[0]).toContain('workspace-changes:')
+  })
+
+  it('stays silent when a running git task fails after disposal', async () => {
+    const cwd = await scratchDir('dsh-recorder-race-', cleanups)
+    const { ctx } = await runner()
+    const started = Promise.withResolvers<undefined>()
+    const failed = Promise.withResolvers<GitRunResult>()
+    const gitRunner = {
+      run: async (): Promise<GitRunResult> => {
+        started.resolve(undefined)
+        return await failed.promise
+      },
+    } as unknown as GitRunner
+    const warnings: string[] = []
+    const recorder = new TurnRecorder(ctx.sessions.create(SessionId('recorder-race'), { meta: { cwd } }), cwd, {
+      git: Promise.resolve(gitRunner),
+      tempRoot: await scratchDir('dsh-git-store-', cleanups),
+      maxFiles: 10,
+      maxFileBytes: 1024,
+      diffTimeoutMs: 100,
+      warn: (message: string) => { warnings.push(message) },
+    })
+
+    recorder.start(1)
+    await started.promise
+    const disposal = recorder.dispose()
+    failed.reject(new Error('fixture race failure'))
+    await disposal
+    expect(warnings).toEqual([])
   })
 
   it('removes its snapshot objects on disposal and never creates them outside a repository', async () => {

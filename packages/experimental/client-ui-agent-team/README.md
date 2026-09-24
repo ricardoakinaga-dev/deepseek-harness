@@ -85,6 +85,8 @@ No direct effect; the Team tools and ordinary conversation submission own any la
 - **Ordinary child continuation** — a human message sent after navigation uses the stable addressed-subagent prompt path, not the Team peer mailbox.
 - **No lifecycle or workspace controls** — the panel cannot spawn, rename, delete, or interrupt teammates, and write scopes remain advisory metadata.
 
+**Runtime invariant:** No companion is published. RPC is authoritative and the package owns only one disposable slot registration.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -94,5 +96,3 @@ No direct effect; the Team tools and ordinary conversation submission own any la
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. RPC is authoritative and the package owns only one disposable slot registration.

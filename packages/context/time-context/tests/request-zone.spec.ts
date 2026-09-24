@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import {
+  browserTimeZoneInput,
   deriveBrowserTimeZoneContext,
+  deriveBrowserTimeZoneContextFromInputs,
   renderBrowserTimeZoneContext,
 } from '../src/request-zone.ts'
 
@@ -44,6 +46,24 @@ describe('browser request-zone context', () => {
     expect(() => deriveBrowserTimeZoneContext([
       browserMessage('Etc/UTC'),
     ])).toThrow(/browser time zone must be canonical/)
+  })
+
+  it('reports the first invalid browser-zone input in message order', () => {
+    expect(() => deriveBrowserTimeZoneContext([
+      browserMessage('Not/A_Real_Zone'),
+      browserMessage('Other/Not_A_Real_Zone'),
+    ])).toThrow(/browser time zone is unsupported: "Not\/A_Real_Zone"/)
+    expect(() => deriveBrowserTimeZoneContextFromInputs([
+      'Not/A_Real_Zone',
+      'Other/Not_A_Real_Zone',
+    ])).toThrow(/browser time zone is unsupported: "Not\/A_Real_Zone"/)
+  })
+
+  it('keeps raw rpc zone values unvalidated until the request policy is read', () => {
+    const invalid = browserMessage('Not/A_Real_Zone')
+    expect(browserTimeZoneInput(invalid)).toBe('Not/A_Real_Zone')
+    expect(() => deriveBrowserTimeZoneContextFromInputs(['Not/A_Real_Zone']))
+      .toThrow(/browser time zone is unsupported/)
   })
 
   it('renders one explicit model policy for every context', () => {

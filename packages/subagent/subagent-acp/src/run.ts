@@ -125,7 +125,7 @@ function failureDiagnostic(facts: AcpFailureFacts): string {
   if (facts.outcome?.exitCode !== null && facts.outcome?.exitCode !== undefined) {
     fields.push(`exit code: ${facts.outcome.exitCode}`)
   }
-  /* v8 ignore next -- Windows does not report POSIX child signals in SubprocessOutcome. */
+  /*! v8 ignore next -- Windows does not report POSIX child signals in SubprocessOutcome. */
   if (facts.outcome?.signal !== null && facts.outcome?.signal !== undefined) {
     fields.push(`signal: ${facts.outcome.signal}`)
   }
@@ -269,7 +269,7 @@ function toError(value: unknown): Error {
   // The catch only sees rejections from the ACP SDK RPCs and the spawn `error`
   // event, which are always `Error`s; the `String(value)` arm is a defensive
   // fallback for a non-Error throw that the typed APIs cannot produce.
-  /* v8 ignore next */
+  /*! v8 ignore next */
   return value instanceof Error ? value : new Error(String(value))
 }
 
@@ -289,7 +289,7 @@ function startupFailure(
   outcome: SubprocessOutcome | undefined,
 ): AcpRunFailure {
   return new AcpRunFailure(
-    /* v8 ignore next -- Windows anonymous pipes cannot expose a live-child protocol close during startup. */
+    /*! v8 ignore next -- Windows anonymous pipes cannot expose a live-child protocol close during startup. */
     outcome === undefined
       ? { stage, category: 'transport' }
       : { stage, category: 'process-exit', outcome },
@@ -357,11 +357,11 @@ export async function startAcpRun(request: SubagentStartRequest, spec: AcpRunSpe
     reportFailure(spec, error)
     throw new AcpRunFailure({ stage: 'process', category: 'process-start' }, error)
   }
-  /* v8 ignore start -- 'pipe' dispositions expose both streams by the seam contract; defensive. */
+  /*! v8 ignore start -- 'pipe' dispositions expose both streams by the seam contract; defensive. */
   if (child.stdin === undefined || child.stdout === undefined) {
     throw new Error('subagent-acp: subprocess implementation dropped a piped protocol stream')
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
   let processOutcome: SubprocessOutcome | undefined
   let processFailure: Error | undefined
   const processDone = child.done.then(
@@ -380,7 +380,7 @@ export async function startAcpRun(request: SubagentStartRequest, spec: AcpRunSpe
   // observing its streams closing bounds a child that exits without speaking
   // the protocol.)
   const processRejected: Promise<never> = processDone.then(
-    /* v8 ignore next -- the success arm's never-settling executor is intentionally empty. */
+    /*! v8 ignore next -- the success arm's never-settling executor is intentionally empty. */
     () => new Promise<never>(() => {}),
     (err: unknown) => Promise.reject(toError(err)),
   )
@@ -391,10 +391,10 @@ export async function startAcpRun(request: SubagentStartRequest, spec: AcpRunSpe
     const timeout = AbortSignal.timeout(Math.ceil(spec.disposeGraceMs))
     const bound = signal === undefined ? timeout : AbortSignal.any([signal, timeout])
     const aborted = Promise.withResolvers<undefined>()
-    /* v8 ignore next -- Windows cannot expose the live-child protocol close needed to await this abort. */
+    /*! v8 ignore next -- Windows cannot expose the live-child protocol close needed to await this abort. */
     const onObservationAbort = (): void => { aborted.resolve(undefined) }
     bound.addEventListener('abort', onObservationAbort, { once: true })
-    /* v8 ignore next -- closes the event-loop race between listener registration and the preceding derived-signal check. */
+    /*! v8 ignore next -- closes the event-loop race between listener registration and the preceding derived-signal check. */
     if (bound.aborted) onObservationAbort()
     try {
       return await Promise.race([processDone, aborted.promise])
@@ -467,7 +467,7 @@ export async function startAcpRun(request: SubagentStartRequest, spec: AcpRunSpe
     flags.cancelled = true
     signalCancelSettled()
     // Best-effort ACP cancel; process teardown remains authoritative.
-    /* v8 ignore next */
+    /*! v8 ignore next */
     if (sessionId !== undefined) {
       void agent.notify(methods.agent.session.cancel, { sessionId }).catch(() => { /* child gone / no session */ })
     }
@@ -499,7 +499,7 @@ export async function startAcpRun(request: SubagentStartRequest, spec: AcpRunSpe
           )
         }
         sessionId = returnedSessionId
-        /* v8 ignore next -- cancelSettled wins the startup race before this post-response guard can settle it. */
+        /*! v8 ignore next -- cancelSettled wins the startup race before this post-response guard can settle it. */
         if (flags.cancelled) throw new Error('subagent cancelled before the ACP session started')
       })(),
       processRejected,
@@ -554,7 +554,7 @@ export async function startAcpRun(request: SubagentStartRequest, spec: AcpRunSpe
   }
   // The startup transaction validates the returned id before it can fulfill.
   // This assertion carries that cross-closure invariant into TypeScript.
-  /* v8 ignore next */
+  /*! v8 ignore next */
   if (sessionId === undefined) throw new Error('unreachable: ACP startup fulfilled without a session id')
   const remoteSessionId = sessionId
 

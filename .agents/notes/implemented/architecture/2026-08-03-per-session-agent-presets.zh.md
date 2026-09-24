@@ -69,7 +69,7 @@ Status: implemented
 
 **preset 放大的是宿主本来就在付的代价：没有任何东西会 dispose 一个 agent。** 用 `--expose-gc` 对随附组装实测：一个存活的 agent 在 `minimal` 上约占 0.17 MB、在 `standard`/`cordis` 上约 1.31 MB，挂载耗时分别约 38 ms 与 135 ms；进程里第一个 agent 另需约 7 MB，那是 Node 首次 import 模块的一次性成本，此后每次挂载共享。增长严格线性——10、30、50 个的单个增量一致——且 dispose 后基本全额回收（50 个 `standard` 占住 57.8 MB，释放后全部归还）。所以对象图并不泄漏，缺的是生命周期。`ApiSessionAgentController` 会丢弃注册表返回的 `AgentHandle`，`archiveSession` 只改工作区注册表，`AgentRegistry` 没有驱逐机制，而宿主里唯一一处 dispose 是 JSON-RPC 服务器自身的关停。于是一个 web 宿主会留住它接触过的每一个会话，组装 preset 之后每个约 1.3 MB，而在此之前约 0.2 MB。注意：剪枝挂载注册表在这里没有用——它丢弃的是 fiber `uid` 已清空的记录，而永不死亡的 agent 永远不会清空它。
 
-- 遗留 TODO：idle agent 驱逐——会话持久化后 dispose，恢复时重新挂载。它属于持有 handle 的那个宿主，不属于本 seam。
+- Idle agent 驱逐不属于本 seam。宿主持有 agent handle，因此由宿主负责保留或释放策略。
 
 ## 考虑过的替代方案
 

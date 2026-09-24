@@ -30,7 +30,6 @@
       "types": "./lib/types/presentation.d.ts",
       "default": "./lib/types/presentation.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
@@ -48,6 +47,7 @@
     "@deepseek-ai/dsh-llm": "workspace:^",
     "@deepseek-ai/dsh-scope": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
+    "@deepseek-ai/dsh-session-projection": "workspace:^",
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
     "@deepseek-ai/dsh-user-approval": "workspace:^",
     "@deepseek-ai/dsh-sandbox": "workspace:^",

@@ -80,7 +80,7 @@ function statusKey(status: TeamTask['status']): TeamKey {
     case 'pending': return 'status.pending'
     case 'in_progress': return 'status.in_progress'
     case 'completed': return 'status.completed'
-    /* v8 ignore next -- Team views omit deleted task tombstones. */
+    /*! v8 ignore next -- Team views omit deleted task tombstones. */
     case 'deleted': return 'status.completed'
   }
 }
@@ -190,7 +190,7 @@ export function TeamAction({
   const submitCreate = async (): Promise<void> => {
     const subject = createDraft.subject.trim()
     const description = createDraft.description.trim()
-    /* v8 ignore next -- TaskForm disables Save while either normalized field is empty. */
+    /*! v8 ignore next -- TaskForm disables Save while either normalized field is empty. */
     if (subject === '' || description === '') return
     const created = await settleTask('create', () => createTask(sessionId, {
       subject,

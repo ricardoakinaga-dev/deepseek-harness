@@ -12,7 +12,9 @@ import {
   ReasoningEffortId,
 } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the timeout package owns that behavior. */
 import { deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@deepseek-ai/dsh-timeout'
+/*! v8 ignore stop */
 // Type-only imports activate the Context service declarations used below.
 import type {} from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-token-meter'

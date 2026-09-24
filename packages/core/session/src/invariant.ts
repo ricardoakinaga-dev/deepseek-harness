@@ -8,7 +8,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
-import type { Session, SessionEvent, SessionSeqCursor } from '@deepseek-ai/dsh-session'
+import type { Session, SessionCreationBaseline, SessionEvent, SessionSeqCursor } from '@deepseek-ai/dsh-session'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { TOOL_NOT_STARTED } from './repair.ts'
 
@@ -183,7 +183,7 @@ function applyTransition(trace: SessionTrace, transition: SessionTraceTransition
     case 'clear':
       trace.pendingCalls.clear()
       break
-    /* v8 ignore next -- validateEvent produces this closed transition union */
+    /*! v8 ignore next -- validateEvent produces this closed transition union */
     default:
       assertNever(transition.pendingCalls, 'session trace pending-call transition')
   }
@@ -207,26 +207,32 @@ const install: InvariantInstaller = Object.assign((ctx: Context, fail: Invariant
     pendingCalls: new Set(),
   })
 
-  const seedSession = (session: Session): SessionTrace => {
+  const seedSession = (session: Session, events: readonly SessionEvent[]): SessionTrace => {
     const trace = freshTrace()
     traces.set(session, trace)
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    for (const event of session.snapshotEvents()) {
+    for (const event of events) {
       applyTransition(trace, validateEvent(trace, event, fail))
     }
     return trace
   }
 
-  /* v8 ignore next -- session/event always follows list() or session/created seeding */
-  const traceFor = (session: Session): SessionTrace => traces.get(session) ?? seedSession(session)
+  const seedExistingSession = (session: Session): SessionTrace => {
+    // oxlint-disable-next-line typescript/no-deprecated -- Existing live-session bootstrap precedes this companion's registration.
+    return seedSession(session, session.snapshotEvents())
+  }
 
-  for (const session of ctx.sessions.list()) seedSession(session)
+  /*! v8 ignore next -- session/event always follows list() or session/created seeding */
+  const traceFor = (session: Session): SessionTrace => traces.get(session) ?? seedExistingSession(session)
 
-  ctx.on('session/created', (session) => { seedSession(session) }, { global: true })
+  for (const session of ctx.sessions.list()) seedExistingSession(session)
+
+  ctx.on('session/created', (session, baseline: SessionCreationBaseline) => {
+    seedSession(session, baseline.events)
+  }, { global: true })
 
   ctx.on('session/event', (session, event) => {
     const staged = stagedTransitions.get(event)
-    /* v8 ignore next 2 -- internal/dispatch stages the exact callback arguments */
+    /*! v8 ignore next 2 -- internal/dispatch stages the exact callback arguments */
     if (staged === undefined || staged.session !== session) {
       return fail('session/event reached publication without matching pre-commit validation')
     }

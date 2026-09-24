@@ -1,0 +1,45 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A38-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A13",
+  "timestamp": "2026-09-22T05:24:20-03:00",
+  "result": "PARTIAL",
+  "scope": "Aggregate matrix under a temporary candidate index containing all 16 UI source moves",
+  "runs": [
+    {
+      "mode": "copied current index",
+      "result": "PARTIAL",
+      "observed": "76 gates passed and the test gate failed because the copied index carried invalid or unavailable objects into tests that call git write-tree and git status."
+    },
+    {
+      "mode": "clean index from HEAD plus all 16 replacements",
+      "result": "PARTIAL",
+      "observed": "git write-tree passed; 76 gates passed, 1 gate failed, and 0 were skipped in 445.71 seconds. The only failed gate was test: 7 files and 60 tests failed because parallel workers shared the temporary GIT_INDEX_FILE and contended on its lock or observed temporary index objects."
+    }
+  ],
+  "passed_surface": [
+    "build",
+    "test:expected",
+    "test:snapshot",
+    "audit:metrics",
+    "vendor rescope",
+    "documentation, package, policy, type, and generated-catalog gates"
+  ],
+  "classification": {
+    "type": "DIAGNOSTIC_INDEX_CONCURRENCY_ARTIFACT",
+    "cause": "The repository tests intentionally execute Git commands from multiple workers. GIT_INDEX_FILE is process-global for those child Git commands, so one shared temporary index is not a concurrency-safe substitute for an immutable candidate checkout.",
+    "product_finding": "No new product failure was isolated by this run; the two path gates and the explicit_any ratchet pass under the clean temporary candidate when run outside the parallel test gate.",
+    "safe_action": "Run the test gate serially against the clean temporary candidate, or defer the complete matrix until an authorized immutable candidate exists. Do not weaken the repository tests or change their Git isolation for this qualification experiment."
+  },
+  "artifacts": [
+    "/tmp/aaa023-a13-check-all.out",
+    "/tmp/aaa023-a13-check-all-clean-index.out",
+    ".agent/evidence/AAA-023/implementation-a37.json"
+  ],
+  "limitations": [
+    "The temporary index was not the repository index and no immutable candidate was sealed.",
+    "The aggregate test command used by check:all is not valid with one shared temporary index at four workers; this evidence does not claim a 77/77 release matrix.",
+    "No staging, commit, publication, push, merge, release, or final verdict was performed."
+  ],
+  "next_action": "Run pnpm run test with one worker under a clean temporary candidate index, then reconcile the remaining matrix result without promoting it to release qualification."
+}

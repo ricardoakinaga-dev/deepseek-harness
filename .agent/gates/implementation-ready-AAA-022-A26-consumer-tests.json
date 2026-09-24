@@ -1,0 +1,401 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A26-CONSUMER-TESTS-001",
+  "timestamp": "2026-09-23T22:40:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "Confirmed A03 W0-W4 authority, the independent A24 approval, the corrected A25 authority record, and the user-approved A26 successor authority authorize the completed original 33-path implementation and only fixture/test-expectation changes in the three newly named consumer paths. The 34-path interaction owner attributes those three direct consumer fixtures; the API catalog and customization policy retain their existing owners.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A25-INTERACTION-READERS-002",
+        ".agent/authority.jsonl#AUTH-AAA-022-A26-CONSUMER-TESTS-001",
+        ".agent/evidence/AAA-022/a26-consumer-test-scope-authorization-20260923.json",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This successor authorizes only the three named test paths plus the necessary scoped gate and allowlist records. Production sources, the other five consumer tests, broad compiler/policy defaults, and external actions remain excluded."
+    },
+    {
+      "id": "IR-002",
+      "description": "The existing A26 implementation remains bound to A24-01 through A24-07: exact command/approval pairing, source-event eligibility, preset-history validation, owner-maintained current reads, synchronous non-mutating precommit checks, creation/restore/fork baselines, fail-closed prefixes, and reference-counted provider leases with exact cleanup and reactivation behavior.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/interaction-reader-design-a24.json",
+        ".agent/evidence/AAA-022/a26-interaction-reader-implementation-20260923.json",
+        ".agent/evidence/AAA-022/a26-interaction-reader-review-20260923.json#REVIEW-AAA-022-A26-INTERACTION-READERS-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The successor test changes add no production behavior. The A26 implementation and its independent review remain the evidence for the original design acceptance; focused consumer verification must be rerun after fixture updates."
+    },
+    {
+      "id": "IR-003",
+      "description": "The successor implementation scope is exactly the three user-approved consumer test paths. The 33 predecessor implementation paths remain carried as completed and unchanged, and the other five of the original eight consumer tests remain verification-only. The current interaction owner has exactly 34 paths; the candidate binds all 64 materialized predecessor fingerprint inputs, and the required focused consumer, type, lint, documentation/API, owner-policy, and whitespace checks are specified.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/a26-consumer-test-gate-fingerprint-20260923.json",
+        ".agent/evidence/AAA-022/a25-implementation-gate-fingerprint-20260923.json",
+        ".agents/customization-policy.json",
+        "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+        "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+        "packages/shell/tool-bash/tests/tools.spec.ts",
+        "packages/interaction/commands/tests/commands.spec.ts",
+        "packages/interaction/permission-presets/tests/projection.spec.ts",
+        "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+        "packages/core/tools/tests/invariant.spec.ts",
+        "packages/acp/acp/tests/approval.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The 64 inputs represent the exact pre-transition snapshot; no additional test or source path is authorized. Existing unrelated full doc-typecheck and global customization-policy diagnostics remain open and are not attributed to this successor."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-A25-INTERACTION-READERS-002",
+    ".agent/authority.jsonl#AUTH-AAA-022-A26-CONSUMER-TESTS-001",
+    ".agent/evidence/AAA-022/a26-consumer-test-scope-authorization-20260923.json",
+    ".agent/evidence/AAA-022/interaction-reader-design-a24.json",
+    ".agent/evidence/AAA-022/interaction-reader-design-review-a24-postcheckpoint-20260923.json#REVIEW-AAA-022-A24-POSTCHECKPOINT-003",
+    ".agent/evidence/AAA-022/a26-interaction-reader-implementation-20260923.json",
+    ".agent/evidence/AAA-022/a26-interaction-reader-review-20260923.json#REVIEW-AAA-022-A26-INTERACTION-READERS-001",
+    ".agent/evidence/AAA-022/a26-consumer-test-gate-fingerprint-20260923.json",
+    ".agent/evidence/AAA-022/a25-implementation-gate-fingerprint-20260923.json",
+    ".agents/customization-policy.json"
+  ],
+  "candidate_fingerprint": "ddca7cb79b25d1eeff80ce5cdb8291e01108ec1cc77d45e3800567e3ade406fb",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agent/authority.jsonl",
+      ".agent/backlog.json",
+      ".agent/evidence/AAA-022/a23-w2-owner-order-disposition-20260923.json",
+      ".agent/evidence/AAA-022/context-reader-design-a21.json",
+      ".agent/evidence/AAA-022/reader-inventory-a75.json",
+      ".agent/evidence/AAA-022/reader-migration-plan-a74.json",
+      ".agent/execution-log.jsonl",
+      ".agent/plans/deepseek-harness-aaa.md",
+      ".agent/state.json",
+      ".agent/verification.jsonl",
+      ".agents/customization-policy.json",
+      "AGENTS.md",
+      "docs/AGENTS.md",
+      "docs/subsystems/approval.i18n.yaml",
+      "docs/subsystems/approval.md",
+      "docs/subsystems/approval.zh.md",
+      "docs/subsystems/commands.i18n.yaml",
+      "docs/subsystems/commands.md",
+      "docs/subsystems/commands.zh.md",
+      "docs/subsystems/permission-presets.i18n.yaml",
+      "docs/subsystems/permission-presets.md",
+      "docs/subsystems/permission-presets.zh.md",
+      "packages/acp/acp/tests/approval.spec.ts",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/src/types.ts",
+      "packages/core/tools/tests/invariant.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+      "packages/interaction/commands/README.i18n.yaml",
+      "packages/interaction/commands/README.md",
+      "packages/interaction/commands/README.zh.md",
+      "packages/interaction/commands/package.json",
+      "packages/interaction/commands/src/audit-state.ts",
+      "packages/interaction/commands/src/index.ts",
+      "packages/interaction/commands/src/invariant.ts",
+      "packages/interaction/commands/tests/commands.spec.ts",
+      "packages/interaction/commands/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/README.i18n.yaml",
+      "packages/interaction/permission-presets/README.md",
+      "packages/interaction/permission-presets/README.zh.md",
+      "packages/interaction/permission-presets/package.json",
+      "packages/interaction/permission-presets/src/index.ts",
+      "packages/interaction/permission-presets/src/invariant.ts",
+      "packages/interaction/permission-presets/src/preset-history.ts",
+      "packages/interaction/permission-presets/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+      "packages/interaction/permission-presets/tests/projection.spec.ts",
+      "packages/interaction/user-approval/README.i18n.yaml",
+      "packages/interaction/user-approval/README.md",
+      "packages/interaction/user-approval/README.zh.md",
+      "packages/interaction/user-approval/package.json",
+      "packages/interaction/user-approval/src/index.ts",
+      "packages/interaction/user-approval/src/invariant.ts",
+      "packages/interaction/user-approval/src/session-state.ts",
+      "packages/interaction/user-approval/tests/approval.spec.ts",
+      "packages/interaction/user-approval/tests/invariant.spec.ts",
+      "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+      "packages/session/session-projection-cache/src/index.ts",
+      "packages/session/session-projection-cache/src/spec.ts",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/src/types.ts",
+      "packages/shell/tool-bash/tests/tools.spec.ts",
+      "scripts/gen-cordis-catalog.ts"
+    ],
+    "hash_rule": "Sort existing relative paths; for each input update SHA-256 with UTF-8 relative path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+    "file_count": 64,
+    "path_union_count": 64,
+    "design_input_path_count": 55,
+    "implementation_path_count": 3,
+    "verification_only_path_count": 5,
+    "predecessor_completed_implementation_path_count": 33,
+    "unmaterialized_scope_paths": [],
+    "preexisting_dirty_worktree": true,
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "design_review_fingerprint": "99d90111f9086133730ae0b1b8deddc942dfe0941eccf09c1a294b86fd76c424",
+    "design_review_ref": ".agent/evidence/AAA-022/interaction-reader-design-review-a24-postcheckpoint-20260923.json#REVIEW-AAA-022-A24-POSTCHECKPOINT-003",
+    "snapshot_state_revision": 246,
+    "snapshot_state_updated_at": "2026-09-23T20:32:56-03:00",
+    "post_gate_transition_note": "This is the pre-transition successor-gate candidate snapshot. The subsequent READY and START transactions update backlog, plan, execution log, verification ledger, and runtime state, all of which are recorded fingerprint inputs. Those state-last lifecycle writes do not widen the approved three-test implementation scope."
+  },
+  "implementation_scope": [
+    "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+    "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+    "packages/shell/tool-bash/tests/tools.spec.ts"
+  ],
+  "verification_only_paths": [
+    "packages/interaction/commands/tests/commands.spec.ts",
+    "packages/interaction/permission-presets/tests/projection.spec.ts",
+    "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+    "packages/core/tools/tests/invariant.spec.ts",
+    "packages/acp/acp/tests/approval.spec.ts"
+  ],
+  "customization_owner": {
+    "id": "interaction-session-reader-invariants",
+    "path_count": 34,
+    "paths": [
+      "packages/interaction/commands/src/index.ts",
+      "packages/interaction/commands/src/invariant.ts",
+      "packages/interaction/commands/src/audit-state.ts",
+      "packages/interaction/commands/tests/invariant.spec.ts",
+      "packages/interaction/commands/README.md",
+      "packages/interaction/commands/README.zh.md",
+      "packages/interaction/commands/README.i18n.yaml",
+      "docs/subsystems/commands.md",
+      "docs/subsystems/commands.zh.md",
+      "docs/subsystems/commands.i18n.yaml",
+      "packages/interaction/permission-presets/src/index.ts",
+      "packages/interaction/permission-presets/src/invariant.ts",
+      "packages/interaction/permission-presets/src/preset-history.ts",
+      "packages/interaction/permission-presets/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/README.md",
+      "packages/interaction/permission-presets/README.zh.md",
+      "packages/interaction/permission-presets/README.i18n.yaml",
+      "docs/subsystems/permission-presets.md",
+      "docs/subsystems/permission-presets.zh.md",
+      "docs/subsystems/permission-presets.i18n.yaml",
+      "packages/interaction/user-approval/src/index.ts",
+      "packages/interaction/user-approval/src/invariant.ts",
+      "packages/interaction/user-approval/src/session-state.ts",
+      "packages/interaction/user-approval/tests/approval.spec.ts",
+      "packages/interaction/user-approval/tests/invariant.spec.ts",
+      "packages/interaction/user-approval/README.md",
+      "packages/interaction/user-approval/README.zh.md",
+      "packages/interaction/user-approval/README.i18n.yaml",
+      "docs/subsystems/approval.md",
+      "docs/subsystems/approval.zh.md",
+      "docs/subsystems/approval.i18n.yaml",
+      "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+      "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+      "packages/shell/tool-bash/tests/tools.spec.ts"
+    ],
+    "other_scope_owners": {
+      "packages/extensions/tool-cordis/src/api-catalog.ts": [
+        "session-reader-migration",
+        "dynamic-extension-trust"
+      ],
+      ".agents/customization-policy.json": [
+        "upstream-safe-customization-governance"
+      ]
+    }
+  },
+  "verification_commands": [
+    {
+      "id": "A26-TESTS",
+      "command": "pnpm exec vitest run packages/interaction/commands/tests/invariant.spec.ts packages/interaction/permission-presets/tests/invariant.spec.ts packages/interaction/user-approval/tests/approval.spec.ts packages/interaction/user-approval/tests/invariant.spec.ts packages/interaction/commands/tests/commands.spec.ts packages/interaction/permission-presets/tests/projection.spec.ts packages/interaction/permission-presets/tests/permission-presets.spec.ts packages/plan/plan-mode/tests/plan-mode.spec.ts packages/feedback/command-feedback/tests/command-feedback.spec.ts packages/core/tools/tests/invariant.spec.ts packages/shell/tool-bash/tests/tools.spec.ts packages/acp/acp/tests/approval.spec.ts",
+      "purpose": "Run the four owner implementation test files and all eight direct consumer tests; only the three approved consumer fixtures change, and the other five remain byte-identical."
+    },
+    {
+      "id": "A26-TYPES",
+      "command": "pnpm exec tsc -b packages/interaction/commands/tsconfig.json packages/interaction/permission-presets/tsconfig.json packages/interaction/user-approval/tsconfig.json packages/plan/plan-mode/tsconfig.json packages/feedback/command-feedback/tsconfig.json packages/core/tools/tsconfig.json packages/shell/tool-bash/tsconfig.json packages/acp/acp/tsconfig.json --pretty false",
+      "purpose": "Build the three owner packages and five direct consumer project configurations through TypeScript project references."
+    },
+    {
+      "id": "A26-OXLINT",
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/interaction/commands/src packages/interaction/commands/tests packages/interaction/permission-presets/src packages/interaction/permission-presets/tests packages/interaction/user-approval/src packages/interaction/user-approval/tests packages/plan/plan-mode/tests packages/feedback/command-feedback/tests packages/core/tools/tests packages/shell/tool-bash/tests packages/acp/acp/tests",
+      "purpose": "Lint owner source/tests and the eight consumer test surfaces."
+    },
+    {
+      "id": "A26-TYPE-EQUIV",
+      "command": "pnpm run verify-type-equiv",
+      "purpose": "Check public TypeScript declaration and documented type equivalence."
+    },
+    {
+      "id": "A26-CORDIS-CATALOG",
+      "command": "pnpm run verify-cordis-catalog",
+      "purpose": "Verify the generated Cordis API catalog."
+    },
+    {
+      "id": "A26-EXPORT-JSDOC",
+      "command": "pnpm run verify-export-jsdoc",
+      "purpose": "Check public export documentation for the changed APIs."
+    },
+    {
+      "id": "A26-PAIRING",
+      "command": "pnpm run verify-translation-pairing -- packages/interaction/commands/README.md packages/interaction/permission-presets/README.md packages/interaction/user-approval/README.md docs/subsystems/commands.md docs/subsystems/permission-presets.md docs/subsystems/approval.md",
+      "purpose": "Verify the six English/Chinese package and subsystem documentation pairs and sidecars."
+    },
+    {
+      "id": "A26-DOC-TYPECHECK",
+      "command": "pnpm run doc-typecheck",
+      "purpose": "Compile fenced documentation examples after code and docs changes."
+    },
+    {
+      "id": "A26-DOC-QUICK",
+      "command": "pnpm run test:docs",
+      "purpose": "Run the quick documentation gates."
+    },
+    {
+      "id": "A26-CUSTOMIZATION-POLICY",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "purpose": "Validate current customization ownership against the fork base."
+    },
+    {
+      "id": "A26-DIFF-CHECK",
+      "command": "git diff --check -- packages/interaction/commands/src/index.ts packages/interaction/commands/src/invariant.ts packages/interaction/commands/src/audit-state.ts packages/interaction/commands/tests/invariant.spec.ts packages/interaction/commands/README.md packages/interaction/commands/README.zh.md packages/interaction/commands/README.i18n.yaml docs/subsystems/commands.md docs/subsystems/commands.zh.md docs/subsystems/commands.i18n.yaml packages/interaction/permission-presets/src/index.ts packages/interaction/permission-presets/src/invariant.ts packages/interaction/permission-presets/src/preset-history.ts packages/interaction/permission-presets/tests/invariant.spec.ts packages/interaction/permission-presets/README.md packages/interaction/permission-presets/README.zh.md packages/interaction/permission-presets/README.i18n.yaml docs/subsystems/permission-presets.md docs/subsystems/permission-presets.zh.md docs/subsystems/permission-presets.i18n.yaml packages/interaction/user-approval/src/index.ts packages/interaction/user-approval/src/invariant.ts packages/interaction/user-approval/src/session-state.ts packages/interaction/user-approval/tests/approval.spec.ts packages/interaction/user-approval/tests/invariant.spec.ts packages/interaction/user-approval/README.md packages/interaction/user-approval/README.zh.md packages/interaction/user-approval/README.i18n.yaml docs/subsystems/approval.md docs/subsystems/approval.zh.md docs/subsystems/approval.i18n.yaml packages/extensions/tool-cordis/src/api-catalog.ts .agents/customization-policy.json packages/interaction/commands/tests/commands.spec.ts packages/interaction/permission-presets/tests/projection.spec.ts packages/interaction/permission-presets/tests/permission-presets.spec.ts packages/plan/plan-mode/tests/plan-mode.spec.ts packages/feedback/command-feedback/tests/command-feedback.spec.ts packages/core/tools/tests/invariant.spec.ts packages/shell/tool-bash/tests/tools.spec.ts packages/acp/acp/tests/approval.spec.ts",
+      "purpose": "Check whitespace only for the exact implementation and verification scope."
+    }
+  ],
+  "required_verification": [
+    "Focused command lifecycle tests cover pairing, duplicate run ids after completion, source seq validation, invalid baseline rejection, late companion registration from owner state, and rejected-candidate state preservation.",
+    "Focused permission invariant tests cover configured/Auto history, unknown current and historical names, and session creation rollback; existing permission projection tests confirm its currentValue view and persisted state version are unchanged.",
+    "Focused ApprovalService and invariant tests cover open-turn current reads, latest policy override/default behavior, all existing audit validation order, accepted cancellation pairs, observer failures, restore/fork creation baselines, late companion registration, and state cleanup.",
+    "Run the listed command and approval consumer tests to confirm user-visible command results and approval integrations do not change; the three approved fixture tests and five unchanged consumer tests all remain in the batch.",
+    "Run scoped host TypeScript and Oxlint for the three packages; verify-type-equiv, verify-cordis-catalog, export-JSDoc, translation pairing, package READMEs, scoped doc-typecheck/doc-quick, and git diff --check.",
+    "Confirm the S041-S046 deprecated-reader count decreases by six and no implementation path retains a synchronous eventAt or snapshotEvents call for those sites.",
+    "No SDK projection output or model-visible wording changes are expected; update snapshots only if a focused output assertion demonstrates an actual behavior change.",
+    "For commands, permission-presets, and user-approval, unload the owning provider while a Session remains attached, append an event while its listener is absent, and reactivate. Verify teardown removes the old fold and activation fails closed before a stale current read or invariant check; verify an empty live Session can seed from the empty prefix.",
+    "For commands, permission-presets, and user-approval, create two scoped providers observing one Session. Release one lease and verify the other continues reads, pre-commit validation, and event advancement; reacquire while the sibling lease is active and retain exact state. After final lease release, verify eventful Session activation fails closed and empty Session activation seeds the empty prefix.",
+    "The three successor consumer fixtures establish exact Session creation baselines and the required SessionProjectionRegistry before invoking the changed consumers.",
+    "The existing-knobs permission test expects late projection registration to reject with the exact missing-baseline error and confirms the original sandbox/mode and approval/policy events remain unchanged.",
+    "Only the three authorized test files and the explicitly named gate/allowlist control-plane records change; the other five verification-only test files remain byte-identical."
+  ],
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+    "decision": "Apply confirmed A03 W0-W4 migration authority and the user-approved A26 successor scope to update only the three named consumer test fixtures, including the existing-knobs test expectation for fail-closed late projection registration. Local fixture and verification changes only; production source, the other five verification-only tests, unrelated policy or compiler defaults, and external repository actions remain excluded.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A26-CONSUMER-TESTS-001",
+    "expires_or_revalidates": "This authorizes only the exact three test paths and scoped gate/allowlist records. Revalidate before adding a test or source path, changing production behavior or A24 criteria, altering one of the five remaining verification-only paths, or taking an external repository action."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-022:A26-CONSUMER-TESTS; make only the three approved fixture/test-expectation updates, then run the gate-bound 12-file tests, scoped package typecheck and Oxlint, exact owner policy check, and scoped diff check.",
+  "revalidation_triggers": [
+    "Any change to the exact three authorized test paths beyond fixture setup or the approved existing-knobs expectation.",
+    "Any production source, documentation, SDK output, Session format, persistence schema, wire field, or model-visible behavior change.",
+    "Any edit to the other five verification-only paths or expansion beyond the exact three test paths.",
+    "Any change to the 34-path owner, its retained API-catalog or governance owners, or the exact predecessor completion attribution.",
+    "Any failure demonstrates the A24 lifecycle or provider-lease criteria need to change."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-A25-INTERACTION-READERS-002",
+  "design_review_fingerprint": "99d90111f9086133730ae0b1b8deddc942dfe0941eccf09c1a294b86fd76c424",
+  "revalidation": {
+    "kind": "SCOPE_EXPANSION",
+    "previous_record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A25-INTERACTION-READERS-002",
+    "previous_candidate_fingerprint": "082281d2dc81bd6a9208e3091437831de43c8f4cfa0a40dd9b2c2ebad62cfeac",
+    "reason": "The user approved a successor gate for fixture-only updates in exactly the three failing consumer tests and approved the existing-knobs fail-closed expectation update. Bind the three paths and current owner/fingerprint without changing A24 behavior criteria or the five remaining verification-only paths.",
+    "authority_effect": "A03 remains the source of local W0-W4 authority; the new A26 authority adds only the exact three consumer test paths and their fixture/expectation changes. The prior 33-path implementation remains carried and unchanged."
+  },
+  "verification_requirements": [
+    "Focused command lifecycle tests cover pairing, duplicate run ids after completion, source seq validation, invalid baseline rejection, late companion registration from owner state, and rejected-candidate state preservation.",
+    "Focused permission invariant tests cover configured/Auto history, unknown current and historical names, and session creation rollback; existing permission projection tests confirm its currentValue view and persisted state version are unchanged.",
+    "Focused ApprovalService and invariant tests cover open-turn current reads, latest policy override/default behavior, all existing audit validation order, accepted cancellation pairs, observer failures, restore/fork creation baselines, late companion registration, and state cleanup.",
+    "Run the listed command and approval consumer tests to confirm user-visible command results and approval integrations do not change; the three approved fixture tests and five unchanged consumer tests all remain in the batch.",
+    "Run scoped host TypeScript and Oxlint for the three packages; verify-type-equiv, verify-cordis-catalog, export-JSDoc, translation pairing, package READMEs, scoped doc-typecheck/doc-quick, and git diff --check.",
+    "Confirm the S041-S046 deprecated-reader count decreases by six and no implementation path retains a synchronous eventAt or snapshotEvents call for those sites.",
+    "No SDK projection output or model-visible wording changes are expected; update snapshots only if a focused output assertion demonstrates an actual behavior change.",
+    "For commands, permission-presets, and user-approval, unload the owning provider while a Session remains attached, append an event while its listener is absent, and reactivate. Verify teardown removes the old fold and activation fails closed before a stale current read or invariant check; verify an empty live Session can seed from the empty prefix.",
+    "For commands, permission-presets, and user-approval, create two scoped providers observing one Session. Release one lease and verify the other continues reads, pre-commit validation, and event advancement; reacquire while the sibling lease is active and retain exact state. After final lease release, verify eventful Session activation fails closed and empty Session activation seeds the empty prefix."
+  ],
+  "carried_forward_completed_scope": {
+    "gate_ref": ".agent/gates/implementation-ready-AAA-022-A25-interaction-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-A25-INTERACTION-READERS-002",
+    "candidate_fingerprint": "082281d2dc81bd6a9208e3091437831de43c8f4cfa0a40dd9b2c2ebad62cfeac",
+    "path_count": 33,
+    "paths": [
+      "packages/interaction/commands/src/index.ts",
+      "packages/interaction/commands/src/invariant.ts",
+      "packages/interaction/commands/src/audit-state.ts",
+      "packages/interaction/commands/tests/invariant.spec.ts",
+      "packages/interaction/commands/README.md",
+      "packages/interaction/commands/README.zh.md",
+      "packages/interaction/commands/README.i18n.yaml",
+      "docs/subsystems/commands.md",
+      "docs/subsystems/commands.zh.md",
+      "docs/subsystems/commands.i18n.yaml",
+      "packages/interaction/permission-presets/src/index.ts",
+      "packages/interaction/permission-presets/src/invariant.ts",
+      "packages/interaction/permission-presets/src/preset-history.ts",
+      "packages/interaction/permission-presets/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/README.md",
+      "packages/interaction/permission-presets/README.zh.md",
+      "packages/interaction/permission-presets/README.i18n.yaml",
+      "docs/subsystems/permission-presets.md",
+      "docs/subsystems/permission-presets.zh.md",
+      "docs/subsystems/permission-presets.i18n.yaml",
+      "packages/interaction/user-approval/src/index.ts",
+      "packages/interaction/user-approval/src/invariant.ts",
+      "packages/interaction/user-approval/src/session-state.ts",
+      "packages/interaction/user-approval/tests/approval.spec.ts",
+      "packages/interaction/user-approval/tests/invariant.spec.ts",
+      "packages/interaction/user-approval/README.md",
+      "packages/interaction/user-approval/README.zh.md",
+      "packages/interaction/user-approval/README.i18n.yaml",
+      "docs/subsystems/approval.md",
+      "docs/subsystems/approval.zh.md",
+      "docs/subsystems/approval.i18n.yaml",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      ".agents/customization-policy.json"
+    ],
+    "change_authority": "The previous 33-path implementation is carried as completed evidence and is not writable under this successor action."
+  },
+  "authorization_scope": {
+    "authorized_test_paths": [
+      "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+      "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+      "packages/shell/tool-bash/tests/tools.spec.ts"
+    ],
+    "authorized_test_expectation": "Late PermissionPresetService projection registration over the eventful existing-knobs Session rejects with the exact baseline error and preserves both logged events.",
+    "fixture_changes_only": true,
+    "control_plane_paths": [
+      ".agents/customization-policy.json",
+      ".agent/authority.jsonl",
+      ".agent/evidence/AAA-022/a26-consumer-test-gate-fingerprint-20260923.json",
+      ".agent/gates/implementation-ready-AAA-022-A26-consumer-tests.json"
+    ],
+    "excluded_test_paths": [
+      "packages/interaction/commands/tests/commands.spec.ts",
+      "packages/interaction/permission-presets/tests/projection.spec.ts",
+      "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+      "packages/core/tools/tests/invariant.spec.ts",
+      "packages/acp/acp/tests/approval.spec.ts"
+    ],
+    "excluded_changes": [
+      "production source",
+      "documentation",
+      "the five excluded consumer tests",
+      "broad compiler or policy defaults",
+      "external repository actions"
+    ]
+  }
+}

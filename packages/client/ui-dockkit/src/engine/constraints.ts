@@ -70,7 +70,7 @@ export function zoneSplit(zone: DockZone): { axis: SplitAxis; direction: SplitDi
     case 'right': return { axis: 'row', direction: 'after' }
     case 'top': return { axis: 'column', direction: 'before' }
     case 'bottom': return { axis: 'column', direction: 'after' }
-    /* v8 ignore next -- closed-union backstop; the compiler rejects a new zone here. */
+    /*! v8 ignore next -- closed-union backstop; the compiler rejects a new zone here. */
     default: return assertNever(zone, 'layout: dock zone')
   }
 }

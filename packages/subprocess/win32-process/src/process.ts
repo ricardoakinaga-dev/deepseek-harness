@@ -163,7 +163,7 @@ function createPipe(api: Win32ProcessBindings, owned: Set<NativePtr>): PipePair 
 }
 
 function closeOwned(api: Win32ProcessBindings, owned: Set<NativePtr>, handle: NativePtr): void {
-  /* v8 ignore next -- each successfully decoded pipe end is uniquely owned. */
+  /*! v8 ignore next -- each successfully decoded pipe end is uniquely owned. */
   if (!owned.delete(handle)) return
   api.closeHandle(handle)
 }

@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import type { RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
-import { createTextStore, fresh } from '../src/client/store.ts'
+import { createTextStore, fresh } from '../src/client/text/store.ts'
 import { page } from './fixtures.client.ts'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 

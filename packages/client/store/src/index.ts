@@ -1,11 +1,12 @@
 /**
- * React-free snapshot store engine (zustand vanilla + immer + subscribeWithSelector +
- * rafFlush middleware + opt-in persist + dev freeze) plus the declarative
- * shell over it: {@link defineStore} bakes an init/persist/actions literal
- * into a {@link StoreHandle}, the registration-side store seat of slot
- * terminals. Engine products are bare observables — subscribe/getSnapshot/
- * update/set, NO selector hook. Hook synthesis is ui-renderer's (the one
- * uSES bridge, cached per source at the binding site).
+ * Provide React-free observable state for browser Client packages.
+ *
+ * The module combines Zustand's vanilla store with Immer to publish stable
+ * snapshots, draft updates, whole-value replacement, optional browser-local
+ * persistence, and synchronous or animation-frame notification. {@link defineStore}
+ * turns a typed declaration into the handle and instance values consumed by
+ * Slot registrations. Store values expose only the observable data face; the
+ * renderer creates selector hooks when it binds that face to React.
  */
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { subscribeWithSelector } from 'zustand/middleware'
@@ -23,15 +24,16 @@ export type {
   StoreHandle, StoreInstance, StoreSpec,
 } from './contract.ts'
 
-/** Writable snapshot store (bare data face; React selector hooks are synthesized in ui-renderer). */
+/** Writable snapshot store; React selector hooks are synthesized by ui-renderer. */
 export interface SnapshotStore<T> extends ObservableSnapshot<T> {
   /**
-   * Mutate the state through an immer draft.
+   * Apply a synchronous Immer draft update and publish the resulting snapshot.
    * @param mutator - draft mutator.
    */
   update(mutator: (draft: T) => void): void
   /**
-   * Replace the state wholesale.
+   * Replace the state wholesale and publish the new snapshot.
+   * Development builds deep-freeze the replacement before publication.
    * @param next - next state.
    */
   set(next: T): void
@@ -39,6 +41,7 @@ export interface SnapshotStore<T> extends ObservableSnapshot<T> {
 
 /**
  * Notify an observer set without allowing one callback to starve the rest.
+ * A failing callback is logged and does not prevent later callbacks from running.
  * @param listeners - current observer callbacks; copied before dispatch.
  * @param label - diagnostic owner prefix.
  * @param args - callback arguments.
@@ -90,11 +93,11 @@ function rafBatch(notify: () => void): () => void {
 /**
  * Create a snapshot store.
  *
- * Flush default is 'sync' (controlled inputs need same-tick echo); frame-driven
- * stores opt into 'raf', where a frame's worth of updates coalesces into one
- * notification. Known raf-mode tradeoff: a component mounting mid-frame reads
- * fresh state while existing subscribers hear it next flush — transient
- * frame-level skew, same nature as the object layer's microtask batching.
+ * The default flush is 'sync'. A store configured with 'raf' coalesces updates
+ * until the next animation frame; when animation frames are unavailable, it
+ * uses one microtask flush instead. A subscriber mounted during an open frame
+ * reads the current snapshot immediately and receives its notification at the
+ * next flush.
  *
  * @param init - initial state.
  * @param opts - flush mode and opt-in persistence (localStorage, keyed by name).
@@ -175,7 +178,7 @@ function devFreeze<T>(value: T): T {
 
 /** A live engine instance: the contract instance plus the raw engine store. */
 export interface EngineStoreInstance<T, A extends ActionsDecl<T>> extends StoreInstance<T, A> {
-  /** The underlying engine store (framework/test API; components never see it). */
+  /** The underlying engine store for framework and test consumers; components never receive it. */
   readonly store: SnapshotStore<T>
 }
 
@@ -199,18 +202,9 @@ export interface EngineStoreHandle<T, A extends ActionsDecl<T>> extends StoreHan
 }
 
 /**
- * Declare a store: initial state, optional persistence, and the full write
- * set as pure draft mutators. The returned handle is the registration
- * currency of the store seat — its identity keys instance sharing. Satisfies
- * ui-slots' DefineStore contract (the handle/instance are the engine-extended
- * subtypes).
- *
- * The `A & ActionsDecl<T>` actions position is load-bearing: T resolves from
- * `init` in the first inference round, and the intersection then contextually
- * types each mutator's draft parameter (context-sensitive functions defer),
- * so call sites write `(d, x: X) => { ... }` with no draft annotation. If a
- * future TS version breaks this single-literal inference, the design's
- * documented fallback is currying (`defineStore(init).actions({...})`).
+ * Declare a store with a fresh-state factory, optional persistence key, and
+ * complete write set. The returned handle carries the store declaration and
+ * creates the live instance owned by each Slot registration and scope.
  * @param decl - init lambda (fresh state per instance), optional persist key, actions table.
  * @returns the store handle.
  */

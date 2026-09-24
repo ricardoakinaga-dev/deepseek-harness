@@ -1,0 +1,84 @@
+{
+  "record_id": "GATE-AAA-023-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-22T02:58:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-023 bounded repair of the current check-all blockers",
+  "scope_ref": "AAA-023",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The current check-all matrix and focused diagnosis reproduce all five failed gates and classify the six dependent skips without treating a dirty worktree as a release candidate.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/check-all-a25.json",
+        ".agent/evidence/AAA-023/diagnosis-a26.json",
+        ".agent/verification.jsonl#VER-AAA-023-A02-DIAGNOSIS-A26-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The source move remains untracked and the candidate is not immutable."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation is bounded to factoring the generator's repeated alias collector, keeping the browser timeout bound local to the Gateway client as a fixed external-spec constant, and resolving the sandbox source fallback through its installation-relative source file; it does not alter vendor rescope or canonical-metric policy.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a26.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        "scripts/gen-tsconfig-paths.ts",
+        "packages/api/gateway/src/client/stream-client.ts",
+        "packages/sandbox/sandbox-local/src/index.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The source-move path failures remain a candidate-tree prerequisite and are not repaired by this action."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires focused generator, Gateway client, sandbox fallback, build-purity, and client-package checks to pass before the aggregate matrix is rerun.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a26.json",
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Passing focused checks will not establish same-SHA release qualification or unblock AAA-024."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-023/check-all-a25.json",
+    ".agent/evidence/AAA-023/diagnosis-a26.json",
+    ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"
+  ],
+  "candidate_fingerprint": "8833115fe3ae76eb8355d17d5f4332a9f4d9c70dd3cc22301847c01aa670c141",
+  "confidence": "HIGH",
+  "gaps": [
+    "The current worktree is dirty and the moved ui-conversation files are not yet represented by one immutable candidate."
+  ],
+  "conditions": [
+    "Do not modify audit baseline semantics or vendor postconditions to hide the deleted-path failures.",
+    "Do not add an unsatisfied dsh.client.external declaration for dsh-timeout.",
+    "Rerun the path-dependent gates only after the source move is complete in the candidate tree."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-023 seven approved security, runtime, client-ownership, and publication-policy decisions",
+    "decision": "The user approved local implementation and compatibility validation of the selected policies; publication, registry, push, merge, release, and final-verdict actions remain outside scope.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+    "expires_or_revalidates": "Revalidate if the repair changes public browser exports, module-table ownership, audit baseline policy, vendor postconditions, or release authority."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-023:A03 to apply the three bounded source repairs, then run the focused checks and retain current evidence.",
+  "revalidation_triggers": [
+    "The timeout repair requires a new client module row or public package subpath.",
+    "The sandbox source fallback requires a change to the public package exports.",
+    "The generator repair changes alias semantics or generated-region ownership."
+  ],
+  "supersedes": null
+}

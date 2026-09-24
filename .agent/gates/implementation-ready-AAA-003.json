@@ -1,0 +1,78 @@
+{
+  "record_id": "GATE-AAA-003-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-20T19:50:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-003 weighted-approval production classifier update",
+  "scope_ref": "AAA-003",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The implementation scope names the live Python runtime path, the removed path, and the focused classifier fixture that must change.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-001/findings.json",
+        ".agent/backlog.json",
+        ".github/review-ownership/blame-production.py",
+        ".github/review-ownership/test_blame_production.py"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The scope is limited to production-path classification and its focused Python test; it does not change approval scoring or GitHub API behavior."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation has a focused positive and invalid-path verification method and preserves the classifier's exclusion rules.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-001/findings.json",
+        ".github/review-ownership/test_blame_production.py",
+        ".github/review-ownership/README.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The focused Python suite is the implementation gate; full approval-policy and workflow checks remain required after the edit."
+    },
+    {
+      "id": "IR-003",
+      "description": "No human approval, credential, migration, or external deployment dependency is required for this local classifier and fixture correction.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agent/state.json",
+        ".github/review-ownership/blame-production.py"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The repository-wide Triple-A qualification remains incomplete and cannot be inferred from this scoped gate."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-001/findings.json",
+    ".agent/backlog.json",
+    ".github/review-ownership/blame-production.py",
+    ".github/review-ownership/test_blame_production.py",
+    ".github/review-ownership/README.md"
+  ],
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": false,
+    "state": "NOT_REQUIRED",
+    "actor": "Repository quality policy",
+    "scope": "AAA-003 weighted-approval production classifier update",
+    "decision": "The scoped local classifier and test correction has no unresolved human-owned decision.",
+    "evidence_ref": ".agent/backlog.json",
+    "expires_or_revalidates": "Revalidate when the classifier scope, production-path policy, or focused fixture changes."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Update SHIPPED_ROOTS and the focused positive path fixture, then run the Python classifier and approval-policy checks.",
+  "revalidation_triggers": [
+    "The production-source path policy changes.",
+    "The renamed Python runtime path changes again.",
+    "The classifier or its focused fixtures are modified."
+  ],
+  "supersedes": null
+}

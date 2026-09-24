@@ -1,0 +1,44 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A22",
+  "candidate_tree": "023906dd82be40ed0ef187acd59fd7b5fb56eaae",
+  "official_build": {
+    "result": "PASS",
+    "command": "pnpm run build:official",
+    "artifacts": 248,
+    "log": "/tmp/dsh-a22-build-official.log"
+  },
+  "packed_artifacts": {
+    "dsh": {
+      "result": "PASS",
+      "command": "pnpm run release:pack --family dsh --out /tmp/dsh-a22-dsh.RRyllU --concurrency 8",
+      "tarballs": 293,
+      "log": "/tmp/dsh-a22-pack-dsh.log"
+    },
+    "vendor": {
+      "result": "PASS",
+      "command": "pnpm run release:pack --family vendor --out /tmp/dsh-a22-vendor.4muwfW --concurrency 8",
+      "tarballs": 9,
+      "log": "/tmp/dsh-a22-pack-vendor.log"
+    }
+  },
+  "packed_install": {
+    "result": "PASS",
+    "command": "pnpm run release:verify-packed-install --family dsh --from /tmp/dsh-a22-dsh.RRyllU --from /tmp/dsh-a22-vendor.4muwfW",
+    "tarballs": 302,
+    "observed": "The isolated consumer install completed and reported @deepseek-ai/dsh version 0.1.6-alpha.2.",
+    "first_attempt": {
+      "result": "PARTIAL",
+      "failure": "npm ETARGET reported no matching version for @aws-sdk/credential-provider-web-identity@^3.972.78 before the consumer command ran.",
+      "log": "/tmp/dsh-a22-packed-install.log"
+    },
+    "retry": {
+      "result": "PASS",
+      "precondition": "npm cache verify completed successfully; no repository files or candidate inputs changed"
+    }
+  },
+  "candidate_tree_after": "023906dd82be40ed0ef187acd59fd7b5fb56eaae",
+  "result": "PASS",
+  "limitations": "The first install attempt exposed transient external npm metadata/cache resolution variance; the unchanged command passed after cache verification. Required-platform, credentialed-provider, upstream-rehearsal, release-identity, publication, and final-critic evidence remain outstanding.",
+  "observed_at": "2026-09-22T15:54:03-03:00"
+}

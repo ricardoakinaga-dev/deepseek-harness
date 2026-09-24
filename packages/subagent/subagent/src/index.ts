@@ -229,7 +229,7 @@ export class SubagentRuntime extends TypertRemoteService {
       }, () => (this.settingsSource() as Required<Config>).maxActiveSubagents)
       this.continuations = manager
       childCtx.effect(() => () => {
-        /* v8 ignore else -- one injected binding owns the slot until its fiber disposes. */
+        /*! v8 ignore else -- one injected binding owns the slot until its fiber disposes. */
         if (this.continuations === manager) this.continuations = undefined
       }, 'subagents.continuationBinding()')
     })

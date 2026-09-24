@@ -176,6 +176,8 @@ seam 先把确定性工作区 SID 的 ACE 常驻物化（每个工作区每服�
 - **宽目录与 FAT 卷警告已推迟；FAT 类目标保持可写。** UI 侧警告尚未实现，FAT 卷作为授权根会大声失败，而授权根之外的 FAT 类目标没有安全描述符，因此在两种受限模式下都可写；FAT 被视为遗留残留。
 - **PowerShell 语言模式因受限模式而异。** 在 `read-only` 下，PowerShell 无法在临时目录中创建 AppLocker 探针文件，因此会保守地以 ConstrainedLanguage 启动（`Add-Type`、非核心 .NET 静态调用、COM 与反射失败）；交付的 `workspace-write` 路径可让探针完成，因此除非主机范围的 WDAC/AppLocker 策略另有规定，否则 pwsh 保持 FullLanguage，而直接使用 `AclSandbox` 并配置 `tempDir: null` 时则没有这一保证。这一区别属于 PowerShell 启动行为，不是 ACL 写入边界的一部分。
 
+**运行时不变式：** 不发布伴生入口。本包没有独立事件序列或可变数据关系；fail-closed 约定在每个 Win32 调用处强制。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -189,5 +191,3 @@ seam 先把确定性工作区 SID 的 ACE 常驻物化（每个工作区每服�
 对异常宽的目录与 FAT 类卷的仅警告立场已记录在上方限制中但尚未实现，回收改名工作区常驻 ACE 的清理命令也尚未决定。两者都是开放方向，不是已交付行为。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。本包没有独立事件序列或可变数据关系；fail-closed 约定在每个 Win32 调用处强制。

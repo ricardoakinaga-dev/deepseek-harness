@@ -151,7 +151,7 @@ export function resolveInternals(internals: OpenInAppInternals): ResolvedInterna
 }
 
 /** Closed-union exhaustiveness fence for the catalog's locator kinds. */
-/* v8 ignore next 3 -- closed catalog union; only reached if an entry is forged */
+/*! v8 ignore next 3 -- closed catalog union; only reached if an entry is forged */
 function assertNever(value: never): never {
   throw new Error(`unhandled open-in-app catalog kind: ${JSON.stringify(value)}`)
 }
@@ -610,7 +610,7 @@ async function locate(
       const launcher = await desktopLauncher(entry, internals)
       return launcher === null ? null : { launch: { kind: 'argv', command: launcher, args: locator.args } }
     }
-    /* v8 ignore next -- closed locator union */
+    /*! v8 ignore next -- closed locator union */
     default: return assertNever(locator)
   }
 }
@@ -745,7 +745,7 @@ async function runLaunch(
         // still try a fallback.
         return isMissingExecutable(error) ? 'missing' : 'failed'
       }
-    /* v8 ignore next -- closed launch union */
+    /*! v8 ignore next -- closed launch union */
     default: return assertNever(launch)
   }
 }

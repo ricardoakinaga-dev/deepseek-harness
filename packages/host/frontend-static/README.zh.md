@@ -39,7 +39,7 @@ kind: "package-reference"
 
 ### 服务器实施的约束
 
-请求从 dist 根目录（包含 `distIndex` 的目录）提供。dist 根目录与配置的 index 路径以 HTTP 200 渲染 `index.html`；任何其他已有文件按自身 MIME 类型直接提供，未知扩展名按 `application/octet-stream` 提供。解析到根目录之外的路径以 403 拒绝，因此精心构造的路径无法读取 dist 之上的文件。dist 根目录内不存在或不是文件的目标——文件缺失、目录或配置的 index 缺失——返回空 404。没有匹配具名路由的非 GET／HEAD 请求返回 405。每个成功的 index 响应都经 webserver 的 `renderIndex` 渲染，因此启动 manifest（元数据清单）会通过 `/` 与配置的 index 路径送达页面。
+请求从 dist 根目录（包含 `distIndex` 的目录）提供。dist 根目录与配置的 index 路径以 HTTP 200 渲染 `index.html`；任何其他已有文件按自身 MIME 类型直接提供，未知扩展名按 `application/octet-stream` 提供。服务器会先通过现有文件系统项解析根目录与请求目标，再检查包含关系，因此保持在 dist 内的 symlink 或 junction 可以提供其 dist 内目标，而解析到根目录之外的目标会以 403 拒绝。缺失路径使用已存在最深祖先的解析路径，不会因此放宽检查，并返回空 404。dist 根目录内不存在或不是文件的目标——文件缺失、目录或配置的 index 缺失——返回空 404。没有匹配具名路由的非 GET／HEAD 请求返回 405。每个成功的 index 响应都经 webserver 的 `renderIndex` 渲染，因此启动 manifest（元数据清单）会通过 `/` 与配置的 index 路径送达页面。
 
 根路径与配置的 index 响应会在读取 HTML 前调用 `ctx.connection.authorizeIndex`。有效进程 token 会得到 303 重定向与持久浏览器 cookie；已有有效 cookie 时直接提供 index；其他 index 请求得到 Connection 所有的 401 响应。非 index 文件仍是公开静态资源。Token、cookie、过期时间与签名记录语义都归 Connection 所有。
 
@@ -61,7 +61,7 @@ kind: "package-reference"
 
 ### 遍历栅栏
 
-`serveStatic` 规范化请求的 pathname 并拼接到 dist 根目录，然后要求目标就是根目录本身或保持在它之下。检查使用 `sep` 而非 `/`，因为 `resolve()` 在 Windows 上输出反斜杠路径，此时 `/` 后缀会把每个合法子路径都当作遍历拒绝。
+`serveStatic` 先拒绝词法遍历，再通过 `realpath` 解析 dist 根目录与请求目标。对于缺失目标，它解析已存在的最深祖先并追加缺失后缀。包含检查使用解析后的路径，读取也使用解析后的目标，因此通过检查的别名不会把后续读取重定向到根目录之外。读取 HTML 前，配置的 index 也遵循同一规则检查。词法检查使用 `sep` 而非 `/`，因为 `resolve()` 在 Windows 上输出反斜杠路径，此时 `/` 后缀会把每个合法子路径都当作遍历拒绝。
 
 ### 源码地图
 
@@ -104,6 +104,8 @@ kind: "package-reference"
 - **初始 MIME 表很精简**：它覆盖 Vite 输出的资产集合及实际交付的 PWA manifest；其他扩展名在相应资产类别发布前都会回退到 `application/octet-stream`。
 - **Pathname 路由是显式声明**——当前客户端从根目录或配置的 index 路径进入，没有 History API pathname 路由。新增一条需要显式服务器规则与真实组合覆盖，而不是对每次未命中做宽泛回退。
 
+**运行时不变式：** 不发布伴生入口。唯一受本包所有的关系是单个回退席位，但无法从 teardown 流中探测它：`internal/plugin` 在正在释放的 fiber 执行 effect disposer 前触发，因此通知发出时合法所有者仍占据席位，任何占位探测都会把每次正确释放误报为失败；这不同于 webserver companion 对保留路径的探测，后者不会与存活注册冲突。席位的注册／释放对称性由本包真实组合的 HMR（热模块替换）安全测试覆盖。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -113,5 +115,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。唯一受本包所有的关系是单个回退席位，但无法从 teardown 流中探测它：`internal/plugin` 在正在释放的 fiber 执行 effect disposer 前触发，因此通知发出时合法所有者仍占据席位，任何占位探测都会把每次正确释放误报为失败；这不同于 webserver companion 对保留路径的探测，后者不会与存活注册冲突。席位的注册／释放对称性由本包真实组合的 HMR（热模块替换）安全测试覆盖。

@@ -96,6 +96,8 @@ These limits define the freshness and reach of the inventory view; they are curr
 - **One snapshot per Settings mount or retry** — the tab does not subscribe to Loader changes or automatically refetch after reconnect; switching tabs preserves the current snapshot, while reopening Settings obtains a new one.
 - **Read-only in both planes** — the tab shows global and preset enablement but mutates neither; enable/disable controls that write a custom preset's own composition file are deliberate follow-up work.
 
+**Runtime invariant:** No companion is published. This package owns a read-only Settings contribution.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -105,5 +107,3 @@ These limits define the freshness and reach of the inventory view; they are curr
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package owns a read-only Settings contribution.

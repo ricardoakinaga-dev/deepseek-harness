@@ -95,6 +95,8 @@ These limits define the current attachment surface. They are package constraints
 - **No zoom or download in the lightbox** — the preview renders the original at fit-to-viewport size only.
 - **The lightbox does not trap focus** — it sets `aria-modal` and restores focus on close, but Tab can reach the page behind it.
 
+**Runtime invariant:** No companion is published. The package contributes only effect-owned slot entries; the slot registry owns their lifecycle and validates their declarations.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -104,5 +106,3 @@ These limits define the current attachment surface. They are package constraints
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The package contributes only effect-owned slot entries; the slot registry owns their lifecycle and validates their declarations.

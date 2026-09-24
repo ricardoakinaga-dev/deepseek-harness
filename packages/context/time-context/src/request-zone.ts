@@ -11,8 +11,8 @@ export type BrowserTimeZoneContext =
   | { readonly kind: 'mixed'; readonly timeZones: readonly string[] }
   | { readonly kind: 'missing' }
 
-/** Read and validate a Host-canonicalized browser zone from one ordinary user-rpc message. */
-function browserTimeZone(message: UserMessage): string | undefined {
+/** Read an unvalidated browser-zone string from one ordinary user-rpc message. */
+export function browserTimeZoneInput(message: UserMessage): string | undefined {
   const source = message.source
   const value = source.kind === 'user'
     && 'rpcId' in source
@@ -21,7 +21,11 @@ function browserTimeZone(message: UserMessage): string | undefined {
     && typeof source.clientTimeZone === 'string'
     ? source.clientTimeZone
     : undefined
-  if (value === undefined) return undefined
+  return value
+}
+
+/** Validate one Host-canonicalized browser-zone string. */
+function canonicalBrowserTimeZone(value: string): string {
   if (value !== 'UTC' && !IANA_TIME_ZONE.test(value)) {
     throw new TypeError(
       `browser time zone must be canonical UTC or IANA Area/Location: ${JSON.stringify(value)}`,
@@ -48,10 +52,17 @@ function browserTimeZone(message: UserMessage): string | undefined {
 export function deriveBrowserTimeZoneContext(
   messages: readonly UserMessage[],
 ): BrowserTimeZoneContext {
-  const timeZones = [...new Set(messages.flatMap((message) => {
-    const timeZone = browserTimeZone(message)
+  return deriveBrowserTimeZoneContextFromInputs(messages.flatMap((message) => {
+    const timeZone = browserTimeZoneInput(message)
     return timeZone === undefined ? [] : [timeZone]
-  }))].sort()
+  }))
+}
+
+/** Validate and classify ordered raw browser-zone inputs at the time-context read point. */
+export function deriveBrowserTimeZoneContextFromInputs(
+  inputs: readonly string[],
+): BrowserTimeZoneContext {
+  const timeZones = [...new Set(inputs.map(canonicalBrowserTimeZone))].sort()
   const [timeZone, ...remaining] = timeZones
   if (timeZone === undefined) return { kind: 'missing' }
   if (remaining.length === 0) return { kind: 'resolved', timeZone }
@@ -74,7 +85,7 @@ export function renderBrowserTimeZoneContext(context: BrowserTimeZoneContext): s
     case 'missing':
       return 'Browser time zone for this request: unavailable. '
         + 'Ask the user to clarify otherwise-unqualified dates and times.'
-    /* v8 ignore next 2 -- the closed BrowserTimeZoneContext union is exhausted above. */
+    /*! v8 ignore next 2 -- the closed BrowserTimeZoneContext union is exhausted above. */
     default:
       return assertNever(context, 'BrowserTimeZoneContext')
   }

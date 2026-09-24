@@ -1,0 +1,139 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-REMAINING-W1-DISPOSITION-DESIGN-A84-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A13",
+  "kind": "W1_REMAINING_SESSION_READER_DISPOSITION_DESIGN",
+  "status": "PASS_WITH_RETAINED_EXCEPTIONS",
+  "timestamp": "2026-09-22T21:26:19-03:00",
+  "authority": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "candidate": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false
+  },
+  "reproduction": {
+    "command": "rg -n --glob '*.ts' --glob '!**/tests/**' '\\b(eventAt|snapshotEvents|ownEvents)\\s*\\(' packages/core/session/src packages/session/session-telemetry/src packages/session/session-title/src packages/session/session-telemetry-otel/src",
+    "exit_status": 0,
+    "observed_lines": [
+      "packages/session/session-title/src/invariant.ts:50 eventAt cited-message pre-commit validation",
+      "packages/session/session-title/src/invariant.ts:60 snapshotEvents existing-session/title restore scan",
+      "packages/session/session-telemetry/src/coordinator.ts:157 snapshotEvents on-demand capture suffix",
+      "packages/session/session-title/src/index.ts:776 snapshotEvents all-prompts provider input",
+      "packages/core/session/src/invariant.ts:214 snapshotEvents existing-session invariant bootstrap",
+      "packages/core/session/src/index.ts:674 ownEvents implementation",
+      "packages/core/session/src/index.ts:1279 snapshotEvents fork boundary default",
+      "packages/core/session/src/index.ts:1302 eventAt fork boundary validation",
+      "packages/core/session/src/index.ts:1310 snapshotEvents fork seed"
+    ],
+    "excluded_from_remaining_call_sites": [
+      "Session eventAt/snapshotEvents/ownEvents declarations and the source-only foldRequestHeader comment",
+      "REM-028-S070: session-telemetry-otel now uses Session.isCommittedEvent from A05 and has no production history-read call"
+    ]
+  },
+  "dispositions": [
+    {
+      "sites": ["REM-028-S024"],
+      "owner": "packages/core/session",
+      "decision": "RETAIN",
+      "classification": "complete_history_operation",
+      "reason": "ownEvents is a public synchronous complete-history API owned by Session itself. Replacing it requires an explicit storage-backed complete/inherited-history reader or an intentional public API retirement; an alias or hidden async fallback would not preserve its synchronous behavior.",
+      "retained_until": "A complete/inherited-history reader or separately authorized public API retirement is available."
+    },
+    {
+      "sites": ["REM-028-S025", "REM-028-S026", "REM-028-S027"],
+      "owner": "packages/core/session",
+      "decision": "RETAIN",
+      "classification": "complete_history_operation",
+      "reason": "SessionStore.fork is synchronous and must validate a stable live prefix, exact boundary identity, contiguous seed, and open-turn rejection before creating the child. A query or persistence read cannot replace this live-owner operation without changing fork timing and failure semantics.",
+      "retained_until": "A core-owned fork-cut capability or an explicitly authorized storage-backed fork reader proves exact sequence, inherited-prefix, and open-turn equivalence."
+    },
+    {
+      "sites": ["REM-028-S028", "REM-028-S074"],
+      "owner": "packages/core/session and packages/session/session-title",
+      "decision": "IMPLEMENT_BASELINE_HANDOFF",
+      "classification": "synchronous_invariant",
+      "reason": "A12 now provides the exact constructor-owned event cut synchronously on session/created. Each invariant companion can fold baseline.events for newly created Sessions while retaining one explicit snapshot scan only for already-live Sessions present when the companion mounts. A14 will implement this without adding an async storage dependency or changing event data.",
+      "retained_until": "The existing-session bootstrap scan remains until invariant installation itself has an explicit supplied restore cut."
+    },
+    {
+      "sites": ["REM-028-S070"],
+      "owner": "packages/session/session-telemetry-otel",
+      "decision": "CLOSED_BY_A05",
+      "classification": "synchronous_invariant",
+      "reason": "The identity-only Session.isCommittedEvent seam replaced the feedback eventAt lookup and its focused telemetry tests pass. The sealed inventory line is historical and must not be reimplemented.",
+      "retained_until": "None; remove this line from the active successor inventory after remeasurement."
+    },
+    {
+      "sites": ["REM-028-S071"],
+      "owner": "packages/session/session-telemetry",
+      "decision": "RETAIN",
+      "classification": "bounded_historical_window",
+      "reason": "On-demand capture replays a precise suffix after a per-session handoff cursor, optionally through an inclusive event boundary, and serializes each event through redaction before backend acceptance. Replacing it needs a shared reader with fixed-cut, inherited-prefix, cancellation, cursor-advance-after-emit, and fail-closed per-event semantics; session-query is not currently a dependency of this package.",
+      "retained_until": "A lower-level shared bounded reader is specified and available without a session-query/session-telemetry composition cycle or changed backend timing."
+    },
+    {
+      "sites": ["REM-028-S072"],
+      "owner": "packages/session/session-title",
+      "decision": "RETAIN",
+      "classification": "complete_history_operation",
+      "reason": "The all-prompts provider contract requires every eligible human message through the generation watermark, while titleInput intentionally stores only a bounded first/count/last aggregate. Replacing the full scan with that aggregate would change provider inputs and model-visible behavior; adding session-query would create the existing session-query-to-session-title dependency cycle.",
+      "retained_until": "A shared title-input history reader or a separately authorized provider-contract change preserves exact ordered message inputs, cancellation, and fork semantics."
+    },
+    {
+      "sites": ["REM-028-S073"],
+      "owner": "packages/session/session-title",
+      "decision": "RETAIN",
+      "classification": "synchronous_invariant",
+      "reason": "The title invariant validates that each cited seq names an earlier human user/message before publication. An asynchronous storage read cannot veto the append; a future pre-commit citation index must prove the same identity and ordering locally.",
+      "retained_until": "A core-owned pre-commit message-citation capability is specified and proves exact earlier-event identity."
+    }
+  ],
+  "selected_next_action": {
+    "id": "AAA-022:A14",
+    "kind": "IMPLEMENT",
+    "summary": "Consume SessionCreationBaseline in the core and title invariant creation paths",
+    "scope": [
+      "packages/core/session/src/invariant.ts",
+      "packages/session/session-title/src/invariant.ts",
+      "their seeded/existing-session and invalid-event tests"
+    ],
+    "acceptance": [
+      "session/created folds the supplied baseline synchronously and does not reread the live Session history",
+      "existing Sessions present at companion installation retain one explicit bootstrap scan with a local reason",
+      "seeded title and core traces validate constructor events exactly once before live session/event delivery",
+      "pre-commit title citation validation remains synchronous and behaviorally unchanged",
+      "no Session format, persistence schema, wire value, query dependency, or released generation changes",
+      "focused invariant tests, both package typechecks, Oxlint, package dependency policy, documentation checks, and diff checks pass"
+    ]
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run packages/core/session/tests/invariant.spec.ts packages/session/session-telemetry/tests packages/session/session-title/tests/invariant.spec.ts packages/session/session-title/tests/projection.spec.ts packages/session/session-title/tests/provider.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "6 files and 73 tests pass after the A12 strict-baseline consumer expectation correction."
+    },
+    {
+      "command": "pnpm exec tsc -b packages/core/session/tsconfig.json packages/session/session-telemetry/tsconfig.json packages/session/session-title/tsconfig.json --pretty false",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/core/session/src/invariant.ts packages/session/session-telemetry/src/coordinator.ts packages/session/session-title/src/index.ts packages/session/session-title/src/invariant.ts packages/session/session-title/tests/projection.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "git diff --check -- packages/core/session packages/session/session-telemetry packages/session/session-title .agent",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "limitations": [
+    "A13 changes no production source; the two stale test expectations corrected during the sweep belong to A12 closure and are recorded separately.",
+    "The canonical audit-metrics command remains unavailable on the incomplete current worktree, and the sealed A28 candidate remains unchanged.",
+    "Full doc-sync remains non-clean for the four previously recorded catalog/tool-environment failures; no new documentation generator was required by this design."
+  ],
+  "decision": "Accept the remaining W1 dispositions. Implement only the SessionCreationBaseline adoption for new-session invariant seeding in A14; retain complete-history, bounded telemetry, all-prompts title, and synchronous citation reads until their named capabilities exist."
+}

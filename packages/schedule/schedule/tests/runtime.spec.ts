@@ -3,13 +3,17 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent, AgentCancelCause, InboxTarget } from '@deepseek-ai/dsh-agent'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
+import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import {
   ScheduleId,
+  ScheduleLogError,
   createAfterScheduleRecord,
   createEveryScheduleRecord,
   foldScheduleEvents,
 } from '../src/domain.ts'
+import { scheduleProjectionDefinition } from '../src/projection.ts'
 import { MAX_TIMER_DELAY_MS, ScheduleRuntime } from '../src/runtime.ts'
 import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
 
@@ -37,12 +41,24 @@ interface RuntimeHarness {
   readonly disposeAgent: () => void
 }
 
-async function harness(): Promise<RuntimeHarness> {
+async function harness(seed?: {
+  readonly events: readonly SessionEvent[]
+  readonly inheritedEventCount: SessionLogOffset
+}): Promise<RuntimeHarness> {
   const ctx = new Context()
   contexts.push(ctx)
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  ctx.sessionProjections.register(scheduleProjectionDefinition)
   await ctx.plugin(AgentRegistry)
-  const session = ctx.sessions.create(SessionId(`schedule-runtime-${Math.random()}`))
+  const session = ctx.sessions.create(
+    SessionId(`schedule-runtime-${Math.random()}`),
+    seed === undefined ? undefined : {
+      seed: [...seed.events],
+      inheritedEventCount: seed.inheritedEventCount,
+      meta: { parentSession: SessionId('schedule-runtime-parent'), isSeeded: true },
+    },
+  )
   const followed: UserMessage[] = []
   const order: string[] = []
   const controls = {
@@ -159,6 +175,39 @@ afterEach(async () => {
 })
 
 describe('Schedule timer and admission runtime', () => {
+  it('does not activate a reminder that exists only in the inherited fork prefix', async () => {
+    const inherited: SessionEvent = {
+      type: 'schedule/change',
+      seq: SessionSeq(0),
+      time: Date.now(),
+      data: {
+        version: 1,
+        operation: 'create',
+        schedule: createAfterScheduleRecord(
+          ScheduleId('parent-schedule'), 'parent reminder', 1, Date.now() - 60_000,
+        ),
+      },
+    }
+    const test = await harness({
+      events: [inherited],
+      inheritedEventCount: SessionLogOffset(1),
+    })
+    expect(test.ctx.sessionProjections.stateOf(test.agent.session, 'schedule')).toMatchObject({
+      inheritedEventCount: SessionLogOffset(1),
+      active: [],
+      seenIds: [],
+    })
+
+    const runtime = runtimeFor(test)
+    runtime.start()
+    await settle()
+
+    expect(test.followed).toEqual([])
+    expect(test.agent.session.snapshotEvents().filter(event => event.type === 'schedule/change'))
+      .toEqual([inherited])
+    await runtime.dispose()
+  })
+
   it('segments waits beyond the Node timer limit and rechecks the wall clock', async () => {
     const test = await harness()
     const delaySeconds = Math.ceil((MAX_TIMER_DELAY_MS + 1_500) / 1_000)
@@ -407,12 +456,10 @@ describe('Schedule timer and admission runtime', () => {
 
     const unreadable = await harness()
     appendAfter(unreadable, 'schedule-1', 1, Date.now() - 1_000)
+    const projectionRead = vi.spyOn(unreadable.ctx.sessionProjections, 'stateOf')
     unreadable.controls.onReserve = () => {
       unreadable.controls.onReserve = undefined
-      Object.defineProperty(unreadable.agent.session, 'snapshotEvents', {
-        configurable: true,
-        value: () => { throw new Error('became unreadable') },
-      })
+      projectionRead.mockImplementation(() => undefined)
     }
     const unreadableRuntime = runtimeFor(unreadable)
     unreadableRuntime.start()
@@ -614,29 +661,26 @@ describe('Schedule runtime failure and teardown boundaries', () => {
       event.type === 'schedule/change' && event.data.operation === 'dispatch')).toEqual([])
   })
 
-  it('faults on corrupt or unreadable durable state after preflight', async () => {
+  it('faults on corrupt or unavailable projection state after preflight', async () => {
     const corrupt = await harness()
-    Object.defineProperty(corrupt.agent.session, 'snapshotEvents', {
-      configurable: true,
-      value: () => [{
-        type: 'schedule/change', seq: 0, time: Date.now(),
-        data: { version: 9, operation: 'delete', id: 'schedule-1' },
-      }],
+    const corruptWarning = vi.spyOn(corrupt.ctx.logger, 'warn')
+    vi.spyOn(corrupt.ctx.sessionProjections, 'stateOf').mockImplementation(() => {
+      throw new ScheduleLogError('invalid stored schedule event')
     })
     const corruptRuntime = runtimeFor(corrupt)
     corruptRuntime.start()
     await settle()
     expect(corrupt.followed).toEqual([])
+    expect(corruptWarning).toHaveBeenCalledWith(expect.stringContaining('corrupt schedule log'))
 
     const unreadable = await harness()
-    Object.defineProperty(unreadable.agent.session, 'snapshotEvents', {
-      configurable: true,
-      value: () => { throw 'unreadable log' },
-    })
+    const unavailableWarning = vi.spyOn(unreadable.ctx.logger, 'warn')
+    vi.spyOn(unreadable.ctx.sessionProjections, 'stateOf').mockImplementation(() => undefined)
     const unreadableRuntime = runtimeFor(unreadable)
     unreadableRuntime.start()
     await settle()
     expect(unreadable.followed).toEqual([])
+    expect(unavailableWarning).toHaveBeenCalledWith(expect.stringContaining('projection unavailable'))
   })
 
   it('contains runtime startup, maintenance, and framing failures', async () => {

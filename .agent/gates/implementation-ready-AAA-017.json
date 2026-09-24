@@ -1,0 +1,83 @@
+{
+  "record_id": "GATE-AAA-017-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-20T22:21:33-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-017 official-mirror equality workflow and offline mismatch fixtures",
+  "scope_ref": "AAA-017",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The reproduced gap names the current workflow, the configured fork and official remotes, the mirror branch, and the written exact-equality requirement.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-017/findings-a01.json",
+        ".agent/evidence/AAA-017/commands-a01.jsonl",
+        ".agents/customization-policy.json",
+        "docs/customization/upstream-safe-customization.md",
+        ".github/workflows/customization-policy.yml"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The current refs happen to match; the gate depends on offline mismatch fixtures to prove rejection without mutating a remote."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation scope includes policy-owned official-remote setup, a full-history fetch, exact mirror-to-official commit equality, actionable mismatch diagnostics, and matching/mismatched executable fixtures.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-017/findings-a01.json",
+        ".agent/evidence/AAA-017/commands-a01.jsonl",
+        "scripts/verify-customization-policy.mjs",
+        "scripts/verify-customization-policy.spec.ts",
+        ".github/workflows/customization-policy.yml"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The workflow and its fixtures have not yet been implemented; the gate authorizes only the repository-automation paths described by AAA-017."
+    },
+    {
+      "id": "IR-003",
+      "description": "The correction changes repository automation only, requires no product decision, credential, durable-data migration, or external deployment, and remains attributable to the existing governance owner.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agents/customization-policy.json",
+        ".agents/notes/implemented/bug-fix/2026-09-20-customization-policy-package-roots.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The final candidate still requires the full governance, release, publication, platform, and independent-audit matrix."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-017/findings-a01.json",
+    ".agent/evidence/AAA-017/commands-a01.jsonl",
+    ".agents/customization-policy.json",
+    ".github/workflows/customization-policy.yml",
+    "docs/customization/upstream-safe-customization.md"
+  ],
+  "candidate_fingerprint": "91dee34ca066c720f2a35112e5e22e63e7a15bcf12e2536e4af414b27c839f2b",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": false,
+    "state": "NOT_REQUIRED",
+    "actor": "Repository quality policy",
+    "scope": "AAA-017 official-mirror equality workflow and offline mismatch fixtures",
+    "decision": "The existing customization governance owner controls the workflow and verifier paths; the correction does not choose product behavior or publication identity.",
+    "evidence_ref": ".agents/customization-policy.json",
+    "expires_or_revalidates": "Revalidate if the repository remotes, mirror branch, upstream URL, workflow trigger, or official update procedure changes."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Implement the policy-owned official-remote fetch and exact equality check, add matching and mismatched fixtures, update paired topology documentation, and run the workflow-equivalent checks.",
+  "revalidation_triggers": [
+    "The fork or official remote identity changes.",
+    "The mirror branch changes from master.",
+    "GitHub checkout no longer exposes origin/master to the workflow.",
+    "The workflow gains a separate official-source fetch or attribution owner."
+  ],
+  "supersedes": null
+}

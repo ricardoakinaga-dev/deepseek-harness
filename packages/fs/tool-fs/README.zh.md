@@ -246,6 +246,8 @@ Use the edit tool for targeted changes to existing UTF-8 text files. It replaces
 - **没有附件区域工具**：agent 在拥有文件系统路径时可以通过其他可用工具裁剪图片；没有路径的粘贴或拖入图片无法按更高分辨率重新读取。
 - **没有超时接口**：`read`/`write`/`edit` 不接受超时参数，也不声明超时预算；取消只通过 `exec.signal` 传递（见[提供方理由](../README.zh.md)）。
 
+**运行时不变式：** 不发布伴生入口。这个模型侧 adapter 没有独立 lifecycle stream；执行关系由它调用的 capability seam 负责。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -255,5 +257,3 @@ Use the edit tool for targeted changes to existing UTF-8 text files. It replaces
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。这个模型侧 adapter 没有独立 lifecycle stream；执行关系由它调用的 capability seam 负责。

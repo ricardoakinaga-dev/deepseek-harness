@@ -1,0 +1,109 @@
+{
+  "record_id": "EVID-AAA-022-W2-SCHEDULE-DESIGN-AMENDMENT-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-DESIGN",
+  "kind": "OWNER_SCOPED_READER_MIGRATION_DESIGN_AMENDMENT",
+  "timestamp": "2026-09-24T03:35:00-03:00",
+  "status": "PROPOSED_FOR_INDEPENDENT_REVIEW",
+  "supersedes_for_gate_use": ".agent/evidence/AAA-022/schedule-reader-design-w2-20260924.json",
+  "preserves_history": true,
+  "review": ".agent/evidence/AAA-022/schedule-reader-design-review-w2-20260924.json#REVIEW-AAA-022-W2-SCHEDULE-INITIAL-20260924-001",
+  "fingerprint_revalidation": ".agent/evidence/AAA-022/schedule-reader-fingerprint-revalidation-w2-20260924.json",
+  "corrections": {
+    "input_fingerprint_sha256": "a3282a316bfd5fe279a38527bebc63f8a1679f8812e826093dcfd480003a0849",
+    "input_path_count": 42,
+    "method": "Sort relative paths; for each path update SHA-256 with UTF-8 path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+    "revalidation_result": "all 42 per-file hashes and the recorded HEAD match; aggregate digest recomputed exactly"
+  },
+  "design_additions": [
+    {
+      "id": "W2-AC-07",
+      "requirement": "The Schedule plugin requires SessionProjectionRegistry; absent provider or key is a fail-closed composition/capability error and must never become a corrupt-log or ordinary internal tool result. Runtime unavailable-state diagnostics must be distinct from corrupt-log diagnostics.",
+      "paths": [
+        "packages/schedule/schedule/src/index.ts",
+        "packages/schedule/schedule/src/runtime.ts",
+        "packages/schedule/schedule/src/tools.ts",
+        "packages/schedule/schedule/README.md",
+        "packages/schedule/schedule/README.zh.md",
+        "packages/schedule/schedule/README.i18n.yaml",
+        "docs/subsystems/schedule.md",
+        "docs/subsystems/schedule.zh.md",
+        "docs/subsystems/schedule.i18n.yaml"
+      ]
+    },
+    {
+      "id": "W2-AC-08",
+      "requirement": "Preserve package-attributed InvariantError for invalid creation baselines: register a prepend global session/created preflight that transiently applies scheduleProjectionDefinition from exact inheritedEventCount over SessionCreationBaseline.events; catch only ScheduleLogError and call fail(). After the projection registry initializes, retain a post-projection stateOf check. Do not use ownEvents or snapshotEvents.",
+      "paths": [
+        "packages/schedule/schedule/src/invariant.ts",
+        "packages/schedule/schedule/tests/invariant.spec.ts"
+      ]
+    },
+    {
+      "id": "W2-AC-09",
+      "requirement": "Prove shared key refcounting through both contributor disposal orders. With Schedule and schedule-invariant registered, disposing either contributor must leave the other able to read exact state and perform its applicable runtime/pre-append role; disposing the final contributor removes the key.",
+      "paths": [
+        "packages/schedule/schedule/tests/plugin.spec.ts",
+        "packages/schedule/schedule/tests/invariant.spec.ts"
+      ]
+    },
+    {
+      "id": "W2-AC-10",
+      "requirement": "Prove live restore and fork behavior: assert inheritedEventCount, active and seenIds after persisted resume; assert terminal IDs remain reserved; and exercise an inherited-only fork runtime that does not flush or wake while an owned suffix remains visible and operative.",
+      "paths": [
+        "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+        "packages/schedule/schedule/tests/runtime.spec.ts",
+        "packages/schedule/schedule/tests/plugin.spec.ts"
+      ]
+    }
+  ],
+  "scope": {
+    "implementation_path_count": 19,
+    "implementation_paths": [
+      ".agents/customization-policy.json",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "docs/subsystems/schedule.i18n.yaml",
+      "docs/subsystems/schedule.md",
+      "docs/subsystems/schedule.zh.md",
+      "packages/schedule/schedule/README.i18n.yaml",
+      "packages/schedule/schedule/README.md",
+      "packages/schedule/schedule/README.zh.md",
+      "packages/schedule/schedule/src/index.ts",
+      "packages/schedule/schedule/src/invariant.ts",
+      "packages/schedule/schedule/src/runtime.ts",
+      "packages/schedule/schedule/src/tools.ts",
+      "packages/schedule/schedule/tests/invariant.spec.ts",
+      "packages/schedule/schedule/tests/plugin.spec.ts",
+      "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "packages/schedule/schedule/tests/runtime.spec.ts",
+      "packages/schedule/schedule/tests/tools.spec.ts"
+    ],
+    "verification_only_path_count": 7,
+    "verification_only_paths": [
+      "packages/schedule/schedule/tests/projection.spec.ts",
+      "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "packages/subagent/subagent/tests/continuation.spec.ts",
+      "apps/web/tests/schedule-after.e2e.ts",
+      "packages/bundle/base/cordis.patch.yml",
+      "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "packages/test-support/agent-loop-testkit/src/index.ts"
+    ],
+    "excluded": [
+      "packages/schedule/schedule/package.json (already dirty for the separate source-export owner; preserve its edit)",
+      "packages/schedule/schedule/src/domain.ts (already dirty for coverage-marker work; no Schedule transition changes)",
+      "packages/schedule/schedule/src/projection.ts (reuse stateVersion 2; no checkpoint schema change)",
+      "schedule/change payloads and SESSION_FORMAT_VERSION",
+      "Session, persistence, or query service definitions",
+      "tool catalog, Cordis API catalog, persistence catalog/schema, and generated TypeScript outputs (no public service/tool schema changes)",
+      "all other owners, external repository actions, and A28 candidate data"
+    ],
+    "change_from_reviewed_candidate": "Move packages/schedule/schedule/tests/jsonl-restart.spec.ts from verification-only to implementation scope so the gate authorizes the required live resume assertions."
+  },
+  "nonchanges": [
+    "No product or documentation bytes were changed in this amendment.",
+    "A task-bound implementation-ready gate has not been created or passed."
+  ],
+  "next_action": "Obtain independent review of this amendment; only after PASS, create a fresh task-bound gate from the then-current exact scope and fingerprint."
+}

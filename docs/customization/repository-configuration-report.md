@@ -40,7 +40,7 @@ The repository remains a single fork while its custom packages depend on workspa
 
 GitHub protects both `master` and `custom/main` from force pushes and deletion. The default branch points to `custom/main`, so ordinary clone and pull workflows select the maintained product branch while the official mirror remains available for exact comparison.
 
-The `Customization policy` workflow runs on `custom/**` pushes and pull requests targeting `custom/main`. It compares the change with `origin/master` and rejects an unregistered custom path, duplicate path ownership, an incompatible `kind` and `solutionType`, a package extension without declared package roots, or an extension that modifies production package source outside those roots.
+The `Customization policy` workflow runs on `custom/**` pushes and pull requests targeting `custom/main`. It fetches the configured `deepseek-official/master`, rejects any `origin/master` commit that is not exactly equal to it, then compares the change with `origin/master` and rejects an unregistered custom path, duplicate path ownership, an incompatible `kind` and `solutionType`, a package extension without declared package roots, or an extension that modifies production package source outside those roots.
 
 -----
 
@@ -69,6 +69,7 @@ git status --short --branch
 git rev-parse HEAD origin/custom/main
 git rev-parse origin/master deepseek-official/master
 node scripts/verify-customization-policy.mjs --base master
+node scripts/verify-customization-policy.mjs --base origin/master --require-official-mirror
 ```
 
 GitHub accepting a workflow run proves dispatch only. A completed green run remains the remote evidence for the exact pushed commit.

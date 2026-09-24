@@ -2,13 +2,13 @@
 
 English | [中文](session-title.zh.md)
 
-Durable latest-wins title state and the optional asynchronous provider vocabulary owned by [`@deepseek-ai/dsh-session-title`](../../packages/session/session-title). The shared LLM helper owns the exact auxiliary request record. Package READMEs own timing, fallback, failure, and fork behavior; the generated [persistence catalog](../persistence-catalog.md) owns the complete event declarations.
+Durable latest-wins title state and the optional asynchronous provider vocabulary owned by [`@deepseek-ai/dsh-session-title`](../../packages/session/session-title). The service supplies first-message projection input or calls a provider loader with a fixed history cut; the shared LLM helper owns query-backed history reads and the exact auxiliary request record. Package READMEs own timing, fallback, failure, and fork behavior; the generated [persistence catalog](../persistence-catalog.md) owns the complete event declarations.
 
 Sources: [`packages/session/session-title/src/index.ts`](../../packages/session/session-title/src/index.ts), [`packages/session/session-title-llm/src/index.ts`](../../packages/session/session-title-llm/src/index.ts)
 
 ## Durable title state
 
-`SessionTitleProviderId` is recorded for provider-produced revisions. `SessionTitleEventData` lists the exact human-message seqs used for the title, while `SessionTitleSnapshot` adds the durable event envelope facts returned by `ctx.sessionTitle.get()` and `foldSessionTitle()`. The `title` projection keeps its version-1 state and client view as only the title string or `null`, so existing persisted cache rows remain readable.
+`SessionTitleProviderId` is recorded for provider-produced revisions. `SessionTitleEventData` lists the exact human-message seqs used for the title, while `SessionTitleSnapshot` adds the durable event envelope facts returned by `ctx.sessionTitle.get()` and `foldSessionTitle()`. The `title` projection stores this snapshot in version-2 state and exposes only the title string or `null` in its client view.
 
 ```ts type-equiv
 /** Identifies one session-title provider registration. */
@@ -86,7 +86,7 @@ interface SessionTitleLlmRequestEventData {
 
 ## Provider input and output
 
-The service snapshots eligible messages through one revision. A provider returns only seqs from that request; service-owned acceptance verifies ordering, normalizes the title, enforces the byte limit, and appends the title with its source-message seqs and source kind.
+Automatic `first-prompt` work uses the first-message projection. `all-prompts` work and every explicit refresh call the provider loader with an inclusive seq cut. A provider returns only seqs from that request; service-owned acceptance verifies ordering, normalizes the title, enforces the byte limit, and appends the title with its source-message seqs and source kind.
 
 ```ts type-equiv
 /** One eligible human text message exposed to title providers. */
@@ -95,6 +95,20 @@ interface SessionTitleUserMessage {
   readonly seq: SessionSeq
   /** Exact concatenated text-block content. */
   readonly text: string
+}
+```
+
+`sessionTitleUserMessageOf(event)` returns a title message for a human `user/message` event when its concatenated text blocks contain non-empty normalized text. Other events, empty text, and non-text human prompts do not produce provider input.
+
+```ts type-equiv
+/** Fixed history cut requested before one provider generation. */
+interface SessionTitleProviderMessageRequest {
+  /** Live session whose committed history is being read. */
+  readonly session: Session
+  /** Inclusive upper event sequence captured when the generation was scheduled. */
+  readonly throughSeq: SessionSeq
+  /** Cancellation for supersession, disposal, or an explicit caller. */
+  readonly signal: AbortSignal
 }
 ```
 
@@ -136,6 +150,13 @@ interface SessionTitleProvider {
   readonly id: SessionTitleProviderId
   /** When new human prompts start automatic generation. */
   readonly automatic: SessionTitleAutomaticMode
+  /**
+   * Load every eligible human text message through the requested fixed cut.
+   * @param request - live session, inclusive sequence cut, and cancellation.
+   * @returns ordered messages with their exact source sequences.
+   * @throws when the read fails or the request is cancelled.
+   */
+  loadMessages(request: SessionTitleProviderMessageRequest): Promise<readonly SessionTitleUserMessage[]>
   /**
    * Produce one title revision.
    * @param request - message snapshot, current route, session, and cancellation.

@@ -6,7 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import * as AgentInstructions from '@deepseek-ai/dsh-agent-instructions'
 import LlmRuntime, { createUserMessage, ToolCallId, type Message, type StreamChunk } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId, SessionSeq, type SessionEvent, type SurfaceIntent, type UserMessage } from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionId, SessionLogOffset, SessionSeq, type SessionEvent, type SurfaceIntent, type UserMessage } from '@deepseek-ai/dsh-session'
 import AgentRegistry, { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop, { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
@@ -56,6 +56,7 @@ const isolatedInboxCtx = new Context()
 await mountAgentLoopTestDependencies(isolatedInboxCtx)
 const isolatedAgentLoop = await mountAgentLoopTestHarness(isolatedInboxCtx)
 let nextStubSession = 1
+let activeInstructionContext: Context | undefined
 afterAll(() => isolatedInboxCtx.fiber.dispose())
 
 type TestAgent = Agent
@@ -194,7 +195,9 @@ class BlockingReadFileSystem extends RecordingFileSystem {
 }
 
 async function mountAgentInstructionsPlugin(ctx: Context, config: AgentInstructions.Config): Promise<Awaited<ReturnType<Context['plugin']>>> {
+  if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
   if (ctx.get('sessionProjections') === undefined) await ctx.plugin(SessionProjectionRegistry)
+  activeInstructionContext = ctx
   ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
   return ctx.plugin(AgentInstructions, config)
 }
@@ -235,6 +238,13 @@ async function stubAgent(cwd?: string, seed: readonly SessionEvent[] = []): Prom
     }
   }
   if (seed.at(-1)?.type !== 'session/end-seed') agent.session.append('session/end-seed', {})
+  const projections = activeInstructionContext?.get('sessionProjections')
+  projections?.hydrate(
+    agent.session,
+    {},
+    agent.session.snapshotEvents(),
+    SessionLogOffset(0),
+  )
   return agent
 }
 
@@ -265,6 +275,7 @@ async function agentInstructionsOf(agent: Agent): Promise<UserMessage> {
 }
 
 async function syncAgentInstructions(ctx: Context, agent: Agent): Promise<void> {
+  ctx.sessionProjections.hydrate(agent.session, {}, agent.session.snapshotEvents(), SessionLogOffset(0))
   await agentEvents(ctx, agent).waterfall(
     'agent/pre-step', { messages: [], turn: 1, step: 1, signal: testToolSignal },
     async () => ({ kind: 'enter' as const, messages: [] }),
@@ -283,13 +294,19 @@ function baselineEvents(agent: Agent): SessionEvent[] {
     && event.data.source.baseline === true)
 }
 
+/** Rebuild a fixture Agent's local projection before forwarding its detached Session event. */
+function emitSessionEvent(ctx: Context, session: TestAgent['session'], event: SessionEvent): void {
+  ctx.sessionProjections.hydrate(session, {}, session.snapshotEvents(), SessionLogOffset(0))
+  ctx.emit('session/event', session, event)
+}
+
 async function appendAdditionalContexts(ctx: Context, agent: TestAgent): Promise<SessionSeq | undefined> {
   await syncedAgentInstructions(ctx, agent)
   let lastSeq: SessionSeq | undefined
   for (const claimed of claimInbox(agent, 'next-step')) {
     if (claimed.source.kind !== 'agent-instructions') continue
     const event = agent.session.append('user/message', claimed, { surfaceOp: 'append' })
-    ctx.emit('session/event', agent.session, event)
+    emitSessionEvent(ctx, agent.session, event)
     lastSeq = event.seq
   }
   return lastSeq
@@ -298,6 +315,7 @@ async function appendAdditionalContexts(ctx: Context, agent: TestAgent): Promise
 const composedPrefixes = new WeakMap<object, Message[]>()
 
 async function composeBaselinePrefix(ctx: Context, agent: TestAgent): Promise<Message[]> {
+  ctx.sessionProjections.hydrate(agent.session, {}, agent.session.snapshotEvents(), SessionLogOffset(0))
   const signal = new AbortController().signal
   await agentEvents(ctx, agent).waterfall(
     'agent/pre-step',
@@ -313,7 +331,7 @@ async function composeBaselinePrefix(ctx: Context, agent: TestAgent): Promise<Me
   const entered = decision.kind === 'enter' ? decision.messages : []
   for (const message of entered) {
     const event = agent.session.append('user/message', message, { surfaceOp: 'append' })
-    ctx.emit('session/event', agent.session, event)
+    emitSessionEvent(ctx, agent.session, event)
   }
   const prefix = agent.session.deriveMessages()
   composedPrefixes.set(agent, prefix)
@@ -1041,7 +1059,9 @@ describe('workspace context request injection', () => {
 
   it('rejects a file-touch projection when the turn boundary unit is absent', async () => {
     const ctx = new Context()
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
+    activeInstructionContext = ctx
     await ctx.plugin(AgentInstructions, { maxBytes: 65536 })
     const exec = stubToolExecution({
       callId: ToolCallId('missing-turn-boundary'),
@@ -1426,7 +1446,7 @@ describe('workspace context request injection', () => {
       if (decision.kind !== 'enter') throw new Error('recovered baseline was rejected')
       for (const message of decision.messages) {
         const event = resumed.session.append('user/message', message, { surfaceOp: 'append' })
-        ctx.emit('session/event', resumed.session, event)
+        emitSessionEvent(ctx, resumed.session, event)
       }
 
       expect(decision.messages.map(message => message.id)).toEqual([inserted?.id])
@@ -1481,7 +1501,7 @@ describe('workspace context request injection', () => {
 
       for (const message of staleDecision.messages) {
         const event = resumed.session.append('user/message', message, { surfaceOp: 'append' })
-        ctx.emit('session/event', resumed.session, event)
+        emitSessionEvent(ctx, resumed.session, event)
       }
       expect(baselineEvents(resumed)).toHaveLength(1)
     } finally {
@@ -4211,9 +4231,9 @@ describe('dynamic nested workspace context injection', () => {
       fs.entries.set(join(root, 'pkg/AGENTS.md'), { type: 'file', content: 'nested package rule' })
       const agent = await stubAgent(root)
       const turnStart = agent.session.append('turn/start', { turn: 1 })
-      ctx.emit('session/event', agent.session, turnStart)
+      emitSessionEvent(ctx, agent.session, turnStart)
       const stepStart = agent.session.append('step/start', { turn: 1, step: 1 })
-      ctx.emit('session/event', agent.session, stepStart)
+      emitSessionEvent(ctx, agent.session, stepStart)
       const outerToken = Symbol('outer-code-run') as ToolExecutionToken
 
       ctx.emit('tools/result', stubToolExecution({
@@ -4256,7 +4276,7 @@ describe('dynamic nested workspace context injection', () => {
       expect(agent.inbox.nextStep).toEqual([])
 
       const stepEnd = agent.session.append('step/end', { turn: 1, step: 1 })
-      ctx.emit('session/event', agent.session, stepEnd)
+      emitSessionEvent(ctx, agent.session, stepEnd)
       expect(blocksText((await syncedAgentInstructions(ctx, agent)).content))
         .toContain('nested package rule')
     } finally {
@@ -4281,6 +4301,7 @@ describe('dynamic nested workspace context injection', () => {
       agent.session.append('step/end', { turn: 1, step: 1 })
       agent.session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
       await mountAgentInstructionsPlugin(ctx, { dshHome: home, maxBytes: 65536 })
+      ctx.sessionProjections.hydrate(agent.session, {}, agent.session.snapshotEvents(), SessionLogOffset(0))
 
       ctx.emit('tools/result', stubToolExecution({
         signal: testToolSignal,
@@ -4525,6 +4546,79 @@ describe('workspace context inbox synchronization', () => {
 
       expect(agent.inbox.nextStep).toHaveLength(1)
       expect(agent.inbox.nextStep[0]?.id).toBe(desired.id)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+      await rm(home, { recursive: true, force: true })
+    }
+  })
+
+  it.each(['identical payload', 'source difference', 'content difference'] as const)(
+    'deduplicates against an active durable message only when its %s matches',
+    async (difference) => {
+      const root = await tempRepo()
+      const home = await tempRepo()
+      try {
+        await mkdir(join(root, '.git'), { recursive: true })
+        await write(join(root, 'AGENTS.md'), 'durable duplicate baseline')
+        const ctx = new Context()
+        await mountAgentInstructions(ctx, { dshHome: home, maxBytes: 65536 })
+        const agent = await stubAgent(root)
+        await syncAgentInstructions(ctx, agent)
+        const desired = agent.inbox.nextStep[0]!
+        let durableMessage: UserMessage
+        if (difference === 'source difference') {
+          if (desired.source.kind !== 'agent-instructions') {
+            throw new Error('expected workspace instruction source')
+          }
+          durableMessage = createUserMessage({
+            content: desired.content,
+            source: {
+              ...desired.source,
+              baselineIdentity: `${desired.source.baselineIdentity ?? 'baseline'}-different`,
+            },
+          })
+        } else if (difference === 'content difference') {
+          durableMessage = createUserMessage({
+            content: [{ type: 'text', text: 'different active instruction context' }],
+            source: desired.source,
+          })
+        } else {
+          durableMessage = createUserMessage({ content: desired.content, source: desired.source })
+        }
+        agent.session.append('user/message', durableMessage, { surfaceOp: 'append' })
+
+        await syncAgentInstructions(ctx, agent)
+
+        if (difference === 'identical payload') {
+          expect(agent.inbox.nextStep).toEqual([])
+        } else {
+          expect(agent.inbox.nextStep).toHaveLength(1)
+          expect(agent.inbox.nextStep[0]?.id).toBe(desired.id)
+        }
+      } finally {
+        await rm(root, { recursive: true, force: true })
+        await rm(home, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it('reads durable instruction messages through the current Session projection', async () => {
+    const root = await tempRepo()
+    const home = await tempRepo()
+    try {
+      await mkdir(join(root, '.git'), { recursive: true })
+      await write(join(root, 'AGENTS.md'), 'projected baseline')
+      const ctx = new Context()
+      await mountAgentInstructions(ctx, { dshHome: home, maxBytes: 65536 })
+      const agent = await stubAgent(root)
+      await syncAgentInstructions(ctx, agent)
+      const deriveMessages = vi.spyOn(agent.session, 'deriveMessages')
+      const eventAt = vi.spyOn(agent.session, 'eventAt')
+
+      await syncAgentInstructions(ctx, agent)
+
+      expect(deriveMessages).toHaveBeenCalled()
+      expect(eventAt).not.toHaveBeenCalled()
     } finally {
       await rm(root, { recursive: true, force: true })
       await rm(home, { recursive: true, force: true })

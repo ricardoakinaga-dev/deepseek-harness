@@ -64,7 +64,7 @@ export function createInProcessModules(
   const target: ClientModuleLoaderTarget = {
     mode: 'queue',
     pendingQueue: [],
-    /* v8 ignore next -- construction replaces this sink before draining the prefilled queue. */
+    /*! v8 ignore next -- construction replaces this sink before draining the prefilled queue. */
     load: () => { throw new Error('client-test-runtime: module facade is not initialized') },
     create: options => createClientModuleSystem(target, { id: MODULES_PACKAGE, exports: modulesClient }, options),
   }

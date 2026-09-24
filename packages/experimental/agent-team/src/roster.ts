@@ -328,7 +328,7 @@ export class TeamRoster {
       try {
         await this.stopTeammates(root, [childId])
       } catch (cleanupError: unknown) {
-        /* v8 ignore next -- requires the independently tested HMR settlement conflict and cleanup failure together. */
+        /*! v8 ignore next -- requires the independently tested HMR settlement conflict and cleanup failure together. */
         throw new AggregateError([conflict, cleanupError], 'provisioning conflict cleanup failed')
       }
       throw conflict
@@ -467,7 +467,7 @@ export class TeamRoster {
   ): Promise<'active' | 'failed'> {
     return this.journal.transact(root.id, async () => {
       const current = this.journal.state(root).members.find(member => member.id === terminal.id)
-      /* v8 ignore next 3 -- the append-only provisioning event is committed by this operation before settlement. */
+      /*! v8 ignore next 3 -- the append-only provisioning event is committed by this operation before settlement. */
       if (current === undefined) {
         throw new TeamError(`provisioned teammate "${terminal.id}" disappeared`, 'TEAM_PROVISIONING_CONFLICT')
       }

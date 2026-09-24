@@ -4,9 +4,17 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { HarnessClientOptions } from './types.ts'
+
+const require = createRequire(import.meta.url)
+
+/** Resolve a package entry without relying on Vite's incomplete import.meta.resolve shim. */
+function resolveModuleUrl(specifier: string): string {
+  return pathToFileURL(require.resolve(specifier)).href
+}
 
 /** Default bound for a profile to answer the SDK initialize handshake. */
 export const DEFAULT_INITIALIZE_TIMEOUT_MS = 10_000
@@ -71,7 +79,7 @@ export function resolveDshBinFromManifests(dshManifestUrl: string, clientManifes
  */
 export function installedDshBin(): string {
   return resolveDshBinFromManifests(
-    import.meta.resolve('@deepseek-ai/dsh/package.json'),
+    resolveModuleUrl('@deepseek-ai/dsh/package.json'),
     new URL('../package.json', import.meta.url).href,
   )
 }
@@ -100,7 +108,7 @@ export function resolveDshNodeLaunchFromManifests(
       `@deepseek-ai/dsh is missing its built executable ${bin} and complete source launch files ${sourceBin}, ${sourcePatch}, ${sourceTsconfig}`,
     )
   }
-  const loader = sourceLoaderUrl ?? import.meta.resolve('tsx/esm')
+  const loader = sourceLoaderUrl ?? resolveModuleUrl('tsx/esm')
   return {
     nodeArgs: ['--import', loader, sourceBin],
     patches: [sourcePatch],
@@ -114,7 +122,7 @@ export function resolveDshNodeLaunchFromManifests(
  */
 function installedDshNodeLaunch(): DshNodeLaunch {
   return resolveDshNodeLaunchFromManifests(
-    import.meta.resolve('@deepseek-ai/dsh/package.json'),
+    resolveModuleUrl('@deepseek-ai/dsh/package.json'),
     new URL('../package.json', import.meta.url).href,
   )
 }

@@ -1,5 +1,5 @@
 /** Private OpenSSH process entry; the helper module owns request and cleanup behavior. */
-/* v8 ignore file -- launched through plain Node in SSH acceptance; helper behavior is exercised through its explicit streams. */
+/*! v8 ignore file -- launched through plain Node in SSH acceptance; helper behavior is exercised through its explicit streams. */
 import { fileURLToPath } from 'node:url'
 import { runSshHelper } from './helper.ts'
 

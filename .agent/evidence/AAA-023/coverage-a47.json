@@ -1,0 +1,32 @@
+{
+  "record_id": "EVID-AAA-023-COVERAGE-A47-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A16",
+  "result": "PASS",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; sealed candidate tree d122da6d97d38e0be1e8843ca642c537f759d460; /home/ricardo/dsh-aaa023-candidate.eSCkTH",
+  "command": "pnpm run test:coverage",
+  "exit_status": 0,
+  "duration_seconds": 601.44,
+  "summary": {
+    "test_files": { "passed": 1535, "skipped": 12 },
+    "tests": { "passed": 26314, "expected_failures": 1, "skipped": 153 },
+    "coverage_percent": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+    "uncovered_locations": 0,
+    "comparison": {
+      "previous_candidate": "coverage-a46",
+      "skipped_file_delta": 0,
+      "skipped_test_delta": 0,
+      "new_test_passes": 7,
+      "threshold_change": false,
+      "normalizer_change": false,
+      "exact_inspector_exclusions": 6
+    }
+  },
+  "decision": "AAA-023:A16 passes AAA-QB-02 on the sealed candidate. The existing skipped-test inventory is unchanged; the six explicitly enumerated Inspector entry modules remain separately owned direct-test debt, and no broad coverage threshold or normalizer was introduced.",
+  "limitations": "This is a coverage qualification only. Aggregate requalification on this updated candidate, benchmark, required-platform, credentialed-provider, packed-install, upstream-rehearsal, release-identity, publication, and final-critic evidence remain outstanding; no commit, publication, push, merge, release, or final verdict is claimed.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/coverage-a47.json",
+    "/tmp/dsh-a16-candidate-coverage-green.log"
+  ],
+  "observed_at": "2026-09-22T14:26:57-03:00"
+}

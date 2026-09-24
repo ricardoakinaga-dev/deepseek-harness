@@ -188,7 +188,7 @@ export function assertReleasedSurfaceMetadata(
  */
 export function assertReleasedEventPayload(event: SessionFormatEvent, version: 0 | 1): void {
   const disposition = RELEASED_V0_EVENT_DISPOSITIONS[event.type]
-  /* v8 ignore next -- artifact coordinate validation admits only the frozen inventory before payload validation. */
+  /*! v8 ignore next -- artifact coordinate validation admits only the frozen inventory before payload validation. */
   if (disposition === undefined) {
     throw new SessionFormatUnsupportedMigrationError(
       `format v0 contains unknown historical event type ${JSON.stringify(event.type)} at seq ${event.seq}; migration refuses unknown historical events even when ignorable`,

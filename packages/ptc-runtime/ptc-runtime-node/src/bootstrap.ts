@@ -75,7 +75,7 @@ export class LogBuffer {
       const prefix = truncateJsonStringBytes(text, availableBytes)
       if (prefix.length > 0) {
         const prefixBytes = jsonStringBytesUpTo(prefix, availableBytes)
-        /* v8 ignore next -- truncateJsonStringBytes guarantees the returned prefix fits. */
+        /*! v8 ignore next -- truncateJsonStringBytes guarantees the returned prefix fits. */
         if (prefixBytes === undefined) throw new CapturedError('program output ledger produced an oversized log prefix')
         this.bytes += prefixBytes + separatorBytes
         this.entries += 1
@@ -389,7 +389,7 @@ export async function runProgram(
     if (!namespace.errorClass) continue
     errorClassParameters.push(namespace.errorClass.name)
     const errorClass = errorClasses.get(namespace.global)
-    /* v8 ignore next -- makeBindingErrorClasses covers every declaration in the same data. */
+    /*! v8 ignore next -- makeBindingErrorClasses covers every declaration in the same data. */
     if (!errorClass) throw new CapturedError(`missing binding error class for ${namespace.global}`)
     errorClassValues.push(errorClass)
   }
@@ -399,7 +399,7 @@ export async function runProgram(
   try {
     // The async function constructor, reached through an instance because
     // `AsyncFunction` is not a global. The program body is strict-mode.
-    /* v8 ignore next -- the arrow exists only to reach the AsyncFunction constructor; it is never invoked. */
+    /*! v8 ignore next -- the arrow exists only to reach the AsyncFunction constructor; it is never invoked. */
     const AsyncFunction = (async () => {}).constructor as new (...args: string[]) => (...fnArgs: unknown[]) => Promise<unknown>
     const fn = new AsyncFunction(
       ...data.namespaces.map(namespace => namespace.global),

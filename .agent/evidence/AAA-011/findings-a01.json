@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-011",
+  "action_id": "AAA-011:A01",
+  "candidate_ref": "current persistent-shell-diagnostics ownership design",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T21:43:33-03:00",
+  "source_documents": [
+    {
+      "id": "persistent-shell-policy",
+      "location": ".agents/customization-policy.json:15-40",
+      "role": "The active upstream-package-change record owns the source, tests, paired documentation, Agent Note, and two snapshot families."
+    },
+    {
+      "id": "persistent-shell-standard",
+      "location": "docs/customization/improvement-development-standard.md:27-36,124-135",
+      "role": "The standard requires expected paths before implementation and package, consumer, documentation, and model-visible snapshot evidence for an upstream package change."
+    },
+    {
+      "id": "persistent-shell-docs",
+      "location": "packages/shell/tool-bash-persistent/README.md:42-152; packages/shell/tool-pwsh-persistent/README.md:42-152",
+      "role": "The paired READMEs own timeout, clipping, reset, interactive-input, and model-visible result wording."
+    },
+    {
+      "id": "persistent-shell-snapshots",
+      "location": "snapshots/sdk/persistent-tools/; snapshots/session/persistent-pwsh-tool-turn/",
+      "role": "The keyless SDK and session snapshot families exercise the Bash and PowerShell model-visible paths."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-011-OWNERSHIP-SCOPE",
+      "source_refs": ["persistent-shell-policy", "persistent-shell-standard"],
+      "source_location": ".agents/customization-policy.json:15-40",
+      "observed_status": "PASS",
+      "classification": "POLICY_OWNERSHIP_EXPANDED",
+      "owner": "persistent-shell-diagnostics",
+      "severity": "HIGH",
+      "summary": "The policy record now attributes both persistent-shell source/test trees, paired README and i18n files, the durable rationale note, and the exact Bash and PowerShell snapshot families before implementation.",
+      "limitations": "The policy verifier proves attribution only; it does not prove the future runtime or snapshot correction."
+    },
+    {
+      "id": "F-AAA-011-SNAPSHOT-OWNER",
+      "source_refs": ["persistent-shell-docs", "persistent-shell-snapshots"],
+      "source_location": "snapshots/sdk/persistent-tools/; snapshots/session/persistent-pwsh-tool-turn/",
+      "observed_status": "PASS",
+      "classification": "BASH_AND_PWSH_KEYLESS_SNAPSHOT_SCOPES_IDENTIFIED",
+      "owner": "AAA-011",
+      "severity": "HIGH",
+      "summary": "The Bash SDK scenario and PowerShell session scenario are the concrete keyless model-visible acceptance families for the planned wording and timeout/truncation documentation update.",
+      "limitations": "No snapshot content changed in AAA-011:A01; the next implementation action must keep the scenario entry paths and regenerate outputs through the owning harness."
+    }
+  ],
+  "design": {
+    "solution_type": "upstream-package-change",
+    "official_owners": [
+      "packages/shell/tool-bash-persistent",
+      "packages/shell/tool-pwsh-persistent",
+      "snapshots/sdk/persistent-tools",
+      "snapshots/session/persistent-pwsh-tool-turn"
+    ],
+    "owned_path_families": [
+      "packages/shell/tool-bash-persistent/src/index.ts",
+      "packages/shell/tool-bash-persistent/tests/",
+      "packages/shell/tool-bash-persistent/README*",
+      "packages/shell/tool-pwsh-persistent/src/index.ts",
+      "packages/shell/tool-pwsh-persistent/tests/",
+      "packages/shell/tool-pwsh-persistent/README*",
+      ".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only*",
+      "snapshots/sdk/persistent-tools/",
+      "snapshots/session/persistent-pwsh-tool-turn/"
+    ],
+    "compatibility_obligations": [
+      "Preserve the owner-scoped shell lifecycle and reset behavior.",
+      "Keep Bash and PowerShell result wording synchronized with the paired READMEs.",
+      "Update the keyless Bash SDK and PowerShell session snapshot outputs through their shipped profile entry paths.",
+      "Keep released Session data adjacent and readable; no durable format change is proposed by A01.",
+      "Remove the fork delta by extracting the focused package change when upstream accepts it."
+    ]
+  },
+  "decision": {
+    "result": "AAA-011:A01 PASS — ownership and keyless snapshot scope designed",
+    "product_change": false,
+    "diagnosis": "The existing active improvement record was too narrow for the documented model-visible behavior. The exact source, test, documentation, note, and Bash/PowerShell snapshot families are now attributed.",
+    "next_action": "Create the task-bound implementation-ready gate and implement the synchronized shell diagnostics and snapshot update as AAA-011:A02."
+  },
+  "validation": {
+    "commands": [
+      "node -e parse .agents/customization-policy.json and print persistent-shell-diagnostics",
+      "node -e verify the required persistent-shell paths exist",
+      "rg -n -i shell timeout/truncation/reset wording across paired READMEs and snapshots",
+      "node scripts/verify-customization-policy.mjs --base master",
+      "git diff --check"
+    ],
+    "raw_output_files": [
+      ".artifacts/aaa-011/aaa-011-a01-2026-09-20/policy-scope.log",
+      ".artifacts/aaa-011/aaa-011-a01-2026-09-20/owner-inventory.log",
+      ".artifacts/aaa-011/aaa-011-a01-2026-09-20/contract-scan.log",
+      ".artifacts/aaa-011/aaa-011-a01-2026-09-20/gates.log"
+    ],
+    "raw_output_sha256": {
+      "policy-scope.log": "c62a51ff45acd60277b3e0e93ee0a6ea3f7c6c4dd56b1d75d36cdde10d8f5063",
+      "owner-inventory.log": "ef174d8c097c06e6264f5bae02ed74a68dd102164344399ec75d63e7a1859490",
+      "contract-scan.log": "c4d6af25e14ffc5f48e846c3fd0db012bb229e558b0e5df2b515efd06bb9e638",
+      "gates.log": "21b372134422d5be3e1311537c6f4eaa90cf05a67892a6e54e210b3039f7c301"
+    },
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T21:43:33-03:00"
+  }
+}

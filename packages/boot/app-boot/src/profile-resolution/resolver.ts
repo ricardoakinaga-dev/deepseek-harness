@@ -197,7 +197,7 @@ function selfReferenceName(parent: string): string | false | null {
         ? manifest.name
         : false
     }
-    /* v8 ignore next -- scoped module requests normally find an owning manifest before node_modules. */
+    /*! v8 ignore next -- scoped module requests normally find an owning manifest before node_modules. */
     if (basename(current) === 'node_modules') return false
     const next = dirname(current)
     if (next === current) return false
@@ -217,7 +217,7 @@ function packageImportsTarget(
         manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as ResolvePackageManifest
       } catch (_error) {
         // The native resolver retains invalid package-target and manifest diagnostics.
-        /* v8 ignore next -- native resolution cannot report MODULE_NOT_FOUND after an invalid scope manifest */
+        /*! v8 ignore next -- native resolution cannot report MODULE_NOT_FOUND after an invalid scope manifest */
         return undefined
       }
       try {
@@ -230,13 +230,13 @@ function packageImportsTarget(
           : undefined
       } catch (_error) {
         // The native resolver retains missing mappings and unmatched-condition diagnostics.
-        /* v8 ignore next -- native resolution cannot report MODULE_NOT_FOUND before selecting a valid mapping */
+        /*! v8 ignore next -- native resolution cannot report MODULE_NOT_FOUND before selecting a valid mapping */
         return undefined
       }
     }
     if (basename(current) === 'node_modules') return undefined
     const next = dirname(current)
-    /* v8 ignore next -- a MODULE_NOT_FOUND package-import target always has an owning package scope */
+    /*! v8 ignore next -- a MODULE_NOT_FOUND package-import target always has an owning package scope */
     if (next === current) return undefined
     current = next
   }
@@ -246,7 +246,7 @@ function packageSearchPaths(
   entry: ProfileResolutionEntry, request: string, cjs: CommonJsModule,
 ): string[] {
   const name = barePackageName(request)
-  /* v8 ignore next -- fallback routes are created only for bare package requests */
+  /*! v8 ignore next -- fallback routes are created only for bare package requests */
   if (name === undefined) return cjs._nodeModulePaths(dirname(entry.declarer))
   const suffix = sep + name.split('/').join(sep)
   return entry.packageDir.endsWith(suffix)
@@ -258,17 +258,17 @@ function localCandidateOwnsResolution(candidate: string, resolved: string, reque
   if (startsWithin(resolved, prefixes(candidate))) return true
   if (sameResolution(candidate, resolved)) return true
   if (['.js', '.json', '.node'].some(extension => sameResolution(candidate + extension, resolved))) return true
-  /* v8 ignore next -- a bounded native lookup can escape a candidate only through its root legacy main */
+  /*! v8 ignore next -- a bounded native lookup can escape a candidate only through its root legacy main */
   if (request !== name) return false
   try {
     const manifest = JSON.parse(readFileSync(join(candidate, 'package.json'), 'utf8')) as Record<string, unknown>
-    /* v8 ignore next -- a bounded native lookup outside the package directory requires a legacy main */
+    /*! v8 ignore next -- a bounded native lookup outside the package directory requires a legacy main */
     if (typeof manifest.main !== 'string') return false
     const main = createRequire(join(candidate, 'package.json')).resolve(resolve(candidate, manifest.main))
     return sameResolution(main, resolved)
   } catch (_error) {
     // Native resolution already owns malformed manifests and missing legacy entries.
-    /* v8 ignore next -- this helper runs only after the same native resolution succeeded */
+    /*! v8 ignore next -- this helper runs only after the same native resolution succeeded */
     return false
   }
 }
@@ -433,7 +433,7 @@ class ResolutionRouter {
       const profileRoot = profileIndex >= 0
         ? generation.profilePaths[profileIndex]
         : generation.profile[activeProfileIndex]
-      /* v8 ignore next -- one matching index was established above */
+      /*! v8 ignore next -- one matching index was established above */
       if (profileRoot === undefined) return undefined
       parentRoutes = {
         parent,
@@ -461,7 +461,7 @@ class ResolutionRouter {
       const activeProfile = generation.profile.find(prefix => parent.startsWith(prefix))
       if (profilesDir !== undefined || activeProfile !== undefined) {
         const profileRoot = profilesDir ?? activeProfile
-        /* v8 ignore next -- one matching root was established above */
+        /*! v8 ignore next -- one matching root was established above */
         if (profileRoot === undefined) return undefined
         parentRoutes = {
           parent,
@@ -538,7 +538,7 @@ function internalModules(): InternalModules {
   }
   const esm = esmModule.getOrInitializeCascadedLoader()
   const modern = 'getOrCreateModuleJob' in esm
-  /* v8 ignore start -- the supported Node 22/24/26 matrix validates each available Internal interface */
+  /*! v8 ignore start -- the supported Node 22/24/26 matrix validates each available Internal interface */
   if (typeof esm.resolveSync !== 'function'
     || typeof Reflect.get(esm, modern ? 'getOrCreateModuleJob' : 'getModuleJobForImport') !== 'function'
     || (!modern && typeof Reflect.get(esm, 'resolve') !== 'function')
@@ -548,7 +548,7 @@ function internalModules(): InternalModules {
     || typeof esmResolve.defaultResolve !== 'function') {
     throw new Error('profile resolution: unsupported Node module loader')
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
   return {
     esm,
     esmDefaultResolve: (specifier, context) => esmResolve.defaultResolve(specifier, context),
@@ -568,7 +568,7 @@ function throwWithImporter(error: unknown, routedParent: string, parent: string)
     const message = originalMessage.replaceAll(routedParent, parent).replaceAll(routedPath, parentPath)
     const stack = error.stack
     error.message = message
-    /* v8 ignore next -- Node's resolver errors always carry a stack */
+    /*! v8 ignore next -- Node's resolver errors always carry a stack */
     if (stack !== undefined) error.stack = stack.replace(originalMessage, message)
   }
   throw error
@@ -584,14 +584,14 @@ function throwWithoutCjsAnchor(error: unknown, anchor: string): never {
     const originalMessage = error.message
     const originalBlock = `\nRequire stack:\n${requireStack.map(path => `- ${path}`).join('\n')}`
     const remaining = requireStack.slice(1)
-    /* v8 ignore next -- routed calls always retain the original importing module */
+    /*! v8 ignore next -- routed calls always retain the original importing module */
     const replacement = remaining.length === 0
       ? ''
       : `\nRequire stack:\n${remaining.map(path => `- ${path}`).join('\n')}`
     error.message = originalMessage.replace(originalBlock, replacement)
     resolved.requireStack = remaining
     const stack = error.stack
-    /* v8 ignore next -- Node's resolver errors always carry a stack */
+    /*! v8 ignore next -- Node's resolver errors always carry a stack */
     if (stack !== undefined) error.stack = stack.replace(originalMessage, error.message)
   }
   throw error
@@ -639,7 +639,7 @@ export function installProfileResolution(
   const adaptEsm = (native: EsmResolve): EsmResolve => {
     const adapted: EsmResolve = (request, parent, attributes) => {
       const delegated = delegatedEsm
-      /* v8 ignore next -- reentry requires a separate synchronous Node hook; supported launches install none */
+      /*! v8 ignore next -- reentry requires a separate synchronous Node hook; supported launches install none */
       if (delegated !== undefined && delegated.parent === parent && delegated.request === request) {
         return native(request, parent, attributes)
       }
@@ -664,21 +664,21 @@ export function installProfileResolution(
         let expected: ResolveResult | Promise<ResolveResult>
         try {
           expected = adapted(target.specifier, target.parentURL, attributes)
-          /* v8 ignore next -- Node 24+ resolves synchronously; the Node 22 matrix covers its Promise result */
+          /*! v8 ignore next -- Node 24+ resolves synchronously; the Node 22 matrix covers its Promise result */
           if (expected instanceof Promise) expected = expected.catch(restoreImporter)
         } catch (error) {
           return restoreImporter(error)
         }
         if (behavior === 'enforce') return expected
         const actual = native(request, parent, attributes)
-        /* v8 ignore start -- Node 22 is the asynchronous adapter and is covered by the external version matrix */
+        /*! v8 ignore start -- Node 22 is the asynchronous adapter and is covered by the external version matrix */
         if (expected instanceof Promise || actual instanceof Promise) {
           return Promise.all([actual, expected]).then(([resolved, wanted]) => {
             assertEquivalent(resolved.url, wanted.url, request, parent)
             return resolved
           })
         }
-        /* v8 ignore stop */
+        /*! v8 ignore stop */
         assertEquivalent(actual.url, expected.url, request, parent)
         return actual
       }
@@ -702,7 +702,7 @@ export function installProfileResolution(
           } catch (error) {
             return restoreImporter(error)
           }
-          /* v8 ignore next -- Node 24+ resolves synchronously; the Node 22 matrix covers its Promise result */
+          /*! v8 ignore next -- Node 24+ resolves synchronously; the Node 22 matrix covers its Promise result */
           if (result instanceof Promise) return result.catch(restoreImporter)
           if (cacheable) state.esm = result
           return result
@@ -719,12 +719,12 @@ export function installProfileResolution(
         try {
           const result = native(request, routedParent, attributes)
           expected = result
-          /* v8 ignore next -- Node 24+ resolves synchronously; the Node 22 matrix covers its Promise result */
+          /*! v8 ignore next -- Node 24+ resolves synchronously; the Node 22 matrix covers its Promise result */
           if (result instanceof Promise) expected = result.catch(restoreImporter)
         } catch (error) {
           return restoreImporter(error)
         }
-        /* v8 ignore start -- Node 22 is the asynchronous adapter and is covered by the external version matrix */
+        /*! v8 ignore start -- Node 22 is the asynchronous adapter and is covered by the external version matrix */
         if (expected instanceof Promise || actual instanceof Promise) {
           return Promise.all([actual, expected]).then(([resolved, wanted]) => {
             assertEquivalent(resolved.url, wanted.url, request, parent)
@@ -732,7 +732,7 @@ export function installProfileResolution(
             return resolved
           })
         }
-        /* v8 ignore stop */
+        /*! v8 ignore stop */
         assertEquivalent(actual.url, expected.url, request, parent)
         if (cacheable) state.esm = actual
         return actual
@@ -744,7 +744,7 @@ export function installProfileResolution(
   }
 
   let restoreEsm: () => void
-  /* v8 ignore else -- CI coverage runs Node 24 v2; the Node 22 matrix exercises the v1 adapter */
+  /*! v8 ignore else -- CI coverage runs Node 24 v2; the Node 22 matrix exercises the v1 adapter */
   if (modern) {
     const loader = esm as ModuleLoaderV2
     const original = Reflect.get(loader, 'resolveSync')
@@ -760,7 +760,7 @@ export function installProfileResolution(
     )
     loader.resolveSync = wrapped
     restoreEsm = () => {
-      /* v8 ignore else -- registrations are disposed in reverse installation order */
+      /*! v8 ignore else -- registrations are disposed in reverse installation order */
       if (loader.resolveSync === wrapped) loader.resolveSync = original
     }
   } else {
@@ -821,7 +821,7 @@ export function installProfileResolution(
     const resolveFrom = (parentURL: string): string => fileURLToPath(esmDefaultResolve(
       target.specifier, { parentURL, conditions: [...conditions] },
     ).url)
-    /* v8 ignore next -- the target manifest was found inside the established profile scope */
+    /*! v8 ignore next -- the target manifest was found inside the established profile scope */
     if (state === undefined) return resolveFrom(target.parentURL)
     if (state.route.kind === 'native') return resolveFrom(target.parentURL)
     const route = state.route
@@ -952,7 +952,7 @@ export function installProfileResolution(
     },
     replace(next) { router.replace(next) },
     dispose() {
-      /* v8 ignore else -- registrations are disposed in reverse installation order */
+      /*! v8 ignore else -- registrations are disposed in reverse installation order */
       if (cjs._resolveFilename === wrappedFilename) cjs._resolveFilename = originalFilename
       restoreEsm()
     },

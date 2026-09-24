@@ -18,7 +18,6 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
@@ -32,8 +31,8 @@
     "@deepseek-ai/dsh-llm-replay": "workspace:^",
     "@deepseek-ai/dsh-loader-smoke": "workspace:*",
     "@deepseek-ai/dsh-session-format": "workspace:^",
-    "js-yaml": "^4.2.0",
-    "vitest": "^4.1.8"
+    "js-yaml": "^4.3.2",
+    "vitest": "^4.1.11"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",

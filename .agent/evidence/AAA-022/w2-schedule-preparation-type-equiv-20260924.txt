@@ -1,0 +1,2 @@
+$ tsx scripts/verify-type-equiv.ts
+verify-type-equiv: 437 type-equiv block(s) match source structure and JSDoc (1:1 with manifest); 437 paired derivative(s).

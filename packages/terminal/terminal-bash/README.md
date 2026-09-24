@@ -170,6 +170,8 @@ These limits define where the backend is a poor fit or needs special operational
 - **Cleanup guarantees belong to the provider** — process-tree teardown is the `SubprocessTerminalHandle` contract, not this backend's.
 - **Sessions do not survive process exit** — a harness restart destroys every session.
 
+**Runtime invariant:** No companion is published. Readiness, terminal buffers, and process-tree state are private per-session implementation state, and the backend publishes no independent lifecycle stream or snapshot.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -179,5 +181,3 @@ These limits define where the backend is a poor fit or needs special operational
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Readiness, terminal buffers, and process-tree state are private per-session implementation state, and the backend publishes no independent lifecycle stream or snapshot.

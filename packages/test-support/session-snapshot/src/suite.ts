@@ -650,7 +650,7 @@ function surfaceEventMessage(record: Record<string, unknown>): Record<string, un
     case 'tool/result':
       message = data.message
       break
-    /* v8 ignore next -- the authoritative predicate must fail loud when a new surface shape lands. */
+    /*! v8 ignore next -- the authoritative predicate must fail loud when a new surface shape lands. */
     default: throw new Error(`acp-snapshot: unsupported surface event type "${type}"`)
   }
   return completeMessage(message)
@@ -1120,7 +1120,7 @@ export function stabilizeRefreshLog(
     const memberCount = packedTimes(record)?.length ?? 1
     const insertedTitle = record.type === 'session/title' && existingRecord?.type !== 'session/title'
     if (insertedTitle) {
-      /* v8 ignore next -- a title is turn-enclosed, so a preceding event time exists in every valid fixture. */
+      /*! v8 ignore next -- a title is turn-enclosed, so a preceding event time exists in every valid fixture. */
       if (typeof previousEventTime !== 'number') throw new Error('acp-snapshot: inserted title has no preceding event time')
       record.time = previousEventTime
     } else {
@@ -1371,7 +1371,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
             expect(prompts.length, `${mode} produced a system prompt count that differs from 1 + expectedPromptChanges`)
               .toBe(1 + (scenario.expectedPromptChanges ?? 0))
             const promptSnapshot = formatSystemPromptSnapshot(prompts[0] as string, prompts.slice(1))
-            /* v8 ignore next -- registration guarantees every scenario class has resolved sources. */
+            /*! v8 ignore next -- registration guarantees every scenario class has resolved sources. */
             const promptSource = promptSourceByClass.get(classOf(scenario)) ?? scenario
             const promptPath = join(snapshotsDir, promptSource.name, SYSTEM_PROMPT_SNAPSHOT)
             claimSharedSnapshot(promptClaims, promptPath, scenario.name, promptSnapshot)
@@ -1384,7 +1384,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
               schemaSets[0] as unknown[],
               schemaSets.slice(1),
             )
-            /* v8 ignore next -- registration guarantees every scenario class has resolved sources. */
+            /*! v8 ignore next -- registration guarantees every scenario class has resolved sources. */
             const schemaSource = schemaSourceByClass.get(classOf(scenario)) ?? scenario
             const schemaPath = join(snapshotsDir, schemaSource.name, TOOL_SCHEMAS_SNAPSHOT)
             claimSharedSnapshot(schemaClaims, schemaPath, scenario.name, toolSchemasSnapshot)
@@ -1449,11 +1449,11 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
         // Every live full header must equal its class pin reconstructed from
         // tokenized JSONL plus the structured schema sidecar, and every live
         // system prompt must equal the readable prompt sidecar.
-        /* v8 ignore next -- construction guarantees the pin exists; a miss would fail the one-header assertion loudly. */
+        /*! v8 ignore next -- construction guarantees the pin exists; a miss would fail the one-header assertion loudly. */
         const pinningScenario = pinningByClass.get(classOf(scenario)) ?? scenario
-        /* v8 ignore next -- registration guarantees every scenario class has resolved sources. */
+        /*! v8 ignore next -- registration guarantees every scenario class has resolved sources. */
         const promptSource = promptSourceByClass.get(classOf(scenario)) ?? pinningScenario
-        /* v8 ignore next -- registration guarantees every scenario class has resolved sources. */
+        /*! v8 ignore next -- registration guarantees every scenario class has resolved sources. */
         const schemaSource = schemaSourceByClass.get(classOf(scenario)) ?? pinningScenario
         const pinningDir = join(snapshotsDir, pinningScenario.name)
         const [pinningFixtureFile] = await sessionFixtures(pinningDir)
@@ -1630,9 +1630,9 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
       // Assert the committed pin directly because a class containing only its
       // pinning scenario has no non-pinning live run to catch undeclared changes.
       for (const scenario of pinningByClass.values()) {
-        /* v8 ignore next -- registration guarantees every pin has resolved sources. */
+        /*! v8 ignore next -- registration guarantees every pin has resolved sources. */
         const promptSource = promptSourceByClass.get(classOf(scenario)) ?? scenario
-        /* v8 ignore next -- registration guarantees every pin has resolved sources. */
+        /*! v8 ignore next -- registration guarantees every pin has resolved sources. */
         const schemaSource = schemaSourceByClass.get(classOf(scenario)) ?? scenario
         const fixtureDir = join(snapshotsDir, scenario.name)
         const [fixtureFile] = await sessionFixtures(fixtureDir)
@@ -1702,7 +1702,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
             .toBeDefined()
           const file = childSystemPromptSnapshot(index)
           const sidecar = await readFile(join(dir, file), 'utf8')
-          /* v8 ignore next -- registration guarantees every scenario class has resolved sources. */
+          /*! v8 ignore next -- registration guarantees every scenario class has resolved sources. */
           const promptSource = promptSourceByClass.get(classOf(scenario)) ?? scenario
           const classPin = await readFile(join(snapshotsDir, promptSource.name, SYSTEM_PROMPT_SNAPSHOT), 'utf8')
           assertChildSystemPromptSnapshot(sidecar, initialSystemPromptSnapshot(classPin), `${scenario.name}/${file}`)

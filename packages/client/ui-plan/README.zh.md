@@ -89,6 +89,8 @@ kind: "package-reference"
 - **徽章属于默认 composer**——待处理的涉及整个 composer 的交互（如 plan 评审）会临时取代 InputBar 及其徽章。
 - **未激活时无 plan 控件**——入口使用共享 Command source；有能力但模式未激活的会话在工具行不显示 plan 入口。
 
+**运行时不变式：** 不发布伴生入口。plan state 与 boundary 的所有权由 dsh-plan-mode 审计；本包的 control 是一种 slot effect，其声明、注册与清理由本包执行。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -98,5 +100,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。plan state 与 boundary 的所有权由 dsh-plan-mode 审计；本包的 control 是一种 slot effect，其声明、注册与清理由本包执行。

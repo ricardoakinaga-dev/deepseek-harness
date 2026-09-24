@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-013",
+  "action_id": "AAA-013:A01",
+  "candidate_ref": "current working tree frontend-static containment inspection",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T21:21:30-03:00",
+  "source_documents": [
+    {
+      "id": "frontend-static-source",
+      "location": "packages/host/frontend-static/src/index.ts:72-105",
+      "role": "The current implementation performs lexical containment and reads the original target path."
+    },
+    {
+      "id": "frontend-static-contract",
+      "location": "packages/host/frontend-static/README.md:42-48",
+      "role": "The package contract requires traversal rejection, explicit 404 misses, and serving only the configured dist tree."
+    },
+    {
+      "id": "containment-precedent",
+      "location": ".agents/notes/implemented/feature/2026-07-14-cross-family-fs-sandbox.md:35-40",
+      "role": "The repository precedent uses immediate canonicalization before delegation, a real-filesystem symlink matrix, and an explicit distinction between application containment and kernel-grade openat2 enforcement."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-013-SYMLINK-ESCAPE",
+      "source_refs": ["frontend-static-source", "frontend-static-contract", "AAA-QB-05"],
+      "source_location": "packages/host/frontend-static/src/index.ts:75-105",
+      "command_ids": ["CMD-AAA-013-002"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_RESOLVED_TARGET_ESCAPE",
+      "owner": "AAA-013",
+      "severity": "CRITICAL",
+      "summary": "A directory symlink inside the configured dist root points outside the root and serveStatic returns HTTP 200 with the outside file bytes. The lexical path fence does not constrain the resolved filesystem target.",
+      "limitations": "The probe uses the local serveStatic entry point and a temporary filesystem; it does not claim a concurrent attacker race or a production deployment exploit."
+    },
+    {
+      "id": "F-AAA-013-TEST-GAP",
+      "source_refs": ["frontend-static-contract", "AAA-QB-05"],
+      "source_location": "packages/host/frontend-static/tests/frontend-static.spec.ts:1-210",
+      "command_ids": ["CMD-AAA-013-001"],
+      "observed_status": "PASS_WITH_COVERAGE_GAP",
+      "classification": "REAL_COMPOSITION_LACKS_SYMLINK_CASE",
+      "owner": "AAA-013",
+      "severity": "HIGH",
+      "summary": "The real Loader composition passes its current HTTP and teardown assertions, but it contains no in-root symlink or junction escape fixture."
+    }
+  ],
+  "design": {
+    "policy": "A served target is valid only when its resolved filesystem target remains at or below the resolved dist root. A lexical escape or resolved escape returns 403 with an empty body; a missing or non-file target whose deepest existing ancestor remains inside the root returns the existing empty 404 contract.",
+    "resolution_sequence": [
+      "Retain the current URL decode and lexical path check as the first rejection for traversal.",
+      "Canonicalize the dist root with fs.realpath and canonicalize the requested existing target, including directory symlinks and Windows junctions.",
+      "Compare canonical paths with a separator-aware platform-specific containment check; never use a bare string prefix.",
+      "For ENOENT or ENOTDIR, canonicalize the deepest existing ancestor before deciding between an in-root 404 and an outside-root 403.",
+      "Read the canonical in-root target after validation rather than the original link-shaped path, and repeat the canonicalization immediately before the read/delegation point when the target can change during the request."
+    ],
+    "threat_model": "This is trusted-host application containment for build inputs, not a kernel boundary against a concurrent filesystem attacker. The existing repository precedent accepts the residual resolve-to-syscall race after immediate re-canonicalization; eliminating that race would require platform-specific handle/openat2 primitives outside this portable package.",
+    "negative_fixtures": [
+      "POSIX directory symlink from dist to an outside directory returns only 403 or 404 and never outside bytes.",
+      "Windows directory junction equivalent has the same result when the platform can create it.",
+      "An outside link whose final file is missing cannot be converted into an in-root 404 that leaks any outside target.",
+      "An in-root symlink to an in-root regular file remains permitted and serves the expected bytes.",
+      "Existing lexical traversal, missing-file, HEAD, MIME, and fallback-disposal assertions remain unchanged."
+    ]
+  },
+  "decision": {
+    "result": "AAA-013:A01 PASS — implementation scope specified",
+    "product_change": false,
+    "diagnosis": "The current escape is reproduced and the existing containment precedent supplies the portable canonicalization policy. The next action is an implementation-ready gate for the source and real-composition test change.",
+    "next_action": "Create the task-bound implementation gate, then implement canonical target containment and the negative symlink/junction fixtures."
+  },
+  "validation": {
+    "command_record_count": 4,
+    "raw_output_files": 4,
+    "raw_output_sha256": {
+      "focused-test.log": "d4e655db1bcce0b927f0ee89f8f46231b90d0f2a36eeab26825ca73cffdb77a9",
+      "symlink-probe.log": "0dd43de68bedfcf02ff687a81ec8379b1e44b3509cedf2f3bfedb1813784caa7",
+      "containment-precedent.log": "bbc42e9599dd06cb9bb1621ddf0b051378ef6fc762c170b5eee49e6576b58220",
+      "source-inspection.log": "f8d3dd4c56705e3b7bf94e4d259ed65ba143b817ae7786f5486a167b5aad0b25"
+    },
+    "validation_method": "Verify all four raw-output digests, reproduce the focused composition test and the direct outside-byte probe, and confirm that the proposed resolution sequence matches the package contract and the existing containment precedent.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T21:21:30-03:00"
+  }
+}

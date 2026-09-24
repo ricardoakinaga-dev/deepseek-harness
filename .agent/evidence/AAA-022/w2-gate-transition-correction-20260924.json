@@ -1,0 +1,35 @@
+{
+  "record_id": "EVID-AAA-022-W2-SCHEDULE-GATE-TRANSITION-CORRECTION-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-IMPLEMENT",
+  "kind": "APPEND_ONLY_EXECUTION_TRANSITION_CORRECTION",
+  "timestamp": "2026-09-24T04:09:23-03:00",
+  "corrects_event_id": "EVT-AAA-022-CHECKPOINT-W2-SCHEDULE-READERS-IMPLEMENTATION-001-142",
+  "original_event_line_sha256": "fa599f8f332bdb15479e3f656ef6715965a658b426d7ec552bb4f14f9e5c722f",
+  "original_transition": {
+    "type": "CHECKPOINT",
+    "status_from": "IN_PROGRESS",
+    "status_to": "IN_PROGRESS",
+    "lifecycle_from": "SPEC",
+    "lifecycle_to": "BUILD"
+  },
+  "correction_event_id": "EVT-AAA-022-CORRECTION-W2-SCHEDULE-IMPLEMENTATION-TRANSITION-001-143",
+  "effective_transition": {
+    "type": "CHECKPOINT",
+    "status_from": "IN_PROGRESS",
+    "status_to": "READY",
+    "lifecycle_from": "SPEC",
+    "lifecycle_to": "BUILD",
+    "active_action_id": null
+  },
+  "successor_start_event_id": "EVT-AAA-022-START-W2-SCHEDULE-READERS-IMPLEMENT-001-144",
+  "successor_transition": {
+    "type": "START",
+    "status_from": "READY",
+    "status_to": "IN_PROGRESS",
+    "active_action_id": "AAA-022:W2-SCHEDULE-READERS-IMPLEMENT"
+  },
+  "reason": "The original checkpoint declared an illegal IN_PROGRESS to IN_PROGRESS status transition. The corrected checkpoint records the required READY boundary before the gated implementation START.",
+  "history_policy": "Preserve the original event. Append a typed CORRECTION and exact READY-to-IN_PROGRESS START; state points to the new START.",
+  "product_paths_changed": false
+}

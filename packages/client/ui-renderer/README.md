@@ -27,6 +27,8 @@ English | [中文](README.zh.md)
 
 This package is infrastructure: the web shell and the boot kernel are its only direct consumers. A composition needs it whenever it wants a React-rendered GUI — `dsh-client-web` loads the roster, waits for every entry to activate, then calls `ctx.uiRenderer.mount(container)`.
 
+The public `client` entry also exposes `createSlotRenderer`, `SlotRegistry`, and `bindSnapshotSelector` for an embedding runtime that owns the Cordis composition and React mount lifecycle.
+
 ### What mounting does
 
 `mount(container)` installs the slot renderer, hydrates the existing boot DOM when present, renders the assembled application into the container before the next paint, and returns a disposer that unmounts the React root. The renderer performs the sole context-level `renderSlot('root')` call; the registered root occupant owns product layout and document metadata.

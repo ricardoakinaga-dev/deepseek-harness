@@ -1,0 +1,41 @@
+{
+  "record_id": "EVID-AAA-022-A27-STATE-BASELINE-RETENTION-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:A27-STATE-REPAIR-DECISION",
+  "kind": "USER_DECISION",
+  "status": "RESOLVED",
+  "timestamp": "2026-09-24T03:18:33-03:00",
+  "candidate": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty custom/main preserved",
+    "historical_records_changed": []
+  },
+  "decision": {
+    "user_response": "Keep FAIL-358 baseline (Recommended)",
+    "disposition": "PRESERVE_HISTORICAL_BASELINE",
+    "normalization_authorized": false,
+    "checker_result": "FAIL",
+    "finding_count": 358,
+    "class_count": 23,
+    "scope_note": "No repair-file scope is approved. The earlier disposition contains inconsistent prose about 21 versus 22 files; this decision authorizes no in-place edits, so that discrepancy does not expand or alter scope."
+  },
+  "next_action": {
+    "id": "AAA-022:W2-SCHEDULE-READERS-DESIGN",
+    "kind": "DESIGN",
+    "summary": "Design owner projections and synchronous validation for REM-028-S053 through S058 in packages/schedule/schedule.",
+    "target": "REM-028-S053 through REM-028-S058 in packages/schedule/schedule",
+    "completion_signal": "Specify each site’s owner state, restore/fork behavior, current-read or pre-commit seam, falsifiers, required lifecycle coverage, and exact implementation, test, and documentation path set before creating an implementation gate."
+  },
+  "sources": [
+    ".agent/evidence/AAA-022/a27-state-baseline-disposition-20260924.json",
+    ".agent/evidence/AAA-022/a27-state-check-retention-pretransition-20260924.txt",
+    ".agent/evidence/AAA-022/a23-w2-owner-order-disposition-20260923.json",
+    ".agent/evidence/AAA-022/reader-inventory-a75.json#REM-028-S053..S058"
+  ],
+  "limitations": [
+    "The repository-wide state checker remains FAIL with 358 findings; this records the selected baseline and does not claim checker PASS.",
+    "No historical execution, verification, gate, backlog, or authority row was edited.",
+    "The decision does not complete AAA-022 or qualify a release candidate.",
+    "The next action is design-only; implementation requires an exact successor gate."
+  ]
+}

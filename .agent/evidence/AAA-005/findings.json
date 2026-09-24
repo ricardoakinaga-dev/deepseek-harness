@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-005",
+  "action_id": "AAA-005:A01",
+  "candidate_ref": "refs/tags/aaa-savepoint-2026-09-20-m0-a02-01 plus current working-tree AAA-005:A01 reproduction",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T19:59:45-03:00",
+  "source_documents": [
+    {
+      "id": "repository-audit:snapshot-suite",
+      "location": "docs/customization/repository-audit-2026-09-20.md#executed-evidence",
+      "role": "Historical snapshot evidence naming the resilient-compaction generation mismatch."
+    },
+    {
+      "id": "AAA-QB-v1.4",
+      "location": ".agent/plans/deepseek-harness-aaa-quality-bar.json",
+      "role": "Frozen quality criteria requiring current-writer majority, retained migration coverage, and immutable adjacent generations."
+    },
+    {
+      "id": "snapshot-corpus-owner",
+      "location": "scripts/session-snapshot-corpus-policy.ts; scripts/session-snapshot-corpus.corpus.ts; packages/test-support/session-snapshot/src/session-files.ts",
+      "role": "Current resolver, corpus policy, and fixture filename/header ownership."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-005-GENERATION",
+      "source_refs": ["repository-audit:snapshot-suite", "AAA-QB-03", "AAA-QB-12"],
+      "source_location": "snapshots/session/resilient-compaction-timeout/snapshot.yml; snapshots/session/resilient-compaction-timeout/session.jsonl; packages/core/session/src/types.ts",
+      "command_ids": ["CMD-AAA-005-001", "CMD-AAA-005-002", "CMD-AAA-005-003"],
+      "observed_status": "FAIL_REPRODUCED",
+      "classification": "STALE_CURRENT_GENERATION_FIXTURE_NOT_RESOLVER_DEFECT",
+      "owner": "AAA-005",
+      "severity": "CRITICAL_OPEN",
+      "summary": "The focused corpus policy correctly expects v3 for an owner without sessionFormat retention metadata. resilient-compaction-timeout owns only session.jsonl, and both its filename and header declare v0. The selected generation therefore mismatches the current writer even though filename/header agreement within v0 is valid. The safe correction is an adjacent session.v3.jsonl current-writer successor while preserving the committed session.jsonl generation; adding a v0 retention manifest would incorrectly make v0 the selected expected generation for this current owner.",
+      "limitations": "The fixture correction and focused replay qualification remain outstanding. A separate direct headless replay currently fails before persisted-session inspection because the authored custom adapter is not available through the source/lib launch path; that issue is handed to AAA-006 and is not used to classify this generation-policy failure."
+    }
+  ],
+  "decision": {
+    "result": "AAA-005:A01 PASS",
+    "product_change": false,
+    "test_change": false,
+    "diagnosis": "The policy and selector are behaving as specified; the resilient-compaction owner fixture is stale relative to current writer v3.",
+    "next_action": "Prepare an implementation-ready gate for the adjacent v3 fixture generation, then generate and replay session.v3.jsonl without modifying session.jsonl."
+  },
+  "validation": {
+    "command_record_count": 3,
+    "raw_output_files": 3,
+    "validation_method": "Parse commands.jsonl and findings.json; require unique command IDs, existing raw-output files with matching SHA-256, focused corpus reproduction, and explicit source attribution; run git diff --check.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T20:00:00-03:00"
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A09-001",
+  "timestamp": "2026-09-22T20:20:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 W1 SessionObservationReader-owned live capture for SessionCorpus and SQLite derived-index reconciliation",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The confirmed maintainer authority covers owner-scoped W1 reader, projection, and pre-commit seams while excluding broad lint/compiler changes, released generations, repository publication, and release actions.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/evidence/AAA-022/reader-migration-plan-a74.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate authorizes only the bounded SessionQuery Corpus/SQLite slice described here; it does not authorize the separate session-projection dependency graph or publication, registry, push, merge, release, or final-verdict actions."
+    },
+    {
+      "id": "IR-002",
+      "description": "The source-grounded design assigns live-cut ownership to SessionObservationReader, preserves SessionCorpus complete-history and persistence semantics, keeps SQLite detached derived-index ownership and stabilization, and explicitly retains session-projection as a separate owner.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-query-reader-design-a79.json",
+        "packages/session-query/session-query/src/corpus.ts",
+        "packages/session-query/session-query/src/observation.ts",
+        "packages/session-query/session-query-sqlite/src/index.ts",
+        "packages/session/session-projection/src/index.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A09 must not route raw complete-history operations through projections or make session-projection depend on session-query."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires fixed-cut and detached-output behavior, cancellation and lease disposal, fork/inherited-prefix preservation, late-live and persistence conflict behavior, SQLite shadowing/retry/fingerprint behavior, retained fallback semantics, focused tests, type/lint, dependency, documentation, whitespace, and complete-candidate metric evidence.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-query-reader-design-a79.json",
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This gate authorizes implementation only; it is not implementation or candidate-qualification evidence."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/session-query-reader-design-a79.json",
+    "packages/session-query/session-query/src/corpus.ts",
+    "packages/session-query/session-query/src/observation.ts",
+    "packages/session-query/session-query-sqlite/src/index.ts",
+    "packages/session/session-projection/src/index.ts"
+  ],
+  "candidate_fingerprint": "8f23fe35896aa339e944836851a930ff245b7142447fe0fec20d9500162e012a",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [
+    "Do not make session-query or persistence mandatory in sdk-minimal as part of A09.",
+    "Do not change Session format generations, raw event sequence values, wire versions, or persistence schema.",
+    "Dispose each live observation before returning from a Corpus projection or SQLite reconciliation step; no caller may retain the borrowed event array.",
+    "Run the canonical metrics command only on a complete successor candidate before claiming a ratchet PASS.",
+    "Keep REM-028-S067-069 with the session-projection owner and do not introduce a query-to-projection dependency cycle."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 REM-028 W0-W4 owner-scoped Session-reader migration and bounded async reader/projection/pre-commit seams",
+    "decision": "Implement the bounded SessionObservationReader-owned Corpus/SQLite live-read seam and its focused compatibility coverage; broad lint/compiler defaults, released-generation rewrites, publication, repository writes, release, and final verdict remain excluded.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    "expires_or_revalidates": "Revalidate if A09 widens into session-projection, changes sdk-minimal composition, changes durable Session data, introduces a new public reader, or requires external repository actions."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-022:A09 to implement the bounded SessionCorpus/SQLite live-observation owner seam and its focused acceptance matrix.",
+  "revalidation_triggers": [
+    "The implementation replaces complete raw-history reads with projections or changes the persisted listing/header conflict contract.",
+    "The SQLite index retains live observation objects or events after lease disposal, reads a shadowed persisted log, or fingerprints mutable session-owned values.",
+    "Cancellation, inheritedEventCount, live-preferred late attachment, or lease disposal is not proven by focused tests.",
+    "A source-format, wire-version, publication, merge, push, release, or session-projection dependency change is proposed."
+  ],
+  "supersedes": ".agent/gates/implementation-ready-AAA-022-A07.json"
+}

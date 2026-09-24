@@ -1,0 +1,80 @@
+{
+  "record_id": "GATE-AAA-018-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-21T09:07:49-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-018 English-canonical community-channel parity and audit automation",
+  "scope_ref": "AAA-018",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The current evidence identifies the missing canonical metric command and records the maintainer decision that README.md is authoritative for community-channel targets.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-018/findings-a01.json",
+        ".agent/evidence/AAA-018/decision-a02.json",
+        ".agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The authority is limited to the README parity and repository-automation scope named by the decision record."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation scope is bounded to a canonical metrics command, focused metric/parity fixtures, the README.zh.md correction, and the owning documentation and command wiring.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-018/findings-a01.json",
+        ".agent/evidence/AAA-018/decision-a02.json",
+        "scripts/verify-translation-pairing.ts",
+        "README.md",
+        "README.zh.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The implementation does not change product runtime behavior, public package exports, or the other open Quality Bar decisions."
+    },
+    {
+      "id": "IR-003",
+      "description": "The authorized repository automation will emit named metrics with explicit corpus semantics and will fail when the localized community section adds or omits a canonical English channel target.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-018/decision-a02.json",
+        ".agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001",
+        ".agent/backlog.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Metric counts remain diagnostic until the command is executed and its retained JSON artifact is validated."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-018/findings-a01.json",
+    ".agent/evidence/AAA-018/decision-a02.json",
+    ".agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001",
+    "README.md",
+    "README.zh.md"
+  ],
+  "candidate_fingerprint": "e91edd4ea548de8747ce3fdb806fcae678307570eabe09407554d86d0f4086a6",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-018 English-canonical community-channel parity and audit automation",
+    "decision": "Use README.md as the source of truth for community and support channels; align README.zh.md to the same channel targets and reject locale-only channels in the parity check.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001",
+    "expires_or_revalidates": "Revalidate if the English Community and support section changes, the canonical metric corpus changes, or the automation scope expands beyond README parity and repository metrics."
+  },
+  "residual_risk": "LOW",
+  "decision": "PASS",
+  "next_action": "Start AAA-018:A03 to align README.zh.md and implement the canonical metric and English-canonical community-parity commands with focused fixtures.",
+  "revalidation_triggers": [
+    "README.md changes its Community and support links or heading.",
+    "The metric corpus adds a source family, exclusion, or counting semantic.",
+    "The implementation expands into product runtime, publication, or security-policy behavior."
+  ],
+  "supersedes": null
+}

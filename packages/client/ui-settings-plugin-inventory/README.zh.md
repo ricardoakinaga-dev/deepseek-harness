@@ -96,6 +96,8 @@ kind: "package-reference"
 - **每次 Settings 挂载或重试只读取一份快照**：标签页不订阅 Loader 变化，也不会在重连后自动重新读取；切换标签页会保留当前快照，重新打开 Settings 则会取得新快照。
 - **两个平面都只读**：标签页展示全局与预设的启停状态但都不修改；写回自定义预设组合文件的启停控件是刻意留作后续的工作。
 
+**运行时不变式：** 不发布伴生入口。本包只持有一个只读 Settings contribution。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -105,5 +107,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。本包只持有一个只读 Settings contribution。

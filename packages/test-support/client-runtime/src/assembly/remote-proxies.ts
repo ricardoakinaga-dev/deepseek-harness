@@ -75,7 +75,7 @@ function namespaceProxy(namespace: string, connection: ConnectionHandle, mock: R
         const signal = args.at(-1) instanceof AbortSignal ? (args.pop() as AbortSignal) : undefined
         if (mock.modeOf(endpoint) === 'stream') {
           const open = connection.rpc.open
-          /* v8 ignore next -- the mock transport always supplies openStream, so the Connection carrier exposes open. */
+          /*! v8 ignore next -- the mock transport always supplies openStream, so the Connection carrier exposes open. */
           if (open === undefined) throw new Error(`client-test-runtime: ${endpoint} is a stream but the carrier has no in-process opener`)
           return open('/api', endpoint, { args }, signal ?? new AbortController().signal)
         }

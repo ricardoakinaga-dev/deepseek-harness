@@ -18,6 +18,7 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import { recordFeedback } from '@deepseek-ai/dsh-command-feedback'
 import { createAssistantMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SESSION_FORMAT_VERSION, Session, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
+import type { SessionCreationBaseline } from '@deepseek-ai/dsh-session'
 import MessageFeedbackService from '@deepseek-ai/dsh-message-feedback'
 import JsonlPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import OpenTelemetrySessionBackend, { Config, DEFAULT_TELEMETRY_MODE, SessionTelemetryMode } from '../src/index.ts'
@@ -548,7 +549,11 @@ describe('OpenTelemetrySessionBackend route and feedback', () => {
       const inherited = child.snapshotEvents().find(event => event.type === 'feedback/record')!
       ctx.emit('session/event', child, inherited)
       const opened = ctx.sessions.create(SessionId('opened'), { seed: donor.snapshotEvents() })
-      ctx.emit('session/created', opened)
+      const baseline: SessionCreationBaseline = {
+        events: opened.snapshotEvents(),
+        firstLiveSeq: opened.firstLiveSeq,
+      }
+      ctx.emit('session/created', opened, baseline)
       await first.dispose()
       await ctx.plugin(OpenTelemetrySessionBackend, { mode: SessionTelemetryMode.FEEDBACK_ONLY, exporter: { url } })
     } finally {

@@ -20,10 +20,10 @@ import { classifyInstallFailure } from './install-failure.ts'
 import { InvalidInstallSpecError, parseInstallSpec } from './install-spec.ts'
 import { writePluginEnabled } from './patch.ts'
 import { ManagementFailure } from './failure.ts'
-import { approveBuilds, readPendingBuilds } from './build-approval.ts'
+import { approveBuilds, pendingBuildsFromOutput, readPendingBuilds, recordPendingBuilds } from './build-approval.ts'
 import type {
   BundleInfo, BundleRowInfo, ChangeResult, InstallBundleOptions, ManagementError, PackageResult, PluginChange, PluginEntryId, PluginInfo,
-  PluginInspectProblem, PluginInstallCancellation, PluginInstallProgress, PluginInstallRequestId, PluginSpecInspection,
+  PluginInspectProblem, PluginInstallCancellation, PluginInstallProgress, PluginInstallRequestId, PluginSpecInspection, InstallSpecKind,
 } from './types.ts'
 export type * from './types.ts'
 export { classifyInstallFailure, type InstallFailureFacts } from './install-failure.ts'
@@ -39,6 +39,10 @@ export interface Config {
   lockWaitMs?: number
   /** Bound on one registry lookup an inspection runs, in milliseconds. */
   inspectTimeoutMs?: number
+  /** Package-spec forms this profile owner permits for bundle installation. Empty means deny all forms. */
+  allowedSources?: InstallSpecKind[]
+  /** Publisher identities accepted after package metadata verification. Empty means deny all publishers. */
+  allowedPublishers?: string[]
 }
 
 const protectedModules = new Set([
@@ -67,6 +71,18 @@ function flatten(rows: EntryOptions[]): EntryOptions[] {
 /** Preserve the exact observed diagnostic, including non-Error failures. */
 function messageOf(error: unknown): string { return error instanceof Error ? error.message : String(error) }
 
+/** Classify the install forms accepted by pnpm, including invocation-relative local paths. */
+function installSourceKind(spec: string): InstallSpecKind {
+  try {
+    return parseInstallSpec(spec).kind
+  } catch (error) {
+    const value = spec.trim()
+    if (error instanceof InvalidInstallSpecError
+      && (/^(?:file|link):/.test(value) || /^\.{1,2}(?:[\\/]|$)/.test(value))) return 'path'
+    throw error
+  }
+}
+
 /** An expected refusal keeps its code; anything else becomes an operation error carrying its exact diagnostic. */
 function managementError(error: unknown): ManagementError {
   return error instanceof ManagementFailure ? { code: error.code } : { code: 'operation-error', diagnostic: messageOf(error) }
@@ -93,6 +109,22 @@ interface InstallControl {
 function stringField(manifest: object, field: string): string | undefined {
   const value = (manifest as Record<string, unknown>)[field]
   return typeof value === 'string' ? value : undefined
+}
+
+/** Read the publisher identity the owner allowlists for one package. */
+function publisherOf(manifest: object, packageName?: string): string | undefined {
+  const dsh = (manifest as { dsh?: unknown }).dsh
+  /*! v8 ignore next -- public inspection and installation paths validate that a bundle object exists before publisher identity is read. */
+  const bundle = typeof dsh === 'object' && dsh !== null
+    && typeof (dsh as { bundle?: unknown }).bundle === 'object'
+    && (dsh as { bundle?: unknown }).bundle !== null
+    ? (dsh as { bundle: Record<string, unknown> }).bundle : undefined
+  const declared = bundle?.publisher
+  if (typeof declared === 'string' && declared.trim() !== '') return declared.trim()
+  const author = stringField(manifest, 'author')
+  if (author !== undefined && author.trim() !== '') return author.trim()
+  if (packageName?.startsWith('@')) return packageName.slice(1).split('/')[0]
+  return undefined
 }
 
 /** The fields of the dsh installation's own manifest the manager reads. */
@@ -135,6 +167,8 @@ export class PluginManager extends TypertRemoteService {
     outputBytes: z.number().step(1).min(1).default(16384),
     lockWaitMs: z.number().step(1).min(0).default(120000),
     inspectTimeoutMs: z.number().step(1).min(1000).default(20000),
+    allowedSources: z.array(z.union(['registry', 'path', 'git', 'tarball'] as const)).default([]),
+    allowedPublishers: z.array(z.string()).default([]),
   })
   private readonly ownerEntryId: string | undefined
   private readonly packageOperations = new Set<Promise<unknown>>()
@@ -143,6 +177,8 @@ export class PluginManager extends TypertRemoteService {
   private readonly lockWaitMs: number
   private readonly inspectTimeoutMs: number
   private readonly pnpmCommand: string
+  private readonly allowedSources: ReadonlySet<InstallSpecKind>
+  private readonly allowedPublishers: ReadonlySet<string>
   private readonly ownerContext: Context
   private readonly abort = new AbortController()
   /** Installations by request id, from their call until it settles. */
@@ -157,6 +193,8 @@ export class PluginManager extends TypertRemoteService {
     this.lockWaitMs = (config as Required<Config>).lockWaitMs
     this.inspectTimeoutMs = (config as Required<Config>).inspectTimeoutMs
     this.pnpmCommand = (config as Required<Config>).pnpmCommand
+    this.allowedSources = new Set((config as Required<Config>).allowedSources)
+    this.allowedPublishers = new Set((config as Required<Config>).allowedPublishers.map(publisher => publisher.trim()).filter(Boolean))
     ctx.effect(() => async () => {
       this.abort.abort()
       await Promise.allSettled([...this.packageOperations])
@@ -235,9 +273,12 @@ export class PluginManager extends TypertRemoteService {
     try {
       parsed = parseInstallSpec(spec)
     } catch (error) {
-      /* v8 ignore next 2 -- parseInstallSpec throws nothing but its own refusal */
+      /*! v8 ignore next 2 -- parseInstallSpec throws nothing but its own refusal */
       if (!(error instanceof InvalidInstallSpecError)) throw error
       return refused('invalid-spec', error.reason)
+    }
+    if (!this.allowedSources.has(parsed.kind)) {
+      return refused('invalid-spec', `bundle source "${parsed.kind}" is disabled by the profile policy`)
     }
     const manifest = readProfileManifest('dsh', this.profile.dir)
     const installation = JSON.parse(readFileSync(this.profile.installAnchor, 'utf8')) as InstallationManifest
@@ -261,6 +302,8 @@ export class PluginManager extends TypertRemoteService {
         if (inspection.name === undefined) return refused('not-a-package', 'the package.json names no package')
         if (known.has(inspection.name)) return refused('already-installed', `${inspection.name} is already installed`)
         if (!inspection.bundle) return refused('not-a-bundle', `${inspection.name} declares no dsh.bundle`)
+        const trust = this.publisherRefusal(inspection.name, read)
+        if (trust !== undefined) return refused('invalid-spec', trust)
         return inspection
       }
       case 'registry': {
@@ -287,8 +330,11 @@ export class PluginManager extends TypertRemoteService {
         const latest: unknown = Array.isArray(answer) ? answer.at(-1) : answer
         if (typeof latest !== 'object' || latest === null) return refused('unknown', 'pnpm view answered no package')
         const inspection = inspectionOf('registry', latest)
-        const named = inspection.name === undefined ? { ...inspection, name: parsed.name } : inspection
+        const name = inspection.name ?? parsed.name
+        const named = { ...inspection, name }
         if (!named.bundle) return refused('not-a-bundle', `${named.name} declares no dsh.bundle`)
+        const trust = this.publisherRefusal(name, latest)
+        if (trust !== undefined) return refused('invalid-spec', trust)
         return named
       }
     }
@@ -330,7 +376,7 @@ export class PluginManager extends TypertRemoteService {
    * that fails, is cancelled, or adds a package without a bundle patch restores
    * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.
    * @param spec One package spec, including local paths relative to the invocation directory.
-   * @param options Whether to activate the installed bundle (defaults to true), the request id a cancellation names, and
+   * @param options Whether to activate the installed bundle (defaults to false), the request id a cancellation names, and
    * the pending build scripts to allow for this profile before pnpm runs.
    * @returns Package-manager diagnostics and observed activation outcome.
    */
@@ -344,7 +390,16 @@ export class PluginManager extends TypertRemoteService {
       if (requestId !== undefined) this.ownerContext.emit('plugin-manager/install-state', { requestId, phase })
     }
     const result = this.change(async (result) => {
-      if (spec.trim() === '' || spec.startsWith('-')) throw new ManagementFailure('invalid-spec')
+      let source: InstallSpecKind
+      try {
+        source = installSourceKind(spec)
+      } catch (error) {
+        /*! v8 ignore next -- installSourceKind rethrows parser failures other than InvalidInstallSpecError. */
+        if (error instanceof InvalidInstallSpecError) throw new ManagementFailure('invalid-spec')
+        /*! v8 ignore next -- installSourceKind has no non-InvalidInstallSpecError failure after its parser call. */
+        throw error
+      }
+      if (!this.allowedSources.has(source)) throw new ManagementFailure('invalid-spec')
       if (stopped()) throw new InstallCancelledError()
       if (options?.approvedBuilds !== undefined) {
         await approveBuilds(this.profile.dir, options.approvedBuilds)
@@ -357,9 +412,12 @@ export class PluginManager extends TypertRemoteService {
       try {
         result.packageResult = await this.runPnpm(['add', spec], control.abort.signal, requestId)
         if (stopped()) throw new InstallCancelledError()
-        if (result.packageResult.exitCode !== 0) {
+        if (result.packageResult.exitCode !== 0 || result.packageResult.kind !== undefined) {
           // pnpm-workspace.yaml is not restored, so the names pnpm left undecided there can be offered for approval.
-          try { result.pendingBuilds = await readPendingBuilds(this.profile.dir) }
+          try {
+            await recordPendingBuilds(this.profile.dir, pendingBuildsFromOutput(result.packageResult.output))
+            result.pendingBuilds = await readPendingBuilds(this.profile.dir)
+          }
           catch (error) {
             this.ownerContext.logger.warn('Could not read pending build approvals after pnpm failed', error)
           }
@@ -375,6 +433,7 @@ export class PluginManager extends TypertRemoteService {
         const dir = resolveBundleDir('dsh', name, this.profile.installAnchor, this.profile.dir)
         const manifest = bundleManifest(name, this.profile.dir, this.profile.installAnchor)
         if (manifest?.dsh?.bundle?.patch === undefined) throw new ManagementFailure('not-bundle')
+        if (this.publisherRefusal(name, manifest) !== undefined) throw new ManagementFailure('invalid-spec')
         loadOverlayPatches('dsh', join(dir, manifest.dsh.bundle.patch))
       } catch (error) {
         // pnpm has exited by now, so the files it rewrote go back as they were.
@@ -387,12 +446,12 @@ export class PluginManager extends TypertRemoteService {
       result.target = name
       result.stage = 'enable'
       return this.configure(async () => {
-        if (options?.enabled !== false) await this.selectBundle(name, true)
+        if (options?.enabled === true) await this.selectBundle(name, true)
         if (Object.hasOwn(before, name)) return 'restart-required'
-        if (options?.enabled !== false) result.warnings = await this.reload()
+        if (options?.enabled === true) result.warnings = await this.reload()
       })
-    }, { stage: 'install', target: spec, enabled: options?.enabled !== false }, 'install')
-    /* v8 ignore next -- change() folds every failure into its result; only a lock or disposal error rejects */
+    }, { stage: 'install', target: spec, enabled: options?.enabled === true }, 'install')
+    /*! v8 ignore next -- change() folds every failure into its result; only a lock or disposal error rejects */
     control.settled = result.then(() => undefined, () => undefined)
     return result.finally(() => { if (requestId !== undefined) this.installs.delete(requestId) })
   }
@@ -446,14 +505,14 @@ export class PluginManager extends TypertRemoteService {
   /** The rows a bundle's patch inserts and the existing rows it changes; an unreadable patch throws. */
   private declaredRows(name: string, info: ProfileManifest): Pick<BundleInfo, 'rows' | 'overrides'> {
     const patch = info.dsh?.bundle?.patch
-    /* v8 ignore next -- bundleManifest answers only manifests that declare a patch */
+    /*! v8 ignore next -- bundleManifest answers only manifests that declare a patch */
     if (patch === undefined) return { rows: [], overrides: [] }
     const dir = resolveBundleDir('dsh', name, this.profile.installAnchor, this.profile.dir)
     const patches: PatchOptions[] = loadOverlayPatches('dsh', join(dir, patch))
     // One entry per row id: the Loader keeps a single entry for an id, whichever layer declared it last.
     const live = new Map<string, PluginEntryId>()
     for (const entry of this.ctx.loader.entries()) {
-      /* v8 ignore next -- the Loader gives every entry an id before it is listed */
+      /*! v8 ignore next -- the Loader gives every entry an id before it is listed */
       if (typeof entry.options.id === 'string') live.set(entry.options.id, pluginEntryId(entry.id))
     }
     const rows: BundleRowInfo[] = []
@@ -490,7 +549,8 @@ export class PluginManager extends TypertRemoteService {
       this.ownerContext.emit('plugin-manager/install-log', {
         ...identity, jobId, argv, cwd, stream: 'stdout', text: '', exitCode: signal?.aborted === true ? null : result.exitCode,
       })
-      return result.exitCode === 0 ? result : { ...result, kind: classifyInstallFailure({ log: result.output }) }
+      const kind = classifyInstallFailure({ log: result.output })
+      return result.exitCode === 0 && kind === 'unknown' ? result : { ...result, kind }
     } catch (error) {
       this.ownerContext.emit('plugin-manager/install-log', { ...identity, jobId, argv, cwd, stream: 'stderr', text: messageOf(error), exitCode: null })
       throw error
@@ -523,6 +583,12 @@ export class PluginManager extends TypertRemoteService {
     if ((enabled || !previous.includes(name)) && bundleManifest(name, this.profile.dir, this.profile.installAnchor) === undefined) {
       throw new ManagementFailure('not-bundle')
     }
+    if (enabled) {
+      const manifest = bundleManifest(name, this.profile.dir, this.profile.installAnchor)
+      if (manifest !== undefined && this.publisherRefusal(name, manifest) !== undefined) {
+        throw new ManagementFailure('invalid-spec')
+      }
+    }
     if (!enabled && previous.includes(name)) {
       if (this.protectsManager(name)) throw new ManagementFailure('management-required')
     }
@@ -541,6 +607,16 @@ export class PluginManager extends TypertRemoteService {
 
   private protectsManager(name: string): boolean {
     return this.bundleRows(name).some(row => protectedModules.has(row.name) || `include:${row.id}` === this.ownerEntryId)
+  }
+
+  /** Explain why a package manifest is not trusted by this profile owner. */
+  private publisherRefusal(name: string, manifest: object): string | undefined {
+    const publisher = publisherOf(manifest, name)
+    if (publisher === undefined) return `bundle "${name}" has no verifiable publisher identity`
+    if (!this.allowedPublishers.has(publisher)) {
+      return `bundle "${name}" publisher "${publisher}" is not allowlisted`
+    }
+    return undefined
   }
 
   private configure<T>(operation: () => Promise<T>): Promise<T> {

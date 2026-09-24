@@ -1,0 +1,29 @@
+{
+  "record_id": "A20-A21-CONTROL-REVALIDATION-20260923-001",
+  "timestamp": "2026-09-23T09:21:33.891108-03:00",
+  "task": "AAA-022",
+  "completed_action": "AAA-022:A20",
+  "active_action": "AAA-022:A21",
+  "state_transition": {
+    "checkpoint": "EVT-AAA-022-CHECKPOINT-A20-A21-001-094",
+    "status_correction": "EVT-AAA-022-CHECKPOINT-A20-A21-001-094-CORRECTION-001",
+    "design_start": "EVT-AAA-022-START-A21-096",
+    "start_correction": "EVT-AAA-022-START-A21-096-CORRECTION-001",
+    "disposition": "The checkpoint transition is corrected to IN_PROGRESS -> READY, then A21 starts READY -> IN_PROGRESS. The original records remain append-only.",
+    "residual_gate_binding": "The original A21 START explicitly recorded gate_ref: null. The state checker treats any gate_ref field as a binding attempt and reports two findings. Its gate-binding reconciliation does not apply execution-ledger CORRECTION records, so those diagnostics remain visible."
+  },
+  "state_check": {
+    "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py .",
+    "result": "FAIL",
+    "exit_status": 1,
+    "summary": "RESULT FAIL (pass=6 warn=0 fail=353)",
+    "comparison": "351 findings at A20 gate activation; 353 after the A20-to-A21 action transition. The two added diagnostics are the incomplete gate binding and matching reconciliation failure on EVT-AAA-022-START-A21-096.",
+    "new_diagnostics": [
+      "[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A21-096: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint",
+      "[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A21-096: gate lifecycle events require a complete typed binding"
+    ],
+    "evidence": ".agent/evidence/AAA-022/a20-state-check-post-closeout-20260923.txt"
+  },
+  "decision": "Preserve the recorded transition and its append-only corrections. Do not rewrite prior log events or claim aggregate state-check PASS.",
+  "successor": "AAA-022:A21 design of REM-028-S014–S019 remains active; no implementation authority is inferred from this transition."
+}

@@ -249,7 +249,7 @@ function orderedUngrouped(
     : reconcileManualOrder(members.map(session => session.id), stored, summaries)
   return ids.flatMap((id) => {
     const session = byId.get(id)
-    /* v8 ignore next -- ids are projected exclusively from the members used to build byId. */
+    /*! v8 ignore next -- ids are projected exclusively from the members used to build byId. */
     return session === undefined ? [] : [session]
   })
 }

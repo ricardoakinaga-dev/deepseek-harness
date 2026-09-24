@@ -33,11 +33,13 @@ A browser half is written in plain JavaScript — no JSX, no TypeScript, no modu
 
 ### What the run surface offers
 
-A run surface can answer a pending host request — approving it, optionally covering future versions of the same plugin, or declining it — and can start a definition at the user's own gesture, which authorizes it. Each definition has at most one in-flight activity, so an affordance built on that state survives a remount. What the surface shows about this page is page-local: the last render crash per package, why this page's own attempt failed, and whether a package is loaded here — never the host's view of what is running.
+A run surface can answer a pending Host request — approving it, optionally covering future versions of the same plugin, or declining it. Client-bearing definitions cannot be started by an unbound page gesture: the Host must issue and verify the request identity. Each definition has at most one in-flight activity, so an affordance built on that state survives a remount. What the surface shows about this page is page-local: the last render crash per package, why this page's own attempt failed, and whether a package is loaded here — never the Host's view of what is running.
 
 ### Lifecycle boundaries
 
-Loading is idempotent: asking to load a revision this page already runs changes nothing, a newer revision replaces the loaded one, and the same revision after a retract loads afresh. Operations on a definition serialize. A refresh starts clean by design — the host still holds the definition, this page does not run it until asked again.
+Loading is idempotent: asking to load a revision this page already runs changes nothing, a newer revision replaces the loaded one, and the same revision after a retract loads afresh. Source evaluation and inline style insertion are denied unless the Host delivers the explicit `unsafe-eval-inline-style` policy. Operations on a definition serialize. A refresh starts clean by design — the Host still holds the definition, this page does not run it until asked again.
+
+The shipped Web composition leaves this runner disabled. Enabling it is a deployment decision that must also provide the matching Host policy and CSP/Trusted Types controls; this package does not install a CSP header.
 
 -----
 
@@ -130,6 +132,8 @@ These limits define where the browser half needs special care. They are current 
 - **Slot admission has no carrier** — the dispatched row declares services, not target slots, so per-deployment allow or deny lists for slot admission have nowhere to ride.
 - **Guard whitelists are hand-mirrored twins** — the browser guard replicates the host-side sandbox facade; sharing one specification is deferred.
 
+**Runtime invariant:** No companion is published. The owned relation (a live Plugin's loader entry exists exactly while one Plugin Run ID is live) is browser-only state reachable through the client half's service, which the node-plane companion cannot observe. The relation is asserted by the package's own load/teardown coverage instead.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -139,5 +143,3 @@ These limits define where the browser half needs special care. They are current 
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The owned relation (a live Plugin's loader entry exists exactly while one Plugin Run ID is live) is browser-only state reachable through the client half's service, which the node-plane companion cannot observe. The relation is asserted by the package's own load/teardown coverage instead.

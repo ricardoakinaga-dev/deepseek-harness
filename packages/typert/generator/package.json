@@ -22,7 +22,6 @@
       "types": "./lib/types/tsdown-plugin.d.ts",
       "default": "./lib/types/tsdown-plugin.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [

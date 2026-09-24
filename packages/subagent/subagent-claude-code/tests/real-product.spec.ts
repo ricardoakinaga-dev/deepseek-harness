@@ -7,10 +7,10 @@ import {
   realpathSync,
   writeFileSync,
 } from 'node:fs'
+import { createRequire } from 'node:module'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type {
   Query,
@@ -38,6 +38,7 @@ import {
 
 const observedSdkMessages = vi.hoisted((): SDKMessage[] => [])
 const sdkTestOverrides = vi.hoisted((): { maxTurns?: number } => ({}))
+const require = createRequire(import.meta.url)
 
 vi.mock('@anthropic-ai/claude-agent-sdk', async (importOriginal) => {
   const actual = await importOriginal<
@@ -76,9 +77,7 @@ vi.mock('@anthropic-ai/claude-agent-sdk', async (importOriginal) => {
 })
 
 const execFileAsync = promisify(execFile)
-const sdkRoot = dirname(fileURLToPath(
-  import.meta.resolve('@anthropic-ai/claude-agent-sdk'),
-))
+const sdkRoot = dirname(require.resolve('@anthropic-ai/claude-agent-sdk'))
 const sdkPackage = JSON.parse(readFileSync(
   join(sdkRoot, 'package.json'),
   'utf8',

@@ -1,0 +1,175 @@
+{
+  "record_id": "EVID-AAA-024-PROVISIONAL-RE-AUDIT-A14-2026-09-21",
+  "task": "AAA-024",
+  "action": "AAA-024:A01",
+  "kind": "PROVISIONAL_REAUDIT_MATRIX",
+  "status": "NOT_FINAL",
+  "candidate_ref": "current custom/main worktree; not an immutable candidate",
+  "timestamp": "2026-09-21T21:15:53-03:00",
+  "baseline": {
+    "source": "docs/audits/auditoria-profunda-2026-09-21.md",
+    "weighted_score": 63,
+    "verdict": "FAIL",
+    "scores": {
+      "1": 100,
+      "2": 95,
+      "3": 91,
+      "4": 84,
+      "5": 80,
+      "6": 79,
+      "7": 70,
+      "8": 68,
+      "9": 65,
+      "10": 58,
+      "11": 55,
+      "12": 55,
+      "13": 45,
+      "14": 35,
+      "15": 32
+    }
+  },
+  "dimensions": [
+    {
+      "number": 1,
+      "name": "Entrypoints de aplicações",
+      "current_status": "SCOPED_PASS",
+      "direction": "PRESERVED",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/qualification-a08.json"],
+      "gap": "Same-candidate release and packed-install evidence is still absent."
+    },
+    {
+      "number": 2,
+      "name": "Persistência e formatos de Session",
+      "current_status": "SCOPED_PASS",
+      "direction": "PRESERVED",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/qualification-a08.json", ".agent/evidence/AAA-022/session-title-wave-a03.json"],
+      "gap": "The final candidate must rerun the persistence and SDK lanes at the same immutable SHA."
+    },
+    {
+      "number": 3,
+      "name": "Waterfalls, efeitos e descarte",
+      "current_status": "PARTIAL",
+      "direction": "IMPROVED_WITH_OPEN_LIFECYCLE_GAPS",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/qualification-a07.json", ".agent/evidence/AAA-012/scout-a01.json"],
+      "gap": "Physical WebSocket close semantics remain undecided; final teardown evidence is missing."
+    },
+    {
+      "number": 4,
+      "name": "Arquitetura e composição",
+      "current_status": "BLOCKED_BY_DECISION",
+      "direction": "UNCHANGED_UNTIL_OWNERSHIP_DECISION",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-009/findings.json", ".agent/evidence/AAA-023/qualification-a08.json"],
+      "gap": "The client-domain verifier still reports 38 violations and the module graph cannot be regenerated before ownership/API placement is approved."
+    },
+    {
+      "number": 5,
+      "name": "Contratos públicos e consumidores",
+      "current_status": "PARTIAL",
+      "direction": "IMPROVED_BUT_PUBLIC_POLICY_OPEN",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-020/scout-a01.json", ".agent/evidence/AAA-022/session-title-wave-a03.json"],
+      "gap": "Source-export compatibility and remaining Session-reader migration policy are not complete."
+    },
+    {
+      "number": 6,
+      "name": "Mecânica documental e i18n",
+      "current_status": "LOCAL_PASS",
+      "direction": "IMPROVED",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/qualification-a11.json"],
+      "gap": "The documentation gates are green locally, but final evidence must bind them to the sealed candidate."
+    },
+    {
+      "number": 7,
+      "name": "Dependências e empacotamento",
+      "current_status": "PARTIAL",
+      "direction": "IMPROVED_WITH_PUBLICATION_GAP",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-019/scout-a01.json", ".agent/evidence/AAA-023/qualification-a08.json"],
+      "gap": "Fork publication identity and source-export policy remain pending; packed-install evidence is absent."
+    },
+    {
+      "number": 8,
+      "name": "Lifecycle, concorrência e recursos",
+      "current_status": "BLOCKED_BY_DECISION",
+      "direction": "IMPROVED_TEST_RELIABILITY_WITH_RUNTIME_GAPS",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-014/scout-a01.json", ".agent/evidence/AAA-012/scout-a01.json", ".agent/evidence/AAA-023/qualification-a07.json"],
+      "gap": "Aggregate memory admission and physical close contracts have no approved implementation policy."
+    },
+    {
+      "number": 9,
+      "name": "Manutenibilidade e dívida estática",
+      "current_status": "BOUNDED_WAVE_PASS",
+      "direction": "IMPROVED_WITH_DEFERRED_DEBT",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-022/session-title-wave-a03.json", ".agent/evidence/AAA-023/qualification-a08.json"],
+      "gap": "Remaining owner groups and broad lint/compiler policy require future bounded authority decisions."
+    },
+    {
+      "number": 10,
+      "name": "Testes unitários e confiabilidade",
+      "current_status": "BOUNDED_LOCAL_PASS",
+      "direction": "IMPROVED",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/qualification-a08.json", ".agent/verification.jsonl#VER-AAA-023-A01-SECURITY-ASSURANCE-A13"],
+      "gap": "No immutable-candidate, platform, coverage, or final critic evidence exists."
+    },
+    {
+      "number": 11,
+      "name": "Cobertura, E2E e plataformas",
+      "current_status": "NOT_READY",
+      "direction": "UNQUALIFIED",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/scout-a01.json"],
+      "gap": "Coverage, Windows/macOS/ARM64, browser benchmark, supported Node, and credentialed provider lanes remain external or not run."
+    },
+    {
+      "number": 12,
+      "name": "Segurança e limites de confiança",
+      "current_status": "PARTIAL",
+      "direction": "IMPROVED_WITH_POLICY_GAPS",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/decision-package-a12.json", ".agent/verification.jsonl#VER-AAA-023-A01-SECURITY-ASSURANCE-A13"],
+      "gap": "Fork/proxy assurance is green, but dynamic-extension and aggregate-memory policies remain undecided."
+    },
+    {
+      "number": 13,
+      "name": "CI e cadeia de fornecimento",
+      "current_status": "LOCAL_PASS_PARTIAL_EXTERNAL",
+      "direction": "IMPROVED",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/qualification-a08.json", ".agent/verification.jsonl#VER-AAA-023-A01-SECURITY-ASSURANCE-A13"],
+      "gap": "External CI, mirror rehearsal, platform jobs, and same-SHA attestations are not current."
+    },
+    {
+      "number": 14,
+      "name": "Build, TypeScript e lint",
+      "current_status": "LOCAL_PASS",
+      "direction": "IMPROVED",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/qualification-a08.json"],
+      "gap": "The passing local gates are not yet attached to an immutable release candidate."
+    },
+    {
+      "number": 15,
+      "name": "Release e reprodutibilidade",
+      "current_status": "NOT_READY",
+      "direction": "UNQUALIFIED",
+      "final_score": null,
+      "evidence": [".agent/evidence/AAA-023/scout-a01.json", ".agent/evidence/AAA-024/preflight-a01.json"],
+      "gap": "The worktree is dirty; no candidate SHA, packed-install proof, upstream rehearsal, evidence-index digest, or final critic attestation exists."
+    }
+  ],
+  "final_scoring": {
+    "status": "WITHHELD",
+    "reason": "The frozen audit has no scoring rubric sufficient to turn scoped local evidence into a defensible weighted score, and AAA-QB-01 through AAA-QB-14 are not current on one immutable candidate.",
+    "required_before_scoring": ["human decisions", "decision-dependent implementation", "same-SHA AAA-QB-01 through AAA-QB-13 evidence", "fresh AAA-QB-14 critic"]
+  },
+  "final_verdict": "NOT_YET_ASSESSABLE",
+  "limitations": "This matrix is an interim re-audit aid, not the required final 0–100 re-audit, PASS/CONDITIONAL PASS verdict, or release attestation."
+}

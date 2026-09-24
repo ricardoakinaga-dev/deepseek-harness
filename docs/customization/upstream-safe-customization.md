@@ -4,7 +4,7 @@ English | [中文](upstream-safe-customization.zh.md)
 
 ## Summary
 
-This fork keeps the official repository easy to update by separating the clean mirror branch from the custom product branch. `master` mirrors `deepseek-official/master`; `custom/main` contains the complete maintained custom delta; short-lived improvement branches start from and return to `custom/main`. Every custom path has one owner in [the customization policy](../../.agents/customization-policy.json), and the policy check rejects unregistered files or an extension that edits production source outside its own packages.
+This fork keeps the official repository easy to update by separating the clean mirror branch from the custom product branch. `master` mirrors `deepseek-official/master`; `custom/main` contains the complete maintained custom delta; short-lived improvement branches start from and return to `custom/main`. Every custom path has one owner in [the customization policy](../../.agents/customization-policy.json), and the policy check rejects unregistered files or an extension that edits production source outside its own packages. The customization workflow fetches the configured official remote and rejects a mirror commit that is not exactly equal to the official branch before it checks the custom delta.
 
 ## Contents
 
@@ -73,6 +73,6 @@ Resolve merge conflicts in `custom/main`, never by editing the mirror to match c
 <a id="verification-and-recovery"></a>
 ## Verification and recovery
 
-Run `node scripts/verify-customization-policy.mjs --base master` before each custom push. The dedicated GitHub workflow runs the same comparison against `origin/master` for `custom/**` pushes and pull requests targeting `custom/main`. Repository tests, documentation checks, build checks, and snapshots remain required according to the affected product paths; the policy check proves attribution and package isolation, not product correctness.
+Run `node scripts/verify-customization-policy.mjs --base master` before each custom push. The dedicated GitHub workflow runs `node scripts/verify-customization-policy.mjs --base origin/master --require-official-mirror` for `custom/**` pushes and pull requests targeting `custom/main`; this fetches the configured `deepseek-official/master` and rejects divergence before attribution is checked. Repository tests, documentation checks, build checks, and snapshots remain required according to the affected product paths; the policy check proves attribution and package isolation, not product correctness.
 
 Before an upstream merge, create a recoverable checkpoint by committing the current topic or custom integration state. If the merge fails, abort it and return to that commit; do not reset the mirror or discard uncommitted user work. Keep release tags on verified `custom/main` commits so an installed custom build can identify its exact source independently of later upstream updates.

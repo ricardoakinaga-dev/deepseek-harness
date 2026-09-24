@@ -1,0 +1,33 @@
+{
+  "record_id": "EVID-AAA-023-TEST-SERIAL-A39-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A14",
+  "timestamp": "2026-09-22T05:34:35-03:00",
+  "result": "PARTIAL",
+  "scope": "Serial unit-test alternative under the temporary complete candidate index",
+  "procedure": "Construct a clean temporary index from HEAD, remove the 16 old UI paths, add the 16 replacements, validate git write-tree, and run pnpm run test -- --maxWorkers=1.",
+  "observed": {
+    "temporary_write_tree": "PASS",
+    "test_exit": 1,
+    "test_files": "1,528 passed, 7 failed, 12 skipped",
+    "tests": "26,247 passed, 59 failed, 1 expected fail, 153 skipped",
+    "failure_surface": "The same repository-reference fixtures attempted git write-tree/git add through the inherited GIT_INDEX_FILE and received temporary-index lock or object errors; installed-update-packaging also observed an unavailable temporary-index object.",
+    "product_interpretation": "The serial worker removed worker-to-worker contention but cannot repair fixture isolation from an inherited process-global GIT_INDEX_FILE. The ordinary worktree test gate had already passed in A08; the temporary-index failure is diagnostic infrastructure, not a new product regression."
+  },
+  "reliability_classification": {
+    "type": "PROCESS_GLOBAL_INDEX_INHERITANCE",
+    "owner": "The temporary candidate validation harness",
+    "safe_action": "Do not alter repository test fixtures for this experiment. Run full aggregate tests only in an immutable candidate checkout whose normal Git index is private to that checkout, or use the current worktree's already-passing test evidence without claiming same-SHA qualification."
+  },
+  "artifacts": [
+    "/tmp/aaa023-a14-test-serial.out",
+    "/tmp/aaa023-a14-tree.out",
+    ".agent/evidence/AAA-023/check-all-a38.json"
+  ],
+  "limitations": [
+    "The temporary index was not the repository index and cannot substitute for an immutable candidate checkout for tests that manage their own Git fixtures.",
+    "The aggregate matrix remains diagnostic at 76/77 under the temporary-index method; no 77/77 same-SHA matrix is claimed.",
+    "No staging, commit, publication, push, merge, release, or final verdict was performed."
+  ],
+  "next_action": "Obtain an explicit repository-state decision for representing the 16-path source move in an immutable candidate, or provide an already-sealed candidate, before rerunning the complete matrix."
+}

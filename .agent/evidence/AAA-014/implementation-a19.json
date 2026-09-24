@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "record_id": "EVID-AAA-014-A02-IMPLEMENTATION-A19-001",
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-014",
+  "action_id": "AAA-014:A02",
+  "candidate_ref": "custom/main working tree at 60b5295027f6fb7652a1a350a68c6275715bdbd",
+  "captured_at": "2026-09-21T23:49:13-03:00",
+  "decision_status": "CONFIRMED",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+  "scope": "Approved instance-owned aggregate HTTP/RPC buffered-memory limiter for the client connection bridge.",
+  "implementation": "Buffered bridge entry points share one instance-owned limiter, reserve conservatively before intake, reject above the bounded budget deterministically, and release only after cancellation, disconnect, and owned request/response work quiesce. Shared and dedicated RPC paths use the policy while streaming remains outside buffered accounting.",
+  "commands": [
+    {"command":"pnpm exec vitest run packages/client/connection/tests --maxWorkers=1","exit_status":0,"result":"PASS","observation":"12 files and 119 tests passed."},
+    {"command":"pnpm exec tsc -p packages/client/connection/tsconfig.host.json --noEmit && pnpm exec tsc -p packages/client/connection/tsconfig.client.json --noEmit","exit_status":0,"result":"PASS","observation":"Host and client faces typechecked without diagnostics."},
+    {"command":"pnpm exec oxlint packages/client/connection/src packages/client/connection/tests","exit_status":0,"result":"PASS","observation":"Focused source and test lint passed."},
+    {"command":"pnpm run verify-translation-pairing packages/client/connection/README.md","exit_status":0,"result":"PASS","observation":"The connection README pair is consistent."},
+    {"command":"git diff --check -- packages/client/connection","exit_status":0,"result":"PASS","observation":"No whitespace errors in the connection scope."}
+  ],
+  "acceptance": {"status":"PASS","summary":"The aggregate limiter policy, cancellation/disconnect/quiescence release cases, focused tests, both package faces, lint, documentation pairing, and scoped whitespace checks are current."},
+  "limitations": ["The evidence is from an uncommitted working tree and is not immutable release evidence.","No production RSS/OOM claim or external deployment action is made."],
+  "freshness": "CURRENT"
+}

@@ -1,0 +1,47 @@
+{
+  "record_kind": "A26_CONSUMER_TEST_SCOPE_AUTHORIZATION",
+  "record_id": "AUTH-AAA-022-A26-CONSUMER-TESTS-001",
+  "timestamp": "2026-09-23T22:37:10-03:00",
+  "actor": "Ricardo Akinaga",
+  "task": "AAA-022",
+  "predecessor_gate": ".agent/gates/implementation-ready-AAA-022-A25-interaction-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-A25-INTERACTION-READERS-002",
+  "user_replies": [
+    {
+      "question_context": "Authorize a successor gate for fixture-only changes in exactly the three failing consumer test files.",
+      "answer": "Authorize a three test file successor gate (Recommended)"
+    },
+    {
+      "question_context": "Include the existing-knobs test expectation update for fail-closed late projection registration.",
+      "answer": "Include this test expectation update (Recommended)"
+    }
+  ],
+  "authorized_paths": [
+    "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+    "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+    "packages/shell/tool-bash/tests/tools.spec.ts"
+  ],
+  "authorized_changes": [
+    "Fixture-only creation-baseline setup in permission-presets tests.",
+    "Projection-registry setup and creation-baseline fixtures in plan-mode tests.",
+    "Projection-registry setup in tool-bash tests.",
+    "The existing-knobs expectation that late registration over an eventful Session rejects with the exact baseline error and preserves its events.",
+    "Gate preparation, current fingerprint binding, and allowlist attribution required to make the three authorized test paths reviewable."
+  ],
+  "excluded_paths": [
+    "packages/interaction/commands/tests/commands.spec.ts",
+    "packages/interaction/permission-presets/tests/projection.spec.ts",
+    "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+    "packages/core/tools/tests/invariant.spec.ts",
+    "packages/acp/acp/tests/approval.spec.ts"
+  ],
+  "exclusions": [
+    "No production source or documentation changes.",
+    "No changes to the five remaining verification-only consumer tests.",
+    "No replacement of unrelated A25/A24 acceptance criteria.",
+    "No push, merge, publication, registry write, release, or final verdict."
+  ],
+  "baseline_evidence": [
+    ".agent/evidence/AAA-022/a26-interaction-reader-implementation-20260923.json",
+    ".agent/verification.jsonl#VER-AAA-022-A26-IMPLEMENTATION-20260923-001"
+  ]
+}

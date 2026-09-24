@@ -18,7 +18,6 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
@@ -30,6 +29,7 @@
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-llm": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
+    "@deepseek-ai/dsh-session-query": "workspace:^",
     "@deepseek-ai/dsh-session-title": "workspace:^",
     "@deepseek-ai/dsh-timeout": "workspace:^"
   },
@@ -41,6 +41,7 @@
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-llm": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
+    "@deepseek-ai/dsh-session-query": "workspace:^",
     "@deepseek-ai/dsh-session-title": "workspace:^",
     "@deepseek-ai/dsh-timeout": "workspace:^"
   }

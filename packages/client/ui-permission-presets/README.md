@@ -83,6 +83,8 @@ These limits define the current permission surfaces. They are current package co
 - **Auto review is current-session-only** — the General-settings row intentionally omits it, and only visible picker selection receives the experimental confirmation; an explicitly typed `/permission auto` is already explicit consent.
 - **Preset descriptions come from the host** — localized built-in labels may therefore appear beside a description written in another language.
 
+**Runtime invariant:** No companion is published. The command and slot contribution lifecycles are proven by the HMR-safety spec, while the browser-only Settings controller owns no host events or cross-plugin mutable state.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -92,5 +94,3 @@ These limits define the current permission surfaces. They are current package co
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The command and slot contribution lifecycles are proven by the HMR-safety spec, while the browser-only Settings controller owns no host events or cross-plugin mutable state.

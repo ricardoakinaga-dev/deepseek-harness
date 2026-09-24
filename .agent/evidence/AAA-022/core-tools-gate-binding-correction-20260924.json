@@ -1,0 +1,29 @@
+{
+  "record_id": "EVID-AAA-022-W2-CORE-TOOLS-GATE-BINDING-CORRECTION-20260924-001",
+  "recorded_at": "2026-09-24T12:33:18Z",
+  "scope": "Correction of the single gate binding event created for the user-authorized exact 15-path W2 core/tools gate.",
+  "record": {
+    "file": ".agent/execution-log.jsonl",
+    "event_id": "EVT-AAA-022-GATE-W2-CORE-TOOLS-IMPLEMENTATION-READY-001-149",
+    "original_line_sha256": "27466c7c8fa1a73500f32ac091ffde73679bc558d023afc7226494a79a4e1910",
+    "corrected_line_sha256": "60f22716a612f3376f9ddc4872fd662626f7d50f64115dc9a449e5e4205fd5aa",
+    "changed_field": "gate_fingerprint",
+    "original_value": "d8361c8ed1e0fa267e4cae4f0c7b4383ade12ed689c02ed76d3a341dfa922bf8",
+    "corrected_value": "b0903575687b186b01493074cee55736af21572f1b85dbf9a686363c1aa32055",
+    "reason": "The event must bind the canonical SHA-256 gate_record fingerprint (sorted compact JSON), not the raw gate file byte hash."
+  },
+  "gate": {
+    "path": ".agent/gates/implementation-ready-AAA-022-W2-core-tools.json",
+    "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-W2-CORE-TOOLS-001",
+    "gate_file_sha256": "d8361c8ed1e0fa267e4cae4f0c7b4383ade12ed689c02ed76d3a341dfa922bf8",
+    "canonical_fingerprint": "b0903575687b186b01493074cee55736af21572f1b85dbf9a686363c1aa32055"
+  },
+  "validation": {
+    "direct_gate_validator": "PASS",
+    "state_checker": "FAIL-358, matching the retained baseline",
+    "state_checker_output": ".agent/evidence/AAA-022/core-tools-gate-state-check-20260924.txt",
+    "state_checker_output_sha256": "fa82d32474514ce52903ed36b3cf7938049e9e57cadc1541252e0efe2853063c",
+    "new_gate_specific_findings": 0
+  },
+  "scope_effect": "Only the just-created event row was corrected; no historical event, gate, authority record, or product path was changed by this correction."
+}

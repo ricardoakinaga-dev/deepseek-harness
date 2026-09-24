@@ -1,0 +1,88 @@
+{
+  "observed_at": "2026-09-24T09:23:48.954Z",
+  "task": "AAA-022",
+  "scope": "GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-PREPARATION-SUCCESSOR-001",
+  "implementation_path_count": 29,
+  "verification_only_path_count": 6,
+  "protected_exclusion_path_count": 3,
+  "verification_only_and_protected_hashes": [
+    {
+      "path": "apps/web/tests/schedule-after.e2e.ts",
+      "expected": "a7477f033f4d7a5bada8b90db82ccf34f69182f64c7023b8bd8ab160c1650915",
+      "current": "a7477f033f4d7a5bada8b90db82ccf34f69182f64c7023b8bd8ab160c1650915",
+      "unchanged": true
+    },
+    {
+      "path": "packages/bundle/base/cordis.patch.yml",
+      "expected": "a395d4e6b1b4de3694d354ab21901c174f59a30557d906f6324a474f486b2cc8",
+      "current": "a395d4e6b1b4de3694d354ab21901c174f59a30557d906f6324a474f486b2cc8",
+      "unchanged": true
+    },
+    {
+      "path": "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "expected": "9aa8c1783865a1ef6d073e084ee0cb18316aedf8d6457f51e0cc3f4da85b6979",
+      "current": "9aa8c1783865a1ef6d073e084ee0cb18316aedf8d6457f51e0cc3f4da85b6979",
+      "unchanged": true
+    },
+    {
+      "path": "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "expected": "15875f85893196edd68f8c01b15ef866d9ee98529fb4ee15fb7c68689f5c28d3",
+      "current": "15875f85893196edd68f8c01b15ef866d9ee98529fb4ee15fb7c68689f5c28d3",
+      "unchanged": true
+    },
+    {
+      "path": "packages/subagent/subagent/tests/continuation.spec.ts",
+      "expected": "cd697accf3e164d19466e14c8bb43cc99fc3ec00984fa5c353194a0b8bd78a3c",
+      "current": "cd697accf3e164d19466e14c8bb43cc99fc3ec00984fa5c353194a0b8bd78a3c",
+      "unchanged": true
+    },
+    {
+      "path": "packages/test-support/agent-loop-testkit/src/index.ts",
+      "expected": "54cb829cbf2078930cd50858b4f337acacb21aac3693b3a5c3a4b883c9a3abaa",
+      "current": "54cb829cbf2078930cd50858b4f337acacb21aac3693b3a5c3a4b883c9a3abaa",
+      "unchanged": true
+    },
+    {
+      "path": "packages/schedule/schedule/package.json",
+      "expected": "f2eb32d55c6b677c36631d48479da35dd27d08382c87368b992d6e282ac63b4d",
+      "current": "f2eb32d55c6b677c36631d48479da35dd27d08382c87368b992d6e282ac63b4d",
+      "unchanged": true
+    },
+    {
+      "path": "packages/schedule/schedule/src/domain.ts",
+      "expected": "75b640a1f1e0a638de21f183f6e48b910a6a2fb87c8813439aab79b02063fbc0",
+      "current": "75b640a1f1e0a638de21f183f6e48b910a6a2fb87c8813439aab79b02063fbc0",
+      "unchanged": true
+    },
+    {
+      "path": "packages/schedule/schedule/src/projection.ts",
+      "expected": "53a9ea848187ee60fb69eb67df8fa6c34c82bd0a9b2d9ad4351bfd7e1001109b",
+      "current": "53a9ea848187ee60fb69eb67df8fa6c34c82bd0a9b2d9ad4351bfd7e1001109b",
+      "unchanged": true
+    }
+  ],
+  "missing_fingerprint_entries": [],
+  "changed_out_of_scope_paths": [],
+  "v8_marker_preservation": [
+    {
+      "path": "packages/schedule/schedule/src/invariant.ts",
+      "line_text": "/*! v8 ignore next -- foldScheduleEvents normalizes every rejected stream to ScheduleLogError. */",
+      "present": true
+    },
+    {
+      "path": "packages/schedule/schedule/src/runtime.ts",
+      "line_text": "/*! v8 ignore next -- only the exact stored run installs this callback. */",
+      "present": true
+    },
+    {
+      "path": "packages/schedule/schedule/src/runtime.ts",
+      "line_text": "/*! v8 ignore next -- covers a trigger in the promise-settlement microtask gap. */",
+      "present": true
+    }
+  ],
+  "implementation_diff_check": {
+    "exit_status": 0,
+    "output": ""
+  },
+  "result": "PASS"
+}

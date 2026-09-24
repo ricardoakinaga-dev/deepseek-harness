@@ -39,7 +39,9 @@ import type { DeepSeekFileStore } from '../../common/file-store.ts'
 import { FileResolutionFailure, RequestFiles } from '../../common/request-files.ts'
 import { prepareRequestExtensions } from '../../common/request-extensions.ts'
 import { parseSse } from './sse.ts'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the translation module owns that behavior. */
 import { translate } from './translate.ts'
+/*! v8 ignore stop */
 import type { WireError, WireRequest } from './types.ts'
 
 const STREAM_IDLE_TIMEOUT_CODE = 'LLM_STREAM_IDLE_TIMEOUT'

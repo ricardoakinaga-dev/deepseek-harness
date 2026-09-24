@@ -15,7 +15,9 @@ import { SHELL_SETTINGS_NAMESPACE, ShellExecutor } from '@deepseek-ai/dsh-shell'
 import type { ShellExecRequest, ShellExecSpec, ShellProcess, ShellProcessRead, ShellRunResult, CollectedOutput } from '@deepseek-ai/dsh-shell'
 import type { SubprocessCollect, SubprocessHandle, SubprocessOutputReader, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import type {} from '@deepseek-ai/dsh-settings'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the timeout package owns that behavior. */
 import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@deepseek-ai/dsh-timeout'
+/*! v8 ignore stop */
 
 /**
  * Model-friendly environment overrides: disable colors, pagers, and
@@ -202,11 +204,11 @@ export class LocalBashExecutor extends ShellExecutor {
   /** The collect-mode readers the executor itself requested (present by construction). */
   private static collected(handle: SubprocessHandle): { stdout: SubprocessOutputReader; stderr: SubprocessOutputReader } {
     const { stdout, stderr } = handle.collected
-    /* v8 ignore start -- collect dispositions expose both readers by the seam contract; defensive. */
+    /*! v8 ignore start -- collect dispositions expose both readers by the seam contract; defensive. */
     if (stdout === undefined || stderr === undefined) {
       throw new Error('bash-local: subprocess implementation dropped a requested collect stream')
     }
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
     return { stdout, stderr }
   }
 

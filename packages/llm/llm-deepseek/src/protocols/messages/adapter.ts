@@ -15,7 +15,9 @@ import { imagePricing, inlineImages, prepareFileIds, prepareImages } from './ima
 import { serialize } from './serialize.ts'
 import { parseSse } from './sse.ts'
 import { translate } from './translate.ts'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the transport module owns that behavior. */
 import { providerError, providerErrorDetail } from './transport.ts'
+/*! v8 ignore stop */
 
 /** Request-local dependencies supplied by the owning Cordis plugin. */
 export interface AdapterDependencies {

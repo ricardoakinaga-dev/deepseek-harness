@@ -179,7 +179,7 @@ The generated [tool catalog](../tool-catalog.md#deepseek-aidsh-schedule) owns th
 
 ## Read-only Web catalog
 
-When the optional Session projection registry is present, Schedule registers the client-visible `schedule` key whose value is the complete active `ScheduleRecord[]`. Live, cache, history, and detached reads use the same header-aware strict fold; malformed authoritative input fails the existing read path instead of publishing a partial value.
+Schedule requires the Session projection registry and registers the client-visible `schedule` key whose value is the complete active `ScheduleRecord[]`. Tools and the live runtime read the current host state after the persistence barrier, and the invariant companion validates direct creation baselines, prepared constructor baselines, setup appends, and live candidates before publication or append. A rejected prepared append leaves its sequence and projection state unchanged. Live, cache, history, and detached reads use the same header-aware strict transition; malformed authoritative input fails the existing read path instead of publishing a partial value.
 
 The shipped Web bundle keeps `ui-schedule` disabled by default, while the explicit Schedule overlay enables it together with the Host capability. [`dsh-client-ui-schedule`](../../packages/client/ui-schedule/README.md) owns the header interaction, [`dsh-client-ui-workspace`](../../packages/client/ui-workspace/README.md) owns list-row presentation, and the durable Schedule Agent Note owns their shared active-state boundary. The shared value represents current active state, never delivery history or a receipt; due reminders still appear through the ordinary Assistant output described below.
 
@@ -187,6 +187,6 @@ The shipped Web bundle keeps `ui-schedule` disabled by default, while the explic
 
 The process-local owner derives its earliest timer from the durable fold and rereads the wall clock after every bounded wait. Cold Sessions do no work; reopening one reconstructs timers and makes past targets overdue. Due one-shots take priority and enter one later turn at a time. When no one-shot is due, all overdue Every records form the single batch described above.
 
-Due work waits for the Agent to become fully idle and claims the maintenance phase before it refolds state, samples the decision, queues one `followup()`, and appends the corresponding dispatch changes. It never calls `steer()` and never interrupts a current turn.
+Due work waits for the Agent to become fully idle and claims the maintenance phase before it reads projection state, samples the decision, queues one `followup()`, and appends the corresponding dispatch changes. It never calls `steer()` and never interrupts a current turn.
 
 The admitted one-shot or fixed-rate batch starts one normal later turn and appears only through the ordinary conversation transcript; Schedule has no independent durable Web receipt. The read-only active catalog above never represents delivery success. If framing or synchronous queue admission fails, no dispatch is recorded and the reminder stays active. The narrow crash interval after admission but before durable dispatch can repeat reminder content after recovery, so the boundary is best-effort at-least-once rather than exactly-once delivery.

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "record_id": "EVID-AAA-012-A02-IMPLEMENTATION-A19-001",
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-012",
+  "action_id": "AAA-012:A02",
+  "candidate_ref": "custom/main working tree at 60b5295027f6fb7652a1a350a68c6275715bdbd",
+  "captured_at": "2026-09-21T23:49:34-03:00",
+  "decision_status": "CONFIRMED",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+  "scope": "Approved physical WebSocket close postcondition for the Gateway Remote stream client.",
+  "implementation": "RemoteStreamMuxClient.close() fails logical streams first, waits for the captured socket close event or CLOSED state, shares repeated calls, handles already-closed and CLOSING sockets, rejects close errors and the bounded timeout, and ignores late callbacks from replaced sockets. README contract and barrier-oriented fixtures are updated.",
+  "commands": [
+    {"command":"pnpm exec vitest run packages/api/gateway/tests/gateway.client.spec.ts --maxWorkers=1","exit_status":0,"result":"PASS","observation":"One file and 118 tests passed."},
+    {"command":"pnpm exec tsc -p packages/api/gateway/tsconfig.client.json --noEmit","exit_status":0,"result":"PASS","observation":"Gateway client face typechecked without diagnostics."},
+    {"command":"pnpm run verify-translation-pairing packages/api/gateway/README.md","exit_status":0,"result":"PASS","observation":"The Gateway README pair is consistent."}
+  ],
+  "acceptance": {"status":"PASS","summary":"The approved physical-close lifecycle, bounded failure behavior, repeated-close identity, late-callback handling, focused regression suite, client typecheck, and paired README are current."},
+  "limitations": ["The evidence is from an uncommitted working tree and is not immutable release evidence.","No real browser/network WebSocket lane or external publication action was authorized."],
+  "freshness": "CURRENT"
+}

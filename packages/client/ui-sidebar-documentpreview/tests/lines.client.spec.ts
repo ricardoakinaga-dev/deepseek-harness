@@ -4,8 +4,8 @@
  * reach.
  */
 import { describe, expect, it } from 'vitest'
-import { lastLineLoaded, linesOf, loadedPages } from '../src/client/TextPreview.tsx'
-import type { TextPage } from '../src/client/store.ts'
+import { lastLineLoaded, linesOf, loadedPages } from '../src/client/text/TextPreview.tsx'
+import type { TextPage } from '../src/client/text/store.ts'
 
 const held = (text: string, lines: number): TextPage => ({ text, lines })
 

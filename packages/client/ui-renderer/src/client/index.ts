@@ -13,6 +13,8 @@ import { SlotRegistry } from './registry.ts'
 
 export { SlotRegistry } from './registry.ts'
 export type { RootOwnerProps } from './registry.ts'
+export { bindSnapshotSelector } from './bind.ts'
+export { createSlotRenderer } from './scoped-slots.tsx'
 
 export type {
   ChainRenderOpts, HostObservable, RenderOpts, SnapshotSelectorHook, SlotRenderer,

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { expect, it, onTestFinished } from 'vitest'
 import { parse } from 'yaml'
-import { approveBuilds, readPendingBuilds } from '../src/build-approval.ts'
+import { approveBuilds, pendingBuildsFromOutput, readPendingBuilds, recordPendingBuilds } from '../src/build-approval.ts'
 
 function fixture(text?: string) {
   const dir = mkdtempSync(join(tmpdir(), 'build-approval-'))
@@ -22,6 +22,26 @@ it('approves only named pending packages and preserves comments, decisions and s
   expect(text).toContain('# profile settings')
   expect(parse(text)).toMatchObject({ nodeLinker: 'hoisted', allowBuilds: { native: true, trusted: true, denied: false } })
   expect(await readPendingBuilds(dir)).toEqual(['@scope/other'])
+})
+
+it('records ignored build scripts from pnpm output without replacing existing decisions', async () => {
+  const { dir, filename } = fixture('nodeLinker: hoisted\nallowBuilds:\n  denied: false\n')
+  const output = '│   Ignored build scripts: approval-fixture-addon@file:../../addon, @scope/native. │\n'
+
+  expect(pendingBuildsFromOutput(output)).toEqual(['@scope/native', 'approval-fixture-addon'])
+  await recordPendingBuilds(dir, pendingBuildsFromOutput(output))
+  expect(await readPendingBuilds(dir)).toEqual(['@scope/native', 'approval-fixture-addon'])
+  expect(parse(readFileSync(filename, 'utf8'))).toMatchObject({
+    nodeLinker: 'hoisted',
+    allowBuilds: { denied: false, '@scope/native': 'set this to true or false', 'approval-fixture-addon': 'set this to true or false' },
+  })
+  await recordPendingBuilds(dir, ['denied'])
+  const parsed = parse(readFileSync(filename, 'utf8')) as { allowBuilds: Record<string, unknown> }
+  expect(parsed.allowBuilds.denied).toBe(false)
+})
+
+it('drops empty names from ignored-build diagnostics', () => {
+  expect(pendingBuildsFromOutput('│ Ignored build scripts: , native, . │\n')).toEqual(['native'])
 })
 
 it.each(['missing', 'denied', '*', '--all'])('rejects an unlisted approval atomically: %s', async (name) => {

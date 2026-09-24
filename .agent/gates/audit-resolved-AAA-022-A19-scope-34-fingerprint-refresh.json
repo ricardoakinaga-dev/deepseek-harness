@@ -1,0 +1,130 @@
+{
+  "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-REFRESH-002",
+  "timestamp": "2026-09-23T18:10:57-03:00",
+  "gate_id": "AUDIT_RESOLVED",
+  "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+  "scope_ref": "AAA-022",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "AR-001-BASELINE-GAPS",
+      "description": "The approved 34-path A19 membership and 32-path prepared-session owner remain unchanged after the independent A25 owner was added to the shared customization policy. Historic A19 gates remain preserved.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/a19-scope-34-fingerprint-refresh-20260923.json",
+        ".agent/gates/audit-resolved-AAA-022-A19-scope-34-current.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The stable scope key is retained for the A19 audit lineage; exact current membership is the 34-entry fingerprint."
+    },
+    {
+      "id": "AR-002-RESOLUTION-EVIDENCE",
+      "description": "The current 34-input digest includes the new policy entry; A19/A25 owner path lists are exact, and existing API-catalog attribution is unchanged. Focused checks pass.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/a19-scope-34-fingerprint-refresh-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-FINGERPRINT-REFRESH-20260923-001",
+        ".agents/customization-policy.json",
+        ".agent/evidence/AAA-022/interaction-reader-design-a24.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Repository-wide doc-sync remains PARTIAL at 37/43."
+    },
+    {
+      "id": "AR-003-ACCEPTANCE-OR-ROUTING",
+      "description": "The scope refresh is bound to current confirmed authority. A19 remains closed for runtime work and AAA-022:A25 remains active in DESIGN for gate preparation.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-REFRESH-002",
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/execution-log.jsonl#EVT-AAA-022-GATE-A19-SCOPE-34-CURRENT-002-110"
+      ],
+      "confidence": "HIGH",
+      "limitations": "No external repository action is authorized."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-022/a19-scope-34-fingerprint-refresh-20260923.json",
+    ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-FINGERPRINT-REFRESH-20260923-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-REFRESH-002",
+    ".agent/gates/audit-resolved-AAA-022-A19-scope-34-current.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+    ".agent/evidence/AAA-022/a19-scope-34-gate-draft-correction-20260923.json",
+    ".agents/customization-policy.json"
+  ],
+  "candidate_fingerprint": "9d0ff4573d47479fffff5deb958711b6c7124c91722344f305c72a1add243bcd",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session.i18n.yaml",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "hash_rule": "For each listed relative path in sorted order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+    "file_count": 34,
+    "preexisting_dirty_worktree": true
+  },
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+    "decision": "The user approved retaining all 34 A19 paths, including the three owning Session subsystem docs. The separately approved A25 interaction owner is now registered in the same customization policy; rebind the unchanged 34 A19 paths to the current policy fingerprint while preserving A19 owner membership and both API-catalog owners.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-REFRESH-002",
+    "expires_or_revalidates": "Revalidate if any of the 34 A19 inputs or 32 A19 owner paths change, if either API-catalog owner changes, or if A19 runtime scope changes."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Continue AAA-022:A25 gate preparation with the exact 31-path interaction owner now declared; no implementation begins until A25’s implementation-ready gate passes.",
+  "revalidation_triggers": [
+    "Any of the exact 34 A19 inputs changes.",
+    "A19 prepared-session owner path membership changes.",
+    "A25 interaction owner changes from the exact A24-approved 31 paths.",
+    "Either API-catalog owner changes.",
+    "A19 runtime behavior, Session data, or A20 storage work is proposed."
+  ],
+  "supersedes": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+  "revalidation": {
+    "kind": "FINGERPRINT_REFRESH",
+    "previous_record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+    "previous_candidate_fingerprint": "19c4a7ee6bf3486017885c46bece9eaf6c5c5f07acf9a7e05c4cd2a413f2dcaf",
+    "reason": "The A25 interaction owner was registered in the shared customization policy after A19’s scope expansion. Refresh the current digest of the same exact 34 A19 inputs.",
+    "authority_effect": "Preserves the approved exact A19 34-path scope and 32-path owner; confirms the separately approved 31-path A25 owner and leaves both API-catalog owners unchanged."
+  }
+}

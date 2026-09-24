@@ -30,7 +30,9 @@ import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-cmdline'
 import type {} from '@deepseek-ai/dsh-session-query'
 import { internals } from './runner-internals.ts'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the JSON-stream module owns that behavior. */
 import { projectJsonRun, boundJsonLine } from './json-stream.ts'
+/*! v8 ignore stop */
 
 /** Stable Cordis plugin name. */
 export const name = 'headless-runner'
@@ -152,7 +154,7 @@ function streamReasoning(
       case 'finish':
         close()
         return
-      /* v8 ignore next -- closed-union exhaustiveness guard */
+      /*! v8 ignore next -- closed-union exhaustiveness guard */
       default:
         return assertNever(chunk, 'headless reasoning stream')
     }

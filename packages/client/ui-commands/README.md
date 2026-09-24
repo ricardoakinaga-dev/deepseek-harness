@@ -82,6 +82,8 @@ These limits define the current command surface. They are current package constr
 
 - **Detached-result notices fall back to the console off-session** — the fire-and-forget paths route results to the triggering session's composer via `SessionInput.notify`; after session teardown the console line is the only remaining surface.
 
+**Runtime invariant:** No companion is published. This browser-side source uses the wire command directory; it emits no Cordis events and owns no cross-plugin mutable state. Its dispatch and cache behavior are asserted by this package's specs.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -91,5 +93,3 @@ These limits define the current command surface. They are current package constr
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This browser-side source uses the wire command directory; it emits no Cordis events and owns no cross-plugin mutable state. Its dispatch and cache behavior are asserted by this package's specs.

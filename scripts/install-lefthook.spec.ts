@@ -12,6 +12,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,9 +20,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { removeFixtureSafely, unlinkFixtureLinks } from './test-fixture-cleanup.ts'
 
 const installer = fileURLToPath(new URL('./install-lefthook.mjs', import.meta.url))
+const require = createRequire(import.meta.url)
 const pairingMergeDriver = 'scripts/merge-translation-pairing-driver.sh %O %A %B %P'
 const scriptsDirectory = fileURLToPath(new URL('.', import.meta.url))
-const tsxPackageDirectory = dirname(fileURLToPath(import.meta.resolve('tsx/package.json')))
+const tsxPackageDirectory = dirname(require.resolve('tsx/package.json'))
 const fixtures: string[] = []
 
 interface Fixture {

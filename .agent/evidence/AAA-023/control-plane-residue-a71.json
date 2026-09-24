@@ -1,0 +1,38 @@
+{
+  "record_id": "EVID-AAA-023-CONTROL-PLANE-RESIDUE-A71-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A36",
+  "kind": "CONTROL_PLANE_LEGACY_RESIDUE_AUDIT",
+  "status": "PARTIAL",
+  "timestamp": "2026-09-22T18:49:16-03:00",
+  "procedure": "Run the engineering-framework state checker against the current repository, classify every reported failure by historical protocol source, and determine whether an append-only repair can remove it without rewriting prior records.",
+  "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+  "exit_status": 1,
+  "checker_result": {
+    "summary": "RESULT FAIL (pass=7, warn=0, fail=140)",
+    "categories": {
+      "LOG_TRANSITION": 31,
+      "VERIFY_ARTIFACT_REF": 36,
+      "VERIFY_ENUM": 6,
+      "VERIFY_PASS_EVIDENCE_KIND": 5,
+      "GATE_SCHEMA": 21,
+      "GATE_AUTHORITY": 35,
+      "GATE_HISTORY_SCOPE": 5,
+      "RECONCILIATION": 1
+    }
+  },
+  "classification": [
+    "The 31 transition diagnostics are historical IN_PROGRESS-to-IN_PROGRESS events from A32 through A62.",
+    "The 36 artifact-reference diagnostics are absolute /tmp paths in 17 historical verification records.",
+    "The six enum diagnostics and five PASS-evidence diagnostics are historical REVIEW/RECOVERY values outside the current evidence-kind enum.",
+    "The gate-schema, gate-authority, and gate-history diagnostics belong to superseded gate records and the state pointer that still names the latest superseded gate.",
+    "The single reconciliation diagnostic is the historical A44 PARTIAL record versus its PASS gate decision."
+  ],
+  "disposition": {
+    "append_only_repair": "NOT_AVAILABLE",
+    "reason": "Removing these diagnostics would require rewriting or migrating historical records. No migration mechanism is defined, and rewriting append-only history would hide the recorded protocol state.",
+    "safe_action": "Preserve the original records, keep the current A29-A35 evidence valid, and carry this residue as an explicit control-plane risk for a separately authorized migration task."
+  },
+  "candidate_impact": "No product source, private candidate, candidate fingerprint, policy, external-lane result, or release verdict changed.",
+  "freshness": "CURRENT"
+}

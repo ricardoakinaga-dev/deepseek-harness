@@ -99,6 +99,8 @@ These limits define which archived sessions this page can restore; they are curr
 - **Archived sessions without a loaded summary are unaddressable** — the page derives its rows by joining the archive set with the Session list, so a member the list does not carry has no row and no Unarchive action even though the archive set still holds it; a set whose members are all in that state reports itself as unrestorable rather than empty.
 - **The page lists sessions only; it offers no session deletion** — archives are reversible through this page, while deleting a session record remains a separate capability.
 
+**Runtime invariant:** No companion is published. A browser-side settings page that registers one localized `settings.section` contribution and its locale namespace; it emits no Cordis events and owns no cross-plugin mutable relation.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -108,5 +110,3 @@ These limits define which archived sessions this page can restore; they are curr
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. A browser-side settings page that registers one localized `settings.section` contribution and its locale namespace; it emits no Cordis events and owns no cross-plugin mutable relation.

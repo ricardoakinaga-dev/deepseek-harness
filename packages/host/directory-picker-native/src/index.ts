@@ -22,7 +22,7 @@ export { pickNativeDirectory } from './native-picker.ts'
 export default class NativeDirectoryPicker extends DirectoryPicker {
   private readonly nativeCapability: DirectoryPickerCapability = {
     kind: 'native',
-    /* v8 ignore next -- pure forward to pickNativeDirectory (its spec owns behavior); invoking here opens a real chooser. */
+    /*! v8 ignore next -- pure forward to pickNativeDirectory (its spec owns behavior); invoking here opens a real chooser. */
     pick: signal => pickNativeDirectory(signal),
   }
 

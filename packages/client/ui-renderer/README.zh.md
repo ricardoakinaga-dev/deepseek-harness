@@ -27,6 +27,8 @@ kind: "package-reference"
 
 本包属于基础设施：Web 外壳与启动内核是它仅有的直接消费方。只要组合需要 React 渲染的 GUI，就需要它——`dsh-client-web` 加载名册，等待每个 entry 激活，然后调用 `ctx.uiRenderer.mount(container)`。
 
+公开的 `client` 入口还提供 `createSlotRenderer`、`SlotRegistry` 与 `bindSnapshotSelector`，供自行拥有 Cordis 组合和 React 挂载生命周期的嵌入运行时使用。
+
 ### 挂载做什么
 
 `mount(container)` 会安装 slot 渲染器、在存在时 hydrate 现有启动 DOM、在下一次绘制前把组装后的应用渲染进容器，并返回一个卸载 React 根的 disposer。渲染器执行全程序唯一一次上下文级 `renderSlot('root')` 调用；注册的根占用方拥有产品布局与文档元数据。

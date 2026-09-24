@@ -212,6 +212,8 @@ These limits define where the adapter stops and future work begins. They are cur
 - The default catalog pre-registers `deepseek-flash` and its text/image and in-history capabilities without probing gateway availability. Requests can fail with `INVALID_REQUEST` until the gateway enables the id. With `DEEPSEEK_API_KEY` and a supporting gateway configured, `DEEPSEEK_FLASH_E2E=1` enables the Chat Completions check in [this package's e2e suite](tests/adapter.e2e.ts).
 - The [Messages system-update e2e checks](tests/messages/adapter.e2e.ts) require `DEEPSEEK_IN_HISTORY_MODEL` to name a supported model, such as `deepseek-flash`, and run with `high` effort. They skip when that variable is unset or empty; ordinary `off` text checks remain enabled with credentials. Known instruction-following instability with thinking disabled makes these system-update checks unsuitable for `off`.
 
+**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond contracts enforced at its owning seam.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -224,5 +226,3 @@ This Dev Note is non-authoritative working context: undecided directions and not
 - The `off` reasoning effort never crosses the wire as `reasoning_effort: 'off'`; it serializes as `thinking: { type: 'disabled' }` and omits the field, which keeps the wire spelling valid for gateways that reject unknown effort values.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond contracts enforced at its owning seam.

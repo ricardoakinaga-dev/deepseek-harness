@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { zipSync } from 'fflate'
+import { strToU8, zipSync } from 'fflate'
 import { expect, it } from 'vitest'
 import { downloadPrimaryRuntimeAsset, prepareOfficeSkillAssets, primaryRuntimePayloadDigest, smokePrimaryRuntime, unpackPrimaryRuntimeWheel } from '../scripts/prepare-primary-runtime.ts'
 import lock from '../scripts/primary-runtime-lock.json' with { type: 'json' }
@@ -80,6 +80,22 @@ it('fully extracts a large deflate-compressed wheel entry', async () => {
     await writeFile(archive, zipSync({ 'large.bin': expected }, { level: 6 }))
     await unpackPrimaryRuntimeWheel(archive, root)
     expect(await readFile(join(root, 'large.bin'))).toEqual(expected)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+}, 20_000)
+
+it('rejects symbolic-link ZIP entries before writing outside the destination', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'desktop-symlink-wheel-'))
+  try {
+    const archive = join(root, 'symlink.whl')
+    const zip = Buffer.from(zipSync({ link: strToU8('outside') }))
+    const centralDirectory = zip.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]))
+    expect(centralDirectory).toBeGreaterThanOrEqual(0)
+    zip.writeUInt32LE((0xa000 | 0o777) << 16 >>> 0, centralDirectory + 38)
+    await writeFile(archive, zip)
+    await expect(unpackPrimaryRuntimeWheel(archive, join(root, 'site-packages'))).rejects.toThrow('symbolic-link')
+    expect(await readFile(join(root, 'outside'), { encoding: 'utf8' }).catch(() => undefined)).toBeUndefined()
   } finally {
     await rm(root, { recursive: true, force: true })
   }

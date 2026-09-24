@@ -9,7 +9,7 @@ kind: "package-library"
 
 ## 概述
 
-`dsh-session-title-llm` 使用一致的模型请求策略，根据选中的用户消息生成简洁的会话标题。调用方选择每次修订包含哪些消息，以及成对提供 `provider`／`model` 路由，还是使用当前会话记录的路由。必填上限约束封装后的输入、生成输出与端到端时长，调用方取消在整个流式处理期间持续生效。无效、空、迟到、包含工具调用或其他非纯文本的结果会在替换标题前被拒绝。
+`dsh-session-title-llm` 使用一致的模型请求策略，根据标题服务提供的确切用户消息生成简洁的会话标题。所有历史输入都通过注入的 `SessionQueryEngine` 读取；服务会直接向自动 `first-prompt` 工作提供首消息投影。两种随附提供方的显式刷新都会使用所有合格历史。调用方可以成对提供 `provider`／`model` 路由，或使用当前会话记录的路由。必填上限约束封装后的输入、生成输出与端到端时长，调用方取消在整个流式处理期间持续生效。无效、空、迟到、包含工具调用或其他非纯文本的结果会在替换标题前被拒绝。
 
 ## 目录
 
@@ -29,7 +29,7 @@ kind: "package-library"
 
 ### 注册提供方
 
-提供方插件调用 `registerSessionTitleLlmProvider(ctx, config, id, automatic, selectMessages)`；辅助函数验证共享配置、在 `ctx.sessionTitle` 上注册提供方，并让每次生成都经过共享策略。两个随附插件以各自的 `first-prompt` 与 `all-prompts` 节奏和消息选择器注册；服务上的第二次注册会立即抛出。
+提供方插件调用 `registerSessionTitleLlmProvider(ctx, config, id, automatic)`；辅助函数验证共享配置、在 `ctx.sessionTitle` 上注册提供方，并让每次生成都经过共享策略。辅助函数也通过 `ctx.sessionQuery` 读取全部历史修订，因此提供方插件要求标题、LLM、会话存储与会话查询服务。两个随附插件以 `first-prompt` 与 `all-prompts` 节奏注册；服务上的第二次注册会立即抛出。
 
 ### 路由与失败约定
 
@@ -62,17 +62,17 @@ kind: "package-library"
 
 ### 设计理念
 
-一份共享策略让提供方插件无法漂移：配置校验、路由解析、提示词封装、预算执行、取消与输出校验都在这里，只以提供方的节奏与消息选择器为参数。
+一份共享策略让提供方插件无法漂移：配置校验、路由解析、提示词封装、预算执行、取消与输出校验都在这里。标题服务为自动首消息工作提供输入；全部历史输入通过会话查询服务，按固定包含式序列上限加载。
 
 ### 源码地图
 
 | 文件 | 职责 |
 |---|---|
-| [`src/index.ts`](src/index.ts) | 配置 schema 与校验、提供方注册辅助、请求封装、分发与输出校验 |
+| [`src/index.ts`](src/index.ts) | 配置 schema 与校验、查询支持的历史加载器、提供方注册辅助、请求封装、分发与输出校验 |
 
 ### 请求流程
 
-生成在注册时校验一次配置；每次修订把选中的消息封装为 JSON，依据 `maxInputBytes` 检查封装提示词的 UTF-8 字节数，解析路由（显式对或已记录 `request/header`），追加一条携带确切可分发请求的仅日志 `session/title-llm-request` 事件，然后在组合的超时与取消截止时间内通过 `ctx.llm` 流式生成。分发的封套携带 `purpose: 'session-title'`，且有意不包含 agent loop 的进程本地请求身份；DeepSeek 适配器根据该用途禁用思考，使少量输出预算全部用于可见标题文本，其他适配器负责自身用途专用行为。输出只组装为文本块；工具调用、格式错误或空输出与非 stop 结束原因都会拒绝，后续模型失败会保留请求记录。
+生成在注册时校验一次配置。全部历史修订会通过 `ctx.sessionQuery` 观察会话，并以修订的包含式 seq 上限读取，再按日志顺序映射符合条件的消息；读取后会释放观察对象。自动 `first-prompt` 工作由服务绕过此加载器并提供首消息投影；两种插件下的显式刷新都会使用加载器。随后每次修订把提供的消息封装为 JSON，依据 `maxInputBytes` 检查封装提示词的 UTF-8 字节数，解析路由（显式对或已记录 `request/header`），追加一条携带确切可分发请求的仅日志 `session/title-llm-request` 事件，然后在组合的超时与取消截止时间内通过 `ctx.llm` 流式生成。分发的封套携带 `purpose: 'session-title'`，且有意不包含 agent loop 的进程本地请求身份；DeepSeek 适配器根据该用途禁用思考，使少量输出预算全部用于可见标题文本，其他适配器负责自身用途专用行为。输出只组装为文本块；工具调用、格式错误或空输出与非 stop 结束原因都会拒绝，后续模型失败会保留请求记录。
 
 </details>
 
@@ -118,6 +118,8 @@ kind: "package-library"
 - **仅文本输出**——辅助函数只接受文本输出并拒绝工具调用；不公开结构化输出适配器或提供方专用提示词变体。
 - **整体提示词字节上限**——它对整个封装用户提示词强制执行字节上限，而不是剪裁单条消息或应用保留策略。
 
+**运行时不变式：** 不发布伴生入口。这个无状态 helper 会在 dispatch 前校验并冻结每个辅助请求；deadline、stream、message seq、provider 与 model 由同步检查和测试覆盖。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -127,5 +129,3 @@ kind: "package-library"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。这个无状态 helper 会在 dispatch 前校验并冻结每个辅助请求；deadline、stream、message seq、provider 与 model 由同步检查和测试覆盖。

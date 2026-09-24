@@ -1,0 +1,63 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A35",
+  "kind": "EXTERNAL_LANE_ROUTING",
+  "observed_at": "2026-09-22T18:37:12-03:00",
+  "routes": {
+    "windows_wine": {
+      "workflow": ".github/workflows/ci-master.yml",
+      "job": "windows",
+      "carrier": "ubuntu-latest",
+      "provisioning": "Install Wine, then bash scripts/wine-windows-gates.sh",
+      "local_status": "UNAVAILABLE; wine is absent"
+    },
+    "native_platforms": {
+      "workflow": ".github/workflows/ci-master.yml -> .github/workflows/build-exe-for-python-sdk.yml",
+      "job": "python-runtime",
+      "targets": [
+        "node24-linux-arm64",
+        "node24-macos-arm64",
+        "node24-macos-x64"
+      ],
+      "carriers": ["ubuntu-24.04-arm", "macos-latest", "macos-15-intel"],
+      "local_status": "UNAVAILABLE on Linux x64"
+    },
+    "node_compatibility": {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "node-compat",
+      "versions": ["22.19", "24.9", "26"],
+      "command": "pnpm run check:node-compat",
+      "local_status": "Only Node v24.20.0 was executed locally; matrix evidence remains external"
+    },
+    "benchmark": {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "node-24-bench",
+      "carrier": "ubuntu-24.04",
+      "provisioning": "Playwright Chromium with dependencies",
+      "command": "pnpm run check:ci:bench",
+      "local_status": "Local 1/1 PASS is not the designated hosted-runner signal"
+    },
+    "deepseek_provider": {
+      "workflow": ".github/workflows/e2e.yml",
+      "job": "e2e",
+      "secret": "DEEPSEEK_API_KEY_EXTERNAL",
+      "command": "pnpm run test:e2e",
+      "local_status": "Credential absent; keyless skips do not qualify this lane"
+    },
+    "azure_anthropic_provider": {
+      "workflow": ".github/workflows/pi-ai-provider-e2e.yml",
+      "job": "e2e",
+      "trigger": "workflow_dispatch",
+      "secrets": ["AZURE_OPENAI_API_KEY_EXTERNAL", "ANTHROPIC_API_KEY_EXTERNAL"],
+      "local_status": "Credentials absent; manual trusted dispatch is required"
+    },
+    "final_critic": {
+      "backlog_item": "AAA-024:A01",
+      "trigger": "Only after AAA-023 acceptance and evidence-index handoff",
+      "local_status": "TODO; not run"
+    }
+  },
+  "decision": "All remaining non-local lanes have an exact repository-owned carrier or prerequisite route. No lane is claimed PASS from a local substitute, and no workflow dispatch, secret use, publication, merge, or release action was performed.",
+  "result": "PASS",
+  "limitations": "This is routing evidence only. It cannot produce hosted platform, supported-Node matrix, credentialed-provider, clean-upstream, or independent-critic results from this Linux x64 workspace."
+}

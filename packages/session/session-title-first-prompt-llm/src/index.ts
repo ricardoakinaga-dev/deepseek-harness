@@ -9,7 +9,7 @@ import {
 import type { SessionTitleLlmConfig } from '@deepseek-ai/dsh-session-title-llm'
 
 export const name = 'session-title-first-prompt-llm'
-export const inject = ['sessionTitle', 'llm', 'sessions']
+export const inject = ['sessionTitle', 'llm', 'sessions', 'sessionQuery']
 
 /** Required LLM policy; this plugin adds no defaults. */
 export type Config = SessionTitleLlmConfig
@@ -28,13 +28,9 @@ export const Config: z<Config> = z.object({
 
 /**
  * Register the first-prompt model provider.
- * @param ctx - context exposing session-title, LLM, and session services.
+ * @param ctx - context exposing session-title, LLM, session, and session-query services.
  * @param config - required route, target, byte, token, and timeout policy.
  */
 export function apply(ctx: Context, config: Config): void {
-  registerSessionTitleLlmProvider(ctx, config, name, 'first-prompt', (messages) => {
-    const first = messages[0]
-    if (first === undefined) throw new Error('first-prompt title provider requires one human message')
-    return [first]
-  })
+  registerSessionTitleLlmProvider(ctx, config, name, 'first-prompt')
 }

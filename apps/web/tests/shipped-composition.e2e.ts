@@ -515,6 +515,10 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
   scaffold = await launchWebScaffold({ deepSeekMissingCredential: true })
   expect(existsSync(join(scaffold.harnessHome, 'profiles', 'node_modules'))).toBe(false)
   const ctx = scaffold.ctx
+  expect(ctx.get('dynamicCordisRunner')).toBeUndefined()
+  const clientModules = ctx.get('clientModules')
+  expect(clientModules).toBeDefined()
+  expect(clientModules?.graph().entries.some(entry => entry.dynamic === true)).toBe(false)
   expect(ctx.llm.listProviders().some(provider => provider.id === 'deepseek-messages')).toBe(false)
   expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'deepseek-official', model: 'deepseek-flash' })
   const index = await fetch(`http://127.0.0.1:${String(ctx.webServer.port)}`, {

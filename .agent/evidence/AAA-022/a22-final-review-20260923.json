@@ -1,0 +1,79 @@
+{
+  "record_id": "REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001",
+  "task": "AAA-022",
+  "action": "AAA-022:A22",
+  "scope": "Independent read-only review of A21-01 through A21-07 and the exact A22 implementation and verification paths",
+  "reviewer": "/root/a22_context_reader_final_critic",
+  "verdict": "PASS",
+  "final_review": {
+    "captured_at": "2026-09-23T15:17:17-03:00",
+    "candidate_fingerprint": "26bdbc8daee35661c1754018c2602b403995e630597773b82df55a20b1632efc",
+    "review_fingerprint_before": "26bdbc8daee35661c1754018c2602b403995e630597773b82df55a20b1632efc",
+    "review_fingerprint_after": "26bdbc8daee35661c1754018c2602b403995e630597773b82df55a20b1632efc",
+    "supplemental_scope": {
+      "path_count": 37,
+      "paths": "All 33 implementation paths, all 3 verification-only paths, and .agents/customization-policy.json",
+      "fingerprint_before": "6a552ffa3ada95d9ec92d4ff5e539a2d73f341c8179479909aba991218c1bf67",
+      "fingerprint_after": "6a552ffa3ada95d9ec92d4ff5e539a2d73f341c8179479909aba991218c1bf67"
+    },
+    "findings": [],
+    "criteria": "A21-01 through A21-07 pass. Active-message deduplication, changed-content/source preservation, rejected/aborted/interval-skipped invalid-zone behavior, synchronous append and creation rollback, Intl cache refold, v7 cache compatibility, and approved docs/catalog scope are covered.",
+    "limits": "Read-only review only; the reviewer did not edit files, run tests, or run generators."
+  },
+  "review_history": [
+    {
+      "reviewer": "/root/a22_context_reader_critic",
+      "verdict": "DO_NOT_ACCEPT",
+      "fingerprint": "be9e00c39e21f7df22c87a606c8ae83c917bae0cfca4d509192abf0444751e08",
+      "findings": [
+        "The Intl mismatch test did not prove current Intl reclassifies a durable prior validation success and clears a stale failure latch.",
+        "Creation rollback coverage did not include accepted unpublished preparation appends.",
+        "Entered and proposed invalid browser zones did not assert first-invalid and proposal input order.",
+        "SessionProjectionRegistry.register and service JSDoc omitted exact same-key stateVersion/cacheFingerprint compatibility."
+      ],
+      "resolution": "Added durable success-to-error and error-to-success Intl refold coverage; added accepted preparation-append creation rollback coverage; asserted entered and proposed zone input order; documented exact stateVersion and optional cacheFingerprint equality and regenerated the catalog."
+    },
+    {
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "BLOCK",
+      "fingerprint": "02a8d960e49ba4aa2eea264842480bd421817998bb023b1f78be6e23940ea209",
+      "findings": [
+        "Rejected decisions with invalid entered/proposed zones and positive-interval skipped refreshes with invalid entered zones lacked delayed-failure regressions.",
+        "Late-registration coverage spied on snapshotEvents but not eventAt."
+      ],
+      "resolution": "Added rejected-decision and positive-interval invalid-zone tests and an eventAt spy."
+    },
+    {
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "BLOCK",
+      "fingerprint": "a00aacd8f04ac52c4d70ccef14437e909fbfc7bcf86c6e96818308f31495778f",
+      "findings": [
+        "The already-aborted test still used valid zone data and would not catch derivation before the abort guard."
+      ],
+      "resolution": "Added an already-aborted request test with an invalid entered zone."
+    },
+    {
+      "reviewer": "/root/a22_context_reader_final_critic",
+      "verdict": "BLOCK",
+      "fingerprint": "9db120185ff47f8e9183a1e78ed3c23280cab374d9ea292c57204fc23e5d6975",
+      "supplemental_fingerprint": "085fff99df2e4ab2e39afd344bc3e15e815e3ee921dccdccf6ed9c852d11e23c",
+      "findings": [
+        "A21-01 lacked a behavioral regression proving an active durable identical user message suppresses an inbox duplicate while source-only and content-only differences preserve the inbox item."
+      ],
+      "resolution": "Added all three active-message variants to the agent-instructions inbox synchronization tests."
+    }
+  ],
+  "scope": {
+    "implementation_path_count": 33,
+    "verification_only_path_count": 3,
+    "gate_fingerprint_input_count": 35,
+    "gate_baseline_fingerprint": "714a1dbe3df54df12f58a655e65d246a516169f4d6cf492530853e60f8674fcf",
+    "final_gate_input_fingerprint": "26bdbc8daee35661c1754018c2602b403995e630597773b82df55a20b1632efc",
+    "materialized_scope_fingerprint": "6a552ffa3ada95d9ec92d4ff5e539a2d73f341c8179479909aba991218c1bf67",
+    "gate": ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-A22-CONTEXT-READERS-001"
+  },
+  "limitations": [
+    "The pre-existing dirty worktree is preserved; unrelated dirty paths are not attributed to A22.",
+    "Scoped verification does not clear the repository-wide state-check findings, aggregate documentation findings, canonical-metric limitation, external platform/provider lanes, or release qualification."
+  ]
+}

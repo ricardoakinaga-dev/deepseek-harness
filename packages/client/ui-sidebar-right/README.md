@@ -137,6 +137,8 @@ None; this package neither assembles nor sends a provider request.
 - **Titles are fixed at open time.** A type's `title(address)` is captured into the record; a live title comes only from the optional title seat.
 - **No content navigation stack.** Stepping back replays layout operations; an editor-style back/forward over visited content is not built.
 
+**Runtime invariant:** No companion is published. The two services (`sidebarRight`, `sidebarRightTabs`) are provided through `ctx.reflect.provide` inside one effect and torn down with it; the seat's binding and the Tab domain's occurrence lifetimes are asserted directly by this package's specs, and no independent observation exists to diverge from them.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -146,5 +148,3 @@ None; this package neither assembles nor sends a provider request.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The two services (`sidebarRight`, `sidebarRightTabs`) are provided through `ctx.reflect.provide` inside one effect and torn down with it; the seat's binding and the Tab domain's occurrence lifetimes are asserted directly by this package's specs, and no independent observation exists to diverge from them.

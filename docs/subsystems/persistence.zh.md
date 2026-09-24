@@ -109,6 +109,8 @@ interface SessionHandle extends AsyncDisposable {
 
 一个在轮次中途崩溃的日志以打开的 `turn/start` 而无 `turn/end` 结束。持久化**不会**截断或修复它：在长周期任务中，单个轮次可能非常庞大（许多步骤、大量工具输出），而这些事件在崩溃前已被持久追加。它返回物理上有效的连续日志；只有撕裂物理尾部——属于一次从未完成的 append——中不完整的碎片会被丢弃：从中恢复的完整记录（JSONL 后端会部分解码撕裂的 Zstandard 帧）由写路径在句柄的第一次新 append 之前持久重写。修复是读方的职责：resume（agent-loop）通过其写句柄读取已存储的日志，计算 `interruptedTurnClosers`——缺失的工具错误、任何未闭合的 `step/end`，以及一个合成的 `turn/end { reason: { kind: 'interrupted' } }`——并在发布 Session 之前把它们作为普通批次通过同一句柄追加。`interrupted` 是唯一一个不由循环发出的 `TurnEndReason`（见 [session.md](session.zh.md#why-a-turn-ended-turnendreasonmap)）。
 
+`AgentLoop` 会在发布前存储构造基线、已接受的 setup 追加与修复闭合事件；`prepublicationAppendBatchSize` 限制每次 append 的事件数（默认 128，最多 4096）。Preparation 流按序提供 setup 追加；写入器只在每次句柄 append 成功后推进游标。某页拒绝时，存储效果可能已经发生，因此循环不会重试，也不会宣告 Session；它会关闭写句柄并返回原始失败。稍后显式恢复相同 id 时，会读取后端实际有效前缀，并只计算仍需补上的修复事件。固定序号切面排空后，最终取消与游标检查之后会在同一调用栈内发布；`SessionStore.enter()` 先封存 preparation 流，后续事件才使用 live 持久化路由。此配置限制事件数量而非字节数，也不代表吞吐量最优值。
+
 因此修复只在写所有权之下写入：活跃会话的写句柄由其生命周期所有者持有，故并发的 `open(id, 'write')` 会以 `SessionAlreadyOwnedError` 拒绝，而不是让修复与活跃轮次竞速。只读观察方（session-query）仅在内存中用同样的闭合事件配平被中断的冷日志，不回写任何内容。
 
 只读观察即 `open(id, 'read')`：句柄提供经过验证的连续前缀切片，绝不返回撕裂尾部，且同一句柄上的重复读取绝不会观察到比先前读取更旧的状态。持久化侧不存在已准备 Session 缓存：session-query 拥有自己的冷读缓存，按 `stat().revision` 变更令牌为每个 id 缓存一个已配平的冷 Session，仅在令牌变化时重新读取。该生命周期由[基于句柄的持久化 Agent Note](../../.agents/notes/implemented/architecture/2026-08-27-handle-based-session-persistence.zh.md)定义；已归档的 [Session 准备阶段记录](../../.agents/notes/archived/architecture/2026-08-05-session-preparation.md)记载了发布边界 `SessionPreparation` 最初的决策。
@@ -227,7 +229,7 @@ interface CreateSessionOptions {
 
 ## 准备与恢复所有权
 
-`SessionStore.prepare()` 接收普通创建选项，或通过 `RestoredSessionOptions` 接收可直接接管的 seed。它的 `eventState` 表明 event value 是独占对象，还是只有深度冻结后的共享对象；生产者负责建立该状态，slice 不会根据结果长度推断其他状态。恢复流程会校验并直接接管这些值，不再复制或冻结。`SessionPreparation` 随后持有该精确的未发布 Session，直至发布或回滚；dispose 是同步且幂等的。agent-loop 的 resume 通过该会话的写句柄读取这份结果，并在准备之前追加独占的 `interruptedTurnClosers`。
+`SessionStore.prepare()` 接收普通创建选项，或通过 `RestoredSessionOptions` 接收可直接接管的 seed。它的 `eventState` 表明 event value 是独占对象，还是只有深度冻结后的共享对象；生产者负责建立该状态，slice 不会根据结果长度推断其他状态。恢复流程会校验并直接接管这些值，不再复制或冻结。`SessionPreparation.baseline` 保留构造时的 `SessionCreationBaseline`；准备期间接受的后续追加由 `subscribeAppends()` 单独提供，它会先按 seq 顺序重放已接受的追加，再订阅后续追加。同步的 `prepare(event)` 回调计算 provider 自有状态并返回提交该状态的闭包；若 `prepare` 抛错，该 Session 追加会在 seq 递增或日志写入前被拒绝。`SessionStore.enter()` 会封存此订阅流；调用其 disposer 会移除该消费者。`session/created` 通知收到的是构造切面及通知前已提交的所有追加项，因此消费者可从准确的发布游标初始化，无需读取历史。`SessionPreparation` 持有这一个未发布 Session，直至发布或回滚；dispose 同步且幂等。agent-loop 的 resume 通过该会话的写句柄读取恢复结果，并在准备之前追加独占的 `interruptedTurnClosers`。
 
 ```ts type-equiv
 /**
@@ -279,13 +281,26 @@ interface SessionPreparationOptions {
 declare class SessionPreparation implements Disposable {
   /** The exact Session to use for setup and publication. */
   readonly session: Session;
+  /** The constructor-owned cut before preparation-time appends. */
+  readonly baseline: SessionCreationBaseline;
   /**
    * Wrap an unpublished Session in one preparation lifetime.
    * @param session - exact unpublished Session.
    * @param options - optional provider release behavior.
    * @returns a preparation disposed after publication or rollback.
+   * @throws when the Session has no constructor cut, has changed since that cut, or already has an active preparation.
    */
   static create(session: Session, options?: SessionPreparationOptions): SessionPreparation;
+  /**
+   * Attach a synchronous consumer to accepted preparation-time appends.
+   * Existing accepted appends replay in order before future appends reach the
+   * consumer. The returned commit closure must only update provider-owned
+   * state; a throwing prepare function rejects a future Session append.
+   * @param prepare - compute one event's provider-owned update and return its commit operation.
+   * @returns the exact disposer that removes the consumer.
+   * @throws when the preparation feed is already sealed.
+   */
+  subscribeAppends(prepare: (event: SessionEvent) => () => void): () => void;
   /** Release provider state once when this preparation leaves its caller. */
   [Symbol.dispose](): void;
 }

@@ -118,7 +118,7 @@ export function apply(ctx: ClientContext): void {
             rowsRevision = revision
             rows = ctx.slots.entries('settings.section')
               .map(e => ({
-                /* v8 ignore next -- list-slot registration requires id (SlotCore rejects an entry without one) */
+                /*! v8 ignore next -- list-slot registration requires id (SlotCore rejects an entry without one) */
                 id: e.options.id ?? '',
                 order: e.options.order ?? 0,
                 label: resolveSlotLabel(e.options.label) ?? '',
@@ -143,7 +143,7 @@ export function apply(ctx: ClientContext): void {
             onboardingVersion = version
             onboardingSteps = ctx.slots.entries('settings.onboarding')
               .map(e => ({
-                /* v8 ignore next -- list-slot registration requires id */
+                /*! v8 ignore next -- list-slot registration requires id */
                 id: e.options.id ?? '',
                 order: e.options.order ?? 0,
               }))

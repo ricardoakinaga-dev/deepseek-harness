@@ -15,15 +15,15 @@ const searchProvider = (options: DeepSeekSearchProviderOptions): DeepSeekSearchP
   new DeepSeekSearchProvider(() => options)
 
 /**
- * Disabled real-API probe for the DeepSeek search provider. The live endpoint
- * can complete without structured source blocks, so this is not a reliable
- * merge signal. Its body remains because mocks cannot confirm the wire shape.
+ * Conditional real-API probe for the DeepSeek search provider. The live
+ * endpoint can complete without structured source blocks, so this is not a
+ * reliable merge signal. Its body remains because mocks cannot confirm the
+ * wire shape.
  */
 const apiKey = process.env.DEEPSEEK_API_KEY
-const maybe = apiKey !== undefined && apiKey.length > 0 ? describe : describe.skip
 
-maybe('DeepSeekSearchProvider real API', () => {
-  it.skip('returns citeable sources for a live query via native web_search', async () => {
+describe.skipIf(apiKey === undefined || apiKey.length === 0)('DeepSeekSearchProvider real API (requires DEEPSEEK_API_KEY)', () => {
+  it('returns citeable sources for a live query via native web_search', async () => {
     const provider = searchProvider({
       apiKey: apiKey!,
       baseURL: process.env.DEEPSEEK_SEARCH_BASE_URL ?? DEEPSEEK_DEFAULT_BASE_URL,

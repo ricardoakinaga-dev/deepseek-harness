@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-014",
+  "action_id": "AAA-014:A01",
+  "candidate_ref": "current custom/main worktree",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T23:15:16-03:00",
+  "scout": {
+    "agent_id": "01a0c1b4-25f8-7231-ba4e-5f041af37935",
+    "independence": "I1",
+    "mechanism": "multi_agent_v1 with fork_context=false",
+    "authorization": "read-only"
+  },
+  "source_documents": [
+    "docs/customization/repository-audit-2026-09-20.md:100",
+    "packages/client/connection/src/http-bridge.ts",
+    "packages/client/connection/src/index.ts",
+    "packages/client/connection/src/rpc-host.ts",
+    "packages/client/connection/src/rpc.ts",
+    "packages/client/connection/tests/http-bridge.host.spec.ts",
+    "packages/client/connection/tests/node-half.host.spec.ts",
+    "packages/client/connection/tests/fetch-routes.host.spec.ts",
+    "packages/host/webserver/src/index.ts"
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-014-PER_REQUEST_ONLY_CAP",
+      "observed_status": "GAP_REPRODUCED",
+      "classification": "NO_AGGREGATE_BUFFER_ADMISSION",
+      "severity": "HIGH",
+      "source_refs": [
+        "packages/client/connection/src/http-bridge.ts",
+        "packages/host/webserver/src/index.ts",
+        "packages/client/connection/src/rpc-host.ts",
+        "packages/client/connection/src/rpc.ts"
+      ],
+      "summary": "The bridge enforces a 300 MiB per-request buffered-body limit, but concurrent requests have independent chunk arrays and no shared reservation, queue, aggregate cap, or release counter. Dedicated RPC bridge calls bypass the configured connection cap and use the default.",
+      "limitations": "The audit and source inspection establish amplification risk, not a measured OOM or production RSS failure. Streaming routes remain a separate scope decision."
+    }
+  ],
+  "current_contract": {
+    "per_request_limit": "maxRequestBodyBytes defaults to 300 MiB; declared and observed oversize bodies receive the existing 413/close behavior.",
+    "admission": "WebServer starts independent request handlers and the bridge owns request-local chunks without aggregate accounting.",
+    "route_split": "Shared /api buffered requests use the connection/request path; dedicated RPC channels call bridge directly; streaming routes bypass buffered-body accounting.",
+    "release_gap": "Buffered intake does not tie its read loop to response disconnect cancellation or a shared reservation release."
+  },
+  "decision": {
+    "status": "PENDING_HUMAN_DECISION",
+    "required": "Approve the aggregate request-memory and admission policy before implementation.",
+    "must_define": [
+      "scope across shared /api, dedicated RPC, and streaming routes",
+      "numeric budget and whether it counts raw bytes, conservative reservations, or parsing overhead",
+      "fail-fast rejection versus bounded FIFO queue",
+      "rejection status and retry semantics",
+      "release point after cancellation, disconnect, and bridge/handler quiescence",
+      "configuration owner and deployment-specific override policy"
+    ],
+    "proposal": "Use an instance-owned limiter shared by buffered bridge entry points, reserve conservatively before intake, fail fast at a bounded budget, and release in finally only after owned request/handler/response work is quiescent. This is a proposal, not a repository decision."
+  },
+  "lead_validation": {
+    "procedure": "Inspect the cited bridge, host, route, and test sources with line-numbered rg output after the independent scout returned; no files or generated artifacts were changed.",
+    "procedure_status": "EXECUTED",
+    "result": "PARTIAL",
+    "limitations": "No memory-stress or concurrency test was added because the backlog action explicitly requires the aggregate policy decision first."
+  },
+  "proposed_commands": [
+    "pnpm exec vitest run packages/client/connection/tests/http-bridge.host.spec.ts packages/client/connection/tests/node-half.host.spec.ts packages/client/connection/tests/fetch-routes.host.spec.ts packages/host/webserver/tests/webserver.spec.ts packages/client/file-upload/tests/file-upload-http.host.spec.ts",
+    "pnpm run typecheck",
+    "pnpm run check:ci:bench"
+  ]
+}

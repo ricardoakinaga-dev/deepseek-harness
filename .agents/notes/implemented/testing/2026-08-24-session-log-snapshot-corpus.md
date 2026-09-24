@@ -70,9 +70,7 @@ Current-writer request-header pins are separate from retained migration inputs: 
 The corpus makes controller ownership visible: ordinary Agent behavior no longer inherits ACP protocol output, SDK and Web projections retain their interface-specific evidence, and only ACP cancellation and permission exchanges remain ACP-owned. Contributors review one normalized session diff plus the sidecars or UI expectations that add independent evidence. Adding a composition requires a manifest class pin; adding a volatile identity requires a typed relationship-preserving redaction rule rather than a broader text scrubber. Concurrent jobs can replay network-backed fixtures without reserving repository-wide ports, at the cost of a fixture-local mapping between the recorded authority and its transport listener.
 
 Historical migration coverage costs explicit per-scenario metadata and retained predecessor files, while the selected current majority prevents compatibility fixtures from hiding current-writer regressions.
+- The corpus can change hundreds of fixtures, and generation-name changes can hide behavior changes. Mechanical generation output, normalization behavior, and controller behavior therefore remain separately attributable in the diff and validation, and expected-output rewrites require scenario-level review.
 
-## Risks
-
-The corpus can change hundreds of fixtures and hide behavior changes in generation-name churn. Mechanical generation output, normalization behavior, and controller behavior therefore remain separately attributable in the diff and validation, and expected-output rewrites require scenario-level review.
 
 One recorded session serving as both replay input and expected output can reproduce a bad model script consistently. Independent world-state assertions, protocol or UI expectations, real-model recording, and focused package tests remain required complementary evidence.

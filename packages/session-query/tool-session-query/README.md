@@ -171,6 +171,8 @@ These limits define when this package is a poor fit or needs special operational
 - **Conservative workspace identity** — workspace identity is exact-string `cwd` equality, so symlink-equivalent paths do not share authority.
 - **Inline payloads without the spill policy** — custom compositions without the generic spill policy accept complete trace and event payloads inline.
 
+**Runtime invariant:** No companion is published. This read-only model adapter owns no event or mutable data relationship beyond the registries that already validate registration.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -184,5 +186,3 @@ This Dev Note is working context for maintainers: open design questions and dire
 Exact-string `cwd` equality is deliberately conservative; symlink-aware or canonical-path workspace identity would change which sessions share authority and is undecided.
 
 </details>
-
-**Runtime invariant:** No companion is published. This read-only model adapter owns no event or mutable data relationship beyond the registries that already validate registration.

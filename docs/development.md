@@ -95,7 +95,7 @@ If a relevant local check consumes built package output, build once first:
 pnpm run build
 ```
 
-`pnpm run hygiene` includes `publint`, which validates package entrypoints against the built `lib/*.js` files, and `verify-node-next-types`, which validates built declarations against a temporary NodeNext consumer. A fresh worktree has no bundled JS or declarations until `pnpm run build` runs; ordinary commits and pushes do not require that build unless their selected checks consume it.
+`pnpm run hygiene` begins with `verify-hygiene-prerequisites`, which checks the manifest-declared built outputs and stops before the other leaves when `pnpm run build` is required. The aggregate does not build automatically; run `pnpm run build` first. After the preflight, `publint` validates package entrypoints against the built `lib/*.js` files, and `verify-node-next-types` validates built declarations against a temporary NodeNext consumer. Ordinary commits and pushes do not require that build unless their selected checks consume it.
 
 ### Environment variables
 

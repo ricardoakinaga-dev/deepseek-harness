@@ -3,7 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { RUN_CODE_NAME, defineContentToolFixture } from '@deepseek-ai/dsh-tools'
-import { Session, SessionId, type SessionEvent, type UserMessage } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId, type SessionEvent, type UserMessage } from '@deepseek-ai/dsh-session'
 import AgentRegistry, { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import UserQuestionService, {
@@ -43,7 +43,9 @@ async function agentWithSession(
 ): Promise<Agent & { session: Session }> {
   // A live store session when a store is mounted (the command executor logs
   // lifecycle events through it); bare otherwise (fold/tool-only benches).
-  const session = Session.create(SessionId(id))
+  const session = ctx.get('sessions') === undefined
+    ? Session.create(SessionId(id))
+    : ctx.sessions.create(SessionId(id))
   const agent = {
     id: SessionId(id),
     session,
@@ -87,6 +89,7 @@ function foldPlanMode(events: readonly SessionEvent[], end = events.length): boo
 }
 
 async function mountProjectionSeam(ctx: Context): Promise<void> {
+  if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
   ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
 }
@@ -239,6 +242,7 @@ describe('ctx.planMode: get/set', () => {
 
   it('registers plan state directly but requires turnBoundary state', async () => {
     const ctx = new Context()
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)

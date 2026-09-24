@@ -1,0 +1,24 @@
+{
+  "record_id": "EVID-AAA-022-W2-NEW-LEDGER-CORRECTION-VALIDATION-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-IMPLEMENT",
+  "kind": "STATE_BASELINE_REVALIDATION",
+  "command": [
+    "python3",
+    "/home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py",
+    ".",
+    "--quiet"
+  ],
+  "exit_status": 1,
+  "result": "PASS_WITH_RETAINED_BASELINE_FAILURE",
+  "summary": "RESULT FAIL (pass=6 warn=0 fail=358)",
+  "baseline_finding_count": 358,
+  "current_finding_count": 358,
+  "new_findings": [],
+  "removed_findings": [],
+  "baseline_evidence_path": ".agent/evidence/AAA-022/a27-state-check-post-retention-20260924.txt",
+  "baseline_evidence_sha256": "04de8aca71dda139fb6d58145f94b2c5a010087d1015b12904d313eccdb263f6",
+  "correction_evidence_path": ".agent/evidence/AAA-022/w2-new-ledger-correction-execution-20260924.json",
+  "correction_evidence_sha256": "9ab35969ae7de68205abc3cc3fcba02e0e343ec8b513cabc71578a5114f9adee",
+  "limitations": "The checker remains FAIL-358 on preserved historical findings; this validation only confirms the authorized corrections removed exactly the five findings introduced by the malformed new W2 rows."
+}

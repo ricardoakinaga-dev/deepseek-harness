@@ -94,6 +94,8 @@ These limits define draft durability and composer ownership; they are current pa
 - **Unsubmitted drafts have page-and-Session lifetime** — Session navigation preserves them while that Session scope remains in the page, but a full page reload, Session pruning, or a newly delivered pending-request identity starts with an empty draft. The store never writes them to the Host, `localStorage`, or disk.
 - **One request owns the composer at a time** — later pending requests remain in the session snapshot and become visible after the earlier request resolves.
 
+**Runtime invariant:** No companion is published. Tool and slot registrations are effects owned and observed by their respective registries; the host pending table is exercised through the public wire protocol.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -103,5 +105,3 @@ These limits define draft durability and composer ownership; they are current pa
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Tool and slot registrations are effects owned and observed by their respective registries; the host pending table is exercised through the public wire protocol.

@@ -1,0 +1,18 @@
+{
+  "record_id":"GATE-AAA-015-IMPLEMENTATION-READY-001",
+  "timestamp":"2026-09-21T23:52:02-03:00",
+  "gate_id":"IMPLEMENTATION_READY",
+  "scope":"AAA-015 approved dynamic-extension trust and deployment policy",
+  "scope_ref":"AAA-015",
+  "version":1,
+  "criteria":[
+    {"id":"IR-001","description":"The authority confirms an explicit deployment matrix, host-verifiable consent, restrictive browser delivery compatible with CSP/Trusted Types deployment controls, publisher verification, and disabled defaults.","required":true,"status":"PASS","evidence_refs":[".agent/evidence/AAA-015/scout-a01.json",".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"],"confidence":"HIGH","limitations":"CSP and Trusted Types enforcement remains deployment-owned."},
+    {"id":"IR-002","description":"The implementation is bounded to the dynamic manifest, Host and Client runners, plugin manager defaults, Web composition, and their owned documentation and negative tests.","required":true,"status":"PASS","evidence_refs":["packages/extensions/cordis-host-runner/README.md","packages/extensions/cordis-client-runner/README.md","packages/client/modules/README.md","packages/boot/plugin-manager/README.md",".agent/evidence/AAA-015/implementation-a19.json"],"confidence":"HIGH","limitations":"No arbitrary new dynamic execution surface is authorized."},
+    {"id":"IR-003","description":"Acceptance requires runner/plugin-manager tests, affected typechecks, type-equivalence documentation, pairing, and customization ownership to pass.","required":true,"status":"PASS","evidence_refs":[".agent/evidence/AAA-015/implementation-a19.json"],"confidence":"HIGH","limitations":"Completion still requires a current verification record."}
+  ],
+  "evidence":[".agent/evidence/AAA-015/scout-a01.json",".agent/evidence/AAA-015/implementation-a19.json",".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"],
+  "candidate_fingerprint":"add02a44822326a4cb5edd20bf786bca65ff91885885658138a2534354544692",
+  "confidence":"HIGH","gaps":[],"conditions":[],
+  "authority":{"required":true,"state":"CONFIRMED","actor":"Ricardo Akinaga","scope":"AAA-015 approved dynamic-extension trust and deployment policy","decision":"Use an explicit dynamic-extension deployment matrix, host-verifiable consent, restrictive CSP/Trusted Types-compatible delivery, publisher verification, and disabled defaults.","evidence_ref":".agent/authority.jsonl#AUTH-AAA-015-IMPLEMENTATION-A20-001","expires_or_revalidates":"Revalidate if a new deployment target, browser delivery mechanism, or consent source is supported."},
+  "residual_risk":"HIGH","decision":"PASS","next_action":"Start AAA-015:A02 to validate the approved dynamic-extension policy and retain current focused evidence.","revalidation_triggers":["A dynamic extension can execute without the approved deployment marker.","A shipped composition enables dynamic code by default.","CSP/Trusted Types ownership moves into repository runtime code."],"supersedes":null
+}

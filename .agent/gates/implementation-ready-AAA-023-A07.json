@@ -1,0 +1,81 @@
+{
+  "record_id": "GATE-AAA-023-IMPLEMENTATION-READY-003",
+  "timestamp": "2026-09-22T03:42:01-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-023 bounded test-owned source-policy overlay for the Web plugin-manager expected lane",
+  "scope_ref": "AAA-023",
+  "version": 3,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The current focused expected test reaches plugin-manager installation after the host inspection repair and fails only because its temporary absolute path is rejected by the production registry-only source policy.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/implementation-a30.json",
+        ".agent/evidence/AAA-023/diagnosis-a31.json",
+        ".agent/verification.jsonl#VER-AAA-023-A06-IMPLEMENTATION-A30-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The expected test is still failing before the fixture overlay is applied."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation is limited to the generated --patch overlay in creator-plugin-manager.expected.e2e.ts, allowing registry and path sources for that temporary fixture while retaining the @deepseek-ai publisher allowlist; the shipped Web bundle remains registry-only.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a31.json",
+        "apps/cli/tests/profiles/web/tests/creator-plugin-manager.expected.e2e.ts",
+        "packages/bundle/web-app/cordis.patch.yml"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This is test-only configuration and does not change production install policy."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires the focused expected test, the plugin-manager policy tests, and a later aggregate matrix rerun; no external install or registry write is part of the action.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a31.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Passing the fixture does not establish same-SHA release qualification or unblock AAA-024."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-023/implementation-a30.json",
+    ".agent/evidence/AAA-023/diagnosis-a31.json"
+  ],
+  "candidate_fingerprint": "8833115fe3ae76eb8355d17d5f4332a9f4d9c70dd3cc22301847c01aa670c141",
+  "confidence": "HIGH",
+  "gaps": [
+    "The current worktree is dirty and the moved ui-conversation files are not yet represented by one immutable candidate.",
+    "The aggregate matrix remains partial until the test-owned overlay and candidate-tree prerequisite are resolved."
+  ],
+  "conditions": [
+    "Do not widen the shipped Web bundle's allowedSources beyond registry for this action.",
+    "Retain the @deepseek-ai publisher allowlist in the test overlay.",
+    "Do not perform external registry writes, staging, committing, pushing, merging, publishing, releasing, or final-verdict actions."
+  ],
+  "authority": {
+    "required": false,
+    "state": "NOT_REQUIRED",
+    "actor": "Repository test owner",
+    "scope": "Test-owned compatibility fixture",
+    "decision": "A local expected fixture may provide the source-policy overlay needed for its temporary path bundle without changing the shipped Web policy.",
+    "evidence_ref": ".agent/evidence/AAA-023/diagnosis-a31.json",
+    "expires_or_revalidates": "Revalidate if the overlay changes production source allowlists or uses an external package source."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-023:A07 to add the test-owned path-source overlay and validate the focused expected scenario.",
+  "revalidation_triggers": [
+    "The fixture target changes from a local path to a registry or external source.",
+    "The shipped Web bundle allowlist changes.",
+    "The test overlay permits a publisher outside @deepseek-ai."
+  ],
+  "supersedes": "GATE-AAA-023-IMPLEMENTATION-READY-002"
+}

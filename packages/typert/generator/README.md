@@ -130,6 +130,8 @@ These limits define what the generator cannot model or emit; they are current pa
 - **No generated schema imports across faces** — cross-face links are represented for analysis, but no generated schema requires a runtime cross-face Zod import.
 - **Discovery covers concrete public exports only** — declarations neither exported nor imported by the reachable graph are intentionally outside the package model.
 
+**Runtime invariant:** No companion is published. The source-project analyzer and build-time emitter run outside any Cordis runtime; model snapshots, executable artifacts, and consuming-package typechecks enforce the output contract.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -139,5 +141,3 @@ These limits define what the generator cannot model or emit; they are current pa
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The source-project analyzer and build-time emitter run outside any Cordis runtime; model snapshots, executable artifacts, and consuming-package typechecks enforce the output contract.

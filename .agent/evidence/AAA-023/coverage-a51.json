@@ -1,0 +1,37 @@
+{
+  "record_id": "EVID-AAA-023-COVERAGE-A51-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A18",
+  "result": "PASS",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; sealed candidate tree 023906dd82be40ed0ef187acd59fd7b5fb56eaae; /home/ricardo/dsh-aaa023-candidate.eSCkTH",
+  "command": "pnpm run test:coverage",
+  "exit_status": 0,
+  "duration_seconds": 605.14,
+  "summary": {
+    "test_files": { "passed": 1535, "skipped": 12 },
+    "tests": { "passed": 26314, "expected_failures": 1, "skipped": 153 },
+    "coverage_percent": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+    "coverage_totals": {
+      "statements": "73316/73316",
+      "branches": "46903/46903",
+      "functions": "15611/15611",
+      "lines": "63528/63528"
+    },
+    "uncovered_locations": 0,
+    "comparison": {
+      "previous_candidate": "coverage-a50",
+      "skipped_file_delta": 0,
+      "skipped_test_delta": 0,
+      "threshold_change": false,
+      "normalizer_change": false,
+      "exact_inspector_exclusions": 6
+    }
+  },
+  "decision": "AAA-023:A18 passes AAA-QB-02 on the simplified sealed candidate. The redundant plugin-manager fallback was removed without a suppression; the existing skipped-test inventory and six explicitly enumerated Inspector exclusions are unchanged.",
+  "limitations": "This is a coverage qualification only. Aggregate requalification on this exact candidate, benchmark, required-platform, credentialed-provider, packed-install, upstream-rehearsal, release-identity, publication, and final-critic evidence remain outstanding; no commit, publication, push, merge, release, or final verdict is claimed.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/coverage-a51.json",
+    "/tmp/dsh-a18-candidate-coverage-green.log"
+  ],
+  "observed_at": "2026-09-22T15:24:17-03:00"
+}

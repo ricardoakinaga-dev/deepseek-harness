@@ -74,7 +74,7 @@ export class WebhookRuntime extends Service {
     this.selfCtx = ctx
     ctx.effect(() => async () => {
       this.closing = true
-      /* v8 ignore next -- caller-owned registration effects normally dispose first; this covers provider-first unload. */
+      /*! v8 ignore next -- caller-owned registration effects normally dispose first; this covers provider-first unload. */
       await Promise.all(
         [...this.rules.values()].map(rule => this.disposeRegistration(rule)),
       )
@@ -103,7 +103,7 @@ export class WebhookRuntime extends Service {
     const erased = rule as unknown as AnyWebhookRule
     let registration!: RuleRegistration
     const disposeEffect = this.ctx.effect(() => {
-      /* v8 ignore next -- no await separates the public liveness check from this initializer. */
+      /*! v8 ignore next -- no await separates the public liveness check from this initializer. */
       if (this.closing) throw new Error('webhook runtime is closing')
       if (this.rules.has(rule.id)) throw new Error(`webhook rule "${rule.id}" is already registered`)
       registration = {

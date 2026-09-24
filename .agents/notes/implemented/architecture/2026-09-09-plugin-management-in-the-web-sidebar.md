@@ -20,7 +20,7 @@ Installed packages belong to the running profile, while Settings is a modal over
 
 **A settings section that opens the management page.** Rejected: the dialog covers the main column, so such an entry would have to close Settings to show the page.
 
-**Configuration on the plugin's page.** Rejected for now, for the reasons in the decision; it becomes a link from the plugin's page once Settings can be opened on one section.
+**Configuration on the plugin's page.** The plugin page does not expose a Settings-section link because Settings cannot currently open on one section; configuration remains in Settings.
 
 ## Consequences
 

@@ -488,7 +488,7 @@ const INSTALL_TERMINAL_LINES = 12
 /** The install terminal's display copy, from the tab's dictionary. */
 function terminalLabels(t: Translate): TerminalBlockLabels {
   return {
-    /* v8 ignore next -- the Host reports a killed pnpm as a null exit code, never a signal name; the label interface needs one */
+    /*! v8 ignore next -- the Host reports a killed pnpm as a null exit code, never a signal name; the label interface needs one */
     signal: signal => t('terminalSignal', { signal }),
     exitCode: code => t('terminalExitCode', { code: String(code) }),
     noExitCode: t('terminalNoExitCode'),
@@ -868,7 +868,7 @@ export function PluginManagerPage(props: PluginManagerPageProps): ReactNode {
   const openRow = view.kind === 'row' && openPkg !== undefined ? openPkg.rows.find(row => row.rowId === view.rowId) : undefined
   const showsCards = openPkg === undefined && openItem === undefined
   const setRowEnabled = (row: PackageRow, enabled: boolean): void => {
-    /* v8 ignore next -- a row without a live entry has its switch disabled */
+    /*! v8 ignore next -- a row without a live entry has its switch disabled */
     if (row.entryId !== undefined) props.setRowEnabled(row.entryId, enabled)
   }
   const configure = (pkg: PackageView): RowConfigure => ({

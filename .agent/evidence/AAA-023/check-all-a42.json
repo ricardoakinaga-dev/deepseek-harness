@@ -1,0 +1,34 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A42-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A15",
+  "timestamp": "2026-09-22T06:28:53-03:00",
+  "result": "PARTIAL",
+  "scope": "Aggregate check-all on the current worktree without a temporary Git index",
+  "command": "pnpm run check:all",
+  "observed": {
+    "gate_count": 77,
+    "passed": 75,
+    "failed": 2,
+    "skipped": 0,
+    "duration_seconds": 430.62,
+    "test_gate": "PASS",
+    "failed_gates": [
+      {
+        "name": "canonical audit metrics",
+        "command": "pnpm run audit:metrics",
+        "cause": "The script opens the removed tracked path packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx."
+      },
+      {
+        "name": "vendor rescope",
+        "command": "pnpm run rescope-vendor:check",
+        "cause": "The script opens the same removed tracked path while evaluating the current worktree."
+      }
+    ]
+  },
+  "limitations": [
+    "The two failures are candidate-representation failures for the 16-path source move, not evidence that the replacement files fail their focused tests.",
+    "The current worktree remains dirty and no immutable candidate SHA was created.",
+    "No staging, commit, publication, push, merge, release, or final verdict was performed."
+  ]
+}

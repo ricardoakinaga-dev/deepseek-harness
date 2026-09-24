@@ -67,10 +67,12 @@ None; this package neither assembles nor sends a provider request.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Buffered `/api` routes retain each request body in memory** — `maxRequestBodyBytes` (default 300 MiB, sized for the default 200 MiB aggregate image limit after base64 expansion plus envelope headroom) bounds ordinary image and RPC envelopes. Opt-in streaming routes receive backpressured chunks and bypass the aggregate cap; route implementations own persistence, cancellation, and any storage quota.
+- **Buffered request admission is bounded per Connection instance** — `maxRequestBodyBytes` (default 300 MiB, sized for the default 200 MiB aggregate image limit after base64 expansion plus envelope headroom) is both the per-request body cap and the aggregate reservation budget shared by the `/api` bridge and dedicated RPC channels. A declared `Content-Length` is reserved before intake; an absent or invalid length reserves the full cap. Requests that cannot reserve immediately receive HTTP 429 with `buffered request capacity exhausted`; a body larger than the per-request cap receives HTTP 413. Reservations release only after request intake, handler work, response transfer, and disconnect cancellation quiesce. Opt-in streaming routes receive backpressured chunks and bypass this buffered-body budget; route implementations own persistence, cancellation, and any storage quota.
 - **The browser cookie is not marked `Secure`** — loopback HTTP is the shipped transport, so exposing the same authority over plaintext networking can expose the bearer cookie in transit.
 - **There is no logout operation** — clearing the browser cookie ends one browser session; deleting the owner credential record and restarting `dsh` revokes every session.
 
+
+**Runtime invariant:** No companion is published. Browser-session verification reads the credential record asynchronously at the request that authorizes work, while the credentials companion owns record commit-event lifetime. Stream/reconnect sequencing and rpcId round-trip discipline are exercised directly by behavior specs, and route register/dispose symmetry is audited by the webserver companion.
 
 <a id="dev-note"></a>
 ### Dev Note
@@ -81,5 +83,3 @@ None; this package neither assembles nor sends a provider request.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Browser-session verification reads the credential record asynchronously at the request that authorizes work, while the credentials companion owns record commit-event lifetime. Stream/reconnect sequencing and rpcId round-trip discipline are exercised directly by behavior specs, and route register/dispose symmetry is audited by the webserver companion.

@@ -284,15 +284,15 @@ function claimFocus(button: HTMLElement): void {
 
 function moveFocus(button: HTMLElement, direction: -1 | 1): void {
   const tree = button.closest<HTMLElement>('[role="tree"]')
-  /* v8 ignore next -- JsonTree attaches expander handlers only beneath its owning role=tree. */
+  /*! v8 ignore next -- JsonTree attaches expander handlers only beneath its owning role=tree. */
   if (tree === null) return
   const expanders = Array.from(tree.querySelectorAll<HTMLElement>('[data-json-expander]'))
   const current = expanders.indexOf(button)
-  /* v8 ignore next -- the current expander is a member of the queried non-empty set. */
+  /*! v8 ignore next -- the current expander is a member of the queried non-empty set. */
   if (current < 0 || expanders.length === 0) return
   const next = (current + direction + expanders.length) % expanders.length
   const nextExpander = expanders[next]
-  /* v8 ignore next -- modulo over the non-empty expander set always resolves a member. */
+  /*! v8 ignore next -- modulo over the non-empty expander set always resolves a member. */
   if (nextExpander !== undefined) claimFocus(nextExpander)
 }
 
@@ -744,7 +744,7 @@ export function JsonTree({
 
   const handleRootMouseOver = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (!copyable || copyStore.get()?.menuOpen) return
-    /* v8 ignore next -- browser mouse events delivered through React target an Element. */
+    /*! v8 ignore next -- browser mouse events delivered through React target an Element. */
     if (!(event.target instanceof Element)) return
     if (event.target.closest('[data-json-copy-button]') === null) clearCopyTarget()
   }

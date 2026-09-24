@@ -162,6 +162,8 @@ spawn、初始化或新建会话失败会在发布前拒绝，通常先证明 ma
 - **只收集已提交的 `agent_message_chunk` 文本**——自动化服务器把推理（reasoning）、工具活动、计划和其他 trace 数据保留在子 agent 会话日志中，不通过 ACP 发出。
 - **权限提示自动应答**（`permission: allow | reject`）——不会把子 agent 的 `session/request_permission` 呈现给人。
 
+**运行时不变式：** 不发布伴生入口。本包没有独立事件序列或可变数据关系，相关约定在所属 seam 强制执行。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -175,5 +177,3 @@ spawn、初始化或新建会话失败会在发布前拒绝，通常先证明 ma
 - **可继续执行的 ACP 子 agent**——需要持久化远程会话 id，并为每个子 agent 声明继续执行能力。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。本包没有独立事件序列或可变数据关系，相关约定在所属 seam 强制执行。

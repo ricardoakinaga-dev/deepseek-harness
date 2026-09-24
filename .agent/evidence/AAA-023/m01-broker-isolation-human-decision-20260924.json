@@ -1,0 +1,14 @@
+{
+  "record_id": "EVID-AAA-023-M01-BROKER-ISOLATION-DECISION-20260924-001",
+  "record_kind": "HUMAN_DECISION",
+  "observed_at": "2026-09-24T06:31:37-03:00",
+  "task": "AAA-023",
+  "decision_id": "DEC-002",
+  "linked_remediation": "REM-002",
+  "topic": "Proxy credential transport for model-authored execution",
+  "decision": "Use a credential-free local proxy broker for stronger isolation. Preserve authenticated proxy routing through the host-owned broker, and refuse launches on unsupported platform or execution-mode combinations whenever the credential source cannot be hidden from model-authored code.",
+  "scope_effect": "Design decision only. This answer does not approve implementation paths, a successor implementation gate, or qualification against a new immutable candidate.",
+  "dependency": "AAA-023:A38 remains blocked waiting for AAA-022 completion or a separately authorized qualification action against a current immutable candidate.",
+  "source": "User reply to the M01 transport decision question on 2026-09-24.",
+  "related_decision_package": ".agent/evidence/AAA-023/decision-package-a12.json#DEC-002"
+}

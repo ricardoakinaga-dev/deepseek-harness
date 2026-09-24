@@ -256,7 +256,7 @@ export class PtcWorkflowRun implements WorkflowRun {
         this.observer.agentStart(event.info)
         break
       case 'agent-end': this.endAgent(event.info); break
-      /* v8 ignore next -- progress() validates the closed message union before dispatch. */
+      /*! v8 ignore next -- progress() validates the closed message union before dispatch. */
       default: assertNever(event, 'workflow progress')
     }
   }

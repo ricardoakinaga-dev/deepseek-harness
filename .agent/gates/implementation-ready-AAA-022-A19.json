@@ -1,0 +1,205 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+  "timestamp": "2026-09-23T04:39:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 A19 prepared Session append feed and synchronous projection readiness before Agent construction; exact upstream ownership, package tests and documentation",
+  "scope_ref": "AAA-022:A19",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "IP-001",
+      "description": "Confirmed A03 authority and A18 independent design review cover this exact prepared-session implementation. The active upstream-package-change owner in .agents/customization-policy.json names every A19 code, test, and documentation path and the extraction plan before package source changes.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        ".agents/customization-policy.json",
+        "docs/customization/improvement-development-standard.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The active machine-readable owner record was added during gate preparation and is included in the revalidated candidate fingerprint; no package source or test file was edited before this gate."
+    },
+    {
+      "id": "IP-002",
+      "description": "One SessionPreparation-owned source captures the exact prepared baseline and each subsequently accepted event once, in contiguous seq order, until synchronous disposal or publication handoff. It invokes no caller callback and performs no asynchronous work while Session.append accepts an event.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+        "packages/core/session/src/preparation.ts",
+        "packages/core/session/src/index.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The feed supplies projection preparation only in A19; it does not append storage pages or replace the existing persistence cursor."
+    },
+    {
+      "id": "IP-003",
+      "description": "SessionProjectionRegistry initializes and advances cells for the exact unpublished Session before ReactLoopAgent construction; publication reuses that cursor without missing or double-applying a seed, setup event, or first live event. Existing turnBoundary and inbox state match a fold of the exact Session log.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        "packages/session/session-projection/src/index.ts",
+        "packages/core/agent-loop/src/index.ts",
+        "packages/core/agent-loop/src/agent.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A19 adds no new projection keys. Old-checkpoint fallback for later S022/S023 keys remains a separately gated obligation."
+    },
+    {
+      "id": "IP-004",
+      "description": "Critical preparation projection computation and validation happen before event acceptance; failure leaves the Session log, next seq, and prior projection state unchanged. One per-Session append guard covers attached and unattached Sessions and rejects nested acceptance before seq assignment. Existing post-commit session/event observer failures remain contained after the accepted event and critical projection state commit.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+        "packages/core/session/src/index.ts",
+        "packages/session/session-projection/src/index.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Do not use the contained session/event listener route as the transport for critical prepared state."
+    },
+    {
+      "id": "IP-005",
+      "description": "Fresh, seeded, resumed, setup-appended, cancelled, disposed, and published lifecycles retain existing Session identity, surface transitions, first-live seq, event ordering, and single-owner teardown. A Session remains unpublished until its existing persistence commit path permits publication.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+        "packages/core/agent-loop/tests/resume.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-admission.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A19 does not define or implement the multi-page persistence failure recovery path; A20 owns that writer behavior."
+    },
+    {
+      "id": "IP-006",
+      "description": "The change updates JSDoc and all three affected package README locales plus the architecture documentation pair. It changes no SESSION_FORMAT_VERSION, released Session data, persistence schema, SessionEventMap member, wire payload, model-visible input, SDK projection, or package dependency.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        "AGENTS.md",
+        "docs/architecture.md",
+        "docs/AGENTS.md",
+        "packages/core/session/README.md",
+        "packages/session/session-projection/README.md",
+        "packages/core/agent-loop/README.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "No session-format, persistence-release, model-output, or SDK snapshot update is authorized by this gate."
+    },
+    {
+      "id": "IP-007",
+      "description": "Acceptance updates every consumer and proves prepared feed ordering, publication parity, critical projection failure atomicity, attached/unattached reentrancy rejection, contained post-commit observer failures, and all five previously selected AgentLoop baseline files. Scoped package tests, typechecks/builds, lint, export JSDoc, documentation pairing and quick docs, and the customization-policy verifier pass.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        "packages/core/session/tests/session.spec.ts",
+        "packages/session/session-projection/tests/registry.spec.ts",
+        "packages/core/agent-loop/tests/resume.spec.ts",
+        "packages/core/agent-loop/tests/invariant.spec.ts",
+        "packages/core/agent-loop/tests/runtime-context.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-admission.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The recorded A92 focused baseline currently has 48 failures and 29 passes; A19 must fix the prepared turnBoundary failure before its verification result can pass."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-decision-a94.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+    "packages/core/session/src/index.ts",
+    "packages/core/session/src/preparation.ts",
+    "packages/core/session/tests/session.spec.ts",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session/session-projection/tests/registry.spec.ts",
+    "packages/core/agent-loop/src/index.ts",
+    "packages/core/agent-loop/tests/resume.spec.ts",
+    "packages/core/agent-loop/tests/invariant.spec.ts",
+    "packages/core/agent-loop/tests/runtime-context.spec.ts",
+    "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+    "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+    "docs/architecture.md",
+    "docs/architecture.zh.md",
+    "docs/architecture.i18n.yaml",
+    ".agents/customization-policy.json"
+  ],
+  "candidate_fingerprint": "c75f66f6d5c77bf22ca0676d28416c434e0f7bf9f93c6045dcc05c94cccd1dc7",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/architecture.i18n.yaml",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/README.i18n.yaml",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml"
+    ],
+    "hash_rule": "Sort relative paths; for each existing input hash path, NUL, working-tree bytes, NUL.",
+    "file_count": 24,
+    "preexisting_dirty_worktree": true
+  },
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [
+    "Verify the active prepared-session-projection-baseline upstream-patch owner in .agents/customization-policy.json matches the approved A19 paths and upstream extraction plan before editing package source.",
+    "Keep A19 to SessionPreparation event capture, SessionProjectionRegistry initialization/advance, the existing AgentLoop construction path, and the exact tests/docs listed in the fingerprint scope. A scope expansion requires a successor gate before out-of-scope package changes.",
+    "Do not add a persistence page-size Config field, drain SessionHandle pages, alter create failure behavior, or perform the final persistence-to-live-writer handoff in A19; these are A20 scope.",
+    "Do not add projection keys in A19. A22 must prove old checkpoint rows that lack any newly introduced projection key fall back to the exact Session log.",
+    "Run the seven A19 behavioral suite files listed by IP-007 plus the new preparation assertions in the existing Session and registry test suites; all selected suites must pass with no unhandled rejections.",
+    "Run scoped builds/typechecks for the three affected packages, focused lint, export-JSDoc, customization-policy verification, README pairing, and pnpm run test:docs. Do not rerun the full repository suite or canonical debt metric on the incomplete dirty tree.",
+    "Preserve Session format, persistence data, wire output, model-visible request inputs, SDK projections, and the sealed candidate."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 REM-028 W0-W4 owner-scoped Session-reader migration and bounded asynchronous reader, storage-backed projection, and synchronous pre-commit seams",
+    "decision": "The confirmed A03 authority permits this prepared-session source and critical pre-commit projection seam; storage page draining is held for A20. External publication actions remain unauthorized.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    "expires_or_revalidates": "Revalidate if A19 changes stored Session data, adds a model-visible event or input, adds a package dependency, requires work outside the listed paths, or needs an external repository action."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Start A19 only after revalidating this exact candidate fingerprint and authority. Fix the recorded unpublished turnBoundary baseline failure as the first behavior target.",
+  "revalidation_triggers": [
+    "A prepared event is missed, duplicated, reordered, mutable, or assigned a noncontiguous seq across construction, setup, publication, or first live append.",
+    "An unpublished Agent reads missing or stale turnBoundary/inbox state, or a projection cell differs from a full fold of the accepted Session log.",
+    "Critical projection failure mutates the Session log or seq, or a nested append is accepted for an attached or unattached Session.",
+    "A post-commit session/event observer failure changes append success or prevents critical projection state from matching the committed event.",
+    "A19 changes storage pagination, persistence failure semantics, Session format/data, wire output, model-visible input, SDK projections, or any path outside the exact A19 scope."
+  ],
+  "revalidation": {
+    "kind": "OWNER_RECORD_BEFORE_PACKAGE_IMPLEMENTATION",
+    "previous_record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-001",
+    "previous_candidate_fingerprint": "0464759348de72e98c31d6d30b6594419fbed1ccf871ada1757bf33edee922a3",
+    "reason": "The required active customization-policy owner was added while preparing A19. The candidate fingerprint was recomputed over the same 24-path scope after that owner record; no package source or test file was edited before this gate.",
+    "authority_effect": "No new authority is claimed; confirmed A03 authority and A18 design review remain in force."
+  }
+}

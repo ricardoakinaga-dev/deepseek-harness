@@ -1,0 +1,24 @@
+{
+  "record_id": "EVID-AAA-022-W2-CORE-TOOLS-DESIGN-REVIEW-20260924-001",
+  "record_kind": "INDEPENDENT_DESIGN_REVIEW",
+  "observed_at": "2026-09-24T10:34:42Z",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-CORE-TOOLS-DESIGN",
+  "reviewed_artifact": ".agent/evidence/AAA-022/core-tools-invariant-design-w2-20260924.json",
+  "reviewed_artifact_sha256": "a6bf707f9d7a63f6d76423f46e1a61b1d9b1106b1a7ae2f6e05fa5e2bbc89e74",
+  "review_mode": "Fresh-context, read-only independent review; no tests run and no files edited by the reviewer.",
+  "verdict": "APPROVE",
+  "findings": [
+    "All 15 candidate path hashes match, and the nine proposed schedule-session-projection-readers additions plus six retained owners match current customization-policy ownership.",
+    "Direct Cordis emit propagates synchronous listener failures; Session.append performs pre-commit dispatch before logging and contains errors from the actual post-commit observer route. The design distinguishes those paths and keeps synthetic events out of the fold.",
+    "SessionPreparation.subscribeAppends replays previously accepted events in order. The design checks the fold next-sequence and canonical committed event, then adopts the full session/created baseline without folding accepted setup events twice.",
+    "The session-projection peer dependency and tools tsconfig project reference support the service injection. The late-activation refusal is explicit.",
+    "Documentation ownership is coherent: the package README carries a concise limitation and link, docs/subsystems/tools owns detailed lifecycle behavior, and the invariants README qualifies the general reload rule."
+  ],
+  "limitations": [
+    "This approves the exact design artifact only; it does not authorize an implementation gate or product-path changes.",
+    "The repository checker currently reports FAIL-361, three findings beyond the retained FAIL-358 baseline. A request for authority to correct only the latest malformed Schedule closeout and verification records remains unanswered.",
+    "The worktree is dirty and A28 remains sealed."
+  ],
+  "scope_effect": "Review evidence only. No product source, tests, documentation, package metadata, policy allowlist, gate, execution log, verification ledger, backlog, or state file was changed."
+}

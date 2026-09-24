@@ -8,7 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { MOCK_LLM_CLI_USAGE, parseMockLlmCliArgs } from './cli.ts'
 import { startMockLlmServer } from './index.ts'
 
-/* v8 ignore start -- thin process/signal glue; parser and server behavior are covered directly */
+/*! v8 ignore start -- thin process/signal glue; parser and server behavior are covered directly */
 try {
   const parsed = parseMockLlmCliArgs(process.argv.slice(2))
   if (parsed.kind === 'help') {
@@ -47,4 +47,4 @@ try {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n\n${MOCK_LLM_CLI_USAGE}`)
   process.exitCode = 1
 }
-/* v8 ignore stop */
+/*! v8 ignore stop */

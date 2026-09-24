@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-006",
+  "action_id": "AAA-006:A02",
+  "candidate_ref": "current working tree after GATE-AAA-006-IMPLEMENTATION-READY-001",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T20:38:51-03:00",
+  "source_documents": [
+    {
+      "id": "implementation-gate",
+      "location": ".agent/gates/implementation-ready-AAA-006.json",
+      "role": "Authorizes the bounded root test-consumer dependency and ownership-policy change."
+    },
+    {
+      "id": "snapshot-policy",
+      "location": "snapshots/AGENTS.md; scripts/session-snapshot-corpus.corpus.ts",
+      "role": "Requires current-writer versioned fixtures, immutable predecessors, and replay/corpus evidence."
+    },
+    {
+      "id": "ci-built-path",
+      "location": "scripts/run-gates.ts; snapshots/session/headless.snapshot.ts",
+      "role": "Defines the lib-mode snapshot path and focused scenario verification."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-006-IMPORT-RESTORED",
+      "source_refs": ["AAA-QB-03", "AAA-QB-06"],
+      "source_location": "package.json; pnpm-lock.yaml; snapshots/session/resilient-compaction-timeout/resilient-compaction-snapshot-adapter.mjs",
+      "command_ids": ["CMD-AAA-006-005", "CMD-AAA-006-006", "CMD-AAA-006-007"],
+      "observed_status": "PASS",
+      "classification": "ROOT_WORKSPACE_DEPENDENCY_RESTORES_AUTHORED_IMPORT",
+      "owner": "AAA-006",
+      "severity": "CLOSED",
+      "summary": "The root private test consumer now links dsh-llm, the built artifacts regenerate, and the authored adapter imports successfully without changing adapter behavior.",
+      "limitations": "The dependency is a test-consumer devDependency; it is not a runtime bundle dependency."
+    },
+    {
+      "id": "F-AAA-006-REPLAY-PASS",
+      "source_refs": ["AAA-QB-03", "AAA-QB-06", "AAA-QB-12"],
+      "source_location": "snapshots/session/resilient-compaction-timeout/session.v3.jsonl; snapshots/session/headless.snapshot.ts",
+      "command_ids": ["CMD-AAA-006-008", "CMD-AAA-006-009", "CMD-AAA-006-010", "CMD-AAA-006-011"],
+      "observed_status": "PASS",
+      "classification": "CURRENT_WRITER_AND_LIB_REPLAY_PASS",
+      "owner": "AAA-005",
+      "severity": "CLOSED",
+      "summary": "The current writer refreshes the adjacent v3 fixture, the v0 fixture remains unchanged, the custom lib replay passes 1/1, the standard lib control passes 1/1, and the focused corpus passes 3/3.",
+      "limitations": "The source-mode ToolRuntime identity mismatch remains an independent local source-launch observation; CI owns the lib mode and its focused replay is green."
+    },
+    {
+      "id": "F-AAA-006-OWNERSHIP",
+      "source_refs": ["AAA-QB-03", "AAA-QB-06"],
+      "source_location": ".agents/customization-policy.json; package.json; pnpm-lock.yaml",
+      "command_ids": ["CMD-AAA-006-012", "CMD-AAA-006-013", "CMD-AAA-006-014", "CMD-AAA-006-015"],
+      "observed_status": "PASS",
+      "classification": "POLICY_DEPENDENCY_AND_FORMAT_VALIDATION_PASS",
+      "owner": "AAA-006",
+      "severity": "CLOSED",
+      "summary": "Custom ownership, workspace constraints, published dependency policy, and diff formatting all pass after the bounded change.",
+      "limitations": "These checks do not qualify the full CI, coverage, Web, release, or publication matrix."
+    }
+  ],
+  "decision": {
+    "result": "AAA-006:A02 PASS",
+    "product_change": false,
+    "governance_change": true,
+    "diagnosis": "The missing built adapter was caused by the root snapshot consumer not declaring the workspace package imported by the authored fixture. Declaring the devDependency and attributing the root manifest restores the adapter; refreshing the adjacent current-writer fixture corrects the recorded token-count message without modifying v0.",
+    "next_action": "Complete AAA-006 and return to AAA-005 for its final focused replay verification; retain the independent source-mode identity mismatch as a separate non-CI observation."
+  },
+  "validation": {
+    "command_record_count": 12,
+    "raw_output_files": 12,
+    "validation_method": "Parse a02-commands.jsonl and this findings file; verify every raw-output file and SHA-256 digest; require direct import, refresh, custom lib replay, standard lib control, corpus, policy, constraints, package dependency, build, install, and diff evidence; run git diff --check.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T20:38:51-03:00"
+  }
+}

@@ -109,6 +109,8 @@ These limits define when the boot-time sample can misjudge the host. They are cu
 - **The Linux chooser probe reads `PATH` only** — a zenity/kdialog reachable some other way (shell alias, non-PATH install) still resolves `browse`; installing either binary on `PATH` restores `native` eligibility at the next boot.
 - **Boot-time only** — one resolution serves every client of the boot; per-connection adaptivity (native for a local browser, browse for a remote one, same server) would need a per-client capability and the wire advertisement the seam does not carry, and waits for a deployment that serves both at once.
 
+**Runtime invariant:** No companion is published. The sole effect is one boot-time Loader-entry mount owned by the plugin fiber; the store is authoritative.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -118,5 +120,3 @@ These limits define when the boot-time sample can misjudge the host. They are cu
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The sole effect is one boot-time Loader-entry mount owned by the plugin fiber; the store is authoritative.

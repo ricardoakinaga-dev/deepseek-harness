@@ -55,7 +55,7 @@ export interface SpawnRunnerInternals {
 }
 
 const defaultInternals: SpawnRunnerInternals = {
-  /* v8 ignore next -- source/built/packaged subprocess smoke executes this only in a replaceable child process. */
+  /*! v8 ignore next -- source/built/packaged subprocess smoke executes this only in a replaceable child process. */
   execve: (file, argv, env, control) => loadLinuxExecve()(file, argv, env, control),
   loadWin32ProcessBindings,
   spawnCurrentTokenJobProcess,
@@ -215,7 +215,7 @@ function sendMessage(host: RunnerHost, result: WindowsRunnerResult): Promise<voi
         else reject(error)
       })
     } catch (error) {
-      /* v8 ignore next -- process.send throws Error instances. */
+      /*! v8 ignore next -- process.send throws Error instances. */
       const failure = error instanceof Error ? error : new Error(String(error))
       reject(failure)
     }
@@ -346,7 +346,7 @@ class WindowsJobRunner {
   private terminateOwnedJob(): void {
     const job = this.jobHandle
     if (job === undefined) return
-    /* v8 ignore next -- a Job handle is assigned only after the bindings are loaded;
+    /*! v8 ignore next -- a Job handle is assigned only after the bindings are loaded;
      * the guard above is the only reachable empty-owner state. */
     if (this.api === undefined) return
     this.internals.terminateJob(this.api, job, 1)
@@ -354,7 +354,7 @@ class WindowsJobRunner {
 
   private poll(): void {
     if (this.finished) return
-    /* v8 ignore next -- poll is installed only after start() stores the bindings; retained as a defensive invariant guard. */
+    /*! v8 ignore next -- poll is installed only after start() stores the bindings; retained as a defensive invariant guard. */
     if (this.api === undefined) return
     try {
       if (this.processHandle !== undefined) {
@@ -376,7 +376,7 @@ class WindowsJobRunner {
   }
 
   private async publishTerminalResult(result: WindowsRunnerResult, exitCode?: number): Promise<void> {
-    /* v8 ignore next -- each state transition has a single result call site; the guard contains only re-entrant internal defects. */
+    /*! v8 ignore next -- each state transition has a single result call site; the guard contains only re-entrant internal defects. */
     if (this.finished || this.resultStarted) return
     this.resultStarted = true
     try {
@@ -395,7 +395,7 @@ class WindowsJobRunner {
   }
 
   private async runnerFailure(error: unknown): Promise<void> {
-    /* v8 ignore next -- callers stop/detach on finish; this guard contains only an already-queued internal callback. */
+    /*! v8 ignore next -- callers stop/detach on finish; this guard contains only an already-queued internal callback. */
     if (this.finished) return
     if (!this.resultStarted) {
       this.resultStarted = true

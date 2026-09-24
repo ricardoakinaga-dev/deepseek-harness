@@ -173,7 +173,7 @@ export function apply(ctx: Context, config: Config): void {
             return [{ type: 'text', text: formatLocations(value.locations, value.resolvedWorkspaceUri, resolved.maxLocations, resolved.maxResultChars) }]
           case 'hover':
             return [{ type: 'text', text: formatHover(value.hover, resolved.maxResultChars) }]
-          /* v8 ignore next -- exhaustive over the output schema's closed union; unreachable. */
+          /*! v8 ignore next -- exhaustive over the output schema's closed union; unreachable. */
           default:
             return assertNever(value, 'tool-lsp output')
         }
@@ -222,7 +222,7 @@ export function apply(ctx: Context, config: Config): void {
                   },
               },
           }
-        /* v8 ignore next -- exhaustive over the closed LspQueryResult union; unreachable. */
+        /*! v8 ignore next -- exhaustive over the closed LspQueryResult union; unreachable. */
         default:
           return assertNever(result, 'tool-lsp result')
       }

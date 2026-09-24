@@ -179,7 +179,7 @@ export class WorkspaceFileSearch {
     } satisfies IndexGeneration
     generation.promise = this.scanWorkspace(controller.signal).then(
       (entries) => {
-        /* v8 ignore next -- disposal aborts this traversal, so it reaches the
+        /*! v8 ignore next -- disposal aborts this traversal, so it reaches the
          * rejection handler instead; the guard only covers a scan that finished
          * its last directory in the instant before the abort landed, and must
          * not hand a disposed index its entries back. */
@@ -189,7 +189,7 @@ export class WorkspaceFileSearch {
         return entries
       },
       (error: unknown) => {
-        /* v8 ignore next -- dispose clears `generation` synchronously; this only protects an unexpected scan failure */
+        /*! v8 ignore next -- dispose clears `generation` synchronously; this only protects an unexpected scan failure */
         if (this.generation === generation) this.generation = undefined
         throw error
       },
@@ -204,7 +204,7 @@ export class WorkspaceFileSearch {
     for (let cursor = 0; cursor < directories.length && indexed.length < this.config.maxEntries; cursor += 1) {
       signal.throwIfAborted()
       const directory = directories[cursor]
-      /* v8 ignore next 3 -- cursor is bounded by this exact queue's length. */
+      /*! v8 ignore next 3 -- cursor is bounded by this exact queue's length. */
       if (directory === undefined) {
         throw new Error('file search selected a missing directory')
       }
@@ -263,7 +263,7 @@ async function resolveDisplayDirectory(
   const absolute = resolve(resolvedRoot, displayDirectory === '' ? '.' : displayDirectory)
   const fromRoot = relative(resolvedRoot, absolute)
   if (fromRoot === '..' || fromRoot.startsWith(`..${sep}`)) return undefined
-  /* v8 ignore next -- only Windows can produce a cross-volume absolute relative path */
+  /*! v8 ignore next -- only Windows can produce a cross-volume absolute relative path */
   if (isAbsolute(fromRoot)) return undefined
   let current = resolvedRoot
   for (const segment of fromRoot.split(sep).filter(Boolean)) {
@@ -295,12 +295,12 @@ async function readDirectory(absolute: string, signal: AbortSignal) {
     signal.throwIfAborted()
     return entries.sort((left, right) => compareText(left.name, right.name))
   } catch (_error: unknown) {
-    /* v8 ignore start -- Windows chmod cannot make the unreadable-directory fixture fail readdir; POSIX behavior covers this fallback. */
+    /*! v8 ignore start -- Windows chmod cannot make the unreadable-directory fixture fail readdir; POSIX behavior covers this fallback. */
     signal.throwIfAborted()
     // An unreadable/missing subtree contributes no candidates; other readable
     // branches remain useful and autocomplete is advisory.
     return []
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
 }
 
@@ -358,13 +358,13 @@ function kindRank(kind: FileReferenceCandidate['kind']): number {
 }
 
 function compareText(left: string, right: string): number {
-  /* v8 ignore next -- entries and candidates are unique; host enumeration
+  /*! v8 ignore next -- entries and candidates are unique; host enumeration
    * order determines which comparison direction sort requests. */
   return left < right ? -1 : left > right ? 1 : 0
 }
 
 function waitForPromise<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  /* v8 ignore next -- `list()` checks this signal immediately before its synchronous call into this helper */
+  /*! v8 ignore next -- `list()` checks this signal immediately before its synchronous call into this helper */
   if (signal.aborted) return Promise.reject(errorReason(signal.reason, 'file search aborted'))
   return new Promise<T>((resolvePromise, rejectPromise) => {
     const onAbort = (): void => { rejectPromise(errorReason(signal.reason, 'file search aborted')) }

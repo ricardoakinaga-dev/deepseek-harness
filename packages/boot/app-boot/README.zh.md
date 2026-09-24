@@ -40,7 +40,7 @@ installFailLoud('dsh')
 const ctx = await boot('dsh', resolveConfigPath(argv[2], process.env.DSH_SNAPSHOT))
 ```
 
-有了这个入口，启动会保留所有能够激活的插件。启用但失败的插件会产生带标签的警告。required entry 失败时，启动会拆卸整个应用并以非零码退出；profile 中不存在的 required id 和已禁用的 required entry 不影响启动。全局 required list 覆盖共享 Agent 执行、应用 endpoint，以及 Web 启动与传输：`agent-loop`、`webserver`、`modules`、`connection`、`headless-runner`、`acp` 和 `sdk-jsonrpc-server`。
+有了这个入口，启动会保留所有能够激活的插件。启用但失败的插件会产生带标签的警告。required entry 失败时，启动会拆卸整个应用并以非零码退出；profile 中不存在的 required id 和已禁用的 required entry 不影响启动。全局 required list 覆盖共享 Agent 执行、应用 endpoint、Web 启动与传输，以及已配置的模型标题提供方：`agent-loop`、`webserver`、`modules`、`connection`、`headless-runner`、`acp`、`sdk-jsonrpc-server`、`session-title-first-prompt-llm` 和 `session-title-all-prompts-llm`。标题提供方也会按 package 名称识别，因此自定义 entry id 无法让等待中的提供方变为 optional。
 
 <a id="profiles"></a>
 ### Profile
@@ -87,7 +87,7 @@ Loader 结算后，app-boot 在仅 optional 条目未激活时输出警告。如
 | 脱离 `apply()` 返回 Promise 的异步任务产生未处理 rejection | 致命错误：释放应用并以非零码退出 | 致命错误：释放应用并以非零码退出 | 致命错误：释放应用并以非零码退出，与条目 id 无关 |
 | 条目缺失或被显式禁用 | 忽略 | 忽略 | 不激活该条目；不执行 required 启动审计 |
 
-上面的 required 列表包含 `modules` 与 `connection`；只要其中一个已启用条目失败，Web 就无法成功启动。Optional 提供方失败也可能使 required 消费方无法激活。现有条目的新配置在更新前被 schema 校验拒绝，并不等于对兄弟插件的变更做事务回滚。
+上面的 required 列表包含 `modules` 与 `connection`；只要其中一个已启用条目失败，Web 就无法成功启动。已配置的标题提供方 package 若等待 `sessionQuery` 或其他注入服务，启动也会终止；未挂载这些 package 的 profile 不受影响。其他 optional 提供方失败也可能使 required 消费方无法激活。现有条目的新配置在更新前被 schema 校验拒绝，并不等于对兄弟插件的变更做事务回滚。
 
 [Web 进程矩阵](../../../apps/cli/tests/profiles/web/tests/web-failure-matrix.expected.e2e.ts)和[启动验收测试](../../../apps/cli/tests/profiles/web/tests/web-best-effort-startup.expected.e2e.ts)通过随附 Web profile 验证这些结果；[app-boot 测试](tests/app-boot.spec.ts)还覆盖根 Include 失败。
 

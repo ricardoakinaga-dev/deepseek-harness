@@ -24,7 +24,9 @@ import type { SessionProjectionRegistry } from '@deepseek-ai/dsh-session-project
 import type { SessionProjectionCache } from '@deepseek-ai/dsh-session-projection-cache'
 import type { SessionObservation, SessionQueryEngine } from '@deepseek-ai/dsh-session-query'
 import type { SubagentListEntry } from './control-types.ts'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the subagent error module owns that behavior. */
 import { SubagentError } from './error.ts'
+/*! v8 ignore stop */
 import type { SubagentIdentityProjection } from './projection-types.ts'
 
 export type { SubagentListEntry } from './control-types.ts'

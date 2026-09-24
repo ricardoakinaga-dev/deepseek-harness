@@ -1,0 +1,25 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A01-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "timestamp": "2026-09-21T00:09:53-03:00",
+  "command": "pnpm run check:all",
+  "executed": true,
+  "aggregate_exit_status": 1,
+  "observed_status": "FAIL",
+  "blocking_gate": {
+    "command": "pnpm run verify-client-domain-graph",
+    "exit_status": 1,
+    "violation_count": 38,
+    "reproduced_at": "2026-09-21T00:10:00-03:00"
+  },
+  "summary": "The aggregate runner completed its scheduled work but did not qualify the candidate. The client-domain graph gate reported 38 violations; a direct rerun at this checkpoint returned the same count and exit status 1. This evidence records the blocking gate and does not infer a total passed-gate count from the aggregate console output.",
+  "limitations": "Windows, supported Node versions, credentialed providers, packed-install qualification, upstream merge rehearsal, and the final independent audit remain unexecuted. The current worktree is not a sealed release candidate.",
+  "evidence_refs": [
+    ".agent/evidence/AAA-009/findings.json",
+    ".agent/evidence/AAA-009/commands.jsonl",
+    "scripts/verify-client-domain-graph.ts",
+    "docs/customization/repository-analysis-2026-09-20.md",
+    "docs/customization/repository-analysis-2026-09-20.zh.md"
+  ]
+}

@@ -179,6 +179,14 @@ describe('translation pairing manifest', () => {
     expect(translationPairSourcePredicate(manifest)('packages/example/guide.md')).toBe(false)
   })
 
+  it('keeps the audit exception scoped to docs/audits', () => {
+    const manifest = parseTranslationPairingManifest(JSON.stringify({ excluded: ['docs/audits/'] }))
+    expect(isTranslationPairingManifestExcluded('docs/audits/report.md', manifest)).toBe(true)
+    expect(isTranslationPairingManifestExcluded('docs/audit-notes.md', manifest)).toBe(false)
+    expect(translationPairSourcePredicate(manifest)('docs/audits/report.md')).toBe(false)
+    expect(translationPairSourcePredicate(manifest)('docs/guide.md')).toBe(true)
+  })
+
   it.each([
     ['required', ['packages/README.md']],
     ['requiredClasses', ['readme']],

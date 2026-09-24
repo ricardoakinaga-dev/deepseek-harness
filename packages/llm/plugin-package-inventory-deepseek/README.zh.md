@@ -67,6 +67,8 @@ kind: "package-reference"
 - **原地替换包需要重启**——manifest 身份会在进程存活期内缓存。Loader 的启用、禁用、挂载、卸载与普通源码 HMR 仍会刷新存活配置项集合，但在同一进程中把已挂载包的 manifest 替换为另一版本并不是受支持的升级路径。
 
 
+**运行时不变式：** 不发布伴生入口。每次请求直接读取权威 Loader fiber 状态与 package manifest，插件不保留独立可变 inventory。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -76,5 +78,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。每次请求直接读取权威 Loader fiber 状态与 package manifest，插件不保留独立可变 inventory。

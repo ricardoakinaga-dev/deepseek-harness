@@ -9,7 +9,7 @@ import { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { DatabaseSync } from 'node:sqlite'
 import { Context, Service, type Fiber } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import type { Session, SessionEvent, SessionHeader, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
+import type { SessionEvent, SessionHeader, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type SessionPersistence from '@deepseek-ai/dsh-session-persistence'
 import type {
   SessionPersistenceRevision,
@@ -249,7 +249,7 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
       const binding = { identity: Symbol(), service }
       this._persistenceBinding = binding
       childCtx.effect(() => () => {
-        /* v8 ignore next -- a stale optional-service disposer cannot clear a replacement */
+        /*! v8 ignore next -- a stale optional-service disposer cannot clear a replacement */
         if (this._persistenceBinding !== binding) return
         this._persistenceBinding = { identity: Symbol() }
       }, 'sessionQuerySqlite.persistenceBinding')
@@ -455,7 +455,7 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
         began = true
         for (const row of persistentDeletes) this._deleteSession('persisted', row.id as SessionId)
         for (const entry of persistentChanges) {
-          /* v8 ignore next -- observation loads every entry whose revision differs */
+          /*! v8 ignore next -- observation loads every entry whose revision differs */
           if (entry.loaded === undefined) throw new Error(`missing loaded revision for session "${entry.header.id}"`)
           this._replacePersistedSession(entry.loaded, entry.revision, nextMainGeneration)
         }
@@ -468,9 +468,9 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
         }
         db.exec('COMMIT')
       } catch (error: unknown) {
-        /* v8 ignore next -- a BEGIN failure has no transaction to roll back; the common wrapper still reports it. */
+        /*! v8 ignore next -- a BEGIN failure has no transaction to roll back; the common wrapper still reports it. */
         if (began) {
-          /* v8 ignore next 5 -- ROLLBACK failure requires a SQLite double fault; the original failure remains actionable. */
+          /*! v8 ignore next 5 -- ROLLBACK failure requires a SQLite double fault; the original failure remains actionable. */
           try {
             db.exec('ROLLBACK')
           } catch {
@@ -546,12 +546,40 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
         }
       }
       const live = new Map<SessionId, ObservedSession>()
+      let liveStable = true
       for (const session of this.ctx.sessions.list()) {
-        const observed = observeLive(session)
-        const durable = persisted.get(session.id)
-        if (durable !== undefined) assertSessionHeadersCompatible(observed.header, durable.header)
-        live.set(session.id, observed)
+        let observed
+        try {
+          observed = await this.observeSession(session.id, {
+            projectionMode: 'none',
+            ...signal === undefined ? {} : { signal },
+          })
+        } catch (error: unknown) {
+          assertNotAborted(signal)
+          if (this.ctx.sessions.get(session.id) === undefined) {
+            liveStable = false
+            break
+          }
+          throw error
+        }
+        try {
+          if (observed.source !== 'live') {
+            liveStable = false
+            break
+          }
+          const entry = observeSession(
+            observed.header,
+            observed.inheritedEventCount,
+            observed.events,
+          )
+          const durable = persisted.get(session.id)
+          if (durable !== undefined) assertSessionHeadersCompatible(entry.header, durable.header)
+          live.set(session.id, entry)
+        } finally {
+          observed[Symbol.dispose]()
+        }
       }
+      if (!liveStable) continue
       if (!sameSessionIds(initiallyLive, live)) continue
       return { persistenceBinding, persisted, live }
     }
@@ -762,7 +790,7 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
   }
 
   private _requireDb(): DatabaseSync {
-    /* v8 ignore next -- callers await `_ready`; this guards lifecycle misuse */
+    /*! v8 ignore next -- callers await `_ready`; this guards lifecycle misuse */
     if (this._db === undefined) throw indexClosed()
     return this._db
   }
@@ -866,11 +894,6 @@ function selectedDocumentsParams(query: string, persistenceVisible: boolean): Ar
     FTS_HIGHLIGHT_START,
     Buffer.byteLength(FTS_HIGHLIGHT_START, 'utf8'),
   ]
-}
-
-function observeLive(session: Session): ObservedSession {
-  // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-  return observeSession(session.header, session.inheritedEventCount, session.snapshotEvents())
 }
 
 function observeSession(

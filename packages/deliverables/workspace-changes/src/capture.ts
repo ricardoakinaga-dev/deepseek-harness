@@ -40,7 +40,7 @@ export async function captureFile(absolute: string, directory: string, maxBytes:
   try {
     handle = await open(absolute, 'r')
   } catch (error: unknown) {
-    /* v8 ignore next -- an unopenable present file needs permissions the tests cannot revoke on every host. */
+    /*! v8 ignore next -- an unopenable present file needs permissions the tests cannot revoke on every host. */
     if (!isMissing(error)) throw error
     return { kind: 'absent' }
   }
@@ -63,7 +63,7 @@ export async function captureFile(absolute: string, directory: string, maxBytes:
   await mkdir(directory, { recursive: true })
   // Identical content across paths and turns shares one copy; `wx` keeps an existing copy as is.
   await writeFile(file, bytes, { flag: 'wx' }).catch((error: unknown) => {
-    /* v8 ignore next -- a copy that cannot be written needs a directory the tests cannot make unwritable on every host. */
+    /*! v8 ignore next -- a copy that cannot be written needs a directory the tests cannot make unwritable on every host. */
     if ((error as { code?: unknown }).code !== 'EEXIST') throw error
   })
   return { kind: 'file', file, binary: bytes.subarray(0, BINARY_PROBE_BYTES).includes(0) }

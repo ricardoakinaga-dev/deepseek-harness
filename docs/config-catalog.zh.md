@@ -97,6 +97,11 @@ export interface Config {
    * omission defaults to {@link DEFAULT_MAX_PARALLEL_TOOL_CALLS}.
    */
   maxParallelToolCalls?: number
+  /**
+   * Maximum Session events per append call while preparing a fresh or resumed agent.
+   * Defaults to 128 and is capped at 4096.
+   */
+  prepublicationAppendBatchSize?: number
   /** Agents created or resumed at plugin startup. */
   agents: (AgentOptions & {
     /** Stable config label used in logs and as the fresh combined-id prefix. */
@@ -113,7 +118,7 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.zh.md) · [`SessionId`](subsystems/core.zh.md)
 
-来源：[`packages/core/agent-loop/src/index.ts:318`](../packages/core/agent-loop/src/index.ts)
+来源：[`packages/core/agent-loop/src/index.ts:350`](../packages/core/agent-loop/src/index.ts)
 
 <a id="deepseek-aidsh-agent-presets"></a>
 
@@ -408,7 +413,7 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Absolute browser-session lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
-  /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
+  /** Maximum bytes reserved by one buffered request and by all buffered requests in this Connection instance. Default: 300 MiB. */
   maxRequestBodyBytes?: number
 }
 
@@ -574,7 +579,17 @@ export interface ToolResultPruneConfig {
 export interface Config {
   /** Maximum synchronous VM evaluation time in milliseconds. */
   vmTimeoutMs?: number
+  /** Execution plane; dynamic definitions are disabled unless an owner selects one. */
+  deployment?: DynamicCordisDeployment
+  /** Browser source policy; dynamic browser evaluation is denied unless explicitly enabled. */
+  browserDelivery?: DynamicCordisBrowserDelivery
 }
+
+/** Deployment plane permitted to execute dynamic definitions. */
+export type DynamicCordisDeployment = 'disabled' | 'host-only' | 'browser'
+
+/** Browser delivery exception required by the source evaluator. */
+export type DynamicCordisBrowserDelivery = 'disabled' | 'unsafe-eval-inline-style'
 ```
 
 来源：[`packages/extensions/cordis-host-runner/src/index.ts:88`](../packages/extensions/cordis-host-runner/src/index.ts)
@@ -1921,7 +1936,14 @@ export interface Config {
   lockWaitMs?: number
   /** Bound on one registry lookup an inspection runs, in milliseconds. */
   inspectTimeoutMs?: number
+  /** Package-spec forms this profile owner permits for bundle installation. Empty means deny all forms. */
+  allowedSources?: InstallSpecKind[]
+  /** Publisher identities accepted after package metadata verification. Empty means deny all publishers. */
+  allowedPublishers?: string[]
 }
+
+/** The form one install spec takes, in pnpm's vocabulary. */
+export type InstallSpecKind = 'registry' | 'path' | 'git' | 'tarball'
 ```
 
 来源： [`packages/boot/plugin-manager/src/index.ts:33`](../packages/boot/plugin-manager/src/index.ts)
@@ -2097,7 +2119,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/sandbox/sandbox-local/src/index.ts:44`](../packages/sandbox/sandbox-local/src/index.ts)
+来源：[`packages/sandbox/sandbox-local/src/index.ts:57`](../packages/sandbox/sandbox-local/src/index.ts)
 
 <a id="deepseek-aidsh-sandbox-policy"></a>
 

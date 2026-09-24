@@ -1,0 +1,18 @@
+{
+  "record_id":"GATE-AAA-012-IMPLEMENTATION-READY-001",
+  "timestamp":"2026-09-21T23:52:00-03:00",
+  "gate_id":"IMPLEMENTATION_READY",
+  "scope":"AAA-012 approved physical WebSocket close postcondition and bounded lifecycle tests",
+  "scope_ref":"AAA-012",
+  "version":1,
+  "criteria":[
+    {"id":"IR-001","description":"The authority confirms physical WebSocket closure as the public close postcondition with explicit timeout, error, already-closed, repeated-close, and late-callback behavior.","required":true,"status":"PASS","evidence_refs":[".agent/evidence/AAA-012/scout-a01.json",".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"],"confidence":"HIGH","limitations":"The policy is validated with deterministic WebSocket fixtures; real browser/network behavior remains an external lane."},
+    {"id":"IR-002","description":"The implementation is bounded to RemoteStreamMuxClient close lifecycle, its Gateway README contract, and focused barrier/error/timeout fixtures.","required":true,"status":"PASS","evidence_refs":["packages/api/gateway/src/client/stream-client.ts","packages/api/gateway/tests/gateway.client.spec.ts","packages/api/gateway/README.md"],"confidence":"HIGH","limitations":"No unrelated Gateway transport or server contract is authorized."},
+    {"id":"IR-003","description":"Acceptance requires the focused Gateway client suite, client-face typecheck, and bilingual pairing to pass.","required":true,"status":"PASS","evidence_refs":[".agent/evidence/AAA-012/implementation-a19.json"],"confidence":"HIGH","limitations":"Completion still requires a current verification record."}
+  ],
+  "evidence":[".agent/evidence/AAA-012/scout-a01.json",".agent/evidence/AAA-012/implementation-a19.json",".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"],
+  "candidate_fingerprint":"4754adcf9d7c090731f50ce53fec7c8254ef5690ce072feca8063fc65d1714a6",
+  "confidence":"HIGH","gaps":[],"conditions":[],
+  "authority":{"required":true,"state":"CONFIRMED","actor":"Ricardo Akinaga","scope":"AAA-012 approved physical WebSocket close postcondition and bounded lifecycle tests","decision":"The public close promise waits for physical WebSocket closure with explicit timeout, error, already-closed, repeated-close, and late-callback behavior.","evidence_ref":".agent/authority.jsonl#AUTH-AAA-012-IMPLEMENTATION-A20-001","expires_or_revalidates":"Revalidate if the close postcondition, transport owner, or external browser/network qualification scope changes."},
+  "residual_risk":"HIGH","decision":"PASS","next_action":"Start AAA-012:A02 to validate the approved close lifecycle implementation and retain current focused evidence.","revalidation_triggers":["RemoteStreamMuxClient changes its physical socket owner.","The close timeout or error semantics change.","The implementation expands into server-side closure policy."],"supersedes":null
+}

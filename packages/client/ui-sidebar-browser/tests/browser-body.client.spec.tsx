@@ -7,8 +7,8 @@ import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 import { createBrowserControllers } from '../src/client/browser/BrowserController.ts'
 import type { BrowserFrameState } from '../src/client/browser/BrowserFrame.ts'
 import { createBrowserStore } from '../src/client/browser/store.ts'
-import type { BrowserBodyProps } from '../src/client/view/BrowserBody.tsx'
-import { BrowserBody, WEB_BROWSER_SANDBOX } from '../src/client/view/BrowserBody.tsx'
+import type { BrowserBodyProps } from '../src/client/browser/BrowserBody.tsx'
+import { BrowserBody, WEB_BROWSER_SANDBOX } from '../src/client/browser/BrowserBody.tsx'
 import { zh } from '../src/client/locales.ts'
 
 const SESSION = 'session' as SessionId

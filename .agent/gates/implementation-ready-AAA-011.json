@@ -1,0 +1,94 @@
+{
+  "record_id": "GATE-AAA-011-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-20T21:45:42-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-011 persistent Bash and PowerShell model-visible diagnostics, documentation, and keyless snapshot synchronization",
+  "scope_ref": "AAA-011",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The implementation scope names the official Bash and PowerShell persistent-tool owners, their tests, paired README and i18n files, the existing rationale note, and the exact SDK and session snapshot families.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-011/findings-a01.json",
+        ".agent/evidence/AAA-011/commands-a01.jsonl",
+        ".agents/customization-policy.json",
+        "docs/customization/improvement-development-standard.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate scopes the persistent Bash and PowerShell behavior and its model-visible evidence; it does not qualify unrelated shell providers or the complete repository release matrix."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation has current source contracts, paired documentation, existing focused test entry points, and keyless Bash and PowerShell snapshot scenarios for timeout, clipping, reset, and persistent-state result wording.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-011/findings-a01.json",
+        ".agent/evidence/AAA-011/commands-a01.jsonl",
+        "packages/shell/tool-bash-persistent/tests/loader-composition.spec.ts",
+        "packages/shell/tool-pwsh-persistent/tests/loader-composition.spec.ts",
+        "snapshots/sdk/persistent-tools/session.v3.jsonl",
+        "snapshots/session/persistent-pwsh-tool-turn/session.v3.jsonl"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The A02 implementation and snapshot replay have not run yet; the gate authorizes only the owned paths listed in the policy record."
+    },
+    {
+      "id": "IR-003",
+      "description": "No human product decision, credential, durable-data migration, or external deployment is required for the bounded documentation, result-wording, test, and keyless-snapshot correction; the official package owners and removal path are recorded.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agent/state.json",
+        ".agents/customization-policy.json",
+        ".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The final candidate still requires the complete model-visible, platform, release, and independent-audit matrix; this gate is task-scoped and does not qualify the repository."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-011/findings-a01.json",
+    ".agent/evidence/AAA-011/commands-a01.jsonl",
+    ".agents/customization-policy.json",
+    "packages/shell/tool-bash-persistent/src/index.ts",
+    "packages/shell/tool-bash-persistent/tests/tools.spec.ts",
+    "packages/shell/tool-bash-persistent/README.md",
+    "packages/shell/tool-bash-persistent/README.zh.md",
+    "packages/shell/tool-pwsh-persistent/src/index.ts",
+    "packages/shell/tool-pwsh-persistent/tests/tools.spec.ts",
+    "packages/shell/tool-pwsh-persistent/README.md",
+    "packages/shell/tool-pwsh-persistent/README.zh.md",
+    ".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.md",
+    ".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.zh.md",
+    "snapshots/sdk/persistent-tools/session.v3.jsonl",
+    "snapshots/session/persistent-pwsh-tool-turn/session.v3.jsonl"
+  ],
+  "candidate_fingerprint": "a64abcd65f76b55a6f7668ee2aa2efca7bcdaac18bc4e29693cbefdd16edd056",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": false,
+    "state": "NOT_REQUIRED",
+    "actor": "Repository quality policy",
+    "scope": "AAA-011 persistent Bash and PowerShell model-visible diagnostics, documentation, and keyless snapshot synchronization",
+    "decision": "The official persistent-shell packages own the model-visible wording and no unresolved human-owned product choice remains for the bounded correction.",
+    "evidence_ref": ".agent/backlog.json",
+    "expires_or_revalidates": "Revalidate if the persistent-shell owners, snapshot entry paths, result wording contract, or removal plan changes."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Implement the synchronized Bash and PowerShell diagnostics, focused tests, paired READMEs, and keyless snapshot updates through the owned entry paths.",
+  "revalidation_triggers": [
+    "The persistent Bash or PowerShell package changes its result rendering or reset lifecycle.",
+    "A snapshot scenario moves to another profile or changes its provider entry path.",
+    "The documentation change requires a Session format migration or an unresolved deployment policy.",
+    "The planned result wording cannot be reproduced through the shipped Loader compositions."
+  ],
+  "supersedes": null
+}

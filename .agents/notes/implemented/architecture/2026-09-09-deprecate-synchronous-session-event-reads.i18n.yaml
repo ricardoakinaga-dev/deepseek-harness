@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md
-2026-09-09-deprecate-synchronous-session-event-reads.md: a2a86b0d6500269531ca1088738aaa612076bfb4
-2026-09-09-deprecate-synchronous-session-event-reads.zh.md: 38468708a5323b6ebf94377f3cc8f2c86dc95dde
+2026-09-09-deprecate-synchronous-session-event-reads.md: 14b8361019c88b871b818ffd64c79fbab551fbdc
+2026-09-09-deprecate-synchronous-session-event-reads.zh.md: 0352fb37c62f657434913f984a87989405b169ef

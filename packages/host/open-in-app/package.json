@@ -22,7 +22,6 @@
       "types": "./lib/types/shared.d.ts",
       "default": "./lib/types/shared.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [

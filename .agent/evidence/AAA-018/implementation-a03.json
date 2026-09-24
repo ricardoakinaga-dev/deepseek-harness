@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "record_id": "EVID-AAA-018-A03-IMPLEMENTATION-001",
+  "task": "AAA-018",
+  "action_id": "AAA-018:A03",
+  "captured_at": "2026-09-21T09:23:07-03:00",
+  "decision_status": "CONFIRMED",
+  "canonical_source": "README.md#Community-and-support",
+  "decision": "README.md is the canonical community-channel source; README.zh.md must contain the same target set and no locale-only target.",
+  "commands": [
+    {
+      "command": "pnpm exec vitest run scripts/audit-metrics.spec.ts scripts/verify-readme-community-parity.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "2 test files and 9 tests passed."
+    },
+    {
+      "command": "pnpm run audit:metrics -- --output .artifacts/aaa-018/aaa-018-a03-2026-09-21/metrics.json",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Validated JSON retained with schema version 1, revision, environment, 4,436-file corpus digest, and five named counts."
+    },
+    {
+      "command": "pnpm run verify-readme-community-parity",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Three canonical HTTP(S) targets have an exact localized match."
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Every exported name in each package API remains documented."
+    },
+    {
+      "command": "pnpm run verify-translation-pairing",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "1,027 in-scope documentation pairs are consistent."
+    },
+    {
+      "command": "pnpm run test:docs",
+      "exit_status": 1,
+      "observed_status": "PARTIAL",
+      "summary": "19 of 21 documentation gates pass; only the two retained historical findings remain. The new README parity gate passes."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "No whitespace errors."
+    },
+    {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "11 control-plane checks pass."
+    }
+  ],
+  "metrics_artifact": {
+    "path": ".artifacts/aaa-018/aaa-018-a03-2026-09-21/metrics.json",
+    "sha256": "bf2a3b01da11a4d7dd1693dc3037b6d928c8ab19c9f90ed3c80b0c0f56eeff2d",
+    "file_count": 4436,
+    "counts": {
+      "deprecated_reader": 90,
+      "lint_suppression": 263,
+      "todo_marker": 53,
+      "explicit_any": 1625,
+      "selected_skip": 7
+    }
+  },
+  "community_targets": [
+    "https://github.com/deepseek-ai/deepseek-harness/discussions",
+    "https://github.com/topics/dsh-plugin",
+    "https://discord.gg/Ycq5dCaS4"
+  ],
+  "limitations": "The full repository aggregate remains unqualified; the two documentation failures are retained historical findings, and AAA-022 static-debt migration remains separately unauthorized.",
+  "result": "AAA-018:A03 PASS — canonical metrics, English-canonical README parity, focused negative fixtures, and retained evidence are complete."
+}

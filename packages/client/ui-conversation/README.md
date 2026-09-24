@@ -135,6 +135,8 @@ None; Conversation assembly and browser input state do not alter provider-side p
 - **Factory occurrences inherit their render-position Session** — `conversation.content` does not accept an independently addressed Session; that requires a separate Session-provider capability.
 
 
+**Runtime invariant:** No companion is published. Conversation Definitions, target builders, and Views are already validated by their owning registries and the Slot ledger.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -144,5 +146,3 @@ None; Conversation assembly and browser input state do not alter provider-side p
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Conversation Definitions, target builders, and Views are already validated by their owning registries and the Slot ledger.

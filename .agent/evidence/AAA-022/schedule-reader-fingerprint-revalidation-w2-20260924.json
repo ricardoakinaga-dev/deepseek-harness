@@ -1,0 +1,22 @@
+{
+  "record_id": "EVID-AAA-022-W2-SCHEDULE-FINGERPRINT-REVALIDATION-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-DESIGN",
+  "kind": "EXACT_INPUT_FINGERPRINT_REVALIDATION",
+  "timestamp": "2026-09-24T03:35:00-03:00",
+  "source_artifact": ".agent/evidence/AAA-022/schedule-reader-design-w2-20260924.json",
+  "source_artifact_sha256": "5bec325270a29344014de994bd0380f500861ef0c1cfb6ddc0d09f29982cf03e",
+  "procedure": "Rehash every listed path against candidate.input_hashes; require the recorded HEAD to match; recompute SHA-256 by sorting relative paths and updating with UTF-8 path, NUL, raw SHA-256 file digest, NUL.",
+  "input_path_count": 42,
+  "current_path_hash_matches": 42,
+  "mismatches": [],
+  "current_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "recorded_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "head_matches": true,
+  "hash_rule": "Sort relative paths; for each path update SHA-256 with UTF-8 path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+  "recomputed_sha256": "a3282a316bfd5fe279a38527bebc63f8a1679f8812e826093dcfd480003a0849",
+  "original_recorded_sha256": "83e05a0512099f6ead361c1ef9a32260dc7e354c4186aa0eec9c3ce3d61dc399",
+  "original_fingerprint_valid": false,
+  "result": "PASS_PATH_HASH_AND_HEAD_REVALIDATION_WITH_FINGERPRINT_MISMATCH",
+  "limitations": "All 42 listed file hashes and HEAD match their recorded values. The original aggregate digest is invalid; this record supplies the reproducible corrected digest for the same exact map, not approval of the design or implementation."
+}

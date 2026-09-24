@@ -49,6 +49,8 @@ Session 对象还承载本地提交回显：`session.beginSubmission` 在调用�
 
 `sessions.retain(target, { source, signal? })` 立即获取一个精确 Client generation 的引用，并启动其共享的首次历史打开。目标是已知 Session id 或持久的直接父子 subagent 地址；Host 在打开历史时校验显式地址。返回引用支持幂等的 `release()` 和 `Symbol.dispose`；其 `ready` Promise 跟随共享的 `Session.open()` 结果，并在该次尝试结算时解析为确切 binding，包括 Remote failure 以 `openState: 'error'` 表示的情况。仅当 `Session.open()` 拒绝、等待方取消或引用提前释放时，`ready` 才拒绝。取消一个等待方不会取消其他 owner 的打开。`sessions.using(target, options, operation)` 等待该次结算，持有引用直到回调结束，并传播被拒绝的就绪与回调失败。
 
+Client 入口还导出 `scopeIdentityOf(ctx)`，供必须比较精确 retained generation、而不只是 Session id 的调用方使用。
+
 引用保活本地会话数据、作用域 Context 和历史流，不保活 Host Agent。最后一个引用释放时，generation 先退出可访问映射，再执行清理；后续获取可以为同一 id 创建新 generation。`binding(id)` 和 `scope(id)` 只借用已有 generation。`retainInfo(id)` 独立于目录成员关系观察稳定的只读来源计数，不执行历史 I/O。消费方来源键可通过声明合并扩展；导航和完成确认属于 UI 消费方，不属于本控制器。所有权与清理规则见 [Client 会话引用](../../../.agents/notes/implemented/architecture/2026-09-15-client-session-references.zh.md)。
 
 <a id="session-media-references"></a>
@@ -89,6 +91,8 @@ Session 对象还承载本地提交回显：`session.beginSubmission` 在调用�
 - 文件引用补全使用共享 Agent lookup，因此可能恢复冷 Session；`skills/list` 目录是不激活 Agent 的 skill 元数据读取路径。
 
 
+**运行时不变式：** 不发布伴生入口。每个分页与帧都会对照其指向的持久 Session 校验。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -98,5 +102,3 @@ Session 对象还承载本地提交回显：`session.beginSubmission` 在调用�
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。每个分页与帧都会对照其指向的持久 Session 校验。

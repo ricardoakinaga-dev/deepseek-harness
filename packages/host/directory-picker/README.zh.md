@@ -100,6 +100,8 @@ web GUI 让操作者通过 OS 选择器或应用内浏览器选择工作区目�
 
 - **不支持多根目录**——浏览约定每次列举只公开一条祖先链；按部署限定浏览根（以及在盘符根的上一级枚举 Windows 各盘符根目录）等到出现需要它的消费方再做，见 DirectoryPicker Agent Note。
 
+**运行时不变式：** 不发布伴生入口。这个无状态 Service Definition 只定义 capability vocabulary，观察由 backend 与 Remote controller 负责。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -109,5 +111,3 @@ web GUI 让操作者通过 OS 选择器或应用内浏览器选择工作区目�
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。这个无状态 Service Definition 只定义 capability vocabulary，观察由 backend 与 Remote controller 负责。

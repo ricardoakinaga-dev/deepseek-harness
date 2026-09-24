@@ -13,9 +13,9 @@ import {
 } from './validation.ts'
 
 const unusedEncoder: SessionFormatCurrentEncoder = {
-  /* v8 ignore next -- this restore-only test facade never encodes a header. */
+  /*! v8 ignore next -- this restore-only test facade never encodes a header. */
   encodeHeader: header => header,
-  /* v8 ignore next -- this restore-only test facade never encodes an event. */
+  /*! v8 ignore next -- this restore-only test facade never encodes an event. */
   encodeEvent: event => event,
 }
 
@@ -32,7 +32,7 @@ const catalog = createSessionFormatCatalog({
     assertReleasedV1MigrationSource(artifact)
     return artifact
   },
-  /* v8 ignore next 3 -- this restore-only test facade never performs a header-only read. */
+  /*! v8 ignore next 3 -- this restore-only test facade never performs a header-only read. */
   restoreCurrentHeader(header) {
     assertReleasedV1Header(header)
     return header

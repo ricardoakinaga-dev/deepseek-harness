@@ -159,7 +159,7 @@ export class SessionProjectionCache extends Service {
    * checkpoint can lag that log but cannot lead it because writes flush the
    * log first, so a matching predecessor title is a genuine (possibly stale)
    * fact from this Session. The registry still requires the current title
-   * projection's row version and schema. No other predecessor projection is
+   * projection's row version, exact optional fingerprint, and schema. No other predecessor projection is
    * exposed: format normalization can change their current meaning, and the
    * strict {@link cachedSnapshot} / hydration paths continue to reject them.
    * @param meta - authoritative listed Session header.
@@ -385,7 +385,7 @@ export class SessionProjectionCache extends Service {
   }
 
   private requireTable(): KvTable<SessionId, CheckpointRecord> {
-    /* v8 ignore next -- Service.init assigns the table before the service becomes injectable */
+    /*! v8 ignore next -- Service.init assigns the table before the service becomes injectable */
     if (this.table === undefined) throw new Error('session projection cache is not initialized')
     return this.table
   }

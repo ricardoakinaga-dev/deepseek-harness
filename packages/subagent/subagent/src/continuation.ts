@@ -41,7 +41,9 @@ import { assertSubagentMaxDepth } from './depth.ts'
 import { foldSubagentDescriptor, snapshotSubagentDescriptor } from './descriptor.ts'
 import { establishCatalogChild } from './catalog.ts'
 import { SubagentError } from './error.ts'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the internal helper module owns that behavior. */
 import { isAdjacentAgentSendMessageTool } from './internal.ts'
+/*! v8 ignore stop */
 import type { ActivationObserver } from './lifecycle.ts'
 import type {
   ContinuableCreateRequest,
@@ -300,7 +302,7 @@ export class SubagentContinuationManager {
         const activation = this.activations.get(childId)
         if (activation === undefined) return this.coldResume(parent, childId, content, options)
         const disposal = activation.inbox.closing
-        /* v8 ignore next 3 -- the send-versus-dispose cutoff needs a delivery to
+        /*! v8 ignore next 3 -- the send-versus-dispose cutoff needs a delivery to
          * observe the transaction inside the same critical section that opened it. */
         if (disposal !== undefined) {
           return disposal.then(() => undefined, () => undefined)
@@ -316,11 +318,11 @@ export class SubagentContinuationManager {
         activation.announced = true
         return messageId
       })
-      /* v8 ignore start -- only a delivery that lost the disposal cutoff retries. */
+      /*! v8 ignore start -- only a delivery that lost the disposal cutoff retries. */
       if (live !== undefined) return live
       this.activations.assertAdmitting(parent)
       options.signal.throwIfAborted()
-      /* v8 ignore stop */
+      /*! v8 ignore stop */
     }
   }
 
@@ -341,7 +343,7 @@ export class SubagentContinuationManager {
     sender: Agent,
     content: ContentBlock[],
   ): MessageId {
-    /* v8 ignore next 6 -- only synchronous re-entrant teardown can open this
+    /*! v8 ignore next 6 -- only synchronous re-entrant teardown can open this
      * transaction between exact-agent authorization and this no-await span. */
     if (activation.inbox.closing !== undefined) {
       throw new SubagentError(
@@ -513,7 +515,7 @@ export class SubagentContinuationManager {
     const { provider, model } = agent.options
     if (provider === undefined || model === undefined) return
     const llm = this.ctx.get('llm')
-    /* v8 ignore next -- without an LLM registry, delivery defers to projection. */
+    /*! v8 ignore next -- without an LLM registry, delivery defers to projection. */
     if (llm === undefined) return
     const info = await llm.resolveModelInfo(provider, model, signal)
     if (info.inputModalities !== undefined && !info.inputModalities.includes('image')) {

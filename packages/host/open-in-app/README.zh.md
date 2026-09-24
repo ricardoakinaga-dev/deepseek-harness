@@ -112,6 +112,8 @@ kind: "package-reference"
 - **图标保真度受平台约束。** Windows 图标来自 32px 的 `ExtractAssociatedIcon`——不带原生 addon 时 .NET 标准面能给出的最大尺寸——在高分屏上可能略微发软；Linux 图标只查 hicolor 主题与 pixmaps，不追用户的自定义图标主题；若干条目（没有 desktop 条目的纯 CLI 启动器）没有图标来源，保持通用占位图形。
 - **新安装要重启后出现。** 解析每主机进程一次；只有卸载方向自愈（启动器缺失时当场只重解析该条目）。
 
+**运行时不变式：** 不发布伴生入口。本包经三条无状态路由提供一趟主机解析的结果；路由注册已由各自的 HMR（热模块替换）安全测试证明可处置，不存在可能分叉的独立观测。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -121,5 +123,3 @@ kind: "package-reference"
 转正期的各项决定——host/`ui-` 分包、为什么用裸 webServer 路由而非 Typert Remote、目录为什么保持编译期固定、resolver 重设计（已验证启动器、单趟解析、点击不再重新检测）、三期限配置、以及各平台图标策略与被拒的替代方案——记录在[转正 Agent Note](../../../.agents/notes/implemented/feature/2026-08-25-promote-open-anywhere-plugin.zh.md)。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。本包经三条无状态路由提供一趟主机解析的结果；路由注册已由各自的 HMR（热模块替换）安全测试证明可处置，不存在可能分叉的独立观测。

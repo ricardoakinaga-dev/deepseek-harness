@@ -8,8 +8,11 @@
  */
 
 import { spawn, type StdioOptions } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import type { Win32DialogWorkerData } from './win32-dialog-worker.ts'
+
+const require = createRequire(import.meta.url)
 
 /**
  * Spawn the dialog child process. Built consumers launch the bundled CJS
@@ -24,11 +27,11 @@ import type { Win32DialogWorkerData } from './win32-dialog-worker.ts'
 export function spawnDialogWorker(data: Win32DialogWorkerData): ReturnType<typeof spawn> {
   const env = { ...process.env, DSH_DIALOG_TITLE: data.title }
   const stdio: StdioOptions = ['ignore', 'inherit', 'inherit', 'ipc']
-  /* v8 ignore next 3 -- the built-output arm: tests always run unbuilt (src/) */
+  /*! v8 ignore next 3 -- the built-output arm: tests always run unbuilt (src/) */
   if (!import.meta.url.endsWith('.ts')) {
     return spawn(process.execPath, [fileURLToPath(new URL('./worker.cjs', import.meta.url))], { env, stdio, windowsHide: true })
   }
-  return spawn(process.execPath, ['--import', import.meta.resolve('tsx/esm'), fileURLToPath(new URL('./win32-dialog-worker.ts', import.meta.url))], { env, stdio, windowsHide: true })
+  return spawn(process.execPath, ['--import', require.resolve('tsx/esm'), fileURLToPath(new URL('./win32-dialog-worker.ts', import.meta.url))], { env, stdio, windowsHide: true })
 }
 
 export { closeThreadWindows } from './win32-dialog-bindings.ts'

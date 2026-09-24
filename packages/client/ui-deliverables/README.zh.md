@@ -109,6 +109,8 @@ Node 半部注册[模型体验](#model-experience)所述的静态 `ui:deliverabl
 - **包内的标题字形**——卡片的尖括号标记放在 `src/client/icons.tsx` 中，直到共享图标集收录它；其 props 已与共享图标契约一致。
 - **工作区外的文件只按绝对路径打开**——记录的路径是记录时的 Host 路径；工作区移动或换一个查看 Session 都无法重新定位它。
 
+**运行时不变式：** 不发布伴生入口。提示词、slot、dictionary、文件操作路由与可选 service 注册归 effect 所有；Session 日志拥有声明，文件系统拥有文件内容。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -118,5 +120,3 @@ Node 半部注册[模型体验](#model-experience)所述的静态 `ui:deliverabl
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。提示词、slot、dictionary、文件操作路由与可选 service 注册归 effect 所有；Session 日志拥有声明，文件系统拥有文件内容。

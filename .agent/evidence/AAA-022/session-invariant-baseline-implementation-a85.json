@@ -1,0 +1,83 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-INVARIANT-BASELINE-IMPLEMENTATION-A85-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A14",
+  "kind": "W1_SESSION_INVARIANT_BASELINE_IMPLEMENTATION",
+  "status": "PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION",
+  "timestamp": "2026-09-22T21:34:52-03:00",
+  "authority": ".agent/gates/implementation-ready-AAA-022-A14.json#GATE-AAA-022-IMPLEMENTATION-READY-A14-001",
+  "candidate_binding": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false,
+    "successor_rebuild_required": true
+  },
+  "implementation": {
+    "files": [
+      "packages/core/session/src/invariant.ts",
+      "packages/core/session/tests/invariant.spec.ts",
+      "packages/session/session-title/src/invariant.ts",
+      "packages/session/session-title/tests/invariant.spec.ts"
+    ],
+    "facts": [
+      "The core session invariant now folds the exact SessionCreationBaseline.events supplied with session/created and retains a separately named snapshot scan only for Sessions already live when the companion installs or for the defensive trace bootstrap.",
+      "The session-title invariant now validates seeded session/title events from the same borrowed baseline and keeps its existing-session restore scan explicit; cited-message validation remains synchronous pre-commit because asynchronous storage cannot veto an append.",
+      "New tests spy on Session.snapshotEvents to prove seeded core and title creation paths do not reread the newly created Session, while the existing invalid-event, seeded, fork, reload, and teardown coverage remains active.",
+      "No Session event envelope, SESSION_FORMAT_VERSION, persistence schema, wire projection, package dependency, or released generation changed."
+    ]
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run packages/core/session/tests packages/session/session-title/tests",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "23 files and 558 tests passed."
+    },
+    {
+      "command": "pnpm exec vitest run packages/core/session/tests/invariant.spec.ts packages/session/session-title/tests/invariant.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "24 invariant tests passed, including the two no-reread baseline assertions."
+    },
+    {
+      "command": "pnpm exec tsc -b packages/core/session/tsconfig.json packages/session/session-title/tsconfig.json --pretty false",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm exec tsc -b tsconfig.host.json --pretty false",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/core/session/src/invariant.ts packages/core/session/tests/invariant.spec.ts packages/session/session-title/src/invariant.ts packages/session/session-title/tests/invariant.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm run verify-package-dependencies",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "65 packages match the published dependency policy."
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Every exported package API name is documented."
+    },
+    {
+      "command": "git diff --check -- packages/core/session packages/session/session-title .agent",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "limitations": [
+    "The canonical audit-metrics command remains unavailable until a complete successor checkout restores the 12 missing tracked paths; no ratchet promotion is claimed.",
+    "The full doc-sync aggregate retains the four previously recorded stale catalog/tool-composition failures; A14 changes no documentation or generated public contract.",
+    "The implementation is validated on preserved dirty custom/main and is not bound to a rebuilt successor candidate.",
+    "No publication, registry, push, merge, release, or final-verdict action was taken."
+  ],
+  "decision": "Accept the bounded A14 invariant baseline implementation. Keep the named complete-history and bounded-window exceptions, and proceed to a new source-grounded design for the core Session fork/own-events seam without introducing an asynchronous reader implicitly."
+}

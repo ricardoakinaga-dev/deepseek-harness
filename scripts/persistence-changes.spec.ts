@@ -2,8 +2,10 @@
 
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { canonicalizeSchema, schemaDigest } from './persistence-schema-model.ts'
 import type { PersistenceRoot, PersistenceSchemaInventory, SchemaNode, SchemaProperty } from './persistence-schema-model.ts'
@@ -19,6 +21,9 @@ import {
   verifyPersistenceChanges,
 } from './persistence-changes.ts'
 import type { PersistenceChangeRecord, PersistenceHistoryEntry } from './persistence-changes.ts'
+
+const require = createRequire(import.meta.url)
+const tsxLoader = pathToFileURL(require.resolve('tsx/esm')).href
 
 function runPersistenceChanges(
   args: readonly string[], root: string, extract: (root: string) => PersistenceSchemaInventory,
@@ -562,7 +567,7 @@ describe('persistence changes current-tree commands', () => {
     ].join('\n')
     writeFileSync(join(session, 'types.ts'), source)
     const script = resolve(import.meta.dirname, 'persistence-changes.ts')
-    const cli = (...args: string[]): ReturnType<typeof spawnSync> => spawnSync(process.execPath, ['--import', import.meta.resolve('tsx/esm'), script, '--root', root, ...args], {
+    const cli = (...args: string[]): ReturnType<typeof spawnSync> => spawnSync(process.execPath, ['--import', tsxLoader, script, '--root', root, ...args], {
       cwd: root, encoding: 'utf8', timeout: 120_000,
     })
     const prose = proseFile(root)

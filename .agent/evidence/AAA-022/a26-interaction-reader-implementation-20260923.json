@@ -1,0 +1,126 @@
+{
+  "record_id": "A26-INTERACTION-READERS-IMPLEMENTATION-20260923-001",
+  "timestamp": "2026-09-23T20:27:17-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:A26",
+  "disposition": "BLOCKED_PENDING_NEW_SCOPE_DECISION",
+  "scope": "A24-01 through A24-07 interaction-owned current-event and synchronous invariant migrations within the exact A25-approved 33 implementation paths, plus 8 verification-only consumers",
+  "implementation_path_count": 33,
+  "verification_only_path_count": 8,
+  "changed_implementation_path_count": 33,
+  "verification_only_paths_changed": [],
+  "gate": {
+    "path": ".agent/gates/implementation-ready-AAA-022-A25-interaction-readers.json",
+    "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A25-INTERACTION-READERS-002",
+    "decision": "PASS",
+    "fingerprint": "71570aca7fb6c3262ec817c4f7007c156fa53c882fdde11971fef56e459142da",
+    "candidate_fingerprint_before_implementation": "082281d2dc81bd6a9208e3091437831de43c8f4cfa0a40dd9b2c2ebad62cfeac",
+    "implementation_scope_fingerprint": "954c2948577244ead5a12ebabb279f1e642f4f8b0bfc05148dd50efdfdb9f543",
+    "complete_41_path_scope_fingerprint": "d0eb2265c13920ea5ed3a39f2e2b529a9ae3b58d5413e2ef1c9ca427cf9e716e"
+  },
+  "environment": {
+    "platform": "Linux x64",
+    "node": "v24.20.0",
+    "pnpm": "11.11.0",
+    "head": "60b5295027f6fb7652a1a350b2c6275715b5dbd",
+    "preexisting_dirty_worktree": true
+  },
+  "implementation_summary": [
+    "Added exact-Session command lifecycle, preset-history, and approval-state folds shared by provider and invariant entrypoints through namespaced Cordis-root registries.",
+    "Added ref-counted provider leases with session-disposal cleanup, exact creation-baseline seeding, empty-session reactivation, and fail-closed activation after an eventful session has no current fold.",
+    "Made synchronous candidate validation read-only and checked each candidate against the exact current prefix before commit; committed events advance owner folds after append.",
+    "Removed all six S041-S046 eventAt/snapshotEvents source reads; no eventAt or snapshotEvents calls remain in the three interaction owner source trees.",
+    "Updated English and Chinese package/subsystem docs, refreshed command pairing sidecars, and regenerated the Cordis API catalog.",
+    "Updated permission-presets and user-approval lifecycle tests to append while their final provider listener is absent before checking reactivation failure."
+  ],
+  "checks": [
+    {
+      "id": "A26-OWNER-TESTS",
+      "command": "pnpm exec vitest run packages/interaction/commands/tests/invariant.spec.ts packages/interaction/permission-presets/tests/invariant.spec.ts packages/interaction/user-approval/tests/approval.spec.ts packages/interaction/user-approval/tests/invariant.spec.ts --reporter=dot",
+      "result": "PASS: 4 files, 61 tests"
+    },
+    {
+      "id": "A26-TESTS",
+      "command": "The exact 12-file A26-TESTS command in the implementation-ready gate",
+      "result": "BLOCKED: 3 of 12 files failed; 9 passed; 84 failed and 257 passed of 341 tests. The failing files are packages/interaction/permission-presets/tests/permission-presets.spec.ts (12), packages/plan/plan-mode/tests/plan-mode.spec.ts (60), and packages/shell/tool-bash/tests/tools.spec.ts (12). These are all verification-only paths. Permission tests read a permissions projection without an exact creation baseline; plan and bash fixtures access an unavailable SessionProjectionRegistry service."
+    },
+    {
+      "id": "A26-TYPES",
+      "command": "The exact 8-project TypeScript build command in the implementation-ready gate",
+      "result": "PASS: exit 0"
+    },
+    {
+      "id": "A26-OXLINT",
+      "command": "The exact A26 owner and verification-only Oxlint command in the implementation-ready gate",
+      "result": "PASS: exit 0"
+    },
+    {
+      "id": "A26-TYPE-EQUIV",
+      "command": "pnpm run verify-type-equiv, also run by the latest pnpm run test:docs",
+      "result": "PASS: 437 source blocks and 437 paired derivatives"
+    },
+    {
+      "id": "A26-CORDIS-CATALOG",
+      "command": "pnpm run verify-cordis-catalog",
+      "result": "PASS: 111 generated files/regions are up to date"
+    },
+    {
+      "id": "A26-EXPORT-JSDOC",
+      "command": "pnpm run verify-export-jsdoc",
+      "result": "PASS: every exported name in each package API is documented"
+    },
+    {
+      "id": "A26-PAIRING",
+      "command": "pnpm run verify-translation-pairing packages/interaction/commands/README.md packages/interaction/permission-presets/README.md packages/interaction/user-approval/README.md docs/subsystems/commands.md docs/subsystems/permission-presets.md docs/subsystems/approval.md",
+      "result": "PASS: 6 named English/Chinese pairs are consistent"
+    },
+    {
+      "id": "A26-DOC-TYPECHECK",
+      "command": "pnpm run doc-typecheck",
+      "result": "BLOCKED: the host build exits before fenced examples run, with 10 TypeScript diagnostics in context/agent-instructions, context/time-context, core/agent-loop, and session/session-projection-cache tests. The scoped pnpm run doc-typecheck:contracts-ready passes: 84 blocks compiled, 79 ignored, 842 type-equivalence/catalog blocks checked elsewhere, and 1,005 paired derivatives."
+    },
+    {
+      "id": "A26-DOC-QUICK",
+      "command": "pnpm run test:docs",
+      "result": "PASS: 22 gates, 0 failures, 0 skipped"
+    },
+    {
+      "id": "A26-CUSTOMIZATION-POLICY",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "result": "BLOCKED: broad preexisting worktree changes produce hundreds of unowned or multiply-owned customization diagnostics. The exact 31-path A26 interaction owner passes direct scoped policy validation."
+    },
+    {
+      "id": "A26-DIFF-CHECK",
+      "command": "Scoped whitespace/trailing-newline validation over all 33 implementation and 8 verification-only gate paths",
+      "result": "PASS: 41 paths, including untracked helper files"
+    },
+    {
+      "id": "A26-A19-AUTHORITY-REPAIR",
+      "command": "Read-only SHA-256 and schema check of the user-authorized corrected A19 authority row",
+      "result": "PASS: subject type GATE binds to GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001; corrected line hash is cb6249af501d70474b95cfef412587b55d077169119b02e72137f20e69fabaf6"
+    }
+  ],
+  "independent_review": {
+    "artifact": ".agent/evidence/AAA-022/a26-interaction-reader-review-20260923.json#REVIEW-AAA-022-A26-INTERACTION-READERS-001",
+    "verdict": "No material implementation or scope defect found; the two targeted findings are resolved.",
+    "limitations": "The reviewer executed no commands. It inspected the implementation and judged the exact documentation/test correction hunks supplied after its initial review."
+  },
+  "blockers": [
+    "The full A26 consumer test criterion does not pass. Its three failing test files are outside the authorized implementation paths and are explicitly verification-only.",
+    "The full doc-typecheck wrapper stops at unrelated host TypeScript errors before its documentation example phase; direct contracts-ready doc compilation passes.",
+    "The repository-wide customization-policy command reports broad preexisting dirty-worktree ownership diagnostics; the exact A26 31-path owner validation passes."
+  ],
+  "next_action": {
+    "id": "AAA-022:A26-SCOPE",
+    "kind": "DECIDE",
+    "summary": "Decide whether A26 stays blocked or receives a new bounded revalidation gate",
+    "target": "The three failing verification-only consumer fixtures and the existing repository-wide doc-typecheck/customization-policy findings",
+    "completion_signal": "The maintainer either keeps A26 blocked until the existing failures clear or authorizes preparation of a successor gate with its exact paths and evidence methods."
+  },
+  "limitations": [
+    "A26 is not VERIFIED and AAA-022 is not complete.",
+    "No verification-only test path was changed, and no implementation work outside the exact 33 A26 paths was performed.",
+    "The repository remains broadly dirty; this record does not attribute unrelated worktree paths to A26.",
+    "No push, merge, release, publication, or external repository action was performed."
+  ]
+}

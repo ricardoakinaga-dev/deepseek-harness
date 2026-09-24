@@ -85,6 +85,8 @@ These limits define the current layout behavior. They are current package constr
 - **Track and panel travel on one shared curve** — the frame's track transition and the occupant's slide read the same duration and easing variables; an occupant that used its own would detach the panel's edge from the conversation's while squeezing.
 - **No scroll anchoring during squeeze reflow** — layout changes may move the reader's viewport.
 
+**Runtime invariant:** No companion is published. The shell viewing-state store behind `ctx.layout` emits no Cordis events; clamp and track sequencing is asserted directly by this package's columns and service specs.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -94,5 +96,3 @@ These limits define the current layout behavior. They are current package constr
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The shell viewing-state store behind `ctx.layout` emits no Cordis events; clamp and track sequencing is asserted directly by this package's columns and service specs.

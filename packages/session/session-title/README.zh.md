@@ -54,11 +54,11 @@ kind: "package-reference"
 
 ### 添加提供方
 
-可选异步提供方可通过 `ctx.sessionTitle.register(provider)` 注册一个；第二次注册会立即抛出。随附的模型支持提供方是[首消息](../session-title-first-prompt-llm/README.zh.md)与[全消息](../session-title-all-prompts-llm/README.zh.md)，两者都使用共享的 [LLM（大语言模型）生成策略](../session-title-llm/README.zh.md)。提供方只有在带标记、由循环构建的请求的确切路由与已记录 `request/header` 匹配时才启动，较新的修订会取代并中止旧工作。
+可选异步提供方可通过 `ctx.sessionTitle.register(provider)` 注册一个；第二次注册会立即抛出。随附的模型支持提供方是[首消息](../session-title-first-prompt-llm/README.zh.md)与[全消息](../session-title-all-prompts-llm/README.zh.md)，两者都使用共享的 [LLM（大语言模型）生成策略](../session-title-llm/README.zh.md)。提供方加载器可使用 `sessionTitleUserMessageOf(event)`，在映射查询事件时采用服务相同的人类文本消息资格规则。提供方只有在带标记、由循环构建的请求的确切路由与已记录 `request/header` 匹配时才启动，较新的修订会取代并中止旧工作。
 
 ### 读取标题
 
-`get(session)` 从活跃或回放会话读取折叠出的最新标题，`foldSessionTitle(events)` 是对日志的纯折叠。服务要求 `ctx.sessionProjections` 并注册两个单元：客户端可见的 `title` 单元（供客户端列表行使用的已接受标题字符串）和仅供 host 使用的 `titleInput` 单元——后者折叠第一条与最新一条合格消息及其计数，使调度与回退读取通过 `stateOf()` 达到 O(1)；某次提供方生成所需的完整合格前缀，则会在执行时从会话日志中扫描取得。显式 `refresh(session)` 在需要时物化回退，然后对当前符合条件的消息显式运行已注册提供方。
+`get(session)` 从活跃 `title` 投影返回分离的快照，`foldSessionTitle(events)` 仍是对分离或持久化事件切片的纯折叠。该投影保存恢复后所需的已接受标题事实，同时客户端视图仍只有标题字符串。服务还注册仅供 host 使用的 `titleInput` 单元——后者折叠第一条与最新一条合格消息及其计数，使调度与回退读取通过 `stateOf()` 达到 O(1)。自动 `first-prompt` 工作从该投影读取第一条消息。`all-prompts` 工作与每次显式刷新都会调用提供方的异步 `loadMessages()`，并传入该修订捕获的包含式序列上限；提供方负责加载截至该位置的有序历史。服务会在调用 `generate()` 前确认读取仍属于当前修订。
 
 ### 失败与恢复
 
@@ -89,6 +89,8 @@ kind: "package-reference"
 ### 生命周期与并发
 
 每个会话的工作状态维护一个修订计数器、一个进行中的回退，以及待处理与活跃的提供方工作。较新的用户消息、提供方 dispose（资源释放）、会话 dispose 或显式刷新都会通过 `AbortController` 中止旧工作；提供方、修订、会话或信号已陈旧的完成结果无法追加。显式刷新会在提供方工作之前预留修订号；重叠的自动／显式回退请求共享一个会话本地正在进行的追加操作。服务拆卸会取消排队工作，并在卸载完成前等待不响应取消的调用结算。
+
+不变式伴生插件会为现有会话与创建基线建立每会话索引，记录已提交的人类 `user/message` seq，之后增量添加新提交的人类消息。提交前检查会根据该索引校验标题引用。
 
 ### 规范化
 
@@ -137,6 +139,7 @@ kind: "package-reference"
 
 - **没有标题删除、搜索或列表索引**——不经显式 `refresh` 就解钉回自动标题、搜索与列表索引不属于此服务。
 - **至多一个提供方**——注册表有意只接受一个实现，因此部署若要组合相互竞争的标题策略，必须编写一个自行负责优先级的提供方。
+- **提供方负责读取历史**——提供方的 `loadMessages()` 必须按日志顺序返回截至请求序列的所有合格消息。标题服务会检查列表顺序及其末项是否到达请求消息，而完整读取由提供方负责。
 
 <a id="dev-note"></a>
 ### 开发备注

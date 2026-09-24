@@ -1,0 +1,20 @@
+{
+  "record_id": "EVID-AAA-023-DIAGNOSIS-A31-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A07",
+  "timestamp": "2026-09-22T03:42:00-03:00",
+  "result": "PASS",
+  "scope": "Classification of the plugin-manager source-policy mismatch in the Web expected fixture",
+  "finding": {
+    "classification": "TEST_FIXTURE_POLICY_OVERLAY",
+    "cause": "The creator-plugin-manager expected test creates a temporary bundle directory and passes its absolute path to install_bundle. The current Web bundle intentionally permits only registry install sources, so the production policy rejects the path during installation.",
+    "owner": "apps/cli/tests/profiles/web/tests/creator-plugin-manager.expected.e2e.ts",
+    "safe_repair": "Extend only the test-generated --patch overlay for plugin-manager to allow [registry, path] and retain the existing @deepseek-ai publisher allowlist. Leave packages/bundle/web-app/cordis.patch.yml registry-only, so production Web behavior remains unchanged.",
+    "acceptance": "The focused expected test installs the temporary path bundle and completes its restart/removal assertions; the policy configuration and aggregate matrix remain passing except for the independent ContextMeter candidate-tree blockers."
+  },
+  "limitations": [
+    "No production source allowlist is widened.",
+    "The test overlay is local to the expected fixture and does not authorize external registry writes or publication.",
+    "The worktree remains dirty and no immutable candidate is sealed."
+  ]
+}

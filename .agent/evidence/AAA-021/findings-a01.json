@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-021",
+  "action_id": "AAA-021:A01",
+  "candidate_ref": "current custom/main worktree",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T22:47:56-03:00",
+  "source_documents": [
+    {
+      "id": "hygiene-audit",
+      "location": "docs/audits/auditoria-completa-2026-09-20.md:75,93",
+      "role": "The audit records the hidden build prerequisite and names the hygiene scheduler as the owner.",
+      "command_refs": ["CMD-AAA-021-A01-002"]
+    },
+    {
+      "id": "hygiene-development-doc",
+      "location": "docs/development.md:92-99",
+      "role": "The contributor reference requires build outputs before hygiene but does not identify an aggregate preflight.",
+      "command_refs": ["CMD-AAA-021-A01-002"]
+    },
+    {
+      "id": "hygiene-scheduler",
+      "location": "scripts/run-gates.ts:284-293,698-727",
+      "role": "The standalone aggregate previously scheduled artifact consumers without a prerequisite dependency.",
+      "command_refs": ["CMD-AAA-021-A01-002"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-021-HIDDEN-BUILD-PREREQUISITE",
+      "source_refs": ["hygiene-audit", "hygiene-development-doc", "hygiene-scheduler"],
+      "source_location": "scripts/run-gates.ts:284-293,698-727",
+      "observed_status": "RESOLVED",
+      "classification": "STANDALONE_HYGIENE_PRECONDITION_EXPLICIT",
+      "owner": "AAA-021",
+      "severity": "MEDIUM",
+      "summary": "Standalone hygiene now runs a manifest-output preflight and blocks all hygiene leaves until the required build outputs are present.",
+      "limitations": "The preflight proves output presence; publint and the NodeNext consumer retain ownership of output validity and compatibility. A deliberately cleaned checkout was not mutated because the active worktree contains user changes and ignored build outputs. Fixture tests cover the missing-output path."
+    }
+  ],
+  "implementation": {
+    "solution_type": "repository-automation",
+    "changes": [
+      "Add verify-hygiene-prerequisites.ts to inspect vendor and package manifest-declared lib outputs.",
+      "Add missing-output and complete-output fixtures.",
+      "Make the standalone hygiene scheduler run the preflight before every leaf; preserve check:all build dependencies.",
+      "Document the preflight and add a bilingual implemented Agent Note.",
+      "Add the missing validateMirrorIdentity declaration required by the existing AAA-017 JavaScript verifier tests."
+    ],
+    "runtime_change": false,
+    "durable_session_change": false
+  },
+  "validation": {
+    "commands": [
+      "inspect audit, development documentation, and run-gates hygiene ownership",
+      "pnpm exec vitest run scripts/run-gates.spec.ts scripts/verify-hygiene-prerequisites.spec.ts",
+      "pnpm run verify-hygiene-prerequisites",
+      "pnpm run hygiene",
+      "pnpm run typecheck",
+      "pnpm run lint:contracts-ready",
+      "pnpm run test:docs",
+      "pnpm run verify-export-jsdoc",
+      "pnpm run verify-agent-note-format",
+      "pnpm run verify-translation-pairing",
+      "git diff --check"
+    ],
+    "raw_output_files": [
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/environment.log",
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/design-inspection.log",
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/focused-tests.log",
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/preflight.log",
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/hygiene.log",
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/typecheck.log",
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/lint.log",
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/docs.log",
+      ".artifacts/aaa-021/aaa-021-a01-2026-09-20/diff-check.log"
+    ],
+    "raw_output_sha256": {
+      "environment.log": "173e17db400f3f0c215e4734e9bb7d4cb09a5236256b800b8bce0c92b6df5d0a",
+      "design-inspection.log": "99ff99793ac507f47ab48265c68816b85ff1c2b358bd9392e025580f598c7c81",
+      "focused-tests.log": "6e032fcae76e3c1fd0121957183c0f087325923e2a282eac3bfe2ce9c9cc0e73",
+      "preflight.log": "d189be68a3efb819353d0d442a6e7e8662e181306bd533897fcd2bedca33331f",
+      "hygiene.log": "e8f9d6e0e25742858f79759fd034a0555d4b31d3bf065cc53d2a04b9ab0c80e2",
+      "typecheck.log": "c5a0569c5b75c2b19ddab00b54cb94209856fb5eeb4d5abf942465706f54e59e",
+      "lint.log": "211548e2bb12dbb34bef4b88978cfb808f4982b974057d130dec6a82eddff150",
+      "docs.log": "8953e012ba46a69165deda0473764e5a9edc203675f7ea6aa2053b218bdd51d6",
+      "export-jsdoc.log": "80f11e6e5ede07281b02c7a95f37716469c6bb367b3d391d1941522cc6baa6cc",
+      "note-format.log": "9d9c18335d0a30b42990360032ceea2db5d3dd94cfed1adb83b24a16216a02cb",
+      "translation-pairing.log": "04073ec98c1e4f7386a5bb43e7ef19455ebb4c0d25c7c95f3be1b4a7ab7ae614",
+      "diff-check.log": "5ce52cdd746fc5eb0bb551b84bdbd5c248d88faccc0ca914554739779424d1c3"
+    },
+    "validation_status": "PASS_WITH_KNOWN_HISTORICAL_DOC_FAILURES",
+    "validated_at": "2026-09-20T22:47:56-03:00"
+  },
+  "decision": {
+    "result": "AAA-021:A01 PASS — standalone hygiene prerequisite is explicit and fail-fast",
+    "product_change": false,
+    "diagnosis": "The hidden build prerequisite was a repository-automation defect. A preflight is preferable to making hygiene build because it preserves explicit artifact ownership and the existing check:all ordering.",
+    "next_action": "Complete AAA-021 through the state-last lifecycle and return to AAA-018:A02 while the locale-channel decision remains pending."
+  }
+}

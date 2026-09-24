@@ -1,0 +1,26 @@
+{
+  "record_id": "REVIEW-AAA-022-A26-INTERACTION-READERS-001",
+  "task": "AAA-022",
+  "action": "AAA-022:A26",
+  "reviewer": "/root/a17_critic",
+  "review_type": "INDEPENDENT_READ_ONLY_IMPLEMENTATION_REVIEW",
+  "reviewed_scope": ".agent/gates/implementation-ready-AAA-022-A25-interaction-readers.json: 33 implementation paths, with the approved A24 interaction-reader design and review",
+  "procedure": "Inspect the three owner folds, provider services, invariant companions, lifecycle tests, manifests, generated API catalog, bilingual docs, and exact gate scope. Assess the two follow-up hunks supplied after the initial review.",
+  "verdict": "NO_MATERIAL_IMPLEMENTATION_OR_SCOPE_DEFECT_FOUND; TWO_TARGETED_FINDINGS_RESOLVED",
+  "findings": [
+    {
+      "id": "IR-003-LIFECYCLE-COVERAGE",
+      "severity": "P2",
+      "status": "RESOLVED",
+      "evidence": "The initial review found that permission-presets and user-approval did not append an event after the final provider lease was released and before reactivation. The tests now append `permission/preset` and `approval/policy` events in that interval. The four owner test files pass 61/61 after the changes."
+    },
+    {
+      "id": "IR-002-COMMAND-DOC-PREFIX-LATCHING",
+      "severity": "P3",
+      "status": "RESOLVED",
+      "evidence": "The initial review found that four English/Chinese command docs described prefix-gap latching before candidate rejection. The revised prose says rejected candidates preserve the fold, while committed event gaps and stale current-prefix reads latch failure. The six named bilingual pairs and the 22 documentation quick gates pass."
+    }
+  ],
+  "remaining_material_findings": [],
+  "limitations": "The reviewer ran no commands or tests. The initial review inspected the working tree; follow-up confirmation of the corrections was based on the exact changed hunks supplied in the review request. This review does not approve the failed full consumer test batch or repository-wide gates."
+}

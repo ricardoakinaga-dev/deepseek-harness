@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-009",
+  "action_id": "AAA-009:A01",
+  "candidate_ref": "current working tree client-domain graph inspection",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T21:10:22-03:00",
+  "source_documents": [
+    {
+      "id": "client-domain-verifier",
+      "location": "scripts/verify-client-domain-graph.ts:24-75",
+      "role": "Defines contract/ as the shared layer, apply.ts/index.ts/index.tsx as the only top-level assembly files, and sibling-domain imports as violations."
+    },
+    {
+      "id": "client-package-rules",
+      "location": "packages/client/AGENTS.md:107-109",
+      "role": "Requires one plugin package per UI feature, contract/ as the shared API, domain isolation, and apply.ts as the cross-domain assembly point."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-009-GRAPH",
+      "source_refs": ["client-domain-verifier", "client-package-rules", "AAA-QB-04"],
+      "source_location": "packages/client/*/src/client",
+      "command_ids": ["CMD-AAA-009-001"],
+      "observed_status": "FAIL",
+      "classification": "38_CLIENT_DOMAIN_OWNERSHIP_VIOLATIONS",
+      "owner": "AAA-009",
+      "severity": "HIGH",
+      "summary": "The client-domain verifier reports 38 violations: three conversation skeleton-to-input imports, seven Browser view-to-browser imports, and 28 document-preview imports spanning shared document APIs, text implementation files, and Office-to-PDF assembly.",
+      "limitations": "This action establishes ownership and dependency proposals only. It does not approve a file relocation or a public export change."
+    }
+  ],
+  "inventory": {
+    "total_violations": 38,
+    "groups": [
+      {
+        "id": "AAA-009-G1",
+        "count": 3,
+        "owner": "ui-conversation input domain, assembled by ui-conversation/apply.ts",
+        "recommended_resolution": "Move the InputBar implementation and its local ContextMeter styling dependency into the input domain, then keep apply.ts as the registration point. The implementation consumes DraftEditor, view binding, and submission policy behavior, so exposing those implementation modules through contract/ would widen the shared API unnecessarily.",
+        "dependencies": ["Preserve contract/ input types", "Update apply.ts import and any local stylesheet paths"],
+        "focused_acceptance": ["pnpm exec tsx scripts/verify-client-domain-graph.ts", "ui-conversation GUI/component tests", "REAL composition test for the composer slot"],
+        "violations": [
+          "ui-conversation/src/client/skeleton/InputBar.tsx -> ../input/editor/DraftEditor.tsx",
+          "ui-conversation/src/client/skeleton/InputBar.tsx -> ../input/editor/view-binding.ts",
+          "ui-conversation/src/client/skeleton/InputBar.tsx -> ../input/submission-policy.ts"
+        ],
+        "decision_needed": "Confirm that the composer body belongs to the input domain and that apply.ts remains the only cross-domain assembly owner."
+      },
+      {
+        "id": "AAA-009-G2",
+        "count": 7,
+        "owner": "ui-sidebar-browser browser domain, assembled by ui-sidebar-browser/index.ts",
+        "recommended_resolution": "Move BrowserBody and BrowserTitle, with their feature stylesheet, into the browser domain; leave index.ts responsible for the tab registration and public re-exports.",
+        "dependencies": ["Preserve BrowserBodyProps and BrowserInjected package exports", "Keep browser state/controller ownership unchanged"],
+        "focused_acceptance": ["pnpm exec tsx scripts/verify-client-domain-graph.ts", "Browser GUI/component tests", "REAL composition test for the Browser tab body and title"],
+        "violations": [
+          "ui-sidebar-browser/src/client/view/BrowserBody.tsx -> ../browser/BrowserController.ts",
+          "ui-sidebar-browser/src/client/view/BrowserBody.tsx -> ../browser/BrowserFrame.ts",
+          "ui-sidebar-browser/src/client/view/BrowserBody.tsx -> ../browser/BrowserNavigation.ts",
+          "ui-sidebar-browser/src/client/view/BrowserBody.tsx -> ../browser/url.ts",
+          "ui-sidebar-browser/src/client/view/BrowserBody.tsx -> ../browser/store.ts",
+          "ui-sidebar-browser/src/client/view/BrowserTitle.tsx -> ../browser/BrowserNavigation.ts",
+          "ui-sidebar-browser/src/client/view/BrowserTitle.tsx -> ../browser/store.ts"
+        ],
+        "decision_needed": "Confirm that the view directory is an obsolete presentation split rather than an independent domain."
+      },
+      {
+        "id": "AAA-009-G3",
+        "count": 10,
+        "owner": "ui-sidebar-documentpreview shared document API and text domain",
+        "recommended_resolution": "Place the document slot types in contract/, expose the registry and tab-lifetime helper through top-level shared modules or an explicitly approved shared API, and move TextPreview, face, and store into the text domain so the text renderer owns its text helpers.",
+        "dependencies": ["Choose the shared API file locations", "Move text implementation files as one unit", "Update top-level index.ts exports and registration imports"],
+        "focused_acceptance": ["pnpm exec tsx scripts/verify-client-domain-graph.ts", "document-preview GUI/component tests", "REAL composition test covering text preview and renderer selection"],
+        "violations": [
+          "ui-sidebar-documentpreview/src/client/TextPreview.tsx -> ./document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/TextPreview.tsx -> ./document/registry.ts (first import)",
+          "ui-sidebar-documentpreview/src/client/TextPreview.tsx -> ./document/registry.ts (type import)",
+          "ui-sidebar-documentpreview/src/client/TextPreview.tsx -> ./document/unviewable.ts",
+          "ui-sidebar-documentpreview/src/client/TextPreview.tsx -> ./text/index.ts",
+          "ui-sidebar-documentpreview/src/client/TextPreview.tsx -> ./text/lines.ts (first import)",
+          "ui-sidebar-documentpreview/src/client/TextPreview.tsx -> ./text/lines.ts (second import)",
+          "ui-sidebar-documentpreview/src/client/TextPreview.tsx -> ./text/lines.ts (third import)",
+          "ui-sidebar-documentpreview/src/client/face.ts -> ./document/registry.ts",
+          "ui-sidebar-documentpreview/src/client/store.ts -> ./document/registry.ts"
+        ],
+        "decision_needed": "Confirm whether the runtime registry and tab-lifetime helper qualify as approved package-shared modules or require a narrower contract/ plus assembly adapter split."
+      },
+      {
+        "id": "AAA-009-G4",
+        "count": 16,
+        "owner": "ui-sidebar-documentpreview renderer domains through the shared document API",
+        "recommended_resolution": "Replace renderer-to-document relative imports with the approved shared document contract/registry/tab-lifetime locations; keep each renderer's body and registration implementation in its own domain.",
+        "dependencies": ["AAA-009-G3 shared API decision", "Do not expose renderer internals through the shared API"],
+        "focused_acceptance": ["pnpm exec tsx scripts/verify-client-domain-graph.ts", "renderer component tests for code/html/image/markdown/office/pdf/text", "REAL composition test for all registered renderer definitions"],
+        "violations": [
+          "ui-sidebar-documentpreview/src/client/code/CodeBody.tsx -> ../document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/html/HtmlBody.tsx -> ../document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/html/index.ts -> ../document/registry.ts",
+          "ui-sidebar-documentpreview/src/client/image/ImageBody.tsx -> ../document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/image/index.ts -> ../document/registry.ts",
+          "ui-sidebar-documentpreview/src/client/markdown/MarkdownBody.tsx -> ../document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/markdown/index.ts -> ../document/registry.ts",
+          "ui-sidebar-documentpreview/src/client/office/OfficeBody.tsx -> ../document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/office/index.ts -> ../document/tab-lifetime.ts",
+          "ui-sidebar-documentpreview/src/client/office/index.ts -> ../document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/pdf/index.ts -> ../document/tab-lifetime.ts",
+          "ui-sidebar-documentpreview/src/client/pdf/index.ts -> ../document/registry.ts",
+          "ui-sidebar-documentpreview/src/client/pdf/pdf.tsx -> ../document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/text/TextBody.tsx -> ../document/contract.ts",
+          "ui-sidebar-documentpreview/src/client/text/index.ts -> ../document/registry.ts",
+          "ui-sidebar-documentpreview/src/client/text/lines.ts -> ../document/contract.ts"
+        ],
+        "decision_needed": "Confirm the shared API locations before touching renderer imports, because the choice changes package-private module ownership and public re-export paths."
+      },
+      {
+        "id": "AAA-009-G5",
+        "count": 2,
+        "owner": "ui-sidebar-documentpreview top-level assembly of office and PDF domains",
+        "recommended_resolution": "Have top-level index.ts obtain the PDF presentation from the pdf domain and inject it into office registration; office/index.ts must not import pdf/index.ts or LazyPdfBody.tsx directly.",
+        "dependencies": ["AAA-009-G3 shared API decision", "Define a contract-level PDF presentation type if office receives a typed value"],
+        "focused_acceptance": ["pnpm exec tsx scripts/verify-client-domain-graph.ts", "Office/PDF nested-tab component tests", "REAL composition test proving ordinary PDF and Office PDF registration lifecycles"],
+        "violations": [
+          "ui-sidebar-documentpreview/src/client/office/index.ts -> ../pdf/index.ts",
+          "ui-sidebar-documentpreview/src/client/office/index.ts -> ../pdf/LazyPdfBody.tsx"
+        ],
+        "decision_needed": "Confirm top-level index.ts as the sole owner of the Office-to-PDF composition and lifecycle handoff."
+      }
+    ]
+  },
+  "decision": {
+    "result": "AAA-009:A01 PASS WITH DESIGN DECISION PENDING",
+    "product_change": false,
+    "diagnosis": "All 38 violations are assigned to a package/domain owner and an ordered remediation group. The verifier's architecture rule is clear; the remaining decision is the exact shared document API placement and the semantic owner of the composer/view presentation files.",
+    "next_action": "Obtain maintainer confirmation of the proposed ownership and shared API split before creating an implementation-ready gate or changing client source."
+  },
+  "validation": {
+    "command_record_count": 4,
+    "raw_output_files": 4,
+    "raw_output_sha256": {
+      "verify-client-domain-graph.log": "c1cbc6e4c42372ab4eb0d41b910b27f0450a65a222ada9ae6f27758d84b8e85c",
+      "rule-inspection.log": "166b836f958f9602c86413c13217099ebddfaad82e0a7e3875d6cb8f8b9aaa1f",
+      "assembly-inspection.log": "380df2ce6d9476492547fdf3cc5e9981b8809eb2590fa8c1bc7c8a96621690dd",
+      "ownership-inspection.log": "6f067b46d5f18d4bd8f103ea1c77f6dc7da3d2d24b07a2d38749c58f64801ba3"
+    },
+    "validation_method": "Count the verifier output, reconcile group counts to 38, confirm every reported path/import appears in exactly one inventory group, and compare the proposed owners with the package rule and current assembly files.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T21:10:22-03:00"
+  }
+}

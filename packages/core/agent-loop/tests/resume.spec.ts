@@ -20,13 +20,18 @@ import { MockAdapter, textResponse } from './mock-adapter.ts'
 const dirs: string[] = []
 afterEach(async () => { for (const d of dirs.splice(0)) await rm(d, { recursive: true, force: true }) })
 
-async function persistentHarness(adapter: MockAdapter): Promise<{ ctx: Context; root: string }> {
+async function persistentHarness(adapter: MockAdapter, prepublicationAppendBatchSize?: number): Promise<{ ctx: Context; root: string }> {
   const root = await mkdtemp(join(tmpdir(), 'dsh-resume-'))
   dirs.push(root)
-  return { ctx: await mountPersistentHarness(root, adapter), root }
+  return { ctx: await mountPersistentHarness(root, adapter, undefined, prepublicationAppendBatchSize), root }
 }
 
-async function mountPersistentHarness(root: string, adapter: MockAdapter, compression?: 'none'): Promise<Context> {
+async function mountPersistentHarness(
+  root: string,
+  adapter: MockAdapter,
+  compression?: 'none',
+  prepublicationAppendBatchSize?: number,
+): Promise<Context> {
   const ctx = new Context()
   await ctx.plugin(LlmRuntime)
   await ctx.plugin(SessionStore)
@@ -37,7 +42,10 @@ async function mountPersistentHarness(root: string, adapter: MockAdapter, compre
   // The backend mounts BEFORE the loop so root teardown unwinds the loop
   // first: live agents drain their writers into still-open handles.
   await ctx.plugin(JsonlSessionPersistence, { root, ...compression === undefined ? {} : { compression } })
-  await ctx.plugin(AgentLoop, { agents: [] })
+  await ctx.plugin(AgentLoop, {
+    agents: [],
+    ...prepublicationAppendBatchSize === undefined ? {} : { prepublicationAppendBatchSize },
+  })
   ctx.llm.registerAdapter(['mock'], adapter)
   return ctx
 }
@@ -114,6 +122,184 @@ function throwUnknown(value: unknown): never {
 }
 
 describe('the session-persistence Agent Note: AgentLoop factory create/resume', () => {
+  it('uses the bounded default and rejects invalid prepublication append sizes', async () => {
+    const { ctx } = await persistentHarness(new MockAdapter([]))
+    expect(ctx.agentLoop.config.prepublicationAppendBatchSize).toBe(128)
+    await ctx.fiber.dispose()
+
+    for (const value of [0, 1.5, 4097, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(() => new AgentLoop(new Context(), {
+        agents: [],
+        prepublicationAppendBatchSize: value,
+      })).toThrow(/prepublicationAppendBatchSize must be a positive safe integer no greater than 4096/)
+    }
+  })
+
+  it('writes the constructor baseline in pages no larger than the configured event count', async () => {
+    const { ctx } = await persistentHarness(new MockAdapter([]), 1)
+    const sessionId = SessionId('prepublication-pages')
+    const pages: number[][] = []
+    const originalCreate = ctx.sessionPersistence.create.bind(ctx.sessionPersistence)
+    ctx.sessionPersistence.create = async (header, options) => {
+      const handle = await originalCreate(header, options)
+      const append = handle.append.bind(handle)
+      vi.spyOn(handle, 'append').mockImplementation(async (events, appendOptions) => {
+        pages.push(events.map(event => event.seq))
+        await append(events, appendOptions)
+      })
+      return handle
+    }
+
+    const created = await ctx.agents.create({
+      sessionId,
+      seed: [
+        { type: 'turn/start', seq: SessionSeq(0), time: 1, data: { turn: 1 } },
+        { type: 'turn/end', seq: SessionSeq(1), time: 2, data: { turn: 1, reason: { kind: 'completed' } } },
+      ],
+    })
+    expect(pages).toEqual([[0], [1], [2]])
+    await created.dispose()
+    expect((await readStoredEvents(ctx, sessionId)).map(event => event.seq)).toEqual([0, 1, 2])
+    await ctx.fiber.dispose()
+  })
+
+  it('drains setup events accepted during an append before publishing the Session', async () => {
+    const { ctx } = await persistentHarness(new MockAdapter([]), 1)
+    const sessionId = SessionId('prepublication-arrival')
+    const pageStarted = Promise.withResolvers<undefined>()
+    const pageGate = Promise.withResolvers<undefined>()
+    const attempted: number[][] = []
+    const acknowledged: number[] = []
+    let firstPage = true
+    let agent: Agent | undefined
+    let publishedSeq: number | undefined
+    const originalCreate = ctx.sessionPersistence.create.bind(ctx.sessionPersistence)
+    ctx.sessionPersistence.create = async (header, options) => {
+      const handle = await originalCreate(header, options)
+      const append = handle.append.bind(handle)
+      vi.spyOn(handle, 'append').mockImplementation(async (events, appendOptions) => {
+        attempted.push(events.map(event => event.seq))
+        if (firstPage) {
+          firstPage = false
+          pageStarted.resolve(undefined)
+          await pageGate.promise
+        }
+        await append(events, appendOptions)
+        acknowledged.push(...events.map(event => event.seq))
+      })
+      return handle
+    }
+    ctx.on('session/created', (session) => {
+      publishedSeq = session.seq
+      expect(acknowledged).toEqual([0, 1])
+    })
+
+    const creating = ctx.agents.create({
+      sessionId,
+      setup: (_agentCtx, preparedAgent) => {
+        agent = preparedAgent
+        preparedAgent.inbox.append('next-turn', createUserMessage({
+          content: [{ type: 'text', text: 'first setup event' }],
+          source: { kind: 'user' },
+        }))
+      },
+    })
+    await pageStarted.promise
+    if (agent === undefined) throw new Error('setup Agent was not captured')
+    agent.inbox.append('next-turn', createUserMessage({
+      content: [{ type: 'text', text: 'arrived during append' }],
+      source: { kind: 'user' },
+    }))
+    pageGate.resolve(undefined)
+    const created = await creating
+
+    expect(attempted).toEqual([[0], [1]])
+    expect(acknowledged).toEqual([0, 1])
+    expect(publishedSeq).toBe(2)
+    expect((await readStoredEvents(ctx, sessionId)).map(event => event.seq)).toEqual([0, 1])
+    await created.dispose()
+    expect((await readStoredEvents(ctx, sessionId)).map(event => event.seq)).toEqual([0, 1, 2])
+    await ctx.fiber.dispose()
+  })
+
+  it('recovers an ambiguous later repair page only through explicit resume of the exact id', async () => {
+    const sessionId = SessionId('repair-page-recovery')
+    const { ctx: seedCtx, root } = await persistentHarness(new MockAdapter([]))
+    const callIds = [ToolCallId('call-a'), ToolCallId('call-b'), ToolCallId('call-c')]
+    await seedStoredSession(seedCtx, sessionId, [
+      { type: 'turn/start', seq: SessionSeq(0), time: 1, data: { turn: 1 } },
+      { type: 'step/start', seq: SessionSeq(1), time: 1, data: { turn: 1, step: 1 } },
+      { type: 'assistant/message', seq: SessionSeq(2), time: 2, surfaceOp: 'append', data: {
+        turn: 1,
+        step: 1,
+        stream: [],
+        message: createMessage({
+          role: 'assistant',
+          content: callIds.map(id => ({ type: 'tool-call' as const, id, name: 'bash', arguments: '{}' })),
+          source: { kind: 'model', provider: 'mock', model: 'mock' },
+        }),
+      } },
+      ...callIds.map((callId, index) => ({
+        type: 'tool/call' as const,
+        seq: SessionSeq(index + 3),
+        time: 2,
+        data: { turn: 1, step: 1, callId, name: 'bash', arguments: '{}' },
+      })),
+    ] as SessionEvent[])
+    await seedCtx.fiber.dispose()
+
+    const ctx = await mountPersistentHarness(root, new MockAdapter([]), undefined, 2)
+    const originalOpen = ctx.sessionPersistence.open.bind(ctx.sessionPersistence)
+    const attempts: number[][] = []
+    const partialFailure = new Error('second repair page rejected after partial effect')
+    ctx.sessionPersistence.open = async (id, access, options) => {
+      const handle = await originalOpen(id, access, options)
+      if (id !== sessionId || access !== 'write') return handle
+      const append = handle.append.bind(handle)
+      let call = 0
+      vi.spyOn(handle, 'append').mockImplementation(async (events, appendOptions) => {
+        attempts.push(events.map(event => event.seq))
+        call++
+        if (call === 2) {
+          await append(events.slice(0, 1), appendOptions)
+          throw partialFailure
+        }
+        await append(events, appendOptions)
+      })
+      return handle
+    }
+    const announcements: string[] = []
+    ctx.on('session/created', () => announcements.push('session'))
+    ctx.on('agent/created', async () => {
+      announcements.push('agent')
+      return undefined
+    })
+
+    await expect(ctx.agents.resume({ resumeSessionId: sessionId })).rejects.toBe(partialFailure)
+    expect(attempts).toEqual([[6, 7], [8, 9]])
+    expect(announcements).toEqual([])
+    expect(ctx.agents.get(sessionId)).toBeUndefined()
+    const partial = await readStoredEvents(ctx, sessionId)
+    expect(partial.map(event => event.seq)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8])
+    expect(partial.filter(event => event.type === 'tool/result')).toHaveLength(3)
+
+    ctx.sessionPersistence.open = originalOpen
+    const resumed = await ctx.agents.resume({ resumeSessionId: sessionId })
+    expect(announcements).toEqual(['session', 'agent'])
+    await resumed.dispose()
+
+    const repaired = await readStoredEvents(ctx, sessionId)
+    expect(repaired.slice(0, partial.length)).toEqual(partial)
+    expect(repaired.map(event => event.seq)).toEqual(Array.from({ length: 12 }, (_, index) => index))
+    expect(repaired.filter(event => event.type === 'tool/result')).toHaveLength(3)
+    expect(repaired.filter(event => event.type === 'step/end')).toHaveLength(1)
+    expect(repaired.filter(event => event.type === 'turn/end')).toHaveLength(1)
+    expect(repaired.at(-3)).toMatchObject({ type: 'step/end' })
+    expect(repaired.at(-2)).toMatchObject({ type: 'turn/end', data: { reason: { kind: 'interrupted' } } })
+    expect(repaired.at(-1)).toMatchObject({ type: 'session/end-seed' })
+    await ctx.fiber.dispose()
+  })
+
   it('normalizes a non-Error resume publication failure for rollback and releases the write handle', async () => {
     const sessionId = SessionId('unknown-resume-failure-s')
     const root = await persistSession(sessionId)
@@ -619,9 +805,12 @@ describe('the session-persistence Agent Note: AgentLoop factory create/resume', 
     const setupStarted = Promise.withResolvers<undefined>()
     const order: string[] = []
 
-    ctx.on('session/created', (session) => {
+    ctx.on('session/created', (session, baseline) => {
       expect(ctx.sessions.get(session.id)).toBe(session)
       expect(ctx.agents.get(sessionId)?.session).toBe(session)
+      expect(baseline.events).toHaveLength(4)
+      expect(ctx.sessionProjections.stateOf(session, 'turnBoundary')?.lastTurn).toBe(1)
+      expect(ctx.sessionProjections.stateOf(session, 'inbox')?.['next-turn']).toHaveLength(1)
       order.push('session/created')
     })
     ctx.on('agent/created', ({ agent }) => {
@@ -637,6 +826,10 @@ describe('the session-persistence Agent Note: AgentLoop factory create/resume', 
         expect(agent.id).toBe(sessionId)
         // The two persisted events plus the end-seed marker.
         expect(agent.session.snapshotEvents()).toHaveLength(3)
+        agent.inbox.append('next-turn', createUserMessage({
+          content: [{ type: 'text', text: 'queued during setup' }],
+          source: { kind: 'user' },
+        }))
         agentCtx.on('session/created', () => void order.push('setup-listener:session/created'))
         agentCtx.on('agent/created', () => void order.push('setup-listener:agent/created'))
         order.push('setup:start')

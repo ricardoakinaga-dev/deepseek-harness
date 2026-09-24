@@ -1,0 +1,49 @@
+{
+  "record_id": "EVID-AAA-023-BENCHMARK-A53-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A20",
+  "result": "PARTIAL",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; sealed candidate tree 023906dd82be40ed0ef187acd59fd7b5fb56eaae; /home/ricardo/dsh-aaa023-candidate.eSCkTH",
+  "commands": [
+    {
+      "command": "pnpm run check:ci:bench",
+      "exit_status": 1,
+      "duration_seconds": 142.12,
+      "summary": {
+        "gate": "performance benchmarks",
+        "test_files": { "passed": 5, "failed": 2 },
+        "tests": { "passed": 39, "failed": 2 },
+        "failures": {
+          "active_stream_reconnect_replace_median_ms": { "value": 64.27203900000006, "budget": 63 },
+          "terminal_five_mib_complete_median_ms": { "value": 459.575522, "budget": 300 }
+        },
+        "terminal_five_mib_samples_ms": [430.87102400000003, 785.197275, 408.88110600000005, 626.577449, 459.575522],
+        "active_stream_reconnect_samples_ms": [108.13587800000005, 64.27203900000006, 58.62173799999994]
+      },
+      "artifacts": ["/tmp/dsh-a20-candidate-benchmark.log"]
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.bench.config.ts --maxWorkers=1 benchmarks/active-stream-reconnect/reconnect.bench.client.ts benchmarks/terminal-io/terminal-io.bench.ts",
+      "exit_status": 0,
+      "duration_seconds": 5.71,
+      "summary": {
+        "test_files": { "passed": 2 },
+        "tests": { "passed": 6 },
+        "active_stream_reconnect_replace_median_ms": 37.136438999999996,
+        "active_stream_reconnect_budget_ms": 63,
+        "terminal_five_mib_complete_median_ms": 186.755986,
+        "terminal_five_mib_budget_ms": 300,
+        "terminal_five_mib_samples_ms": [186.195011, 191.22697399999998, 186.633418, 191.466929, 186.755986]
+      },
+      "artifacts": ["/tmp/dsh-a20-focused-benchmark.log"]
+    }
+  ],
+  "decision": "Retain A20 as partial: the complete benchmark lane fails two timing assertions, while an immediate focused rerun passes both cases with substantial margin. No budget was widened and no production optimization was inferred; a complete-lane rerun is required to distinguish host/workflow interference from a repeatable regression.",
+  "limitations": "The designated hosted Linux benchmark job remains unqualified locally; this record is a same-candidate diagnostic. No threshold, retry policy, publication, push, merge, release, or final verdict action was performed.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/benchmark-a53.json",
+    "/tmp/dsh-a20-candidate-benchmark.log",
+    "/tmp/dsh-a20-focused-benchmark.log"
+  ],
+  "observed_at": "2026-09-22T15:42:14-03:00"
+}

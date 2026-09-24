@@ -78,6 +78,8 @@ These limits define the current trigger pipeline. They are current package const
 - **Global source layer only** — session-scope source registration (per-session shadowing) is designed but not enabled; the ledger tracks the trigger condition, a real per-session source need.
 - **Overlay SlotMap merge home is split from slot ownership** — the sole `conversation.input.overlay` merge lives here, while ui-conversation owns its anchor, children declaration, and lifecycle because the dependency direction is ui-conversation → ui-input-trigger.
 
+**Runtime invariant:** No companion is published. The trigger pipeline is a browser-side pure core (detect/reduce/match) plus a registry whose disposal is proven by the HMR-safety spec; it emits no cordis events and owns no cross-plugin mutable state.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -87,5 +89,3 @@ These limits define the current trigger pipeline. They are current package const
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The trigger pipeline is a browser-side pure core (detect/reduce/match) plus a registry whose disposal is proven by the HMR-safety spec; it emits no cordis events and owns no cross-plugin mutable state.

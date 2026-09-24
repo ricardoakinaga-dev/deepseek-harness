@@ -159,12 +159,12 @@ export class AcpSession {
         await mountAcpMcpServers(agentCtx, options.mcpServers, options.cwd)
       },
     })
-    /* v8 ignore start -- a fulfilled Agent resume necessarily ran setup to completion. */
+    /*! v8 ignore start -- a fulfilled Agent resume necessarily ran setup to completion. */
     if (modelControl === undefined) {
       await handle.dispose()
       throw internalError('session/resume did not compose model selection')
     }
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
     return new AcpSession(ctx, handle, modelControl, options.notify)
   }
 
@@ -220,17 +220,17 @@ export class AcpSession {
             sessionId: this.agent.session.id,
             update: { sessionUpdate: 'config_option_update', configOptions },
           }))
-          /* v8 ignore start -- the bridge notifier contains transport failure. */
+          /*! v8 ignore start -- the bridge notifier contains transport failure. */
           .catch((error: unknown) => {
             this.ctx.logger.warn(`acp: config-option update failed: ${errorChain(error)}`)
           })
-        /* v8 ignore stop */
+        /*! v8 ignore stop */
       })
-      /* v8 ignore start -- option discovery contains per-provider failure. */
+      /*! v8 ignore start -- option discovery contains per-provider failure. */
       .catch((error: unknown) => {
         this.ctx.logger.warn(`acp: config-option update failed: ${errorChain(error)}`)
       })
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
 
   /**
@@ -268,7 +268,7 @@ export class AcpSession {
     this.inflight = inflight
     const onRequestAbort = (): void => { this.cancelPrompt('ACP prompt request cancelled') }
     requestSignal?.addEventListener('abort', onRequestAbort, { once: true })
-    /* v8 ignore next -- the SDK dispatches a live signal, then notifies abort through its listener. */
+    /*! v8 ignore next -- the SDK dispatches a live signal, then notifies abort through its listener. */
     if (requestSignal?.aborted === true) onRequestAbort()
     try {
       let admissionFailure: unknown
@@ -361,11 +361,11 @@ export class AcpSession {
         const previous = this.outputTail
         this.outputTail = previous
           .then(() => this.notify({ sessionId: this.agent.session.id, update: toolCallUpdate(event) }))
-          /* v8 ignore start -- the bridge notifier contains transport rejection. */
+          /*! v8 ignore start -- the bridge notifier contains transport rejection. */
           .catch((error: unknown) => {
             this.ctx.logger.warn(`acp: tool-call update delivery failed: ${errorChain(error)}`)
           })
-        /* v8 ignore stop */
+        /*! v8 ignore stop */
       } else if (event.type === 'tool/result') {
         const previous = this.outputTail
         this.outputTail = previous
@@ -373,11 +373,11 @@ export class AcpSession {
             sessionId: this.agent.session.id,
             update: await toolResultUpdate(this.ctx, event),
           }))
-          /* v8 ignore start -- supplemental-content conversion failure is contained and cannot fail Agent work. */
+          /*! v8 ignore start -- supplemental-content conversion failure is contained and cannot fail Agent work. */
           .catch((error: unknown) => {
             this.ctx.logger.warn(`acp: tool-result update delivery failed: ${errorChain(error)}`)
           })
-        /* v8 ignore stop */
+        /*! v8 ignore stop */
       }
     } finally {
       const inflight = this.inflight
@@ -458,11 +458,11 @@ export class AcpSession {
       }
       this.pendingSelections.clear()
       if (failures.length === 1) throw failures[0]
-      /* v8 ignore start -- independent teardown failures can aggregate only under multiple simultaneous provider faults. */
+      /*! v8 ignore start -- independent teardown failures can aggregate only under multiple simultaneous provider faults. */
       if (failures.length > 1) {
         throw new AggregateError(failures, `ACP session teardown failed: ${failures.map(errorChain).join('; ')}`)
       }
-      /* v8 ignore stop */
+      /*! v8 ignore stop */
     })()
     return this.closing
   }
@@ -489,7 +489,7 @@ export class AcpSession {
         await this.agent.whenIdle()
         await this.outputTail
       }
-      /* v8 ignore next -- this prompt owns the slot until this exact settlement clears it. */
+      /*! v8 ignore next -- this prompt owns the slot until this exact settlement clears it. */
       if (this.inflight !== inflight) return
       this.inflight = undefined
       if (inflight.cancelRequested) {
@@ -513,12 +513,12 @@ export class AcpSession {
         inflight.resolve(turnEndToStopReason(end))
       }
     })()
-      /* v8 ignore start -- admissionDone only resolves; idle/output gates contain their own failures. */
+      /*! v8 ignore start -- admissionDone only resolves; idle/output gates contain their own failures. */
       .catch((error: unknown) => {
         if (this.inflight !== inflight) return
         this.inflight = undefined
         inflight.reject(internalError(`prompt settlement failed: ${errorChain(error)}`))
       })
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
 }

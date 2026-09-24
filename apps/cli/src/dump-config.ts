@@ -18,7 +18,7 @@ import { homePatchPath, prepareProfile, PROFILE_ROOT_FILENAME } from './profile-
 
 const NAME = 'dsh'
 
-/* v8 ignore start -- built-bin acceptance drives this boot-free dispatch */
+/*! v8 ignore start -- built-bin acceptance drives this boot-free dispatch */
 /**
  * Print a profile composition with comments naming each source file and patch layer.
  * @param profile - the profile name.
@@ -56,4 +56,4 @@ export function runDumpConfig(
   // The dump anchors on the same empty root file the boot includes.
   process.stdout.write(renderConfigDump(NAME, join(loaded.dir, PROFILE_ROOT_FILENAME), layers))
 }
-/* v8 ignore stop */
+/*! v8 ignore stop */

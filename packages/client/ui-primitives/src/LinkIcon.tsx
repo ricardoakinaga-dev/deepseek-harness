@@ -59,7 +59,7 @@ export function classifyLinkPath(path: string): LinkIconKind {
     case 'markdown':
     case 'other':
     case 'video': return 'other'
-    /* v8 ignore next -- classifyFileType returns a closed union exhausted above */
+    /*! v8 ignore next -- classifyFileType returns a closed union exhausted above */
     default: return assertNever(type)
   }
 }
@@ -137,7 +137,7 @@ const PaperDocGlyph = ({ size, className }: IconProps) => (
 )
 
 /** Local exhaustiveness helper — this package does not depend on `dsh-llm`. */
-/* v8 ignore next 3 -- closed-union backstop; only reached if a kind is forged */
+/*! v8 ignore next 3 -- closed-union backstop; only reached if a kind is forged */
 function assertNever(value: never): never {
   throw new Error(`unreachable link icon kind: ${String(value)}`)
 }
@@ -157,7 +157,7 @@ export function LinkIcon({ kind, href, size = 14, className }: LinkIconProps): R
     case 'image': return <PhotoGlyph size={size} className={className} />
     case 'document': return <PaperDocGlyph size={size} className={className} />
     case 'other': return <PaperGlyph size={size} className={className} />
-    /* v8 ignore next -- closed-union backstop; only reached if a kind is forged */
+    /*! v8 ignore next -- closed-union backstop; only reached if a kind is forged */
     default: return assertNever(kind)
   }
 }

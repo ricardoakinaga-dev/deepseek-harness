@@ -13,6 +13,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { isDeepStrictEqual } from 'node:util'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { Message } from '@deepseek-ai/dsh-llm'
 import type { Session, UserMessage } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type { ToolExecution, ToolExecutionResult, ToolExecutionToken } from '@deepseek-ai/dsh-tools'
@@ -52,14 +53,16 @@ function visibleBaselineSource(
       return message.source
     }
   }
-  for (const seq of agent.session.surface.nodes.toReversed()) {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    const event = agent.session.eventAt(seq)
-    if (event?.type === 'user/message'
-      && event.data.source.kind === 'agent-instructions'
-      && event.data.source.baseline === true) return event.data.source
+  for (const message of agent.session.deriveMessages().filter(isUserRoleMessage).toReversed()) {
+    if (message.source.kind === 'agent-instructions'
+      && message.source.baseline === true) return message.source
   }
   return undefined
+}
+
+/** Narrow a derived transcript entry to a user-role message. */
+function isUserRoleMessage(message: Message): message is UserMessage {
+  return message.role === 'user'
 }
 
 function isAgentInstructionsMessage(message: UserMessage): boolean {
@@ -123,7 +126,7 @@ export function apply(ctx: Context, config: Config): void {
     const changes: AgentInstructionChange[] = []
     let desiredBaseline = false
     const authorityMessages = [...claimed]
-    /* v8 ignore next -- normal agents carry an absolute session cwd. */
+    /*! v8 ignore next -- normal agents carry an absolute session cwd. */
     const cwd = agent.session.header.cwd ?? process.cwd()
     const projectRoot = await findProjectRoot(cwd, resolved.projectRootMarkers, fileSystem, signal)
     const identity = workspaceBaselineIdentity(resolved, cwd, projectRoot)
@@ -204,7 +207,7 @@ export function apply(ctx: Context, config: Config): void {
     )
     if (update !== undefined) {
       content.push(...update.context.content)
-      /* v8 ignore next -- reconciliation constructs only agent-instructions contexts. */
+      /*! v8 ignore next -- reconciliation constructs only agent-instructions contexts. */
       if (update.context.source.kind === 'agent-instructions') {
         changes.push(...update.context.source.changes)
       }
@@ -228,11 +231,9 @@ export function apply(ctx: Context, config: Config): void {
     const pending = agent.inbox.nextStep.filter(isAgentInstructionsMessage)
     const alreadySupplied = desired !== undefined && (
       claimed.some(message => sameContextPayload(message, desired))
-      || agent.session.surface.nodes.some((seq) => {
-        // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-        const event = agent.session.eventAt(seq)
-        return event?.type === 'user/message' && sameContextPayload(event.data, desired)
-      })
+      || agent.session.deriveMessages().some(message => (
+        isUserRoleMessage(message) && sameContextPayload(message, desired)
+      ))
     )
     if (desired === undefined || alreadySupplied) {
       for (const message of pending) agent.inbox.remove(message.id)

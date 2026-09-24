@@ -99,7 +99,7 @@ The plugin is built on one principle: workspace instructions are durable convers
 
 ### Main flow
 
-At the first eligible `agent/pre-step` of a session, the plugin composes the baseline and folds it into the entering batch right after the claimed messages. Successful first-party `read`, `write`, and `edit` calls contribute touches that bubble up through parent execution tokens; once the enclosing step is durable, a projection reconciles the visible session state against the inbox and queues additions, replacements, or removals. An unchanged path with an unchanged digest is never injected again. Discovery follows structured filesystem activity rather than shell navigation, because each local shell call starts a fresh process and parsing arbitrary shell syntax is not a reliable filesystem seam.
+At the first eligible `agent/pre-step` of a session, the plugin composes the baseline and folds it into the entering batch right after the claimed messages. Successful first-party `read`, `write`, and `edit` calls contribute touches that bubble up through parent execution tokens; once the enclosing step is durable, a projection reconciles the visible session state against the inbox and queues additions, replacements, or removals. Resume and duplicate suppression read active user-role messages through `Session.deriveMessages()`, so compacted-away surface nodes do not count as current instruction context. An unchanged path with an unchanged digest is never injected again. Discovery follows structured filesystem activity rather than shell navigation, because each local shell call starts a fresh process and parsing arbitrary shell syntax is not a reliable filesystem seam.
 
 ### Invariants
 

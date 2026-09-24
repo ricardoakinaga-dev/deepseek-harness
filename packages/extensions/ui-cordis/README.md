@@ -113,6 +113,8 @@ These limits define where the surfaces need special care. They are current packa
 - **Any page may answer any request** — approvals are frame-wide by design, so a person in one tab can approve a run the model asked for while another tab is in front of the defining session; narrowing who may answer is deferred.
 - **A card whose call head left the event window loses its labels** — the define card derives name and purpose from the call arguments, so a session long enough to truncate them leaves the card naming its call id; the panel is unaffected because the host inventory carries the labels.
 
+**Runtime invariant:** No companion is published. A single keyed toolview registration whose disposal is proven by the HMR-safety spec. The one mutable relation this package owns — the per-definition run-state observable — lives in the browser process, out of reach of the host invariant service, and the node half emits no cordis events and holds no cross-plugin state.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -122,5 +124,3 @@ These limits define where the surfaces need special care. They are current packa
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. A single keyed toolview registration whose disposal is proven by the HMR-safety spec. The one mutable relation this package owns — the per-definition run-state observable — lives in the browser process, out of reach of the host invariant service, and the node half emits no cordis events and holds no cross-plugin state.

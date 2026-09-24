@@ -1,0 +1,118 @@
+{
+  "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+  "timestamp": "2026-09-23T16:09:55.007Z",
+  "gate_id": "AUDIT_RESOLVED",
+  "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+  "scope_ref": "AAA-022",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "AR-001-BASELINE-GAPS",
+      "description": "The historical 24-path A19 implementation record and later 34-input catalog/documentation gate are reconciled with the user-approved exact 31-path A19 scope while both earlier gates remain unchanged.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A19.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+        ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+        ".agent/evidence/AAA-022/a19-scope-31-revalidation-20260923.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This gate resolves A19 scope attribution and authority binding; it does not rewrite either historical gate or claim new implementation verification."
+    },
+    {
+      "id": "AR-002-RESOLUTION-EVIDENCE",
+      "description": "The approved 31 unique fingerprint inputs reproduce the recorded digest; the active prepared-session owner remains at 29 paths and excludes docs/subsystems/session.*, while api-catalog.ts retains its two existing owners.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/a19-scope-31-revalidation-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-31-REVALIDATION-003",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This is an artifact and fingerprint revalidation; the previously recorded scoped documentation checks remain the evidence for A19 docs behavior."
+    },
+    {
+      "id": "AR-003-ACCEPTANCE-OR-ROUTING",
+      "description": "The A19 scope authority uses the canonical GATE subject type and binds to this exact AUDIT_RESOLVED record; the prior malformed row and before/after ledger hashes are retained in the repair evidence.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/a19-scope-31-authority-repair-20260923.json",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The corrected authority remains limited to the user-approved 31-path A19 scope and does not change A19 runtime authority or authorize external actions."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-022/a19-scope-31-authority-repair-20260923.json",
+    ".agent/evidence/AAA-022/a19-scope-31-revalidation-20260923.json",
+    ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-31-REVALIDATION-003",
+    ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+    ".agent/gates/implementation-ready-AAA-022-A19.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+    ".agents/customization-policy.json",
+    ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-001"
+  ],
+  "candidate_fingerprint": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "hash_rule": "For each listed relative path in this order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+    "file_count": 31,
+    "preexisting_dirty_worktree": true
+  },
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+    "decision": "The user explicitly approved the A19 expansion from 24 to exactly 31 paths: the persistence and session-projection subsystem documentation pairs and sidecars, plus the generated Cordis API catalog path in its existing ownership records. Exclude the three docs/subsystems/session.* paths from the active A19 owner allowlist. Preserve all prior gate and closeout records unchanged.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-001",
+    "expires_or_revalidates": "Revalidate if the approved 31-path input set, its active owner allowlist, or the existing catalog-owner attribution changes."
+  },
+  "residual_risk": "LOW",
+  "decision": "PASS",
+  "next_action": "Continue the active AAA-022:A21 design action; this A19 scope resolution does not reopen A19 implementation or advance the active pointer.",
+  "revalidation_triggers": [
+    "Any of the exact 31 fingerprint inputs changes.",
+    "The active prepared-session owner gains or loses a path, or the existing api-catalog.ts owners change.",
+    "A19 scope expands beyond the user-approved 31 paths or requires an external repository action."
+  ],
+  "supersedes": null
+}

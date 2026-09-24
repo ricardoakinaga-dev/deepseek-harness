@@ -1,0 +1,290 @@
+{
+  "record_id": "EVID-AAA-022-W2-CONTEXT-READER-DESIGN-A21-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A21",
+  "kind": "W2_CONTEXT_OWNED_READER_AND_INVARIANT_DESIGN",
+  "status": "APPROVED",
+  "timestamp": "2026-09-23T11:26:11-03:00",
+  "review_history": [
+    {
+      "reviewer": "/root/a21_final_scope_critic",
+      "verdict": "BLOCK",
+      "timestamp": "2026-09-23T11:16:52-03:00",
+      "input_fingerprint": "542395b8ad41ea19362927224f6b8ee6df4cd5316b93f39e6e506e446314509d",
+      "finding": "A persisted row with cacheFingerprint set and a same-stateVersion definition without one had unspecified eligibility across viewCheckpoint, restoreFloor, and restore.",
+      "resolution": "Require strict optional equality in all checkpoint APIs; defined-to-undefined and undefined-to-defined transitions invalidate existing rows and use the established refold path. Add explicit registry and cache integration cases."
+    },
+    {
+      "reviewer": "/root/a21_scope_critic_round2",
+      "verdict": "APPROVE",
+      "timestamp": "2026-09-23T11:26:11-03:00",
+      "input_fingerprint": "542395b8ad41ea19362927224f6b8ee6df4cd5316b93f39e6e506e446314509d",
+      "finding": "The previous ambiguity is closed by strict optional cacheFingerprint equality for persisted rows and definitions in both directions.",
+      "resolution": "Approved A21-01 through A21-07. All 46 input paths match the recorded fingerprint before and after review."
+    }
+  ],
+  "authority": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "candidate": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty custom/main preserved",
+    "design_input_fingerprint": "542395b8ad41ea19362927224f6b8ee6df4cd5316b93f39e6e506e446314509d",
+    "design_input_path_count": 46,
+    "design_input_fingerprint_method": "SHA-256 over the listed paths in manifest order, updating with each UTF-8 relative path, NUL, raw SHA-256 digest of file bytes, NUL.",
+    "design_input_paths": [
+      "AGENTS.md",
+      "docs/AGENTS.md",
+      ".agent/backlog.json",
+      ".agent/state.json",
+      ".agent/plans/deepseek-harness-aaa.md",
+      ".agent/evidence/AAA-022/reader-inventory-a75.json",
+      ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection-cache/src/index.ts",
+      "packages/session/session-projection-cache/src/spec.ts",
+      "packages/session/session-projection-cache/tests/cache.spec.ts",
+      "packages/session/session-projection-cache/tests/fixtures.spec.ts",
+      "packages/session/session-projection-cache/tests/fixtures/v5-session-doc.json",
+      "packages/session/session-projection-cache/README.md",
+      "packages/session/session-projection-cache/README.zh.md",
+      "packages/session/session-projection-cache/README.i18n.yaml",
+      "packages/context/agent-instructions/src/index.ts",
+      "packages/context/agent-instructions/src/state.ts",
+      "packages/context/agent-instructions/tests/agent-instructions.spec.ts",
+      "packages/context/agent-instructions/README.md",
+      "packages/context/agent-instructions/README.zh.md",
+      "packages/context/agent-instructions/README.i18n.yaml",
+      "packages/context/time-context/src/index.ts",
+      "packages/context/time-context/package.json",
+      "packages/context/time-context/src/invariant.ts",
+      "packages/context/time-context/src/request-zone.ts",
+      "packages/context/time-context/src/timestamp.ts",
+      "packages/context/time-context/tests/time-context.spec.ts",
+      "packages/context/time-context/tests/invariant.spec.ts",
+      "packages/context/time-context/tests/request-zone.spec.ts",
+      "packages/context/time-context/README.md",
+      "packages/context/time-context/README.zh.md",
+      "packages/context/time-context/README.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-turn-outline/tests/projection.spec.ts",
+      "packages/session/session-title/tests/projection.spec.ts",
+      "packages/llm/token-meter/tests/context-breakdown-projection.spec.ts"
+    ],
+    "production_changes": []
+  },
+  "traceability": [
+    {
+      "improvement_ids": [
+        "M08",
+        "M22"
+      ],
+      "canonical_task": "AAA-022",
+      "remediation": "REM-028",
+      "relationship": "Continue the owner-ordered W2 Session-reader migration under the existing A03 authorization."
+    }
+  ],
+  "scope": [
+    "REM-028-S014: active visible agent-instructions baseline lookup",
+    "REM-028-S015: active visible agent-instructions duplicate check",
+    "REM-028-S016: active visible agent-instructions change fold",
+    "REM-028-S017: current-turn browser-zone input lookup",
+    "REM-028-S018: loaded and created-session time-context invariant replay",
+    "REM-028-S019: synchronous pre-commit time-context invariant"
+  ],
+  "inspection": {
+    "inventory": ".agent/evidence/AAA-022/reader-inventory-a75.json#REM-028-S014..S019",
+    "prior_w2_decision": ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json#decisions.compatibility",
+    "session_projection_sources": [
+      "packages/session/session-projection/src/index.ts:213-228",
+      "packages/session/session-projection/src/index.ts:328-376",
+      "packages/session/session-projection/src/index.ts:403-410",
+      "packages/session/session-projection/src/index.ts:681-700",
+      "packages/session/session-projection-cache/src/index.ts:200-250"
+    ],
+    "session_sources": [
+      "packages/core/session/src/index.ts:61",
+      "packages/core/session/src/index.ts:765-800",
+      "packages/core/session/src/index.ts:1005-1018",
+      "packages/core/session/src/index.ts:1154-1189",
+      "packages/core/session/src/preparation.ts:80-155"
+    ],
+    "current_reader_observations": [
+      {
+        "site": "REM-028-S014",
+        "location": "packages/context/agent-instructions/src/index.ts:44-64",
+        "observation": "Claimed authority messages are searched newest-first before active Session surface messages; the history lookup only needs the latest active baseline source."
+      },
+      {
+        "site": "REM-028-S015",
+        "location": "packages/context/agent-instructions/src/index.ts:226-247",
+        "observation": "Duplicate detection compares a desired UserMessage against claimed messages or active surface user messages by exact content and source."
+      },
+      {
+        "site": "REM-028-S016",
+        "location": "packages/context/agent-instructions/src/state.ts:133-158",
+        "observation": "Visible instruction changes fold active surface user messages in order, with later scope changes overwriting earlier values before claimed authority messages are applied."
+      },
+      {
+        "site": "REM-028-S017",
+        "location": "packages/context/time-context/src/index.ts:78-94, 184-218",
+        "observation": "The reverse scan takes raw user messages after the matching turn/start and appends proposed messages; the already-registered timeContext unit tracks durable message and injection times."
+      },
+      {
+        "site": "REM-028-S018",
+        "location": "packages/context/time-context/src/invariant.ts:153-176",
+        "observation": "Startup and session/created validation replay every package-owned reading against its preceding durable prefix; session/created now supplies the exact SessionCreationBaseline, including unpublished accepted appends."
+      },
+      {
+        "site": "REM-028-S019",
+        "location": "packages/context/time-context/src/invariant.ts:178-189",
+        "observation": "The internal/dispatch hook validates a candidate synchronously before Session.append mutates the log, currently by snapshotting the complete prefix."
+      }
+    ],
+    "behavioral_distinctions": [
+      "Agent-instructions uses the active visible surface; compacted or replaced hidden messages must not affect its current baseline or change state.",
+      "Time-context uses the raw current-turn event suffix; user messages shadowed by compaction still contribute browser-zone facts and must remain included.",
+      "Invalid clientTimeZone values may be durably appended today; they throw only when an eligible time-context read derives browser policy or when a durable time-context reading is validated.",
+      "Time-context invariant failure before append leaves Session.seq and its event log unchanged; synchronous session/created failure rolls back SessionStore publication."
+    ]
+  },
+  "decisions": {
+    "agent_instructions": {
+      "decision": "Use Session.deriveMessages() at each reader's current decision point. Search its user-role messages in reverse for the latest active baseline, compare desired messages against its active user-role messages, and fold active instruction changes in forward surface order. Apply claimed and authority-message precedence in the current order.",
+      "preserved_behavior": [
+        "Active surface replacement and compaction determine which durable instruction messages contribute; hidden older messages do not reappear in visible change state.",
+        "Claimed and authority messages retain priority and ordering relative to the durable active surface.",
+        "Exact duplicate comparison continues to use deep equality of both content and source.",
+        "No instruction prose, new Session projection key, or arbitrary historical reader is introduced."
+      ],
+      "falsifying_cases": [
+        "The newest active compatible baseline wins after replacement and resume.",
+        "Compaction that hides a baseline or nested change causes the same re-arm or reconciliation currently observed from active surface nodes.",
+        "An identical active user message prevents a duplicate inbox entry; a source or content difference does not.",
+        "Claimed messages continue to override or precede active history exactly as the current loops specify."
+      ]
+    },
+    "time_context_projection": {
+      "decision": "Extend the existing host-only timeContext projection rather than use Session.deriveMessages(). Raise its stateVersion from 2 to 3. Keep the existing lastMessageTime, lastInjectionTime, and lastTurnInjectionTime folds, and add the open turn/step/request-header position plus ordered unique raw browser-zone inputs folded from committed user events.",
+      "state_facts": [
+        "openTurn, openStep, and requestStarted mirror preparationPosition's turn/start, step/start, request/header, step/end, and turn/end transitions.",
+        "browserTimeZoneInputs stores ordered unique raw clientTimeZone strings from user-rpc messages after the current turn/start. It does not classify or canonicalize them during the event fold; it resets at turn/start and turn/end.",
+        "firstValidationFailure stores the first invalid durable time-context reading diagnostic across the complete Session history so a late invariant registration can fail without rescanning Session events. It does not reject an ordinary invalid user message.",
+        "timeContext registers an exact cacheFingerprint derived from the Node, V8, ICU, CLDR, and time-zone database versions used for browser-zone validation and timestamp formatting. Same-key projection registrations must agree exactly on both stateVersion and optional cacheFingerprint; a definition that adds, removes, or changes a fingerprint cannot silently share another unit's fold.",
+        "A new internal projection module owns the JSON schema and shared event transition/reading validation helpers used by the main plugin and invariant companion; the module is not a package export."
+      ],
+      "request_derivation": "When injection is due, derive policy from the stored raw entered-turn values followed by browser-zone values in decision.messages in their existing order. Validate all values through the existing Intl-based canonicalization at read time, then sort and deduplicate valid zones and preserve mixed/missing output. This keeps each runtime's current support and canonicality decisions, including first-error order. Do not derive zones for a rejected or already-aborted decision, and do not parse stored values on the positive-interval early return.",
+      "preserved_behavior": [
+        "Compaction and surface replacement do not remove raw user events from the browser-zone policy for the open turn.",
+        "The first invalid entered zone precedes all proposed messages; otherwise proposed-zone errors retain their input order.",
+        "Invalid zone data remains appendable and the error remains delayed until a time-context read or durable reading validation needs it.",
+        "A timeContext checkpoint from another Intl environment has a different cacheFingerprint and is discarded; the complete event log is refolded under the current environment before request state or the invariant latch is used.",
+        "The latest durable time-context injection remains counted even when its event is shadowed; interval and elapsed-time behavior is unchanged.",
+        "Turn start/end reset only the open-turn summary and existing lastTurnInjectionTime; lastMessageTime and lastInjectionTime retain their current folds."
+      ],
+      "cache_compatibility": "The state remains host-only plain JSON and does not alter SessionEventMap, SESSION_FORMAT_VERSION, released Session records, persistence SCHEMA_VERSION, SDK output, or provider request fields. Version-2 timeContext checkpoint rows are unusable under version 3. Add optional cacheFingerprint metadata to ProjectionDefinition and ProjectionCheckpointRow. Projection row eligibility is exact across checkpoint, viewCheckpoint, restoreFloor, and restore: a row is usable only when stateVersion matches and row.cacheFingerprint === definition.cacheFingerprint, using strict optional equality (both absent or the exact same string). Adding, removing, or changing a definition fingerprint makes existing rows unusable; in particular, a row with a fingerprint and a current definition without one follows the same mismatch invalidation/refold path. Definitions without a fingerprint remain compatible with rows that also omit it. Re-registering a key requires exact equality of both stateVersion and optional cacheFingerprint, including undefined-versus-defined mismatches. timeContext fingerprints Node, V8, ICU, CLDR, and time-zone database versions. A mismatch follows the existing version-mismatch path: restoreFloor selects seq 0, a complete-log restore starts from init, and a tail-only restore requests a seq-0 reread. Matching metadata leaves each API's existing schema-invalid behavior unchanged: viewCheckpoint omits the row, direct registry restore rejects it, prepared hydration retries with the exact baseline, and a malformed persisted record is backed up and skipped by the cache domain. The cache row schema accepts an absent optional fingerprint, so the projection-cache domain remains at version 7; a v7 archived on-disk fixture must prove compatibility and refold behavior. This refreshes raw-zone derivation and firstValidationFailure under current Intl behavior without weakening corruption handling."
+    },
+    "time_context_invariant": {
+      "decision": "Share the timeContext event fold with the invariant. During installation, validate current Sessions from the projection's latched first validation failure; fail loudly if the timeContext projection is missing or lacks an exact cell. During session/created, replay and validate the supplied SessionCreationBaseline.events in sequence. During internal/dispatch, synchronously validate the candidate against sessionProjections.stateOf(session, 'timeContext') before commit, without mutating the prefix state. The cacheFingerprint ensures the latch was folded under the current Node/V8/ICU/CLDR/time-zone database environment; a mismatch requires full-log refold before the latch can be read.",
+      "preserved_behavior": [
+        "A malformed, misplaced, wrong-zone, or otherwise invalid reading still fails before Session.append changes seq or log contents.",
+        "A bad constructor or setup prefix still throws synchronously from session/created and rolls the SessionStore attach back.",
+        "Late invariant installation still rejects an invalid existing Session and accepts a valid one when the timeContext projection has maintained the same event history.",
+        "After an Intl environment change, the historical validation latch is rebuilt from the exact log; a stale prior-runtime error or success is never trusted.",
+        "Fork, resume, and restore rebuild position, zone facts, and the validation latch from the exact SessionCreationBaseline; no parent Agent cache is inherited."
+      ],
+      "falsifying_cases": [
+        "A rejected candidate leaves Session.seq, snapshotEvents(), and the projection watermark unchanged; the same corrected event can then append.",
+        "Creation validation includes accepted unpublished setup appends and rejects before SessionStore publication.",
+        "A late valid and late invalid invariant registration match current replay outcomes without calling eventAt or snapshotEvents.",
+        "A forked or resumed open turn retains raw browser-zone facts, including facts whose messages compaction later shadows.",
+        "A v3 checkpoint carrying another Intl cacheFingerprint is rejected by the existing version/fingerprint mismatch path and refolded from seq 0; the rebuilt state reclassifies raw zones and durable readings under current Intl behavior.",
+        "An aborted or rejected pre-step performs no time-context derivation and appends no reading."
+      ]
+    }
+  },
+  "implementation_scope": [
+    "packages/context/agent-instructions/src/index.ts",
+    "packages/context/agent-instructions/src/state.ts",
+    "packages/context/agent-instructions/tests/agent-instructions.spec.ts",
+    "packages/context/agent-instructions/README.md",
+    "packages/context/agent-instructions/README.zh.md",
+    "packages/context/agent-instructions/README.i18n.yaml",
+    "packages/context/time-context/src/index.ts",
+    "packages/context/time-context/src/invariant.ts",
+    "packages/context/time-context/src/request-zone.ts",
+    "packages/context/time-context/src/projection.ts",
+    "packages/context/time-context/tests/time-context.spec.ts",
+    "packages/context/time-context/tests/invariant.spec.ts",
+    "packages/context/time-context/tests/request-zone.spec.ts",
+    "packages/context/time-context/README.md",
+    "packages/context/time-context/README.zh.md",
+    "packages/context/time-context/README.i18n.yaml",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session/session-projection/tests/registry.spec.ts",
+    "packages/session/session-projection/README.md",
+    "packages/session/session-projection/README.zh.md",
+    "packages/session/session-projection/README.i18n.yaml",
+    "packages/session/session-projection-cache/tests/cache.spec.ts",
+    "packages/session/session-projection-cache/tests/fixtures.spec.ts",
+    "packages/session/session-projection-cache/tests/fixtures/v7-session-doc.json",
+    "packages/session/session-projection-cache/src/index.ts",
+    "packages/session/session-projection-cache/src/spec.ts",
+    "packages/session/session-projection-cache/README.md",
+    "packages/session/session-projection-cache/README.zh.md",
+    "packages/session/session-projection-cache/README.i18n.yaml",
+    "docs/subsystems/session-projection.md",
+    "docs/subsystems/session-projection.zh.md",
+    "docs/subsystems/session-projection.i18n.yaml",
+    "packages/extensions/tool-cordis/src/api-catalog.ts"
+  ],
+  "verification_only_paths": [
+    "packages/session/session-turn-outline/tests/projection.spec.ts",
+    "packages/session/session-title/tests/projection.spec.ts",
+    "packages/llm/token-meter/tests/context-breakdown-projection.spec.ts"
+  ],
+  "required_verification": [
+    "Focused agent-instructions, time-context, and time-context-invariant package tests, including Session.append rejection and created-session rollback.",
+    "Projection restore/hydrate from an old timeContext stateVersion 2 row refolds the exact complete event log and produces version 3 state; retain the existing session-projection and cache version-mismatch fallback tests.",
+    "A same-stateVersion checkpoint with a mismatched Intl cacheFingerprint follows the existing mismatch path: restoreFloor selects seq 0, full-log restore refolds under current Intl behavior, and tail-only restore requires a full-log reread. Verify the cache integration serializes and rejects environment-mismatched rows. Preserve per-reader schema-invalid behavior: viewCheckpoint omits a unit row, direct registry restore rejects it, prepared hydration retries from the exact baseline, and malformed stored records use backup-and-skip.",
+    "Verify same-key registry registration permits matching optional cacheFingerprint values and rejects a different fingerprint or defined-versus-undefined mismatch; update duplicate-key JSDoc and the generated Cordis catalog.",
+    "Verify persisted rows with a defined cacheFingerprint become unusable when a same-stateVersion definition removes its fingerprint: viewCheckpoint omits the row, restoreFloor selects seq 0, and full restore starts from init and refolds. Verify tail-only restore requires a seq-0 reread. Cover the reverse defined-versus-undefined transition and matching-fingerprint control in registry and cache integration cases.",
+    "Add a real archived v7 on-disk cache fixture without cacheFingerprint and prove the optional row schema still opens it and the registry refolds environment-bound rows from the complete log; projection-cache domain version remains 7.",
+    "Run the unmodified turn-outline, session-title, and token-meter projection cases that require schema-invalid rows with matching metadata to keep throwing; the environment fingerprint path must not change corruption semantics.",
+    "Raw browser-zone inputs hidden by compaction remain effective after resume and fork; keep invalid-zone delayed failure and input-order assertions.",
+    "Scoped package typechecks and lint; verify-type-equiv, verify-cordis-catalog, export-JSDoc, package dependency, active reader count, and owned invariant checks.",
+    "Paired README and session-projection documentation validation, translation pairing, doc-typecheck/doc-quick coverage, and whitespace checks.",
+    "No model-visible wording or ordering changes are intended; existing time-context request/history assertions remain the output oracle, with snapshot updates only if those assertions expose an actual output change."
+  ],
+  "review_requirements": {
+    "criteria": [
+      "A21-01: S014-S016 use the active model-visible message projection while retaining surface, ordering, authority, and exact deduplication semantics.",
+      "A21-02: S017 uses raw-event-equivalent current-turn facts, including compaction-shadowed events, and retains delayed invalid-zone failures and proposed-message order.",
+      "A21-03: S018 validates the exact creation baseline and late existing-session status without complete-history Session reads.",
+      "A21-04: S019 remains synchronous before append commit and rejects without changing the durable cursor or log.",
+      "A21-05: Restore, resume, fork, setup append, cancellation, and missing projection state have explicit exact behavior.",
+      "A21-06: Version-2 rows and same-version Intl-environment-mismatched rows are discarded and refolded from seq 0 through exact stateVersion and optional cacheFingerprint equality, including both defined-to-undefined and undefined-to-defined mismatches. Schema-invalid rows with matching metadata retain their existing per-reader behavior. No Session format, persistence schema, wire, SDK, or model-visible change occurs.",
+      "A21-07: The implementation path list includes owning package documentation, bilingual pairing metadata, generated Cordis catalog/type compatibility output, raw-zone helper tests, projection/cache fingerprint compatibility tests, and the archived v7 cache fixture required by the cache schema rule."
+    ],
+    "implementation_gate": "Prepare the A22 gate only after a fresh independent reviewer approves A21-01 through A21-07 against this record and the current source."
+  },
+  "next_action": {
+    "id": "AAA-022:A22",
+    "kind": "IMPLEMENTATION_GATE_PREPARATION",
+    "summary": "Prepare the exact implementation-ready gate for W2 context-owned reader and invariant migrations",
+    "scope": "A21 approved implementation_scope plus its required exact customization owner and gate-bound verification-only regressions",
+    "completion_signal": "A task-bound A22 implementation-ready gate binds A03 authority, the A21 approval, all exact implementation paths, package owners, checks, and preimplementation fingerprints."
+  },
+  "limitations": [
+    "No tests, generators, production source, documentation, candidate commit, or external state were changed or run for this design record. Initial reviews found cache/runtime Intl drift, registry corruption-semantics risk, missing persistent-row schema/fixture paths, and same-key fingerprint ambiguity. The latest independent review blocked on defined-row/undefined-definition matching; this revision specifies exact optional equality and explicit falsifying coverage for that case, then requires a new independent review.",
+    "The current worktree is pre-existing dirty custom/main; review fingerprints must cover the listed source and evidence paths before and after review."
+  ],
+  "freshness": "CURRENT"
+}

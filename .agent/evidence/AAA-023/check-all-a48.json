@@ -1,0 +1,40 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A48-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A17",
+  "result": "PARTIAL",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; private candidate tree d122da6d97d38e0be1e8843ca642c537f759d460; /home/ricardo/dsh-aaa023-candidate.eSCkTH",
+  "command": "pnpm run check:all",
+  "exit_status": 1,
+  "duration_seconds": 401.83,
+  "summary": {
+    "gates": { "passed": 62, "failed": 9, "skipped": 6 },
+    "primary_failures": [
+      "build: plugin-manager publisherRefusal argument and loader-shape compat helper TypeScript errors",
+      "verify-doc-graphs: docs/event-producer-consumer.md stale",
+      "verify-md-links: two repository-analysis metrics links target a missing candidate artifact",
+      "verify-workflow-guest: generated guest source stale",
+      "verify-translation-pairing: docs/testing and quality-gates note sidecars stale",
+      "verify-config-catalog: docs/config-catalog.md stale",
+      "verify-persistence-catalog: persistence catalogs stale",
+      "verify-persistence-changes: docs/persistence-schema.json stale",
+      "verify-doc-budgets: docs/testing.md is 1383 words against the 1350 ceiling"
+    ],
+    "dependent_skips": [
+      "test:snapshot",
+      "test:expected",
+      "publint",
+      "verify-built-package-invariants",
+      "verify-node-next-types",
+      "doc-typecheck:contracts-ready"
+    ],
+    "test_gate": "PASS"
+  },
+  "decision": "Keep AAA-023:A17 active. The failures are retained as the first same-candidate aggregate result; repair only the identified compile, generated-output, documentation-pair, artifact-prerequisite, and word-budget causes before rerunning the matrix.",
+  "limitations": "This is not aggregate candidate qualification. No threshold, test skip, publication, push, merge, release, or final verdict action was performed.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/check-all-a48.json",
+    "/tmp/dsh-a17-candidate-check-all.log"
+  ],
+  "observed_at": "2026-09-22T14:38:17-03:00"
+}

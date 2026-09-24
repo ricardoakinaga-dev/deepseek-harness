@@ -1,0 +1,18 @@
+{
+  "record_id":"GATE-AAA-020-IMPLEMENTATION-READY-001",
+  "timestamp":"2026-09-21T23:52:04-03:00",
+  "gate_id":"IMPLEMENTATION_READY",
+  "scope":"AAA-020 approved ordinary published source-export removal and source-plane migration",
+  "scope_ref":"AAA-020",
+  "version":1,
+  "criteria":[
+    {"id":"IR-001","description":"The authority confirms that ordinary published packages remove `./src/*` unless a separately authorized compatibility and source-publication policy is established.","required":true,"status":"PASS","evidence_refs":[".agent/evidence/AAA-020/scout-a01.json",".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"],"confidence":"HIGH","limitations":"No external consumer or registry migration is claimed."},
+    {"id":"IR-002","description":"The implementation is bounded to package manifests, generated source-plane compiler aliases, affected public entries, runtime import migrations, and their documentation; published package source exports remain closed.","required":true,"status":"PASS","evidence_refs":["scripts/gen-tsconfig-paths.ts","tsconfig.base.json","packages/api/session-controller/src/client/index.ts","packages/client/ui-renderer/src/client/index.ts","packages/client/web/src/index.ts",".agent/evidence/AAA-020/implementation-a19.json"],"confidence":"HIGH","limitations":"The generated aliases are compiler paths only and are not package exports."},
+    {"id":"IR-003","description":"Acceptance requires source-export fixtures, constraints, publint, NodeNext declarations, and affected public-entry typechecks to pass.","required":true,"status":"PASS","evidence_refs":[".agent/evidence/AAA-020/implementation-a19.json"],"confidence":"HIGH","limitations":"Completion still requires a current verification record."}
+  ],
+  "evidence":[".agent/evidence/AAA-020/scout-a01.json",".agent/evidence/AAA-020/implementation-a19.json",".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"],
+  "candidate_fingerprint":"86b83c5391e262aac3a7a3ec9ad867348d069bec7e4133a475ac020927bbfa09",
+  "confidence":"HIGH","gaps":[],"conditions":[],
+  "authority":{"required":true,"state":"CONFIRMED","actor":"Ricardo Akinaga","scope":"AAA-020 approved ordinary published source-export removal and source-plane migration","decision":"Remove ./src/* from ordinary published exports unless a separately authorized compatibility and source-publication policy is established.","evidence_ref":".agent/authority.jsonl#AUTH-AAA-020-IMPLEMENTATION-A20-001","expires_or_revalidates":"Revalidate if a source subpath is proposed as a supported published API."},
+  "residual_risk":"HIGH","decision":"PASS","next_action":"Start AAA-020:A02 to validate the approved source-export compatibility policy.","revalidation_triggers":["A runtime consumer imports a published source subpath.","A package adds a source export.","The source-plane alias generator changes its resolution policy."],"supersedes":null
+}

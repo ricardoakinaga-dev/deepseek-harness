@@ -301,7 +301,7 @@ const DECORATION_BITS: readonly (readonly [number, string])[] = [[4, 'underline'
  */
 function spanStyle(token: ThemedToken): CSSProperties {
   const style: CSSProperties = { color: token.color }
-  /* v8 ignore next -- fontStyle is optional in ThemedToken's type; tokenizeWithTheme always stamps it. */
+  /*! v8 ignore next -- fontStyle is optional in ThemedToken's type; tokenizeWithTheme always stamps it. */
   const bits = token.fontStyle ?? 0
   if ((bits & 1) !== 0) style.fontStyle = 'italic'
   if ((bits & 2) !== 0) style.fontWeight = 'bold'

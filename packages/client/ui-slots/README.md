@@ -98,6 +98,8 @@ These limits define the registry's scaling behavior and accepted type noise; the
 - **`isLive` scans all records linearly** — fine at UI-plugin registration counts (tens); revisit with an entry→record backref if ledgers ever grow hot.
 - **The `__renders` phantom anchor is visible on `PropsRenderSlots`** — the same accepted noise as the type-chain design's `__accepts`: generic method signatures compare loosely across key unions, so the contravariant marker is what enforces "component key set ⊆ children declaration".
 
+**Runtime invariant:** No companion is published. This is a zero-dependency pure registry core; it emits no Cordis events itself (the `ui-renderer` SlotRegistry owns the event bridge and its invariants); define/register/dispose sequencing is asserted directly by this package's behavior specs.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -107,5 +109,3 @@ These limits define the registry's scaling behavior and accepted type noise; the
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This is a zero-dependency pure registry core; it emits no Cordis events itself (the `ui-renderer` SlotRegistry owns the event bridge and its invariants); define/register/dispose sequencing is asserted directly by this package's behavior specs.

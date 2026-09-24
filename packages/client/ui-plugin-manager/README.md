@@ -116,6 +116,8 @@ These limits define the reach of the management view; they are current package c
 - **One install at a time** — the dialog runs one pnpm command; a second spec waits for the first to finish.
 - **No version picker** — the spec is typed as pnpm accepts it; the page neither lists registry versions nor offers upgrades.
 
+**Runtime invariant:** No companion is published. This package owns a sidebar panel over Host-owned facts.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -125,5 +127,3 @@ These limits define the reach of the management view; they are current package c
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package owns a sidebar panel over Host-owned facts.

@@ -1,0 +1,110 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A11",
+  "kind": "W1_SESSION_PROJECTION_BASELINE_HANDOFF_DESIGN",
+  "status": "PASS",
+  "timestamp": "2026-09-22T20:47:00-03:00",
+  "authority": "AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "source_inventory": [
+    {
+      "path": "packages/core/session/src/index.ts:38-82,553-620,979-1054,1126-1160",
+      "fact": "session/created is the synchronous publication boundary; constructor seeds are accepted before entry and never emit session/event. The Session constructor appends the non-published end-seed marker when needed, so announce can provide one exact pre-live event cut without changing the durable Session log or Session format."
+    },
+    {
+      "path": "packages/session/session-projection/src/index.ts:199-293,311-407,495-595,597-704",
+      "fact": "The registry owns definitions, cells, watermarks, event drive, synchronous state reads, and explicit restore/hydrate. The only history dependency is lazy initialization or catch-up when a baseline was not delivered through the lifecycle."
+    },
+    {
+      "path": "packages/session/session-projection/tests/registry.spec.ts:163-229,455-525,540-595",
+      "fact": "Current tests cover fresh and seeded initialization, late registration, disposer/HMR behavior, exact watermarks, checkpoint detachment, restore, and hydrate. The late-registration expectations identify the compatibility cases that must become explicit-baseline or fail-loud cases."
+    },
+    {
+      "path": "packages/session/session-projection-cache/src/index.ts:218-235,279-286,322-329",
+      "fact": "Projection-cache cold restoration already supplies explicit events to restore/hydrate, and its creation write reads checkpoints immediately after session/created. The registry baseline must be installed before that checkpoint listener observes the same creation."
+    },
+    {
+      "path": "docs/event-producer-consumer.md:58-60; docs/event-producer-consumer.zh.md:60-62; docs/subsystems/session.md:1151-1168",
+      "fact": "The session/created producer and consumer inventory is generated from the core event declaration and currently documents a one-argument event. The transient baseline parameter requires paired documentation and generated catalog refresh in the implementation action."
+    }
+  ],
+  "decision": {
+    "selected": "Add a transient SessionCreationBaseline to the core session/created lifecycle event. The core SessionStore supplies the exact constructor-owned event prefix, including the non-published end-seed marker when the constructor created one; SessionProjectionRegistry folds it synchronously before the creation callback returns. After that point a live projection cell advances only from the delivered session/event event and never looks up an arbitrary Session position.",
+    "baseline_type": {
+      "name": "SessionCreationBaseline",
+      "fields": [
+        "events: readonly SessionEvent[] — borrowed, immutable, contiguous events present before publication",
+        "firstLiveSeq: SessionLogOffset — the constructor-input boundary used to distinguish seed events from later live appends"
+      ],
+      "lifetime": "The baseline is valid only during synchronous session/created delivery. A consumer must fold or copy required state before returning and must not retain the borrowed array as a history cache."
+    },
+    "registry_behavior": [
+      "The registry declares its existing sessions capability and initializes every registered unit from the supplied baseline on session/created; an empty baseline produces the existing init state at cursor -1.",
+      "register() initializes a cell for an already-live session only when that session is still at cursor 0. If an existing session has events, registration fails with a named missing-baseline error instead of silently folding history.",
+      "cellFor() and drive() require an exact contiguous watermark. A missing cell or a gap between the cell watermark and the delivered event is an explicit projection-baseline error; neither path calls snapshotEvents() or eventAt().",
+      "stateOf(), snapshot(), and checkpoint() remain synchronous and retain their current value, view, schema, and watermark behavior after the baseline is installed.",
+      "restore() and hydrate() remain the explicit supplied-cut APIs for prepared/cold Sessions. They do not become a hidden fallback for live registration and do not add a query or storage dependency."
+    ],
+    "existing_session_registration": "A plugin that activates after a Session already has events must provide an explicit restored/prepared cut to hydrate before reading the projection, or activate against a fresh Session. The registry does not retain or replay complete history solely to make late registration appear to work. HMR and disposer tests must prove that unloading removes the key and re-registration without a baseline fails clearly rather than serving stale or init-only state.",
+    "ordering": "SessionProjectionRegistry's session/created listener must install all current cells before SessionProjectionCache's creation listener can call checkpoint. The existing composition injects sessionProjections before the cache, and focused tests must bind this ordering rather than rely on listener order accidentally.",
+    "compatibility": "This changes only a Cordis lifecycle event payload and the projection initialization precondition. It does not change SessionEventMap, Session format generations, durable event envelopes, persistence rows, wire values, or public query semantics."
+  },
+  "implementation_acceptance": {
+    "targets": [
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/types.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/core/session/tests/fork.spec.ts",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/session/session-projection-cache/tests/cache.spec.ts",
+      "docs/event-producer-consumer.md",
+      "docs/event-producer-consumer.zh.md",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md"
+    ],
+    "required_cases": [
+      "Fresh live Sessions initialize registered units from an empty baseline and continue through every delivered event without direct Session history reads.",
+      "Forked, resumed, and restored Sessions receive the exact constructor event cut, inheritedEventCount, firstLiveSeq, and end-seed behavior before projection-cache creation checkpointing.",
+      "A unit registered after a live Session has events fails with a named baseline error; a fresh existing Session may initialize without a history read; hydrate/restore still install explicit prepared/cold cuts.",
+      "A missing cell or non-contiguous delivered event fails before applying a partial state, and no projection production source contains snapshotEvents() or eventAt().",
+      "Disposal removes cells and listeners; re-registration does not reuse stale cells and requires an explicit baseline, preserving HMR safety and capability absence.",
+      "Projection-cache creation, checkpoint, cold restore, view snapshots, change listeners, fork cuts, and exact watermark assertions retain current behavior.",
+      "Core event declarations, generated API/catalog output, English/Chinese documentation, export JSDoc, package dependency policy, typecheck, focused tests, and diff checks pass."
+    ]
+  },
+  "rejected": [
+    "Expose Session.snapshotEvents() or add an equivalent initial-history alias for projection consumers: it preserves the storage-retention dependency that this migration removes.",
+    "Make session/created asynchronous or delay projection readiness until an I/O read: creation publication and current projection reads are synchronous, and async delivery would change rollback and append ordering.",
+    "Make session-projection depend on session-query, SQLite, or a persistence backend: the package graph would cycle and minimal compositions would acquire an unrelated storage requirement.",
+    "Retain a complete event backlog in SessionProjectionRegistry for future registrations: a registry-level history cache duplicates Session retention and makes dynamic registration dictate memory ownership.",
+    "Keep implicit init state for a late registration: it would hide missing baseline data and return a value that disagrees with the committed Session."
+  ],
+  "evidence_basis": [
+    ".agent/evidence/AAA-022/session-projection-owner-design-a81.json",
+    ".agent/evidence/AAA-022/reader-inventory-a75.json",
+    "packages/core/session/src/index.ts",
+    "packages/core/session/src/types.ts",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session/session-projection-cache/src/index.ts",
+    "packages/session/session-projection/tests/registry.spec.ts",
+    "packages/session/session-projection-cache/tests/cache.spec.ts",
+    "docs/event-producer-consumer.md",
+    "docs/event-producer-consumer.zh.md"
+  ],
+  "retained_exceptions": [
+    "S067-S069 remain under their existing local waivers until A12 removes the three direct history reads and proves the baseline precondition.",
+    "No released Session generation, persistence schema, wire version, publication, push, merge, release, or final-verdict action is authorized by A11."
+  ],
+  "candidate_binding": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "candidate_rebuild_required": true
+  },
+  "limitations": [
+    "A11 is a source-grounded design action; no production source or generated documentation was changed.",
+    "The current worktree still lacks the 12 tracked paths required by the canonical audit-metrics command; complete-candidate metrics remain a later acceptance condition."
+  ],
+  "decision_summary": "Accept the transient core lifecycle baseline design. It lets the projection registry remove all three synchronous history reads while preserving synchronous state reads and explicit restore/hydrate paths; late eventful registration fails explicitly until its caller supplies a prepared baseline."
+}

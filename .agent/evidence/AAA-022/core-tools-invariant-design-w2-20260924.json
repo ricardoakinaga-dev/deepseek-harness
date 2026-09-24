@@ -1,0 +1,233 @@
+{
+  "record_id": "EVID-AAA-022-W2-CORE-TOOLS-INVARIANT-DESIGN-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-CORE-TOOLS-DESIGN",
+  "kind": "SESSION_READER_DESIGN",
+  "observed_at": "2026-09-24T10:04:50Z",
+  "candidate": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "Pre-existing dirty custom/main preserved; no implementation paths edited during design.",
+    "source_candidate_fingerprint": "The exact SHA-256 values below bind the current working-tree bytes, including pre-existing modifications."
+  },
+  "inventory": {
+    "site_id": "REM-028-S029",
+    "owner": "packages/core/tools",
+    "current_read": "packages/core/tools/src/invariant.ts seeds open-turn and PTC dispatch-root state by scanning Session.snapshotEvents().",
+    "required_behavior": [
+      "Keep a synchronous pre-commit rejection for invalid PTC dispatches.",
+      "Keep non-empty root, parent, and child identity checks.",
+      "Keep one-root-per-child and parent-to-root ancestry checks across start and settled dispatch events.",
+      "Keep open-turn enclosure for PTC dispatch records.",
+      "Seed from exact restore and fork creation prefixes without reading Session history.",
+      "Validate unpublished preparation setup appends before their Session log and sequence advance.",
+      "Require each pre-commit session/event candidate sequence to equal both Session.seq and the fold next-sequence; after publication, advance only when Session.seq is event.seq + 1 and Session.isCommittedEvent(event) is true."
+    ]
+  },
+  "decision": {
+    "disposition": "REPLACE_HISTORY_SCAN_WITH_PACKAGE_LOCAL_TRANSACTIONAL_FOLD",
+    "state_owner": "A package-local WeakMap keyed by Session stores openTurn, dispatchRoots, and the last observed sequence. The private dispatchRoots Map remains mutable so child lookup and commit are O(1) without serializing a duplicate index.",
+    "event_owner": "The ToolsInvariant companion folds exact SessionCreationBaseline events on session/created, folds preparation.baseline.events before setup, and subscribes to accepted SessionPreparation appends. A subscription may synchronously replay appends accepted before the subscriber attached: replay and live preparation delivery both require event.seq === fold.nextSeq, then commit only when preparation.session.seq > event.seq and preparation.session.isCommittedEvent(event) confirm the canonical event is already in the log. Live candidates are validated without mutation before Session.append accepts them. At session/created, verify the full exact baseline matches the prepared fold cursor and adopt it without replaying setup events. Live events use the same contiguous candidate check and advance only after the exact post-append committed object is confirmed.",
+    "failure": "Every violated invariant and every missing-baseline refusal calls the package-bound fail() function, producing an InvariantError attributed to @deepseek-ai/dsh-tools. Candidate validation and preparation validation compute before returning a commit closure; a thrown check does not advance local state.",
+    "late_activation": "Fail closed when ToolsInvariant registers while any Session already in ctx.sessions.list() has seq !== 0. The live Session no longer exposes its constructor baseline, so this companion cannot reconstruct eventful Sessions without a retained-history reader. Empty Sessions may initialize normally. Reload after an eventful Session exists is explicitly unsupported for this companion.",
+    "unknown_session_event": "A synthetic session/event for a Session with no initialized lifecycle state fails during internal/dispatch with an exact-baseline diagnostic. For an initialized Session, a synthetic next-sequence event may pass candidate validation but cannot advance the fold: the post-publication listener verifies the advanced cursor and Session.isCommittedEvent(event), then calls fail if either check fails. A direct Cordis ctx.emit propagates that package-attributed InvariantError; the real SessionStore append route contains post-commit observer errors, but a real accepted append satisfies both checks. In either route a synthetic event leaves local state unchanged. Replace the existing bare Session test with a SessionStore-owned live append case, and cover synthetic emissions for both unattached and initialized Sessions.",
+    "no_persistent_projection": "Do not register a host-only SessionProjectionStateMap key. SessionProjectionRegistry.restore() accepts a matching, schema-valid checkpoint row and applies only its suffix; the registry does not recompute the prefix or bind row values to it. That cache shortcut is unsuitable as the sole source for this invariant's root ancestry. A checkpointed child-to-root map would also duplicate per-Session state and require immutable O(n) copies per insertion if implemented as a pure JSON record.",
+    "service_dependency": "The companion declares sessions and sessionProjections injection and registers an onBeforePrepareSession listener. dsh-session-projection is a direct peer dependency for that companion requirement and remains a devDependency for tests. Add its project reference to packages/core/tools/tsconfig.json so the merged Context service type is available. No zod dependency, projection type-map merge, Session API, projection registry API, Session format, or SQLite schema change is planned.",
+    "effect_ownership": "The invariant installer owns the Session event listeners and the onBeforePrepareSession subscription through its Cordis child fiber. A preparation subscriber checks an active flag so disposal of ToolsInvariant cannot leave a validator running after its registration unloads. SessionPreparation itself clears subscribers on publication or disposal; failed setup remains unpublished.",
+    "compatibility": "No Session event payload, model-visible content, tool dispatch result, or session format changes. The behavior changes are that session/event notifications must correspond to Session.append, direct synthetic emits fail without advancing invariant state, and mounting or reloading ToolsInvariant after a Session becomes eventful fails closed instead of reconstructing state from snapshotEvents()."
+  },
+  "lifecycle": [
+    {
+      "phase": "installer startup",
+      "behavior": "Initialize empty state only for existing Sessions with seq === 0. Call fail() before installing listeners if a stored Session is already eventful, because no exact creation baseline is available."
+    },
+    {
+      "phase": "direct create, restore, and fork announcement",
+      "behavior": "Fold the exact SessionCreationBaseline delivered with session/created before the Session becomes usable. Restore and fork inherited prefixes are folded in sequence order, including the child-owned end-seed marker."
+    },
+    {
+      "phase": "AgentLoop SessionPreparation",
+      "behavior": "Initialize the private fold from preparation.baseline.events, then attach subscribeAppends(). The subscription may replay previously accepted events synchronously. For both replay and later delivery, require event.seq === fold.nextSeq; commit the prepared transition only when preparation.session.seq > event.seq and preparation.session.isCommittedEvent(event) prove the event is already committed. This permits older accepted events during replay while rejecting synthetic or uncommitted objects. At session/created, validate the full exact baseline and verify its length matches the prepared fold cursor, then adopt the prepared state without replaying setup events. If no prepared state exists, fold the full announced baseline once."
+    },
+    {
+      "phase": "live Session.append",
+      "behavior": "For every live session/event candidate, require event.seq === session.seq === fold.nextSeq. Validate without mutation in internal/dispatch. In the post-append listener, require session.seq === event.seq + 1, Session.isCommittedEvent(event), and fold.nextSeq === event.seq; only then update the private fold and increment nextSeq. A synthetic next-sequence direct ctx.emit reaches the listener before any Session cursor advance, so fail before state mutation; Cordis propagates that InvariantError to the emitter, while SessionStore contains errors from its actual post-append observer path."
+    },
+    {
+      "phase": "teardown and cancellation",
+      "behavior": "Unloading the invariant companion disposes its listeners and disables any outstanding preparation callback. SessionPreparation publication or disposal clears its feed. No callback from an unloaded companion may reject a later append."
+    }
+  ],
+  "design_review_falsifiers": [
+    "An invalid off-turn, empty-ID, changed-root, or wrong-parent dispatch fails synchronously with InvariantError.packageName equal to @deepseek-ai/dsh-tools; neither Session.seq nor the private root index advances, and a subsequent valid append succeeds.",
+    "A valid restore baseline and a multi-hop fork preserve inherited parent-to-root relationships for child-owned appends without snapshotEvents().",
+    "An invalid restored or forked baseline fails before Session publication with the tools package attribution.",
+    "An invalid SessionPreparation setup append leaves the Session sequence and invariant state unchanged; accepted setup appends seed the live state exactly once, and session/created adopts the complete exact baseline without applying those events twice.",
+    "Loading or reloading ToolsInvariant against any eventful stored Session fails explicitly; an empty stored Session remains usable.",
+    "A synthetic session/event for an unattached Session fails during internal dispatch. A synthetic next-sequence dispatch event for an initialized Session does not advance the fold, is reported through the contained observer failure path, and does not prevent a valid real append at the same sequence.",
+    "A SessionStore-owned turn/start and PTC append succeed, while stale or skipped sequence candidates fail synchronously before append.",
+    "Disposing ToolsInvariant during a pending preparation prevents its retained preparation callback from validating later appends.",
+    "The companion contains no snapshotEvents() or eventAt() read and no behavior change leaks into compositions that do not mount the companion.",
+    "Append a valid setup event to a SessionPreparation before the invariant subscriber attaches, then attach the subscriber and publish: the replay must fold that canonical committed event once, preserve the contiguous next-sequence, and session/created must adopt the full baseline without folding the event again."
+  ],
+  "candidate_scope": {
+    "exact_paths": [
+      {
+        "path": "packages/core/tools/src/invariant.ts",
+        "sha256": "919744eaa6c1e6489a68a4ea3be9831e1e6c576a4a2fce96801d0a3a33ac2a79",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row."
+      },
+      {
+        "path": "packages/core/tools/tests/invariant.spec.ts",
+        "sha256": "50378aec8db8d5166d02cfdd0422904776619bbe70dfc13abc10c687f7494a2b",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row."
+      },
+      {
+        "path": "packages/core/tools/tsconfig.json",
+        "sha256": "8d8b9eda0ef6cff70b36589d5692767fee68141752cd73b19272379c8b699433",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row with a project reference to dsh-session-projection for the merged Context service type."
+      },
+      {
+        "path": "packages/core/tools/package.json",
+        "sha256": "686a1d9e9cac2f8c365af3f2a663528c9ce70cc9deb460e4caaed1d3d5107d9d",
+        "worktree_status": "modified before this action",
+        "single_owner": "package-source-export-policy",
+        "owner_change": "Retain the existing package-manifest owner and preserve its current source-export removal while adding the session-projection peer."
+      },
+      {
+        "path": "packages/core/tools/README.md",
+        "sha256": "625a69e6c172b47cecd6b36ba66af4e0379b52b421651082f8517edb8618e240",
+        "worktree_status": "modified before this action",
+        "single_owner": "runtime-resolution-and-ci-fixtures",
+        "owner_change": "Retain the existing README owner and preserve its current source/lib scheduler note; add the concise tools-invariant late-activation limitation and link to the subsystem lifecycle details."
+      },
+      {
+        "path": "packages/core/tools/README.zh.md",
+        "sha256": "658952fa9234fbe4171489d76eb5228f2f092221caf7a809e0299a4e83c7101b",
+        "worktree_status": "modified before this action",
+        "single_owner": "runtime-resolution-and-ci-fixtures",
+        "owner_change": "Retain the existing README owner and preserve its current source/lib scheduler note; add the translated tools-invariant late-activation limitation and link to the subsystem lifecycle details."
+      },
+      {
+        "path": "packages/core/tools/README.i18n.yaml",
+        "sha256": "75eb40eb269cbf5ea257c43bb244004292204bfe0ce239faa21624ac9fbf8997",
+        "worktree_status": "modified before this action",
+        "single_owner": "runtime-resolution-and-ci-fixtures",
+        "owner_change": "Retain the existing bilingual sidecar and pairing record; refresh pairing metadata for the added limitation and subsystem link."
+      },
+      {
+        "path": "docs/subsystems/tools.md",
+        "sha256": "c23b2c2177c8a14f5e3dd566d4352a3ca2888721d1dc2f0ec01ad5ed73cc1f07",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row."
+      },
+      {
+        "path": "docs/subsystems/tools.zh.md",
+        "sha256": "a14e82e12cd5e5000055ada928b9e11ca7aa4b1aece08142f9354d9c0680edad",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row."
+      },
+      {
+        "path": "docs/subsystems/tools.i18n.yaml",
+        "sha256": "71bc982396124f87dd7e63d3ccecb00e3e1ae33409cff8e1a34222c2df198f73",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row."
+      },
+      {
+        "path": "packages/runtime-diagnostics/invariants/README.md",
+        "sha256": "f0c461f814badf6aa612b23e3c107c52305d32f4df1ff112cdca26a434cfe2f4",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row to qualify reload behavior for baseline-only companions."
+      },
+      {
+        "path": "packages/runtime-diagnostics/invariants/README.zh.md",
+        "sha256": "d84900cc0530541a36f1c9565b810e78ecc967cb41c6952fd46b6d7cc1eb47c7",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row."
+      },
+      {
+        "path": "packages/runtime-diagnostics/invariants/README.i18n.yaml",
+        "sha256": "52a3723521616d65adb539181a5a52a1ad23c1e629346913792b50dde661a347",
+        "worktree_status": "clean",
+        "single_owner": "schedule-session-projection-readers",
+        "owner_change": "Add this exact path to the existing owner row and refresh its bilingual pairing record."
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "sha256": "4936255ceec1dd7a259078d0502e0bb5fec5c971d26051b30b4dae3f6e8bbca9",
+        "worktree_status": "modified before this action",
+        "single_owner": "dependency-security-remediation",
+        "owner_change": "Retain the existing lockfile owner and preserve its current dependency updates while recording any required tools importer metadata."
+      },
+      {
+        "path": ".agents/customization-policy.json",
+        "sha256": "f6d00b07afbb28f2ad7e8f55a0d204dc956453760020090ff4d9f1381fe79b5a",
+        "worktree_status": "modified before this action",
+        "single_owner": "upstream-safe-customization-governance",
+        "owner_change": "Retain the governance owner and preserve current A27 policy changes while adding only the paths named above to schedule-session-projection-readers."
+      }
+    ],
+    "scope_exclusions": [
+      "No packages/session/session-projection source or tests; the existing onBeforePrepareSession and SessionPreparation.subscribeAppends APIs are sufficient.",
+      "No packages/core/session source or Session event changes.",
+      "No tool runtime src/index.ts changes or new service method.",
+      "No SessionProjectionStateMap entry, zod dependency, generated Cordis catalog, session schema, session format, persistence type, or SQLite schema change.",
+      "No change to sealed A28 artifacts."
+    ],
+    "policy_owner_update": {
+      "owner_id": "schedule-session-projection-readers",
+      "planned_summary": "Use exact Session baselines and event feeds for Schedule and core-tools invariant readers while preserving fork ownership and pre-append rejection.",
+      "paths_to_add": [
+        "packages/core/tools/src/invariant.ts",
+        "packages/core/tools/tests/invariant.spec.ts",
+        "docs/subsystems/tools.md",
+        "docs/subsystems/tools.zh.md",
+        "docs/subsystems/tools.i18n.yaml",
+        "packages/runtime-diagnostics/invariants/README.md",
+        "packages/runtime-diagnostics/invariants/README.zh.md",
+        "packages/runtime-diagnostics/invariants/README.i18n.yaml",
+        "packages/core/tools/tsconfig.json"
+      ],
+      "paths_with_existing_single_owner_retained": [
+        "packages/core/tools/package.json",
+        "packages/core/tools/README.md",
+        "packages/core/tools/README.zh.md",
+        "packages/core/tools/README.i18n.yaml",
+        "pnpm-lock.yaml",
+        ".agents/customization-policy.json"
+      ]
+    }
+  },
+  "verification_plan_for_successor_gate": [
+    "Focused packages/core/tools/tests/invariant.spec.ts behavior coverage for lifecycle baselines, preparation replay before subscription (folded once), preparation rollback, synchronous live rejection, package attribution, late activation refusal, direct synthetic delivery propagation for initialized and unattached Sessions, and teardown.",
+    "Focused tools package typecheck, project-reference validation, and lint for the modified source, tests, manifest, and tsconfig.",
+    "Bilingual pairing checks for both README pairs and doc-quick/doc-sync checks for the tools and invariants documentation.",
+    "Customization-policy validation against the exact owner map and a post-edit path fingerprint comparison proving protected and unrelated dirty files are unchanged."
+  ],
+  "independent_review": {
+    "status": "PENDING",
+    "requirement": "A fresh-context read-only reviewer must assess this final design and exact scope before an implementation-ready successor gate."
+  },
+  "scope_effect": "Design evidence only. No implementation, test, documentation, package-manifest, lockfile, or customization-policy path was changed by this action.",
+  "successor_action": {
+    "id": "AAA-022:W2-CORE-TOOLS-IMPLEMENTATION-GATE",
+    "kind": "GATE",
+    "summary": "Validate the exact 15-path one-owner scope and authorize the reviewed W2 core/tools transactional baseline fold.",
+    "completion_signal": "A fresh design review approves the current hashes, lifecycle behavior, late-activation limitation, and exact owner map; policy and gate validators accept the same path set; no implementation path changes before gate pass."
+  },
+  "documentation_ownership": {
+    "package_contract": "The English and Chinese tools READMEs state the concise late-activation limitation and link to the detailed tools subsystem section. Preserve their existing source/lib scheduler note and current runtime-resolution-and-ci-fixtures ownership.",
+    "detailed_lifecycle": "docs/subsystems/tools.md and its Chinese pair own the ToolsInvariant baseline, preparation, live append, and late-activation behavior. packages/runtime-diagnostics/invariants/README.md and its Chinese pair update the generic companion reload rule to defer to each companion\u2019s stated baseline capability.",
+    "single_home": "Keep the full ToolsInvariant lifecycle detail in the tools subsystem reference; the package README contains only the user-relevant limitation and link."
+  }
+}

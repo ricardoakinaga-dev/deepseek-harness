@@ -1,0 +1,459 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "action_id": "AAA-001:A02",
+  "candidate_ref": "refs/tags/aaa-savepoint-2026-09-20-m0-a02-01",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T19:14:00-03:00",
+  "source_documents": [
+    {
+      "id": "P1-P16",
+      "location": "docs/audits/auditoria-completa-2026-09-20.md#6-problemas-enumerados",
+      "role": "Portuguese audit findings; historical source claims preserved without treating its old execution matrix as current release evidence."
+    },
+    {
+      "id": "repository-audit",
+      "location": "docs/customization/repository-audit-2026-09-20.md#findings",
+      "role": "English audit findings and current-state context; current M0 command records supersede its aggregate score for release qualification."
+    },
+    {
+      "id": "AAA-QB-v1.4",
+      "location": ".agent/plans/deepseek-harness-aaa-quality-bar.json",
+      "role": "Frozen required criteria and evidence methods."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-P1",
+      "source_refs": ["P1", "repository-audit:ignored-package-directories"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P1; docs/customization/repository-audit-2026-09-20.md#graph-and-generated-residue-hygiene",
+      "command_ids": ["CMD-AAA-001-001", "CMD-AAA-001-004", "CMD-AAA-001-029"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_FAILURE_WITH_SCOPED_COUNT_CONFLICT",
+      "owner": "AAA-002",
+      "severity": "HIGH",
+      "summary": "The current constraints and hygiene records reproduce eight package-depth directories without package.json; the Portuguese audit's older table names four. The current eight-directory observation is retained with the historical four-directory discrepancy explicit.",
+      "limitations": "No residue was deleted during M0; the count must be resolved by AAA-002 against the exact package-root corpus."
+    },
+    {
+      "id": "F-P2",
+      "source_refs": ["P2", "repository-audit:weighted-approval"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P2",
+      "command_ids": ["CMD-AAA-001-009", "CMD-AAA-001-010"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_STATIC_DEFECT_WITH_FALSE_GREEN_FIXTURE",
+      "owner": "AAA-003",
+      "severity": "HIGH",
+      "summary": "The live weighted-approval classifier still names the removed code-runtime-python path and omits ptc-runtime-python; the canonical Python suite passes only because its fixture asserts the removed path.",
+      "limitations": "The focused implementation and fixture change remains pending."
+    },
+    {
+      "id": "F-P3",
+      "source_refs": ["P3"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P3",
+      "command_ids": ["CMD-AAA-001-018"],
+      "observed_status": "MIXED",
+      "classification": "CLASSIFICATION_CONFLICT_PENDING_ADJUDICATION",
+      "owner": "AAA-018",
+      "severity": "MEDIUM_HIGH",
+      "summary": "The dated dependency catalog and lock still contain workflow-worker-thread, while the live verifier name is valid. The current record preserves the catalog finding but does not claim that every related generated-name observation is a defect.",
+      "limitations": "AAA-018 must decide the canonical catalog corpus and whether the dependency entry is stale before regeneration or removal."
+    },
+    {
+      "id": "F-P4",
+      "source_refs": ["P4"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P4",
+      "command_ids": ["CMD-AAA-001-017"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_WARNING_DEBT",
+      "owner": "AAA-020",
+      "severity": "MEDIUM",
+      "summary": "The source-export inventory finds 279 package manifests exporting ./src/* while their files arrays omit source.",
+      "limitations": "No publication policy decision has been made."
+    },
+    {
+      "id": "F-P5",
+      "source_refs": ["P5"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P5",
+      "command_ids": ["CMD-AAA-001-016"],
+      "observed_status": "FAIL",
+      "classification": "BASELINE_COUNT_DRIFT_NON_CANONICAL",
+      "owner": "AAA-022",
+      "severity": "MEDIUM",
+      "summary": "The M0 ad-hoc count found 87 no-deprecated lines, while the historical report states 85.",
+      "limitations": "The M0 command explicitly does not establish the canonical corpus; AAA-018 owns the metric definition."
+    },
+    {
+      "id": "F-P6",
+      "source_refs": ["P6"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P6",
+      "command_ids": ["CMD-AAA-001-016"],
+      "observed_status": "FAIL",
+      "classification": "BASELINE_COUNT_DRIFT_NON_CANONICAL",
+      "owner": "AAA-022",
+      "severity": "MEDIUM",
+      "summary": "The M0 ad-hoc count found 211 oxlint-disable lines, while the historical report states 205.",
+      "limitations": "The corpus and exclusion rules are not yet canonical."
+    },
+    {
+      "id": "F-P7-P8",
+      "source_refs": ["P7", "P8"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P7; docs/audits/auditoria-completa-2026-09-20.md#P8",
+      "command_ids": ["CMD-AAA-001-019"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_CONFIGURED_DEBT",
+      "owner": "AAA-022",
+      "severity": "MEDIUM",
+      "summary": "The compiler and lint configuration retains correctness off, skipLibCheck true, and verbatimModuleSyntax false.",
+      "limitations": "No broad configuration change is authorized before owner-grouped migration evidence."
+    },
+    {
+      "id": "F-P9",
+      "source_refs": ["P9"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P9",
+      "command_ids": ["CMD-AAA-001-024", "CMD-AAA-001-029"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_USABILITY_GAP",
+      "owner": "AAA-021",
+      "severity": "MEDIUM",
+      "summary": "The hygiene aggregate invokes publint without declaring its build prerequisite, and the aggregate currently fails through constraints.",
+      "limitations": "The standalone and aggregate command contract has not been redesigned."
+    },
+    {
+      "id": "F-P10",
+      "source_refs": ["P10", "repository-audit:websocket-close", "repository-audit:static-symlink", "repository-audit:http-buffer"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P10; docs/customization/repository-audit-2026-09-20.md#runtime-and-security-sensitive-paths",
+      "command_ids": ["CMD-AAA-001-014"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_STATIC_RISK_REQUIRING_CONTRACT_TESTS",
+      "owner": "AAA-012",
+      "secondary_owners": ["AAA-013", "AAA-014", "AAA-015"],
+      "severity": "HIGH",
+      "summary": "Static review retains the early WebSocket close resolution, lexical-only static containment, request-local HTTP buffering without an aggregate cap, and dynamic-code surfaces.",
+      "limitations": "M0 did not claim that static review substitutes for lifecycle, containment, concurrency, CSP, consent, or deployment negative tests."
+    },
+    {
+      "id": "F-P11",
+      "source_refs": ["P11"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P11",
+      "command_ids": ["CMD-AAA-001-018"],
+      "observed_status": "MIXED",
+      "classification": "CLASSIFICATION_CONFLICT_NOT_REPRODUCED_AS_DEFECT",
+      "owner": "AAA-018",
+      "severity": "LOW_MEDIUM",
+      "summary": "The audit reports a generated banner name divergence, but the live verify-cordis-api entry point owns that name; the current command therefore records P11 as not reproduced as a defect.",
+      "limitations": "The historical P11 claim remains preserved and is not silently deleted."
+    },
+    {
+      "id": "F-P12-P14",
+      "source_refs": ["P12", "P13", "P14"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P12; docs/audits/auditoria-completa-2026-09-20.md#P13; docs/audits/auditoria-completa-2026-09-20.md#P14",
+      "command_ids": ["CMD-AAA-001-016"],
+      "observed_status": "FAIL",
+      "classification": "BASELINE_COUNT_DRIFT_NON_CANONICAL",
+      "owner": "AAA-018",
+      "secondary_owners": ["AAA-022"],
+      "severity": "LOW_MEDIUM",
+      "summary": "The M0 ad-hoc counts are 57 TODO/FIXME/XXX lines, 866 lines containing the token any, and zero .skip( lines in the selected spec corpus; the historical report states 81, 66, and 8 respectively.",
+      "limitations": "These measurements are explicitly non-canonical until AAA-018 defines corpus, exclusions, and revision evidence."
+    },
+    {
+      "id": "F-P15",
+      "source_refs": ["P15"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P15",
+      "command_ids": ["CMD-AAA-001-038"],
+      "observed_status": "MIXED",
+      "classification": "CONFIRMED_SIZE_AND_LOCATION_DRIFT",
+      "owner": "AAA-018",
+      "secondary_owners": ["AAA-023"],
+      "severity": "LOW_MEDIUM",
+      "summary": "Generated catalog files are present in source; the current inventory records paths and sizes instead of assuming the historical examples remain exact.",
+      "limitations": "The inventory does not decide whether generated source should move outside src or remain with a gate."
+    },
+    {
+      "id": "F-P16",
+      "source_refs": ["P16", "repository-audit:snapshot-suite", "repository-audit:expected-output", "repository-audit:missing-Playwright", "repository-audit:check-all"],
+      "source_location": "docs/audits/auditoria-completa-2026-09-20.md#P16; docs/customization/repository-audit-2026-09-20.md#executed-evidence",
+      "command_ids": ["CMD-AAA-001-005", "CMD-AAA-001-007", "CMD-AAA-001-008", "CMD-AAA-001-026", "CMD-AAA-001-027", "CMD-AAA-001-028", "CMD-AAA-001-031", "CMD-AAA-001-032", "CMD-AAA-001-033", "CMD-AAA-001-034", "CMD-AAA-001-035", "CMD-AAA-001-036", "CMD-AAA-001-037"],
+      "observed_status": "FAIL_AND_NOT_RUN",
+      "classification": "CONFIRMED_RELEASE_MATRIX_INCOMPLETE",
+      "owner": "AAA-023",
+      "secondary_owners": ["AAA-005", "AAA-006", "AAA-007", "AAA-008", "AAA-021"],
+      "severity": "CRITICAL",
+      "summary": "Snapshot, expected-output, e2e, coverage, web, and browser benchmark lanes have current failures; aggregate check:all, Windows, Node compatibility, credentialed provider, packed install, and upstream merge rehearsal are explicitly deferred.",
+      "limitations": "A deferred lane is not a PASS and blocks release qualification until the final candidate supplies evidence."
+    },
+    {
+      "id": "F-CLIENT-DOMAIN",
+      "source_refs": ["repository-audit:client-domain-graph"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#graph-and-generated-residue-hygiene",
+      "command_ids": ["CMD-AAA-001-002"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_FAILURE",
+      "owner": "AAA-009",
+      "severity": "HIGH",
+      "summary": "The client-domain graph verifier reports 38 ownership violations.",
+      "limitations": "The violations are not yet grouped by owner."
+    },
+    {
+      "id": "F-MODULE-GRAPH",
+      "source_refs": ["repository-audit:module-graph"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#graph-and-generated-residue-hygiene",
+      "command_ids": ["CMD-AAA-001-003"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_STALE_GENERATED_OUTPUT",
+      "owner": "AAA-010",
+      "severity": "HIGH",
+      "summary": "English, Chinese, and pairing module-graph outputs are stale.",
+      "limitations": "The generator rerun belongs after client ownership changes settle."
+    },
+    {
+      "id": "F-UNIT",
+      "source_refs": ["repository-audit:unit-tests"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#executed-evidence",
+      "command_ids": ["CMD-AAA-001-004"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_FAILURE_WITH_ENVIRONMENT_SENSITIVE_SPILL",
+      "owner": "AAA-004",
+      "secondary_owners": ["AAA-002"],
+      "severity": "HIGH",
+      "summary": "Unit tests fail in six files and 16 tests, including spill cleanup under umask 0002 and an orphan-bundle corpus check.",
+      "limitations": "AAA-004 must reproduce under both relevant umasks before attributing product behavior."
+    },
+    {
+      "id": "F-PACKAGE-ROOTS",
+      "source_refs": ["repository-audit:packageRoots-policy"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#documentation-and-governance",
+      "command_ids": ["CMD-AAA-001-011", "CMD-AAA-001-012"],
+      "observed_status": "PASS_WITH_GAP",
+      "classification": "FALSE_GREEN_ENFORCEMENT_GAP",
+      "owner": "AAA-016",
+      "severity": "HIGH",
+      "summary": "Current custom paths are attributed and the existing policy suite passes, but invalid packageRoots on non-packaged solution types are accepted and not covered.",
+      "limitations": "A passing exit status is not criterion PASS while the invalid fixture is absent."
+    },
+    {
+      "id": "F-SHELL-DOCS",
+      "source_refs": ["repository-audit:shell-timeout-docs", "repository-audit:missing-shell-snapshot"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#test-evidence-and-model-visible-behavior",
+      "command_ids": ["CMD-AAA-001-013"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_DOCUMENTATION_AND_COVERAGE_GAP",
+      "owner": "AAA-011",
+      "severity": "HIGH",
+      "summary": "Runtime and test text expose detailed timeout behavior while maintained descriptions retain older generic wording, and no owning keyless snapshot scenario is identified.",
+      "limitations": "The documentation owner and snapshot pair remain to be recorded before implementation."
+    },
+    {
+      "id": "F-PUBLICATION-IDENTITY",
+      "source_refs": ["repository-audit:package-repository-identity"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#documentation-and-governance",
+      "command_ids": ["CMD-AAA-001-015", "CMD-AAA-001-021"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_CUSTOM_PUBLICATION_DECISION_REQUIRED",
+      "owner": "AAA-019",
+      "severity": "HIGH",
+      "summary": "The custom package manifests use the official repository URL and @deepseek-ai namespace, including two fork-specific packages.",
+      "limitations": "Namespace, repository identity, registry visibility, and publication authority require a maintainer decision."
+    },
+    {
+      "id": "F-README-COUNTS",
+      "source_refs": ["repository-audit:README-channels", "repository-audit:historical-counts"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#documentation-and-governance",
+      "command_ids": ["CMD-AAA-001-022"],
+      "observed_status": "FAIL",
+      "classification": "CONFIRMED_SEMANTIC_AND_DATE_GAP",
+      "owner": "AAA-018",
+      "severity": "MEDIUM",
+      "summary": "English and Chinese community-channel content differs, and the historical implementation report retains undated 1,128/2,259 counts.",
+      "limitations": "The channel policy and metric source details are undecided."
+    },
+    {
+      "id": "F-OFFICIAL-MIRROR",
+      "source_refs": ["repository-audit:official-mirror"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#documentation-and-governance",
+      "command_ids": ["CMD-AAA-001-020", "CMD-AAA-001-023", "CMD-AAA-001-037"],
+      "observed_status": "PASS_WITH_AUTOMATION_GAP_AND_DEFERRED_REHEARSAL",
+      "classification": "CONFIRMED_AUTOMATION_GAP",
+      "owner": "AAA-017",
+      "severity": "HIGH",
+      "summary": "Local and origin refs agree at capture time, but workflow automation does not fetch and compare deepseek-official/master and the final network-fresh merge rehearsal is deferred.",
+      "limitations": "The local equality observation is not a proof of future updateability."
+    }
+  ],
+  "quality_criteria": [
+    {
+      "id": "AAA-QB-01",
+      "command_ids": ["CMD-AAA-001-032"],
+      "observed_status": "NOT_RUN",
+      "classification": "DEFERRED_AFTER_LEAF_REPRODUCTION",
+      "qualification_status": "NOT_RUN",
+      "summary": "The aggregate check:all was deferred after its failing leaves were reproduced individually."
+    },
+    {
+      "id": "AAA-QB-02",
+      "command_ids": ["CMD-AAA-001-004", "CMD-AAA-001-027"],
+      "observed_status": "FAIL",
+      "classification": "BLOCKED_BY_TEST_FAILURES",
+      "qualification_status": "FAIL",
+      "summary": "Unit tests and coverage fail before a coverage qualification is produced."
+    },
+    {
+      "id": "AAA-QB-03",
+      "command_ids": ["CMD-AAA-001-005", "CMD-AAA-001-007", "CMD-AAA-001-008"],
+      "observed_status": "FAIL",
+      "classification": "MODEL_VISIBLE_REPLAY_FAILURE",
+      "qualification_status": "FAIL",
+      "summary": "Snapshot and expected-output suites reproduce generation, adapter, request-count, and ACP stream failures."
+    },
+    {
+      "id": "AAA-QB-04",
+      "command_ids": ["CMD-AAA-001-001", "CMD-AAA-001-002", "CMD-AAA-001-003", "CMD-AAA-001-017", "CMD-AAA-001-018", "CMD-AAA-001-029"],
+      "observed_status": "FAIL",
+      "classification": "GRAPH_CATALOG_AND_RESIDUE_FAILURES",
+      "qualification_status": "FAIL",
+      "summary": "Constraints, client-domain, module-graph, source-export, and catalog/residue evidence are not clean."
+    },
+    {
+      "id": "AAA-QB-05",
+      "command_ids": ["CMD-AAA-001-014"],
+      "observed_status": "FAIL",
+      "classification": "STATIC_RISK_REQUIRES_CONTRACT_TESTS",
+      "qualification_status": "FAIL",
+      "summary": "M0 has static risk evidence but no deterministic lifecycle, containment, aggregate-memory, or dynamic-extension negative-test qualification."
+    },
+    {
+      "id": "AAA-QB-06",
+      "command_ids": ["CMD-AAA-001-009", "CMD-AAA-001-010", "CMD-AAA-001-011", "CMD-AAA-001-012", "CMD-AAA-001-020", "CMD-AAA-001-023"],
+      "observed_status": "MIXED",
+      "classification": "POLICY_ENFORCEMENT_AND_MIRROR_GAPS",
+      "qualification_status": "FAIL",
+      "summary": "Weighted approval and packageRoots enforcement have false-green gaps, while mirror equality is observed without required automation."
+    },
+    {
+      "id": "AAA-QB-07",
+      "command_ids": ["CMD-AAA-001-006", "CMD-AAA-001-029", "CMD-AAA-001-030", "CMD-AAA-001-036", "CMD-AAA-001-039", "CMD-AAA-001-040"],
+      "observed_status": "MIXED",
+      "classification": "BUILD_PASS_RELEASE_STATIC_LANES_DEFERRED",
+      "qualification_status": "FAIL",
+      "summary": "Build and release-family ordering pass; hygiene fails and typecheck, lint, and packed-install lanes remain unqualified."
+    },
+    {
+      "id": "AAA-QB-08",
+      "command_ids": ["CMD-AAA-001-016"],
+      "observed_status": "FAIL",
+      "classification": "NON_CANONICAL_BASELINE_COUNT_DRIFT",
+      "qualification_status": "NOT_RUN",
+      "summary": "The ad-hoc static count differs from the historical values, but its own limitation prevents a baseline replacement; AAA-018 must define the canonical corpus."
+    },
+    {
+      "id": "AAA-QB-09",
+      "command_ids": ["CMD-AAA-001-013", "CMD-AAA-001-022", "CMD-AAA-001-025"],
+      "observed_status": "FAIL",
+      "classification": "DOCUMENTATION_GATE_AND_SEMANTIC_PARITY_FAILURE",
+      "qualification_status": "FAIL",
+      "summary": "Shell documentation/snapshot evidence, README semantic parity, historical metric source details, and doc-sync all have open findings."
+    },
+    {
+      "id": "AAA-QB-10",
+      "command_ids": ["CMD-AAA-001-031"],
+      "observed_status": "FAIL",
+      "classification": "DESIGNATED_RUNNER_OR_BROWSER_PREREQUISITE_REQUIRED",
+      "qualification_status": "FAIL",
+      "summary": "Benchmark tests pass except for browser cases blocked by missing Chromium; the designated Linux runner has not supplied current evidence."
+    },
+    {
+      "id": "AAA-QB-11",
+      "command_ids": ["CMD-AAA-001-020", "CMD-AAA-001-037"],
+      "observed_status": "MIXED",
+      "classification": "LOCAL_EQUALITY_WITH_DEFERRED_NETWORK_REHEARSAL",
+      "qualification_status": "NOT_RUN",
+      "summary": "Current local refs agree, but official-upstream fetch, comparison, and disposable-worktree merge rehearsal remain deferred."
+    },
+    {
+      "id": "AAA-QB-12",
+      "command_ids": ["CMD-AAA-001-005", "CMD-AAA-001-008", "CMD-AAA-001-026"],
+      "observed_status": "FAIL",
+      "classification": "SESSION_AND_SDK_COMPATIBILITY_UNQUALIFIED",
+      "qualification_status": "FAIL",
+      "summary": "Snapshot, Python expected-output, and e2e evidence expose current failures; no complete Session and dual-SDK compatibility matrix is qualified."
+    },
+    {
+      "id": "AAA-QB-13",
+      "command_ids": ["CMD-AAA-001-026", "CMD-AAA-001-028", "CMD-AAA-001-031", "CMD-AAA-001-033", "CMD-AAA-001-034", "CMD-AAA-001-035", "CMD-AAA-001-036", "CMD-AAA-001-037", "CMD-AAA-001-039", "CMD-AAA-001-040"],
+      "observed_status": "FAIL_AND_NOT_RUN",
+      "classification": "RELEASE_MATRIX_INCOMPLETE",
+      "qualification_status": "FAIL",
+      "summary": "The current candidate is not an immutable release candidate with passing required platform, Node, Web, consumer, packed-install, benchmark, coverage, and credentialed-provider lanes."
+    },
+    {
+      "id": "AAA-QB-14",
+      "command_ids": ["CMD-AAA-001-041"],
+      "observed_status": "NOT_RUN",
+      "classification": "DEFERRED_TO_FINAL_QUALIFICATION",
+      "qualification_status": "NOT_RUN",
+      "summary": "A fresh-context critic is scheduled only after remediation and candidate sealing."
+    }
+  ],
+  "required_release_lanes": [
+    {"id": "constraints", "criterion_refs": ["AAA-QB-04"], "command_ids": ["CMD-AAA-001-001", "CMD-AAA-001-029"], "observed_status": "FAIL"},
+    {"id": "client-domain-graph", "criterion_refs": ["AAA-QB-04"], "command_ids": ["CMD-AAA-001-002"], "observed_status": "FAIL"},
+    {"id": "module-graph", "criterion_refs": ["AAA-QB-04"], "command_ids": ["CMD-AAA-001-003"], "observed_status": "FAIL"},
+    {"id": "unit-tests", "criterion_refs": ["AAA-QB-02"], "command_ids": ["CMD-AAA-001-004"], "observed_status": "FAIL"},
+    {"id": "snapshot", "criterion_refs": ["AAA-QB-03", "AAA-QB-12"], "command_ids": ["CMD-AAA-001-005", "CMD-AAA-001-007"], "observed_status": "FAIL"},
+    {"id": "expected-outputs", "criterion_refs": ["AAA-QB-03", "AAA-QB-12"], "command_ids": ["CMD-AAA-001-008"], "observed_status": "FAIL"},
+    {"id": "build", "criterion_refs": ["AAA-QB-07"], "command_ids": ["CMD-AAA-001-006"], "observed_status": "PASS"},
+    {"id": "coverage", "criterion_refs": ["AAA-QB-02", "AAA-QB-13"], "command_ids": ["CMD-AAA-001-027"], "observed_status": "FAIL"},
+    {"id": "e2e", "criterion_refs": ["AAA-QB-12", "AAA-QB-13"], "command_ids": ["CMD-AAA-001-026"], "observed_status": "FAIL"},
+    {"id": "web-browser", "criterion_refs": ["AAA-QB-10", "AAA-QB-13"], "command_ids": ["CMD-AAA-001-028"], "observed_status": "FAIL"},
+    {"id": "benchmark-browser", "criterion_refs": ["AAA-QB-10"], "command_ids": ["CMD-AAA-001-031"], "observed_status": "FAIL"},
+    {"id": "hygiene", "criterion_refs": ["AAA-QB-07"], "command_ids": ["CMD-AAA-001-029"], "observed_status": "FAIL"},
+    {"id": "release-family-order", "criterion_refs": ["AAA-QB-07"], "command_ids": ["CMD-AAA-001-030"], "observed_status": "PASS"},
+    {"id": "typecheck", "criterion_refs": ["AAA-QB-07", "AAA-QB-13"], "command_ids": ["CMD-AAA-001-039"], "observed_status": "NOT_RUN"},
+    {"id": "lint", "criterion_refs": ["AAA-QB-07", "AAA-QB-13"], "command_ids": ["CMD-AAA-001-040"], "observed_status": "NOT_RUN"},
+    {"id": "documentation", "criterion_refs": ["AAA-QB-09"], "command_ids": ["CMD-AAA-001-013", "CMD-AAA-001-022", "CMD-AAA-001-025"], "observed_status": "FAIL"},
+    {"id": "aggregate-check-all", "criterion_refs": ["AAA-QB-01"], "command_ids": ["CMD-AAA-001-032"], "observed_status": "NOT_RUN"},
+    {"id": "windows", "criterion_refs": ["AAA-QB-13"], "command_ids": ["CMD-AAA-001-033"], "observed_status": "NOT_RUN"},
+    {"id": "node-compatibility", "criterion_refs": ["AAA-QB-13"], "command_ids": ["CMD-AAA-001-034"], "observed_status": "NOT_RUN"},
+    {"id": "credentialed-provider", "criterion_refs": ["AAA-QB-13"], "command_ids": ["CMD-AAA-001-035"], "observed_status": "NOT_RUN"},
+    {"id": "packed-install", "criterion_refs": ["AAA-QB-07", "AAA-QB-13"], "command_ids": ["CMD-AAA-001-036"], "observed_status": "NOT_RUN"},
+    {"id": "official-mirror-and-merge", "criterion_refs": ["AAA-QB-06", "AAA-QB-11", "AAA-QB-13"], "command_ids": ["CMD-AAA-001-020", "CMD-AAA-001-023", "CMD-AAA-001-037"], "observed_status": "MIXED"},
+    {"id": "fresh-independent-critic", "criterion_refs": ["AAA-QB-14"], "command_ids": ["CMD-AAA-001-041"], "observed_status": "NOT_RUN"}
+  ],
+  "quality_bar_reconciliation": {
+    "current_version": "AAA-QB-v1.4",
+    "revision_required": false,
+    "decision": "KEEP_FROZEN_V1_4",
+    "reason": "All normative source snapshot hashes match the frozen plan and the reconciled .gauntlet/bar.json copy. CMD-AAA-001-016 is explicitly an ad-hoc, non-canonical corpus and therefore does not prove that the frozen AAA-QB-08 baseline is invalid. No criterion or historical revision entry was silently changed.",
+    "preserved_historical_values": {
+      "P5_no_deprecated": 85,
+      "P6_oxlint_disable": 205,
+      "P13_todo_fixme_xxx": 81,
+      "P13_any_lines": 66,
+      "P14_runtime_skip_lines": 8
+    },
+    "m0_non_canonical_observations": {
+      "P5_no_deprecated": 87,
+      "P6_oxlint_disable": 211,
+      "P13_todo_fixme_xxx": 57,
+      "P13_any_lines": 866,
+      "P14_selected_spec_skip_lines": 0
+    },
+    "next_owner": "AAA-018",
+    "next_action": "Define the canonical corpora and rerun the metrics. If the canonical result disproves AAA-QB-v1.4, append AAA-QB-v1.5 preserving both value sets and the reason for correction."
+  },
+  "coverage": {
+    "direct_command_source_ref_count": 43,
+    "covered_direct_source_refs": [
+      "AAA-QB-01", "AAA-QB-02", "AAA-QB-07", "AAA-QB-09", "AAA-QB-10", "AAA-QB-11", "AAA-QB-13", "AAA-QB-14",
+      "P1", "P10", "P11", "P12", "P13", "P14", "P15", "P16", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9",
+      "repository-audit:README-channels", "repository-audit:check-all", "repository-audit:client-domain-graph", "repository-audit:expected-output", "repository-audit:historical-counts", "repository-audit:http-buffer", "repository-audit:ignored-package-directories", "repository-audit:missing-Playwright", "repository-audit:missing-shell-snapshot", "repository-audit:module-graph", "repository-audit:official-mirror", "repository-audit:package-repository-identity", "repository-audit:packageRoots-policy", "repository-audit:shell-timeout-docs", "repository-audit:snapshot-suite", "repository-audit:static-symlink", "repository-audit:unit-tests", "repository-audit:websocket-close", "repository-audit:weighted-approval"
+    ],
+    "quality_criterion_count": 14,
+    "required_lane_count": 23,
+    "command_record_count": 41,
+    "validation_method": "Parse commands.jsonl; require unique command IDs, existing raw_output files with matching SHA-256, non-empty source_refs; require every direct source_ref to occur in findings or quality_criteria; require every AAA-QB-01..14 criterion and every required_release_lanes entry to have at least one command ID; require every command ID to be referenced by a finding, criterion, or required lane.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T19:14:00-03:00"
+  }
+}

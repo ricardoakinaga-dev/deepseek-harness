@@ -138,6 +138,8 @@ kind: "package-reference"
 
 - **后端可用性**——本插件禁用或卸载期间提交的反馈会记录在本地，但恢复插件不会自动重放。捕获要求订阅方保持挂载直到观察到提交；在冷写入尚未完成时卸载，可能错过其 flush 后通知。
 
+**运行时不变式：** 不发布伴生入口。模式选择只改变 capture handoff、SDK setup 与本地 diagnostics，不改变可由独立 companion 对照的会话或服务状态。导出在越过后端边界后仍由 SDK 内部处理。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -147,5 +149,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。模式选择只改变 capture handoff、SDK setup 与本地 diagnostics，不改变可由独立 companion 对照的会话或服务状态。导出在越过后端边界后仍由 SDK 内部处理。

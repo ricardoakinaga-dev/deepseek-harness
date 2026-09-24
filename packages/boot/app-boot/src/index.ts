@@ -447,7 +447,7 @@ export function renderConfigDump(
   let composed = base
   for (let count = 1; count <= layers.length; count += 1) {
     const layer = layers[count - 1]
-    /* v8 ignore next -- count iterates 1..length, so the slot exists */
+    /*! v8 ignore next -- count iterates 1..length, so the slot exists */
     if (layer === undefined) continue
     const warnings: string[] = []
     composed = snapshot(count, warnings)
@@ -481,7 +481,7 @@ function groupedDump(
   }
   for (let index = 0; index < composed.length; index += 1) {
     const record = entryOrigins[index]
-    /* v8 ignore next -- this array is index-aligned with composed by construction */
+    /*! v8 ignore next -- this array is index-aligned with composed by construction */
     if (record === undefined) continue
     const label = record.patchedBy.length === 0
       ? record.origin
@@ -520,7 +520,7 @@ export async function mountRootInclude(
         const specifier = isAbsolute(name) ? pathToFileURL(name).href : name
         if (name.startsWith('.') || name.startsWith('cordis:')) return super.import(specifier, getOuterStack)
         const internal = this.ctx.loader.internal
-        /* v8 ignore next -- Node supplies the internal loader; this preserves the
+        /*! v8 ignore next -- Node supplies the internal loader; this preserves the
            original diagnostic for hypothetical embedders without it. */
         if (internal === undefined) return super.import(specifier, getOuterStack)
         return internal.import(specifier, bareModuleBaseUrl, {})
@@ -686,7 +686,8 @@ const FIBER_DISPOSED = 4 as FiberState.DISPOSED
  *
  * The list is global rather than profile metadata. Missing or disabled ids do
  * not affect startup; an enabled listed entry must activate. The list covers
- * shared Agent execution, application endpoints, and Web bootstrap/transport.
+ * shared Agent execution, application endpoints, Web bootstrap/transport, and
+ * configured model-backed session-title providers.
  */
 const requiredStartupEntryIds = new Set<string>([
   'agent-loop',
@@ -696,6 +697,14 @@ const requiredStartupEntryIds = new Set<string>([
   'headless-runner',
   'acp',
   'sdk-jsonrpc-server',
+  'session-title-first-prompt-llm',
+  'session-title-all-prompts-llm',
+])
+
+/** Provider package names stay required when Cordis assigns a custom entry id. */
+const requiredStartupEntryNames = new Set<string>([
+  '@deepseek-ai/dsh-session-title-first-prompt-llm',
+  '@deepseek-ai/dsh-session-title-all-prompts-llm',
 ])
 
 /** Render plugin stacks, nested causes, and aggregate member failures once per error. */
@@ -874,7 +883,8 @@ export async function auditStartupEntries(
 ): Promise<void> {
   const failures = await inactiveEntries(ctx)
   const required = new Set(failures.filter(({ entry }) => entry === bootstrapIncludes.get(ctx)
-    || requiredStartupEntryIds.has(entry.options.id)).map(({ entry }) => entry))
+    || requiredStartupEntryIds.has(entry.options.id)
+    || requiredStartupEntryNames.has(entry.options.name)).map(({ entry }) => entry))
   if (required.size > 0) {
     throw new StartupError(startupDiagnostic(binName, failures, required), failures.map(({ entry, outcome }) => ({
       id: entry.options.id, module: entry.options.name, required: required.has(entry), fiberState: entry.fiber?.state, outcome,

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-007",
+  "action_id": "AAA-007:A01",
+  "candidate_ref": "current working tree AAA-007 browser provisioning inspection",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T20:46:00-03:00",
+  "source_documents": [
+    {
+      "id": "web-ci-owner",
+      "location": ".github/workflows/ci.yml; .github/workflows/ci-master.yml; apps/web/package.json",
+      "role": "The Web consumer lane owns Playwright and provisions Chromium before browser snapshots on supported CI runners."
+    },
+    {
+      "id": "web-lane",
+      "location": "vitest.web.config.ts; scripts/run-web-snapshots.ts; apps/web/tests/hmr-live.e2e.ts",
+      "role": "The browser test inventory and bounded runner use the package-owned Playwright Chromium executable."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-007-OWNER",
+      "source_refs": ["AAA-QB-01", "AAA-QB-03"],
+      "source_location": ".github/workflows/ci.yml; .github/workflows/ci-master.yml; apps/web/package.json",
+      "command_ids": ["CMD-AAA-007-001", "CMD-AAA-007-002", "CMD-AAA-007-003"],
+      "observed_status": "PASS",
+      "classification": "CI_PROVISIONING_OWNER_ALREADY_PRESENT",
+      "owner": "AAA-007",
+      "severity": "CLOSED",
+      "summary": "The repository already has a concrete owner: apps/web declares Playwright, ci.yml installs Chromium with hosted dependencies before the Web consumer gates, and ci-master installs Chromium on its persistent runner.",
+      "limitations": "The evidence is repository-local and cannot guarantee network or OS package availability on an external runner."
+    },
+    {
+      "id": "F-AAA-007-PREREQUISITE",
+      "source_refs": ["AAA-QB-01", "AAA-QB-03"],
+      "source_location": "apps/web/tests/hmr-live.e2e.ts; Playwright launch output",
+      "command_ids": ["CMD-AAA-007-004", "CMD-AAA-007-005"],
+      "observed_status": "FAIL_REPRODUCED_EXPECTED_LOCAL_PREREQUISITE",
+      "classification": "BROWSER_BINARY_MISSING_WITH_ACTIONABLE_DIAGNOSTIC",
+      "owner": "AAA-007",
+      "severity": "MEDIUM",
+      "summary": "A local workspace with the npm package installed but no browser binary fails at chromium.launch with the standard command to install the browser. This is the expected pre-provisioning behavior and matches the CI setup owner; no product or CI edit is required.",
+      "limitations": "The full Web snapshot lane remains unexecuted locally because downloading the browser and OS packages is outside this diagnostic action."
+    }
+  ],
+  "decision": {
+    "result": "AAA-007:A01 PASS",
+    "product_change": false,
+    "diagnosis": "The audit claim is retired by current repository evidence: supported CI runners provision the pinned Chromium artifact before Web consumers, and an unprovisioned local runner reports one actionable prerequisite diagnostic.",
+    "next_action": "Complete AAA-007 without a code change and continue to the next independent expected-output reproduction."
+  },
+  "validation": {
+    "command_record_count": 5,
+    "raw_output_files": 5,
+    "validation_method": "Parse commands.jsonl and findings.json; verify all five raw-output files and SHA-256 digests; confirm CI provisioning order, pinned browser resolution, expected missing-browser failure, Web lane ownership, and git diff --check.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T20:46:00-03:00"
+  }
+}

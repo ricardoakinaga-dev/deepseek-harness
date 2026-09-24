@@ -138,11 +138,9 @@ function visibleInstructionChanges(
   authorityMessages: readonly UserMessage[],
 ): Map<string, AgentInstructionChange> {
   const visible = new Map<string, AgentInstructionChange>()
-  for (const seq of agent.session.surface.nodes) {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    const event = agent.session.eventAt(seq)
-    if (event?.type !== 'user/message' || !isAgentInstructionsSource(event.data.source)) continue
-    const changes = workspaceInstructionChanges(event.data.source)
+  for (const message of agent.session.deriveMessages()) {
+    if (message.role !== 'user' || !isAgentInstructionsSource(message.source)) continue
+    const changes = workspaceInstructionChanges(message.source)
     for (const change of changes) {
       visible.set(change.scope, change)
     }
@@ -261,7 +259,7 @@ export async function reconcileInstructionContext(
 ): Promise<ReconciledInstructionContext | undefined> {
   const session = agent.session
   const effective = visibleInstructionChanges(agent, options.authorityMessages)
-  /* v8 ignore next -- normal agents carry an absolute session cwd. */
+  /*! v8 ignore next -- normal agents carry an absolute session cwd. */
   const cwd = session.header.cwd ?? process.cwd()
   // TODO(frozen-project-root): retain the baseline root for the loop instance;
   // recomputing it after marker edits reinterprets the existing relative scope keys.
@@ -282,7 +280,7 @@ export async function reconcileInstructionContext(
     for (const scope of baselineScopes) scopes.add(scope)
   }
   for (const message of options.scopeMessages) {
-    /* v8 ignore next -- the plugin passes its workspace-only pending projection. */
+    /*! v8 ignore next -- the plugin passes its workspace-only pending projection. */
     if (!isAgentInstructionsSource(message.source)) continue
     for (const change of workspaceInstructionChanges(message.source)) {
       if (!options.includeBaselineScopes && baselineScopes.has(change.scope)) continue

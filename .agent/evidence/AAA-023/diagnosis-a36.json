@@ -1,0 +1,43 @@
+{
+  "record_id": "EVID-AAA-023-DIAGNOSIS-A36-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A11",
+  "timestamp": "2026-09-22T04:58:06-03:00",
+  "result": "PASS",
+  "scope": "Classification of the single explicit_any ratchet increase in cordis-client-runner",
+  "finding": {
+    "classification": "TEST_MATCHER_STATIC_DEBT",
+    "cause": "The only added line matching the canonical explicit_any pattern is stack: expect.any(String) in the new browser-policy denial assertion. The metric intentionally counts the standalone any token on that line, even though this is a Vitest matcher and not a TypeScript any type or an unsafe production value.",
+    "owner": "packages/extensions/cordis-client-runner/tests/plugin.client.spec.ts",
+    "evidence": [
+      "git diff --no-ext-diff -U0 HEAD -- packages/extensions/cordis-client-runner shows one added line containing the standalone any token and no removed matching line",
+      "The temporary complete candidate reports @deepseek-ai/dsh-cordis-client-runner explicit_any at 59 against budget 58",
+      "The line is inside the test that asserts the browser-policy failure report and does not change runtime code"
+    ],
+    "safe_repair": "Replace expect.any(String) with expect.stringMatching(/./u), retaining the assertion that the captured stack is a non-empty string while removing the metric-only matcher token. Leave canonical metric semantics and production code unchanged.",
+    "acceptance": "The focused cordis-client-runner client suite remains green, and the temporary complete candidate audit no longer reports an explicit_any violation for this package."
+  },
+  "commands": [
+    {
+      "command": "git diff --no-ext-diff -U0 HEAD -- packages/extensions/cordis-client-runner | rg '^\\+[^+].*\\bany\\b'",
+      "result": "PASS",
+      "observed": "Exactly one added matching line: stack: expect.any(String)."
+    },
+    {
+      "command": "git diff --no-ext-diff -U0 HEAD -- packages/extensions/cordis-client-runner | rg '^-[^-].*\\bany\\b'",
+      "result": "PASS",
+      "observed": "No removed matching line offsets the increase."
+    },
+    {
+      "command": "pnpm exec vitest run packages/extensions/cordis-client-runner/tests/plugin.client.spec.ts",
+      "result": "NOT_YET_RUN",
+      "observed": "Reserved for the successor implementation gate."
+    }
+  ],
+  "limitations": [
+    "This diagnosis does not change the canonical metric definition or claim that all explicit any tokens are semantically unsafe.",
+    "The actual 16-path UI source move remains outside the current worktree index, so full aggregate qualification is still pending.",
+    "No staging, commit, publication, push, merge, release, or final verdict was performed."
+  ],
+  "next_action": "Create a successor implementation gate for the test-only matcher correction, then run the focused suite and temporary complete-candidate audit."
+}

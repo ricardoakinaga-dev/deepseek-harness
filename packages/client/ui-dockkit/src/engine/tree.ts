@@ -292,7 +292,7 @@ function descend(state: LayoutState, choose: (split: SplitNode) => NodeId | unde
   let node = getNode(state, state.rootId)
   while (node.kind === 'split') {
     const next = choose(node)
-    /* v8 ignore next -- a split holds at least two children, so every choice names one. */
+    /*! v8 ignore next -- a split holds at least two children, so every choice names one. */
     if (next === undefined) throw new Error(`layout: split ${node.id} has no children`)
     node = getNode(state, next)
   }

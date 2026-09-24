@@ -112,6 +112,8 @@ No direct effect; what the user reads here never enters a model request.
 - **Scroll writes are unthrottled.** Every scroll event records its offset in the store; the line blocks are memoized so the resulting re-render hands React the same elements back.
 - **A failed PDF chunk load requires a page reload.** React caches a rejected lazy import for the page lifetime; ordinary PDF open or render failures remain retryable inside the loaded body.
 
+**Runtime invariant:** No companion is published. Renderer metadata, document loading, and view state belong to the local registry and declared Slot stores, with no independent runtime source to compare against; registration disposal and tab lifetimes are covered by behavior tests.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -121,5 +123,3 @@ No direct effect; what the user reads here never enters a model request.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Renderer metadata, document loading, and view state belong to the local registry and declared Slot stores, with no independent runtime source to compare against; registration disposal and tab lifetimes are covered by behavior tests.

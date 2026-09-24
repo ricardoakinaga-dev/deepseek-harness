@@ -1,0 +1,83 @@
+{
+  "record_id": "GATE-AAA-006-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-20T20:34:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-006 root snapshot-consumer dependency for resilient-compaction adapter import",
+  "scope_ref": "AAA-006",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The implementation scope names the authored adapter import, the missing root @deepseek-ai/dsh-llm workspace dependency, the resilient-compaction policy attribution, and the bounded package/lockfile changes.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-006/findings.json",
+        ".agent/evidence/AAA-006/commands.jsonl",
+        "snapshots/session/resilient-compaction-timeout/resilient-compaction-snapshot-adapter.mjs",
+        "package.json",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The scope is limited to making the existing authored adapter resolvable for the root snapshot consumer; it does not alter the adapter behavior or the official profile composition."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation has a direct module-import reproduction, a CI-representative resilient-compaction lib replay, a passing standard lib control, and a post-change install/build/replay verification method.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-006/findings.json",
+        ".agent/evidence/AAA-006/commands.jsonl",
+        "scripts/run-gates.ts",
+        "snapshots/session/headless.snapshot.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The source-mode ToolRuntime identity mismatch remains a separate observation; this gate targets the lib-mode adapter import failure that CI owns."
+    },
+    {
+      "id": "IR-003",
+      "description": "No human approval, credential, durable-data migration, or external deployment is required for the local test-consumer dependency and ownership-policy correction.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agent/state.json",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The dependency remains workspace-local and is not a published runtime dependency of the product bundle."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-006/findings.json",
+    ".agent/evidence/AAA-006/commands.jsonl",
+    "snapshots/session/resilient-compaction-timeout/resilient-compaction-snapshot-adapter.mjs",
+    "snapshots/session/resilient-compaction-timeout/cordis.yml",
+    "scripts/run-gates.ts",
+    "package.json",
+    ".agents/customization-policy.json"
+  ],
+  "candidate_fingerprint": "7993c0703e8a27b748898bcbf6c73974f1817fffb9b0c6b9809309392921325e",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": false,
+    "state": "NOT_REQUIRED",
+    "actor": "Repository quality policy",
+    "scope": "AAA-006 root snapshot-consumer dependency for resilient-compaction adapter import",
+    "decision": "The scoped local test-consumer dependency and policy attribution has no unresolved human-owned decision.",
+    "evidence_ref": ".agent/backlog.json",
+    "expires_or_revalidates": "Revalidate when the authored adapter import, root snapshot consumer, or extension ownership changes."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Add @deepseek-ai/dsh-llm to the root snapshot consumer devDependencies, attribute package.json to resilient-compaction, install the workspace, rebuild, and rerun the custom lib scenario plus the standard control.",
+  "revalidation_triggers": [
+    "The authored adapter stops importing @deepseek-ai/dsh-llm.",
+    "The root snapshot consumer or workspace dependency policy changes.",
+    "The snapshot launcher no longer uses DSH_EXAMPLE_MODE=lib in CI."
+  ],
+  "supersedes": null
+}

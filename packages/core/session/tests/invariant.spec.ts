@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { createScope, scopeTarget } from '@deepseek-ai/dsh-scope'
 import { createSystemMessage, createUserMessage, ToolCallId, createMessage, createToolResultMessage, freezeMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId, SessionSeq, TOOL_NOT_STARTED } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId, SessionLogOffset, SessionSeq, TOOL_NOT_STARTED } from '@deepseek-ai/dsh-session'
 import * as SessionInvariant from '@deepseek-ai/dsh-session/invariant'
 import InvariantRegistry, { InvariantError } from '@deepseek-ai/dsh-invariants'
 
@@ -399,6 +399,22 @@ describe('session-log invariants', () => {
     a.append('turn/start', { turn: 1 })
     expect(() => b.append('turn/start', { turn: 1 }))
       .not.toThrow()
+  })
+
+  it('seeds a newly created invariant from the creation baseline without rereading its log', async () => {
+    const { ctx } = await setup()
+    const snapshot = vi.spyOn(Session.prototype, 'snapshotEvents')
+    try {
+      const seeded = ctx.sessions.create(SessionId('baseline-invariant'), {
+        seed: [{ type: 'turn/start', seq: SessionSeq(0), time: 1, data: { turn: 1 } }],
+        inheritedEventCount: SessionLogOffset(1),
+        meta: { isSeeded: true },
+      })
+      expect(snapshot).not.toHaveBeenCalled()
+      expect(() => seeded.append('turn/end', { turn: 1, reason: { kind: 'completed' } })).not.toThrow()
+    } finally {
+      snapshot.mockRestore()
+    }
   })
 
   it('rebuilds trace state for sessions that exist when the companion reloads', async () => {

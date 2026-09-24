@@ -143,6 +143,8 @@ CDP target 通过 `Runtime.evaluate` 提供 Host 和已连接 Client realm 中�
 - **body clone 有运行成本**——完整采集会 tee 请求与响应流，直至达到配置上限，可能增加内存与 I/O 压力。保留 body 的上限不包含流 tee 内部的缓冲，包括来源提供的超大 chunk，或为读取较慢的应用分支排队的数据。
 - **不自动重启 Worker**——Worker 意外退出会使当前 Inspector 实例失败；生命周期恢复留待后续改动。
 
+**运行时不变式：** 不发布伴生入口。wire 解析、generation、Worker 生命周期与 CDP 会话会在所属操作中拒绝无效关系。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -152,5 +154,3 @@ CDP target 通过 `Runtime.evaluate` 提供 Host 和已连接 Client realm 中�
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。wire 解析、generation、Worker 生命周期与 CDP 会话会在所属操作中拒绝无效关系。

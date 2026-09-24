@@ -60,7 +60,7 @@ function classifySurface(events: readonly SessionEvent[]): Map<SessionSeq, Sessi
     folded = foldSurface(events, currentSessionMessageProjections)
   } catch (error: unknown) {
     throw new SessionQueryError(
-      /* v8 ignore next -- foldSurface throws Error instances */
+      /*! v8 ignore next -- foldSurface throws Error instances */
       `invalid session surface: ${error instanceof Error ? error.message : 'unknown error'}`,
       'SESSION_QUERY_INVALID_SURFACE',
       { cause: error },

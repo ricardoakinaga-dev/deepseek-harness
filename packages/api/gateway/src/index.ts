@@ -820,7 +820,7 @@ export class TypertGatewayService extends Service implements TypertGateway {
     const value = decode(parameter.codec, args[parameter.wire], endpoint, parameter.wire)
     if (parameter.source === 'json') return value
     const key = parameter.lookup
-    /* v8 ignore next -- registry validation rejects strict descriptors without a key, and SRC derivation always supplies one. */
+    /*! v8 ignore next -- registry validation rejects strict descriptors without a key, and SRC derivation always supplies one. */
     if (key === undefined) {
       throw new TypertGatewayError(
         'gateway/lookup-unavailable',
@@ -1083,7 +1083,7 @@ function methodParameterNames(service: object, method: string, endpoint: string)
   const source = Function.prototype.toString.call(implementation)
   const open = source.indexOf('(')
   const close = source.indexOf(')', open + 1)
-  /* v8 ignore next -- standard public class-method syntax always contains a parenthesized parameter list. */
+  /*! v8 ignore next -- standard public class-method syntax always contains a parenthesized parameter list. */
   if (open < 0 || close < 0) return invalidSignature(endpoint, method)
   const body = source.slice(open + 1, close).trim()
   if (body.length === 0) return []
@@ -1141,7 +1141,7 @@ function decode(
   try {
     if (codec.mode === 'strict') {
       value = codec.create().parse(value)
-      /* v8 ignore next -- generated optional-input codecs are the only strict codecs that return undefined. */
+      /*! v8 ignore next -- generated optional-input codecs are the only strict codecs that return undefined. */
       if (value === undefined) return value
     }
     assertJsonValue(value, new Set())
@@ -1180,7 +1180,7 @@ function assertJsonValue(value: unknown, ancestors: Set<object>): void {
     if (Object.getOwnPropertySymbols(value).length > 0) throw new TypeError('symbol property is not JSON-safe')
     for (const key of Reflect.ownKeys(value)) {
       const descriptor = Object.getOwnPropertyDescriptor(value, key)
-      /* v8 ignore next -- ownKeys() just returned this key; only a hostile same-process Proxy can delete it between operations. */
+      /*! v8 ignore next -- ownKeys() just returned this key; only a hostile same-process Proxy can delete it between operations. */
       if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
         throw new TypeError('non-data property is not JSON-safe')
       }

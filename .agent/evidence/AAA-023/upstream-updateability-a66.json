@@ -1,0 +1,26 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A31",
+  "kind": "UPSTREAM_UPDATEABILITY_DISPOSITION",
+  "observed_at": "2026-09-22T18:24:21-03:00",
+  "candidate": {
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "local_matrix": "PASS for all locally executable lanes; external prerequisite partials remain"
+  },
+  "official_update": {
+    "ref": "deepseek-official/master",
+    "commit": "00102833dfaee1da9f48a3a8eae9d34005a75218",
+    "merge_rehearsal": "233 conflicts; 218 content, 12 modify/delete, 3 file-location",
+    "abort": "clean; restored successor tree with zero disposable worktree entries",
+    "policy": "PASS; 23 improvements and 1445 attributed paths",
+    "updateability": "UNRESOLVED"
+  },
+  "decision": {
+    "candidate_disposition": "Preserve successor tree e5db2822132da3cdcc48aad11d087cb3a3d32ab1 as the private local-qualification candidate.",
+    "upstream_disposition": "Do not claim clean updateability. Treat the official update as an unresolved merge integration requiring a separately authorized and requalified resolution.",
+    "publication_disposition": "No publication, registry, push, merge, release, or final-verdict action is authorized or performed by this record."
+  },
+  "result": "PASS",
+  "limitations": "This records the updateability disposition; it does not resolve conflicts, prove required-platform or credentialed-provider behavior, establish release identity, publish artifacts, or satisfy the final independent critic."
+}

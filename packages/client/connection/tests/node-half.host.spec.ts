@@ -64,17 +64,20 @@ function fakeResponse(): {
   const chunks: Buffer[] = []
   const response = Object.assign(new EventEmitter(), {
     writableEnded: false,
+    writableFinished: false,
     writeHead(value: number, headers?: Record<string, string>) {
       state.status = value
       if (headers !== undefined) state.headers = headers
       return this
     },
     write(value: string | Uint8Array) { chunks.push(Buffer.from(value)); return true },
-    end(this: { writableEnded: boolean }, value?: unknown) {
+    end(this: { writableEnded: boolean; writableFinished: boolean; emit: EventEmitter['emit'] }, value?: unknown) {
       if (typeof value === 'string' || value instanceof Uint8Array) chunks.push(Buffer.from(value))
       else if (value !== undefined) throw new TypeError('fake response only accepts string or Uint8Array bodies')
       if (chunks.length > 0) state.body = Buffer.concat(chunks).toString()
       this.writableEnded = true
+      this.writableFinished = true
+      this.emit('finish')
       return this
     },
   }) as unknown as ServerResponse
@@ -183,6 +186,64 @@ describe('connection node half', () => {
     await fiber.await()
     expect(ctx.get('connection')).toBeInstanceOf(Object)
     await fiber.dispose()
+  })
+
+  it('shares one buffered budget between the shared API and a dedicated RPC route', async () => {
+    const { routes, connection, dispose } = await mounted({ maxRequestBodyBytes: 256 })
+    const dedicatedStarted = Promise.withResolvers<undefined>()
+    const releaseDedicated = Promise.withResolvers<undefined>()
+    const removeDedicated = connection.rpc.handle('/rpc', async () => {
+      dedicatedStarted.resolve(undefined)
+      await releaseDedicated.promise
+      return { ok: true, value: { route: 'dedicated' } }
+    })
+    const removeShared = connection.rpc.intercept(
+      '/api',
+      endpoint => endpoint === 'held',
+      async () => ({ ok: true, value: { route: 'shared' } }),
+    )
+    const dedicatedRoute = routes.find(candidate => candidate.path === '/rpc')!
+    const sharedRoute = routes.find(candidate => candidate.path === API_PATH)!
+    const headers = { host: 'localhost' }
+    const cookie = browserCookie(connection, 'localhost')
+    const held = fakeResponse()
+    const pending = dedicatedRoute.handler(
+      fakePost({ ...headers, cookie }, '/rpc/held', {
+        type: 'client-request', rpcId: 'held', method: 'held', payload: {},
+      }),
+      held.response,
+    )
+    try {
+      await dedicatedStarted.promise
+      const rejected = fakeResponse()
+      await sharedRoute.handler(
+        fakePost({ ...headers, cookie }, '/api/held', {
+          type: 'client-request', rpcId: 'shared', method: 'held', payload: {},
+        }),
+        rejected.response,
+      )
+      expect(rejected.state).toMatchObject({
+        status: 429,
+        body: 'buffered request capacity exhausted',
+      })
+
+      releaseDedicated.resolve(undefined)
+      await pending
+      const accepted = fakeResponse()
+      await sharedRoute.handler(
+        fakePost({ ...headers, cookie }, '/api/held', {
+          type: 'client-request', rpcId: 'shared-again', method: 'held', payload: {},
+        }),
+        accepted.response,
+      )
+      expect(accepted.state.status).toBe(200)
+    } finally {
+      releaseDedicated.resolve(undefined)
+      await pending
+      await removeShared()
+      await removeDedicated()
+      await dispose()
+    }
   })
 
   it('injects validated browser recovery timing and withdraws it on disposal', async () => {

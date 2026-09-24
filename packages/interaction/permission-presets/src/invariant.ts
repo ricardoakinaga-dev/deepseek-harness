@@ -4,6 +4,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
 import { AUTO_PRESET } from './index.ts'
+import { installPresetHistoryLease } from './preset-history.ts'
 
 const PACKAGE_NAME = '@deepseek-ai/dsh-permission-presets'
 
@@ -12,25 +13,35 @@ export const name = 'permission-presets-invariant'
 /** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Validate the package-owned event fields and ignore unrelated events. */
-function validateEvent(ctx: Context, event: SessionEvent, fail: InvariantFailure): void {
-  if (event.type === 'permission/preset'
-    && event.data.preset !== AUTO_PRESET
-    && !ctx.permissionPresets.names.includes(event.data.preset)) {
-    fail(`permission/preset names unknown preset ${JSON.stringify(event.data.preset)}`)
+/** Validate every preset identity retained by the exact Session fold. */
+function validateHistory(ctx: Context, presets: ReadonlySet<string>, fail: InvariantFailure): void {
+  for (const preset of presets) validatePreset(ctx, preset, fail)
+}
+
+/** Validate one configured or currently admitted Auto preset name. */
+function validatePreset(ctx: Context, preset: string, fail: InvariantFailure): void {
+  if (preset !== AUTO_PRESET && !ctx.permissionPresets.names.includes(preset)) {
+    fail(`permission/preset names unknown preset ${JSON.stringify(preset)}`)
+  }
+  if (preset === AUTO_PRESET && !ctx.permissionPresets.names.includes(preset)) {
+    fail(`permission/preset names unavailable preset ${JSON.stringify(preset)}`)
   }
 }
 
 /** Install validation that loaded and newly appended preset events remain resolvable. */
 const install: InvariantInstaller = Object.assign((ctx: Context, fail: InvariantFailure) => {
+  const lease = installPresetHistoryLease(ctx, fail)
   for (const session of ctx.sessions.list()) {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    for (const event of session.snapshotEvents()) validateEvent(ctx, event, fail)
+    validateHistory(ctx, lease.readCurrent(session).observedPresets, fail)
   }
+  ctx.on('session/created', (session) => {
+    validateHistory(ctx, lease.readCurrent(session).observedPresets, fail)
+  }, { global: true })
   ctx.on('internal/dispatch', (_mode, eventName, args) => {
     if (eventName !== 'session/event') return
-    const event = (args as [Session, SessionEvent])[1]
-    validateEvent(ctx, event, fail)
+    const [session, event] = args as [Session, SessionEvent]
+    lease.readPrefix(session, event.seq - 1)
+    if (event.type === 'permission/preset') validatePreset(ctx, event.data.preset, fail)
   }, { global: true })
 }, { inject: ['permissionPresets', 'sessions'] })
 

@@ -148,7 +148,7 @@ export function SidebarRoot({
     if (!pointerInside) return
     const onMove = (event: PointerEvent): void => {
       const rect = column.current?.getBoundingClientRect()
-      /* v8 ignore next -- the listener only exists while the column is mounted and revealed. */
+      /*! v8 ignore next -- the listener only exists while the column is mounted and revealed. */
       if (rect === undefined) return
       const inside = event.clientX >= rect.left && event.clientX < rect.right
         && event.clientY >= rect.top && event.clientY < rect.bottom

@@ -72,8 +72,8 @@ describe('dynamic Plugin versions', () => {
     expect(runner.inventory()[0]?.activeRun).toBeUndefined()
   })
 
-  it('does not stop an existing Host run when an attaching page fails to load Client code', async () => {
-    const { runner } = await setup()
+  it('refuses an attaching page without a Host-issued request and retains the active Host run', async () => {
+    const { runner, gateway } = await setup()
     const defined = runner.define({
       sessionId: AGENT_A.id,
       plugin: { kind: 'new', idPrefix: 'panel' },
@@ -81,24 +81,27 @@ describe('dynamic Plugin versions', () => {
       purpose: 'render a panel',
       code: { host: HOST, client: CLIENT_CODE },
     })
-    const first = await runner.runHostHalf(AGENT_A, defined.pluginId, defined.packageId, 'run', null, false)
+    await expect(runner.run(AGENT_A, defined.pluginId, defined.packageId, 'run'))
+      .resolves.toMatchObject({ ok: true, status: 'awaiting-approval' })
+    const firstRequest = gateway.events.findLast(([event]) => event === 'cordis/request-run')?.[1] as {
+      requestId: Exclude<Parameters<typeof runner.runHostHalf>[4], null>
+    }
+    const first = await runner.runHostHalf(
+      AGENT_A, defined.pluginId, defined.packageId, 'run', firstRequest.requestId, false,
+    )
     expect(first).toMatchObject({ ok: true, startedHere: true })
     if (!first.ok) throw new Error(first.message)
-    await expect(runner.settleUserRun(AGENT_A, defined.pluginId, {
+    await expect(runner.resolveRequestRun(firstRequest.requestId, {
       ok: true,
       pluginRunId: first.pluginRunId,
-    })).resolves.toMatchObject({ ok: true })
+    })).resolves.toEqual({ accepted: true })
 
-    const attached = await runner.runHostHalf(AGENT_A, defined.pluginId, defined.packageId, 'run', null, false)
-    expect(attached).toMatchObject({ ok: true, startedHere: false })
-    if (!attached.ok) throw new Error(attached.message)
-    await expect(runner.settleUserRun(AGENT_A, defined.pluginId, {
-      ok: false,
-      reason: 'client-half-failed',
-      pluginRunId: attached.pluginRunId,
-      startedHere: attached.startedHere,
-      message: 'this page cannot load it',
-    })).resolves.toMatchObject({ ok: false, reason: 'client-half-failed' })
+    const direct = await runner.runHostHalf(
+      AGENT_A, defined.pluginId, defined.packageId, 'run', null, false,
+    )
+    expect(direct.ok).toBe(false)
+    if (direct.ok) throw new Error('a direct browser gesture unexpectedly authorized execution')
+    expect(direct.message).toContain('host-issued approval request')
 
     expect(runner.inventory()[0]?.activeRun).toEqual({
       packageId: defined.packageId,

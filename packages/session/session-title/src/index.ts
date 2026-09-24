@@ -103,6 +103,16 @@ export interface SessionTitleProviderRequest {
   readonly signal: AbortSignal
 }
 
+/** Fixed history cut requested before one provider generation. */
+export interface SessionTitleProviderMessageRequest {
+  /** Live session whose committed history is being read. */
+  readonly session: Session
+  /** Inclusive upper event sequence captured when the generation was scheduled. */
+  readonly throughSeq: SessionSeq
+  /** Cancellation for supersession, disposal, or an explicit caller. */
+  readonly signal: AbortSignal
+}
+
 /** Provider output before service-owned normalization and log acceptance. */
 export interface SessionTitleProviderResult {
   /** Proposed title text. */
@@ -120,6 +130,13 @@ export interface SessionTitleProvider {
   /** When new human prompts start automatic generation. */
   readonly automatic: SessionTitleAutomaticMode
   /**
+   * Load every eligible human text message through the requested fixed cut.
+   * @param request - live session, inclusive sequence cut, and cancellation.
+   * @returns ordered messages with their exact source sequences.
+   * @throws when the read fails or the request is cancelled.
+   */
+  loadMessages(request: SessionTitleProviderMessageRequest): Promise<readonly SessionTitleUserMessage[]>
+  /**
    * Produce one title revision.
    * @param request - message snapshot, current route, session, and cancellation.
    * @returns proposed title plus exact input seqs and the optional provider/model route used to generate it.
@@ -127,8 +144,12 @@ export interface SessionTitleProvider {
   generate(request: SessionTitleProviderRequest): Promise<SessionTitleProviderResult>
 }
 
-/** Extract one eligible human text message from a session event. */
-function sessionTitleUserMessageOf(event: SessionEvent): SessionTitleUserMessage | undefined {
+/**
+ * Extract the title input represented by one event.
+ * @param event - session event to inspect.
+ * @returns the original non-empty human text message, or `undefined` when the event is not eligible.
+ */
+export function sessionTitleUserMessageOf(event: SessionEvent): SessionTitleUserMessage | undefined {
   if (event.type !== 'user/message' || event.data.source.kind !== 'user') return undefined
   const content = event.data.content
   const text = content
@@ -148,7 +169,7 @@ function copySessionTitleSource(source: SessionTitleSource): SessionTitleSource 
       ...(source.model === undefined ? {} : { model: { ...source.model } }),
     }
     case 'user': return { kind: 'user' }
-    /* v8 ignore next -- closed-union exhaustiveness guard */
+    /*! v8 ignore next -- closed-union exhaustiveness guard */
     default: return assertNever(source, 'SessionTitleSource')
   }
 }
@@ -172,6 +193,7 @@ interface PendingAutomaticWork {
   readonly registration: ProviderRegistration
   readonly revision: number
   readonly throughSeq: SessionSeq
+  readonly inputMode: SessionTitleInputMode
 }
 
 /** Provider call currently allowed to commit for one session. */
@@ -179,6 +201,9 @@ interface ActiveProviderWork extends PendingAutomaticWork {
   readonly controller: AbortController
   readonly signal: AbortSignal
 }
+
+/** Historical input needed by one provider revision. */
+type SessionTitleInputMode = 'first' | 'all'
 
 /** Mutable concurrency state scoped to one live session. */
 interface SessionTitleWorkState {
@@ -235,6 +260,29 @@ const titleInputStateSchema: ZodType<TitleInputState> = zod.object({
   }
 })
 
+const titleSourceSchema = zod.discriminatedUnion('kind', [
+  zod.object({ kind: zod.literal('fallback') }).strict(),
+  zod.object({
+    kind: zod.literal('provider'),
+    provider: zod.string().min(1).transform(SessionTitleProviderId),
+    model: zod.object({
+      provider: zod.string().min(1),
+      model: zod.string().min(1),
+    }).strict().optional(),
+  }).strict(),
+  zod.object({ kind: zod.literal('user') }).strict(),
+]) as unknown as ZodType<SessionTitleSource>
+
+const titleProjectionStateSchema: ZodType<TitleProjection | null> = zod.object({
+  title: zod.string().min(1),
+  messageSeqs: zod.array(
+    zod.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).transform(SessionSeq),
+  ),
+  source: titleSourceSchema,
+  eventSeq: zod.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).transform(SessionSeq),
+  updatedAt: zod.number().int(),
+}).strict().nullable()
+
 /**
  * Collect eligible human text messages from a session log, in seq order.
  * The full eligible prefix is only materialized for one provider generation,
@@ -244,35 +292,28 @@ const titleInputStateSchema: ZodType<TitleInputState> = zod.object({
  * @param throughSeq - optional inclusive upper seq bound.
  * @returns eligible messages with exact source seqs.
  */
-function collectSessionTitleMessages(
-  events: readonly SessionEvent[],
-  throughSeq?: SessionSeq,
-): SessionTitleUserMessage[] {
-  const messages: SessionTitleUserMessage[] = []
-  for (const event of events) {
-    if (throughSeq !== undefined && event.seq > throughSeq) break
-    const message = sessionTitleUserMessageOf(event)
-    if (message !== undefined) messages.push(message)
-  }
-  return messages
-}
-
 const titleViewSchema: ZodType<string | null> = zod.string().min(1).nullable()
 
-/** Latest logged title text and its client view. */
+/** Latest logged title facts and its client-facing text view. */
 export const titleProjectionDefinition = {
   key: 'title',
-  stateVersion: 1,
-  stateSchema: titleViewSchema,
+  stateVersion: 2,
+  stateSchema: titleProjectionStateSchema,
   init: () => null,
   apply: (state, event) => (event.type === 'session/title'
-    ? event.data.title
+    ? titleSnapshotFromState({
+      title: event.data.title,
+      messageSeqs: event.data.messageSeqs,
+      source: event.data.source,
+      eventSeq: event.seq,
+      updatedAt: event.time,
+    })
     : state),
   wire: {
     viewSchema: titleViewSchema,
-    view: state => state,
+    view: state => state?.title ?? null,
   },
-} satisfies ProjectionDefinition<'title', string | null>
+} satisfies ProjectionDefinition<'title', TitleProjection | null>
 
 /**
  * Fold the latest logged title without consulting mutable metadata.
@@ -383,8 +424,8 @@ export class SessionTitleService extends Service {
    * @returns latest title snapshot, or `undefined` before eligible input.
    */
   get(session: Session): SessionTitleSnapshot | undefined {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    return foldSessionTitle(session.snapshotEvents())
+    const state = this.ctx.sessionProjections.stateOf(session, 'title')
+    return state === undefined || state === null ? undefined : titleSnapshotFromState(state)
   }
 
   /**
@@ -415,7 +456,7 @@ export class SessionTitleService extends Service {
       source: { kind: 'user' },
     })
     const snapshot = this.get(session)
-    /* v8 ignore next -- unreachable: the append above just committed a session/title event. */
+    /*! v8 ignore next -- unreachable: the append above just committed a session/title event. */
     if (snapshot === undefined) throw new Error('renamed title failed to fold')
     return snapshot
   }
@@ -456,6 +497,7 @@ export class SessionTitleService extends Service {
       registration,
       revision,
       throughSeq: input.lastSeq,
+      inputMode: 'all',
     }, state, signal)
     const config = session.requestHeader()?.config
     const route = config === undefined ? undefined : { provider: config.provider, model: config.model }
@@ -489,6 +531,7 @@ export class SessionTitleService extends Service {
           }
         }
         await this.drain(registration.active)
+        /*! v8 ignore next -- registration remains occupied until this disposer settles, so a replacement cannot win this identity check. */
         if (this.registration === registration) this.registration = undefined
       }
     }.bind(this), 'sessionTitle.register()')
@@ -509,7 +552,12 @@ export class SessionTitleService extends Service {
       if (shouldSchedule) {
         const state = this.stateFor(session)
         const revision = this.supersede(state, 'newer user message superseded title generation')
-        state.pending = { registration, revision, throughSeq: event.seq }
+        state.pending = {
+          registration,
+          revision,
+          throughSeq: event.seq,
+          inputMode: registration.provider.automatic === 'first-prompt' ? 'first' : 'all',
+        }
       }
     }
     this.defer(async () => {
@@ -594,8 +642,18 @@ export class SessionTitleService extends Service {
       this.assertCurrent(session, work)
       await this.ensureFallback(session)
       this.assertCurrent(session, work)
-      // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-      const messages = collectSessionTitleMessages(session.snapshotEvents(), work.throughSeq)
+      let messages: readonly SessionTitleUserMessage[]
+      if (work.inputMode === 'first') {
+        messages = this.firstSessionTitleMessages(session, work.throughSeq)
+      } else {
+        const loaded = await work.registration.provider.loadMessages({
+          session,
+          throughSeq: work.throughSeq,
+          signal: work.signal,
+        })
+        this.assertCurrent(session, work)
+        messages = this.validateLoadedMessages(loaded, session, work.throughSeq)
+      }
       const result = await work.registration.provider.generate({
         session,
         messages,
@@ -675,7 +733,7 @@ export class SessionTitleService extends Service {
     this.assertServiceActive()
     work.signal.throwIfAborted()
     const state = this.work.get(session)
-    /* v8 ignore next -- every supported supersession, provider disposal, and session disposal aborts
+    /*! v8 ignore next -- every supported supersession, provider disposal, and session disposal aborts
      * the work signal before changing this state. */
     if (this.registration !== work.registration
       || state?.active !== work
@@ -720,6 +778,54 @@ export class SessionTitleService extends Service {
 
   private titleInputOf(session: Session): TitleInputState {
     return this.ctx.sessionProjections.stateOf(session, 'titleInput') as TitleInputState
+  }
+
+  /** Return the first eligible message from the maintained title-input projection. */
+  private firstSessionTitleMessages(session: Session, throughSeq: SessionSeq): SessionTitleUserMessage[] {
+    const first = this.titleInputOf(session).first
+    /*! v8 ignore next -- title-input records the first message before the pending first-prompt watermark. */
+    return first === null || first.seq > throughSeq ? [] : [first]
+  }
+
+  /** Accept one provider history result only when its fixed cut matches title input. */
+  private validateLoadedMessages(
+    candidate: unknown,
+    session: Session,
+    throughSeq: SessionSeq,
+  ): readonly SessionTitleUserMessage[] {
+    if (!Array.isArray(candidate) || candidate.length === 0) {
+      throw new Error('session-title provider loadMessages must return eligible messages')
+    }
+    const input = this.titleInputOf(session)
+    const first = input.first
+    if (first === null || first.seq > throughSeq || input.lastSeq !== throughSeq) {
+      throw new Error('session-title provider loadMessages does not match the active message cut')
+    }
+    let previous = -1
+    for (const message of candidate as unknown[]) {
+      if (message === null || typeof message !== 'object') {
+        throw new Error('session-title provider loadMessages returned an invalid message')
+      }
+      const record = message as Record<string, unknown>
+      if (typeof record.seq !== 'number' || !Number.isSafeInteger(record.seq) || record.seq < 0
+        || typeof record.text !== 'string'
+        || normalizeSessionTitle(record.text, Number.MAX_SAFE_INTEGER).length === 0) {
+        throw new Error('session-title provider loadMessages returned an invalid message')
+      }
+      const seq = SessionSeq(record.seq)
+      if (seq <= previous || seq > throughSeq) {
+        throw new Error('session-title provider loadMessages must return ordered messages through its requested cut')
+      }
+      previous = seq
+    }
+    const messages = candidate as readonly SessionTitleUserMessage[]
+    const loadedFirst = messages[0]
+    const loadedLast = messages[messages.length - 1]
+    if (loadedFirst?.seq !== first.seq || loadedFirst.text !== first.text
+      || loadedLast?.seq !== throughSeq) {
+      throw new Error('session-title provider loadMessages does not match the active message cut')
+    }
+    return messages
   }
 
   /** Queue detached service work and retain it through service disposal. */
@@ -771,6 +877,9 @@ export class SessionTitleService extends Service {
     }
     if (candidate.automatic !== 'first-prompt' && candidate.automatic !== 'all-prompts') {
       throw new Error('session-title provider automatic mode is invalid')
+    }
+    if (typeof candidate.loadMessages !== 'function') {
+      throw new Error(`session-title provider "${candidate.id}" requires loadMessages()`)
     }
     if (typeof candidate.generate !== 'function') {
       throw new Error(`session-title provider "${candidate.id}" requires generate()`)

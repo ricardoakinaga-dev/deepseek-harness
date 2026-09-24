@@ -51,6 +51,8 @@ Host 组合可通过 `registerRemoteEvents()` 注册唯一的应用事件 source
 
 `ctx.remote.$stream()` 返回跨越多个物理载体代次的单消费方 `RemoteStream`。Host 仍在线时，它允许一次立即重试；Host 离线时，它等待下一代连接，并为每个流项标注物理代次。领域消费方校验并接受各代次的 opening value；业务与协议错误仍然终止流。一切终态失败离开本面时都是 `RemoteError`，包括重试耗尽和在 opening value 之前就结束的代次，因此流消费方与一元调用方用同一种方式判别。`RemoteStreamCarrierError` 命名的是可重试的物理丢失，它只作为 `carrierFailed` 回调参数到达领域，绝不作为终态结果。`RemoteSnapshotStream` 在此之上规定每代由一个初始快照和后续 delta 组成。`RemoteJournalStream` 基于领域提供的 entry 闭区间提供 follow-before-page、分页、重连追赶与缺口修复；它丢弃完整重复项，并拒绝缺口、倒置区间和部分重叠。领域还可以携带无 cursor 的通知：通知绝不推进或修复持久 cursor，在缺口修复期间收到的通知只会在 replacement page 提交后发布。若更新代次取代该修复，旧代次 held notification 会与其 page 一同丢弃。对任一种流执行 dispose（资源释放）时，系统会取消该流的请求，并在活动 iterator 完全停止后完成资源释放。
 
+Client Remote 释放会立即使活动逻辑流失败，然后请求物理 WebSocket 关闭。`RemoteStreamMuxClient.close()` 只有在捕获的已打开或正在连接的 socket 发出 `close` 事件，或被观察到处于 `CLOSED` 状态后才 resolve；没有已打开或正在连接的 socket，或 socket 已经关闭时，会立即完成。已经处于 `CLOSING` 的 socket 会被等待，不会再次发出关闭请求，重复调用共享同一个 promise。关闭错误或有上限的 5 秒生命周期超时会使 promise reject。被替换或已释放 socket 的迟到 `message`、`error` 和 `close` 回调会被忽略，不能改变新的连接。
+
 `ctx.remote.$on()` 订阅一条被转发的 Host 事件。它的合法键恰好等于 Host 装配声明的转发选择，listener 类型就是事件所属包自己的 Cordis `Events` 声明，因此不存在会与之漂移的第二份签名。每个订阅归属调用方 fiber，并随该 fiber 一起消失。Client Remote 服务激活时就把 `$events` pump 注册为 Connection generation source，无论当前是否存在 `$on` listener。浏览器使用 Remote mux，进程内组合使用 `connection.rpc.open`；opening `ready` 项建立 Connection generation 并提供 Host 信息。物理 carrier 失败、Remote 流故障、意外正常结束、非 ready 首项或畸形事件项都会终止该 generation，由 Connection 按持续且间隔封顶的带抖动指数退避重开。普通通知按注册顺序运行并隔离 listener 失败；Agent-scoped waterfall（瀑布式事件）允许 listener 返回结果、调用 `next()` 或拒绝，Gateway 再通过现有 HTTP 一元载体回送该结果。
 
 Client waterfall 的 Context 解析保持同步。解析器可以返回借用的 Context 或 `TypertOwnedValue<Context>`；Gateway 仅在处理器使用和回复结算均结束后释放 owned value。Context 解析失败保留既有的记录错误并委托语义，处理器失败产生拒绝回复。取消会抑制迟到回复，但不会释放处理器仍在使用的 Context。每个 handler 都必须响应 `request.signal` 并在取消后结束；插件销毁与 Connection generation 替换会等待未结束的 handler 结算。Session Context 的获取本身不执行历史 I/O。
@@ -81,6 +83,8 @@ Client waterfall 的 Context 解析保持同步。解析器可以返回借用的
 - `websocketHeartbeatIntervalMs` 同时是 Ping 周期和 Pong 截止时间。对端未在下一周期前回复时，Host 会终止连接；如果部署的事件循环或网络可能停顿超过该间隔，必须调大此配置。
 
 
+**运行时不变式：** 不发布伴生入口。Host 调用会重新读取权威的 Cordis 与 Typert 状态，Client 方法、描述符与 `$on` 订阅的变更则统一归属同一个 effect。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -90,5 +94,3 @@ Client waterfall 的 Context 解析保持同步。解析器可以返回借用的
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。Host 调用会重新读取权威的 Cordis 与 Typert 状态，Client 方法、描述符与 `$on` 订阅的变更则统一归属同一个 effect。

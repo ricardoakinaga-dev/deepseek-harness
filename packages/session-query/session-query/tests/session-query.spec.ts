@@ -23,6 +23,7 @@ import SessionQueryEngine, {
   type SessionQueryErrorCode,
 } from '@deepseek-ai/dsh-session-query'
 import { SessionTitleProviderId, SessionTitleService } from '@deepseek-ai/dsh-session-title'
+import { SessionObservationReader } from '../src/observation.ts'
 import { TestSessionQueryEngine } from './test-service.ts'
 
 const TITLE_SERVICE_CONFIG = { fallbackMaxWords: 8, fallbackMaxBytes: 64, maxTitleBytes: 256 }
@@ -1037,6 +1038,28 @@ describe('session-query exact reads', () => {
     const logged = session.eventAt(SessionSeq(4))
     expect(logged?.type === 'user/message' && logged.data.content).toHaveLength(1)
     expect(session.header.cwd).toBe('/work')
+  })
+
+  it('routes a complete live read through the fixed observation cut', async () => {
+    const ctx = await liveContext()
+    const session = ctx.sessions.create(SessionId('complete-live-observation'))
+    session.append('turn/start', { turn: 1 })
+    const observations = (ctx.sessionQuery as unknown as {
+      _observations: SessionObservationReader
+    })._observations
+    const originalCaptureLive = observations.captureLive.bind(observations)
+    const captureLive = vi.spyOn(observations, 'captureLive').mockImplementation((target, options) => {
+      const observed = originalCaptureLive(target, options)
+      if (target === session) session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+      return observed
+    })
+
+    const snapshot = await ctx.sessionQuery.readSession(session.id)
+
+    expect(snapshot.events.map(event => event.type)).toEqual(['turn/start'])
+    expect(captureLive).toHaveBeenCalledWith(session, {
+      projectionMode: 'none',
+    })
   })
 
   it('returns an empty current surface with a null capture boundary', async () => {

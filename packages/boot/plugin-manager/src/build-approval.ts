@@ -5,6 +5,8 @@ import { isAlias, isMap, isNode, isScalar, parseDocument, visit } from 'yaml'
 import { ManagementFailure } from './failure.ts'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 
+const PENDING_BUILD_VALUE = 'set this to true or false'
+
 async function readPolicy(dir: string) {
   let text: string
   try { text = await readFile(join(dir, 'pnpm-workspace.yaml'), 'utf8') }
@@ -24,7 +26,7 @@ async function readPolicy(dir: string) {
   })
   const pending = isMap(builds) ? builds.items.flatMap(({ key, value }) =>
     isScalar(key) && typeof key.value === 'string' && !/[*?]/.test(key.value)
-      && isScalar(value) && value.value === 'set this to true or false' ? [key.value] : []) : []
+      && isScalar(value) && value.value === PENDING_BUILD_VALUE ? [key.value] : []) : []
   return { document, pending }
 }
 
@@ -34,6 +36,40 @@ async function readPolicy(dir: string) {
  */
 export async function readPendingBuilds(dir: string): Promise<string[]> {
   return (await readPolicy(dir)).pending
+}
+
+/**
+ * Extract package names from pnpm's successful install warning for ignored scripts.
+ * @param output - Bounded pnpm output captured for one package operation.
+ * @returns Unique package names that need an explicit build decision.
+ */
+export function pendingBuildsFromOutput(output: string): string[] {
+  const names = new Set<string>()
+  for (const match of output.matchAll(/Ignored build scripts:\s*([^\r\n]+)/gu)) {
+    const line = String(match[1]).replaceAll('│', '').trim()
+    for (const rawName of line.split(',')) {
+      const name = rawName.trim().replace(/\.$/u, '').replace(/@(?:file|link|workspace):.*$/u, '')
+      if (name !== '') names.add(name)
+    }
+  }
+  return [...names].sort()
+}
+
+/**
+ * Retain newly observed build decisions as explicit pending entries.
+ * @param dir - Current profile directory.
+ * @param names - Package names reported by pnpm as ignored build scripts.
+ */
+export async function recordPendingBuilds(dir: string, names: readonly string[]): Promise<void> {
+  if (names.length === 0) return
+  const { document } = await readPolicy(dir)
+  let changed = false
+  for (const name of names) {
+    if (document.getIn(['allowBuilds', name]) !== undefined) continue
+    document.setIn(['allowBuilds', name], PENDING_BUILD_VALUE)
+    changed = true
+  }
+  if (changed) await writeFileAtomic(join(dir, 'pnpm-workspace.yaml'), String(document), { mode: 0o600 })
 }
 
 /** Persist approval without running scripts; the caller holds the profile manifest lock.

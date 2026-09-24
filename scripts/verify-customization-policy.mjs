@@ -40,6 +40,7 @@ const PACKAGED_EXTENSION_TYPES = new Set([
   'library',
   'capability-seam',
 ])
+const NON_PACKAGED_EXTENSION_TYPES = new Set(['configuration', 'profile-patch', 'skill'])
 
 /**
  * Return whether a repository path is owned by one policy pattern.
@@ -114,6 +115,9 @@ export function validateCustomizationPolicy(input, changedPaths) {
           || candidate.packageRoots.some(path => !path.startsWith('packages/') || !path.endsWith('/')))) {
         errors.push(`${label}.packageRoots must contain package directories ending in /`)
       }
+      if (NON_PACKAGED_EXTENSION_TYPES.has(candidate.solutionType) && candidate.packageRoots !== undefined) {
+        errors.push(`${label}.packageRoots is not permitted for solutionType ${JSON.stringify(candidate.solutionType)}`)
+      }
     }
     if (candidate.kind === 'upstream-patch' && (typeof candidate.upstreamPlan !== 'string' || candidate.upstreamPlan.trim() === '')) {
       errors.push(`${label}.upstreamPlan must identify the upstream or extraction plan`)
@@ -136,6 +140,25 @@ export function validateCustomizationPolicy(input, changedPaths) {
         errors.push(`${path}: governance improvement ${owner.id} must not own runtime package source`)
       }
     }
+  }
+  return errors
+}
+
+/**
+ * Compare the configured fork mirror with the fetched official branch.
+ * @param {{mirrorRef: string, officialRef: string, mirrorCommit: string | null, officialCommit: string | null}} input - resolved refs and commits.
+ * @returns {string[]} validation errors.
+ */
+export function validateMirrorIdentity(input) {
+  const errors = []
+  if (typeof input.mirrorCommit !== 'string' || input.mirrorCommit.length === 0) {
+    errors.push(`${input.mirrorRef}: ref is missing or does not resolve to a commit`)
+  }
+  if (typeof input.officialCommit !== 'string' || input.officialCommit.length === 0) {
+    errors.push(`${input.officialRef}: ref is missing or does not resolve to a commit`)
+  }
+  if (errors.length === 0 && input.mirrorCommit !== input.officialCommit) {
+    errors.push(`${input.mirrorRef} resolves to ${input.mirrorCommit}, but ${input.officialRef} resolves to ${input.officialCommit}; fetch the official branch and fast-forward the fork mirror before running customization checks`)
   }
   return errors
 }
@@ -172,10 +195,57 @@ function changedPaths(cwd, baseRef) {
   ])].sort()
 }
 
+/** @param {string} cwd - repository root. @param {Record<string, unknown>} policy - parsed policy. @returns {void} after the configured official branch is fetched and equal. */
+function verifyOfficialMirror(cwd, policy) {
+  const repository = policy.repository
+  if (!isRecord(repository)) throw new Error('policy.repository must be an object before official-mirror verification')
+  const remote = repository.upstreamRemote
+  const url = repository.upstreamUrl
+  const branch = repository.mirrorBranch
+  const forkRemote = repository.forkRemote
+  if (![remote, url, branch, forkRemote].every(value => typeof value === 'string' && value.length > 0)) {
+    throw new Error('policy.repository must define non-empty upstreamRemote, upstreamUrl, mirrorBranch, and forkRemote values before official-mirror verification')
+  }
+
+  let configuredUrl
+  try {
+    configuredUrl = gitLines(cwd, ['remote', 'get-url', remote])[0]
+  } catch {
+    execFileSync('git', ['remote', 'add', remote, url], { cwd, stdio: 'inherit' })
+    configuredUrl = url
+  }
+  if (configuredUrl !== url) throw new Error(`remote ${JSON.stringify(remote)} points to ${JSON.stringify(configuredUrl)}; expected ${JSON.stringify(url)}`)
+  try {
+    execFileSync('git', ['fetch', '--no-tags', '--prune', remote, `refs/heads/${branch}:refs/remotes/${remote}/${branch}`], { cwd, stdio: 'inherit' })
+  } catch (error) {
+    throw new Error(`cannot fetch ${JSON.stringify(remote)}/${branch} from ${JSON.stringify(url)}: ${error instanceof Error ? error.message : String(error)}`)
+  }
+
+  const mirrorRef = `${forkRemote}/${branch}`
+  const officialRef = `${remote}/${branch}`
+  const resolveCommit = (ref) => {
+    try {
+      return execFileSync('git', ['rev-parse', '--verify', `${ref}^{commit}`], { cwd, encoding: 'utf8' }).trim()
+    } catch {
+      // Missing refs become fail-closed diagnostics from validateMirrorIdentity.
+      return null
+    }
+  }
+  const errors = validateMirrorIdentity({
+    mirrorRef,
+    officialRef,
+    mirrorCommit: resolveCommit(mirrorRef),
+    officialCommit: resolveCommit(officialRef),
+  })
+  if (errors.length > 0) throw new Error(errors.join('; '))
+  console.log(`verify-customization-policy: ${mirrorRef} equals ${officialRef}; official mirror fetched from ${url}.`)
+}
+
 function main(args) {
   const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
   const baseIndex = args.indexOf('--base')
   const baseRef = baseIndex === -1 ? 'master' : args[baseIndex + 1]
+  const requireOfficialMirror = args.includes('--require-official-mirror')
   if (baseRef === undefined || baseRef.startsWith('--')) {
     console.error('verify-customization-policy: --base requires a Git ref')
     return 2
@@ -194,6 +264,7 @@ function main(args) {
   }
   let paths
   try {
+    if (requireOfficialMirror) verifyOfficialMirror(root, policy)
     paths = changedPaths(root, baseRef)
   } catch (error) {
     console.error(`verify-customization-policy: cannot compare with ${JSON.stringify(baseRef)}: ${error instanceof Error ? error.message : String(error)}`)

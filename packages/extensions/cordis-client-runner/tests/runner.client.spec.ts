@@ -41,6 +41,7 @@ function half(overrides: Partial<DynamicCordisClientHalf> = {}): DynamicCordisCl
     agentId: AGENT,
     name: 'demo',
     code: 'return { apply(ctx) {} }',
+    browserDelivery: 'unsafe-eval-inline-style',
     ...overrides,
   }
 }

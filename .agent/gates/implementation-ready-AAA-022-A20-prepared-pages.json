@@ -1,0 +1,122 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A20-PREPARED-PAGES-001",
+  "timestamp": "2026-09-23T08:20:09.375650-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: bounded prepublication persistence pages, explicit page-size Config, synchronous live-writer handoff, and ambiguous append recovery",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "Confirmed A03 migration authority and the approved A18 W2 design authorize this exact A20 owner scope, including the agent-loop page writer and required documentation. No external repository action is included.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-A20-PREPUBLICATION-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The generated config catalog remains in its existing active owner record; this gate does not add or change customization-policy ownership."
+    },
+    {
+      "id": "IR-002",
+      "description": "A20 uses a validated positive safe-integer page size with a finite maximum; appends baseline and setup events in bounded pages; advances the cursor only after append resolution; drains to a fixed Session sequence cut; and invokes publication synchronously after the final cancellation and equality check. A rejected page is ambiguous and is reconciled only by explicit resume from the backend actual log.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        "packages/core/session/src/preparation.ts",
+        "packages/session/session-persistence/src/handle.ts",
+        "packages/core/agent-loop/src/index.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Default 128 and maximum 4096 bound event count per append call; neither value claims an optimal throughput point or caps bytes."
+    },
+    {
+      "id": "IR-003",
+      "description": "The exact 15-path gate requires falsifying tests for bounded page count, events added during an in-flight append, synchronous publication handoff, cancellation, partial-effect rejection followed by exact-id explicit resume, and no automatic retry or create-to-resume switch. It also requires paired agent-loop, architecture, and persistence documentation plus generated bilingual config catalog updates and focused checks.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md",
+        "packages/core/agent-loop/tests/resume.spec.ts",
+        "packages/core/agent-loop/README.md",
+        "docs/architecture.md",
+        "docs/subsystems/persistence.md",
+        "docs/config-catalog.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate defines required acceptance before implementation; it does not claim those implementation tests or documentation updates have already passed."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-A20-PREPUBLICATION-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+    ".agents/customization-policy.json",
+    ".agent/backlog.json",
+    ".agent/plans/deepseek-harness-aaa.md",
+    "packages/core/agent-loop/src/index.ts",
+    "packages/core/agent-loop/tests/resume.spec.ts"
+  ],
+  "candidate_fingerprint": "38626327cf3c17bf38a1eee8f8b3a2f59482a816207eabcfb0c6320dca2eb160",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/config-catalog.i18n.yaml",
+      "docs/config-catalog.md",
+      "docs/config-catalog.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts"
+    ],
+    "hash_rule": "Sort relative paths; for each existing input hash path, NUL, working-tree bytes, NUL.",
+    "file_count": 15,
+    "preexisting_dirty_worktree": true
+  },
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: bounded prepublication persistence pages, explicit page-size Config, synchronous live-writer handoff, and ambiguous append recovery",
+    "decision": "Apply the user-authorized REM-028 W0-W4 migration scope and A18-approved W2 design to A20: implement bounded prepublication persistence pages, explicit validated page sizing, fixed-cut draining with synchronous publication handoff, and explicit recovery from the backend’s actual persisted log. This authorizes only the exact A20 paths and local verification; it does not authorize external repository actions.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A20-PREPUBLICATION-001",
+    "expires_or_revalidates": "Revalidate if A20 changes runtime/API behavior beyond the bounded Session migration, alters Session data or model-visible input, changes dependencies, touches a path outside the 15-path scope, or needs an external repository action."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Implement the bounded page writer and explicit page-size Config, prove fixed-cut synchronous handoff and ambiguous failure recovery, then update paired documentation and generated config catalogs within this exact 15-path scope.",
+  "revalidation_triggers": [
+    "The configured append page exceeds the positive safe-integer range or configured maximum.",
+    "An event appended while an earlier page awaits append is missed, duplicated, reordered, or published before persistence acceptance.",
+    "The final cursor equality check and PreparedAgent.publish call can be separated by an await, callback, or yield.",
+    "A rejected append is retried or create automatically switches to resume without an explicit caller action.",
+    "Any changed path falls outside the exact 15-path fingerprint scope or changes released Session data, model-visible input, or SDK output."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+  "revalidation": {
+    "kind": "SUCCESSOR_ACTION",
+    "previous_record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+    "previous_candidate_fingerprint": "c5c87df8f72111bf4b0c09801dc2a9ed683229a2487561f2cc2b82c527602b96",
+    "reason": "A19 is complete; A20 is the next independently gated action within the same stable AAA-022 backlog task."
+  }
+}

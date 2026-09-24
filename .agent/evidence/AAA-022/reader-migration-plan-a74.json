@@ -1,0 +1,90 @@
+{
+  "record_id": "EVID-AAA-022-READER-MIGRATION-PLAN-A74-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A02",
+  "kind": "SESSION_READER_MIGRATION_DESIGN",
+  "status": "PARTIAL_PENDING_AUTHORITY",
+  "timestamp": "2026-09-22T19:03:37-03:00",
+  "candidate": {
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "clean": true
+  },
+  "source_decision": ".agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md",
+  "reproduction": {
+    "command": "pnpm exec tsx scripts/audit-metrics.ts | node -e 'parse JSON and print commit, corpus, metrics, ratchet'",
+    "exit_status": 0,
+    "canonical_metrics": {
+      "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+      "corpus_files": 4462,
+      "deprecated_reader": {"count": 89,"budget": 90,"delta": -1},
+      "lint_suppression": {"count": 262,"budget": 263,"delta": -1},
+      "todo_marker": {"count": 53,"budget": 53,"delta": 0},
+      "explicit_any": {"count": 1624,"budget": 1625,"delta": -1},
+      "selected_skip": {"count": 4,"budget": 7,"delta": -3},
+      "ratchet": "passed"
+    },
+    "raw_production_reader_probe": {
+      "command": "rg -n --glob '*.ts' --glob '*.tsx' --glob '!**/tests/**' '\\b(eventAt|snapshotEvents|ownEvents)\\s*\\(' packages python",
+      "call_lines": 87,
+      "files": 57,
+      "note": "This probe is diagnostic only; its count is not interchangeable with the canonical no-deprecated metric."
+    },
+    "frozen_inventory_comparison": {
+      "audit_backlog_scope": "79 exceptions in 54 production/API files",
+      "AAA-022-A01_inventory": "82 session-reader waiver calls in 44 package paths",
+      "disposition": "RECONCILE_BEFORE_IMPLEMENTATION"
+    }
+  },
+  "proposed_waves": [
+    {
+      "id": "W0",
+      "owner": "AAA-022 integrator plus core/session and session-query owners",
+      "scope": "Reconcile the 79/54, 82/44, 87/57, and canonical 89-line inventories; classify each call as projection state, bounded historical window, complete-history operation, synchronous invariant, generated declaration, or test-only observation.",
+      "precondition": "Maintainer selects the canonical migration corpus and accepts the owner inventory without changing the frozen historical baseline.",
+      "acceptance": "A versioned inventory names every production call, rationale, owner, and retained exception; no code or lint rule is changed in W0."
+    },
+    {
+      "id": "W1",
+      "owner": "packages/session, packages/core/session, packages/session-query",
+      "scope": "Define the asynchronous bounded-history reader and durable projection seams, then migrate session-projection, session-log-deepseek, session-title, session-telemetry, and query consumers that do not require complete history.",
+      "precondition": "W0 classification; storage ordering, cancellation, inherited-prefix, and pre-commit invariant semantics are specified.",
+      "acceptance": "Focused Session, projection, restore, pagination, upload/suffix, and title tests preserve order, errors, cancellation, and model-visible reconstruction; remaining complete-history calls retain explicit reasons."
+    },
+    {
+      "id": "W2",
+      "owner": "packages/core/agent-loop, packages/context, packages/interaction, packages/schedule, packages/goal, packages/todo, packages/plan, packages/workflow, packages/hooks, packages/sandbox, packages/feedback",
+      "scope": "Replace operational state reconstruction with maintained projections or current-event delivery; keep invariant readers only where synchronous append validation is a documented postcondition.",
+      "precondition": "W1 reader/projection contracts and per-domain state fields are current.",
+      "acceptance": "Each owner has success, restore, fork/inherited-prefix, cancellation, and teardown coverage; model-visible state has keyless snapshot or expected-output coverage."
+    },
+    {
+      "id": "W3",
+      "owner": "packages/compaction, packages/subagent, packages/llm, packages/bundle, packages/skill, packages/api, packages/experimental",
+      "scope": "Migrate compaction windows, token accounting, subagent/fork history, API history endpoints, headless/skill consumers, and experimental team/review readers using explicit paged or inherited-prefix operations.",
+      "precondition": "W1 storage reader and W2 projection contracts are verified; complete-history consumers have a recorded reason.",
+      "acceptance": "Compaction, fork, API, and replay tests prove exact sequence boundaries, inherited offsets, cancellation, and output equivalence."
+    },
+    {
+      "id": "W4",
+      "owner": "generated projections and documentation owners",
+      "scope": "Regenerate API catalogs and paired documentation after public reader/projection changes, remove only stale waivers, and update TypeScript/Python projections when model-visible or Session behavior changes.",
+      "precondition": "W1-W3 package waves have focused PASS evidence.",
+      "acceptance": "Lint, typecheck, docs, generated truth, snapshots, and package consumer checks pass on the same successor candidate."
+    }
+  ],
+  "required_checks_per_wave": [
+    "package-owner focused unit and lifecycle tests",
+    "restore/fork/inherited-prefix and cancellation coverage where applicable",
+    "keyless recorded-session or expected-output coverage for model-visible behavior",
+    "canonical audit-metrics ratchet and no new deprecated-reader waiver",
+    "typecheck, lint, documentation/generator gates, and git diff --check"
+  ],
+  "authority": {
+    "status": "PENDING",
+    "required": "Approve W0 inventory semantics and the owner/order plan; separately authorize any new public asynchronous reader, persistence projection, pre-commit validation seam, or broad lint/compiler probe.",
+    "not_authorized_by_current_record": "The existing AAA-023 authority covers seven security/runtime/ownership/publication policies and the A27 six-owner candidate disposition; it does not authorize this Session-reader migration."
+  },
+  "disposition": "No production source, candidate, policy, public API, lint rule, compiler default, or released Session generation was changed. AAA-022:A03 must resolve the inventory and authority before an implementation-ready gate is created.",
+  "freshness": "CURRENT"
+}

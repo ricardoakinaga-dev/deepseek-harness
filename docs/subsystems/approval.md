@@ -87,6 +87,14 @@ interface ApprovalRequest extends ApprovalRequestEvent {
 
 The audit events are log-only and do not enter the model transcript. Model-visible behavior is the caller's derived tool result plus the current runtime-context snapshot. Service disposal removes its context contribution; answerer listeners are independently effect-bound to their owning plugins.
 
+## Current Session state
+
+The service reads the open turn and latest `approval/policy` from one exact per-Session fold. The invariant companion uses the same fold for unmatched approval ids and validates `approval/asked`, `approval/decided`, and policy values before commit. The fold starts from the creation baseline, including restored and forked events, and advances from committed `session/event` notifications. A synchronous read requires its cursor to equal `session.seq - 1`; a missing baseline, sequence gap, or invalid committed event latches a failure and blocks later reads.
+
+Candidate validation reads the committed prefix without changing it, so a rejected event leaves the turn, policy, pending ids, and cursor unchanged. `turn/end` closes the current turn but does not clear unmatched approval ids. `request()` checks the current turn before appending or handling an already-aborted signal, then reads policy from the same fold before dispatch.
+
+Each provider and invariant fiber holds a lease on the fold. A surviving lease keeps current reads and validation exact after a sibling unloads; releasing the final lease removes the fold. A later mount may seed a live empty Session, but an eventful Session without an active exact fold cannot be reconstructed from its log.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -99,7 +107,7 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 
 ### `ctx.approval` — `ApprovalService`
 
-Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices.
+Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices. Open-turn and latest-policy reads require an exact package-owned Session fold.
 
 ```ts cordis-catalog
 /**
@@ -125,16 +133,20 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  * authoritative append cannot reject the request or suppress its matching
  * audit event.
  * @param req - the pending decision (agent, tool identity, reason, signal).
- * @returns the closed outcome; `'allowed-once'` is the only grant.
- * @throws when no turn is open or either audit event fails before the session
- *   append commit point.
+ * @returns the closed outcome; `'allowed-once'` is the only grant. A Session
+ *   without an exact owner fold returns `'unavailable'` before either audit
+ *   event is appended.
+ * @throws when no turn is open or either audit event fails before the append
+ *   commit point.
  */
 async request(req: ApprovalRequest): Promise<ApprovalOutcome>
 
 /**
- * Read the session override without applying the configured default.
+ * Read the latest policy override from the exact Session fold without
+ * applying the configured default.
  * @param session - session whose log supplies the override.
  * @returns the last logged policy, or `undefined` without one.
+ * @throws when this provider has no exact fold for the current Session prefix.
  */
 overrideOf(session: Session): ApprovalPolicy | undefined
 ```

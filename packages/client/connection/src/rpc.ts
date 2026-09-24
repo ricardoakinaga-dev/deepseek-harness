@@ -118,7 +118,7 @@ export interface ConnectionFetchRoute {
   readonly path: string
   /** Methods this route owns. Other methods continue through normal shared-channel dispatch. */
   readonly methods: readonly ConnectionFetchMethod[]
-  /** Buffered requests obey the configured JSON cap; streaming requests arrive with backpressure and no aggregate cap. */
+  /** Buffered requests reserve the per-instance body budget; streaming requests arrive with backpressure and no aggregate cap. */
   readonly requestBody: ConnectionRequestBodyMode
   /** Handle one request after the physical carrier has applied its trust and authentication policy. */
   readonly fetch: (request: Request) => Promise<Response>

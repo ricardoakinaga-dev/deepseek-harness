@@ -114,6 +114,8 @@ These limits define the editor's field coverage and the page's reach; they are c
 - **Interrogation covers OpenAI-compatible and Anthropic Messages endpoints** — OpenAI protocols accept a standard `data` array or an enriched `models` map, while Anthropic uses its native model-listing route; every other protocol reports that it cannot be asked and its models are entered by hand.
 - **Undeclared live routes render nowhere** — a route registered without a configurable-provider declaration has no settings address; it stays visible in pickers but not on this page's rows.
 
+**Runtime invariant:** No companion is published. A nav-entry-only section plugin rendering a fixed empty content column — it emits no cordis events and owns no cross-plugin mutable relation.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -123,5 +125,3 @@ These limits define the editor's field coverage and the page's reach; they are c
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. A nav-entry-only section plugin rendering a fixed empty content column — it emits no cordis events and owns no cross-plugin mutable relation.

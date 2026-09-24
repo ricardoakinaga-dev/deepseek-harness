@@ -557,6 +557,13 @@ declare class Session {
    * @returns true when the event belongs to this Session rather than its parent.
    */
   isOwnSeq(seq: SessionSeq): boolean;
+  /**
+   * Whether an event object is the canonical object committed at its sequence.
+   * This identity check does not expose session history.
+   * @param event - event object to validate.
+   * @returns true only when the exact object stored at event.seq is supplied.
+   */
+  isCommittedEvent(event: SessionEvent): boolean;
   /** The next event's sequence number — always the log length (the `seq = log.length` contiguity contract). */
   get seq(): SessionLogOffset;
   /**
@@ -953,6 +960,9 @@ create(id?: SessionId, options?: CreateSessionOptions): Session
  *   `eventState`, every seed event is either independently owned or any
  *   shared value is deeply frozen; {@link Session.fromRestore} validates and
  *   adopts those values without copying or freezing them.
+ * Callers that need synchronous consumers to preflight detached appends must
+ * create a {@link SessionPreparation} before the first append. Without one,
+ * committed pre-entry events still appear in the creation baseline.
  * @returns the constructed session, NOT yet in the store.
  * @throws if a session with `id` already exists, metadata is not a plain
  *   lossless-JSON record with valid scalar fields, or `meta.cwd` is a
@@ -966,7 +976,8 @@ prepare(id?: SessionId, options?: PrepareSessionOptions): Session
  * disposer (hooks + store removal). Does NOT emit `session/created` —
  * the caller yields this disposer inside its effect and THEN calls
  * {@link announce}, so a throwing `session/created` listener rolls the attach
- * back instead of leaking it.
+ * back instead of leaking it. The creation baseline includes every event
+ * committed before announcement.
  *
  * Re-checks the id for a duplicate: `prepare` and `enter` are public
  * cross-package primitives and a caller may interleave arbitrary work (or
@@ -1161,10 +1172,12 @@ Creation announcement during session publication. A synchronous throw vetoes and
  * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners
  * receive only sessions entered through that agent's context.
  * @param session - the session just entered and announced.
+ * @param baseline - borrowed constructor-owned events and live append boundary;
+ *   consume it synchronously during this callback.
  * @dshScopeScan unsupported
  * @mode emit
  */
-'session/created'(this: Scoped<Session>, session: Session): void
+'session/created'(this: Scoped<Session>, session: Session, baseline: SessionCreationBaseline): void
 ```
 
 Types: [Scoped](scope.md)

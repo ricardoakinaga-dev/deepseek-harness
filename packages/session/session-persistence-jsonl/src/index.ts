@@ -201,7 +201,7 @@ function abortError(signal: AbortSignal): Error {
 /** Let one caller stop waiting without transferring cancellation ownership to shared work. */
 function waitWithAbort<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
   if (signal === undefined) return operation
-  /* v8 ignore next -- requireStoredLog synchronously rechecks the signal immediately before waiting. */
+  /*! v8 ignore next -- requireStoredLog synchronously rechecks the signal immediately before waiting. */
   if (signal.aborted) return Promise.reject(abortError(signal))
   return new Promise<T>((resolve, reject) => {
     const stopWaiting = (): void => {
@@ -215,7 +215,7 @@ function waitWithAbort<T>(operation: Promise<T>, signal?: AbortSignal): Promise<
       },
       (error: unknown) => {
         signal.removeEventListener('abort', stopWaiting)
-        /* v8 ignore else -- the preparation owner normalizes every rejection before this waiter sees it. */
+        /*! v8 ignore else -- the preparation owner normalizes every rejection before this waiter sees it. */
         if (error instanceof Error) {
           reject(error)
         } else {
@@ -259,7 +259,7 @@ class JsonlSessionPersistence extends SessionPersistence {
 
   constructor(ctx: Context, public config: Config) {
     super(ctx)
-    /* v8 ignore next 5 -- generated catalog and Session source share one build-time version owner. */
+    /*! v8 ignore next 5 -- generated catalog and Session source share one build-time version owner. */
     if (sessionFormatCatalog.currentVersion !== SESSION_FORMAT_VERSION) {
       throw new Error(
         `session-persistence-jsonl: format catalog v${sessionFormatCatalog.currentVersion} `
@@ -389,13 +389,13 @@ class JsonlSessionPersistence extends SessionPersistence {
       // Free the in-process claim no matter how the kernel-lock release
       // fares, and keep the original diagnostic: a release failure joins it
       // instead of replacing it.
-      /* v8 ignore next -- typed backends and fs reject with Error */
+      /*! v8 ignore next -- typed backends and fs reject with Error */
       const failure = error instanceof Error ? error : new Error(String(error))
       let releaseFailure: Error | undefined
       try {
         await lease?.release()
       } catch (raw: unknown) {
-        /* v8 ignore next -- lock releases reject with Error */
+        /*! v8 ignore next -- lock releases reject with Error */
         releaseFailure = raw instanceof Error ? raw : new Error(String(raw))
       }
       this.tracker.releaseClaim(id)
@@ -527,14 +527,14 @@ class JsonlSessionPersistence extends SessionPersistence {
     }
     if (selected.sourceVersion > SESSION_FORMAT_VERSION) {
       const header = await this.readGenerationHeader(selected, id, signal)
-      /* v8 ignore else -- a readable future header is rejected inside readGenerationHeader. */
+      /*! v8 ignore else -- a readable future header is rejected inside readGenerationHeader. */
       if (header === undefined) {
         throw new SessionPersistenceCorruptionError(
           `session "${id}": stored log has a malformed header (raw log: ${selected.sourcePath})`,
           { cause: new Error('malformed Session header') },
         )
       }
-      /* v8 ignore next -- readGenerationHeader rejects every future version. */
+      /*! v8 ignore next -- readGenerationHeader rejects every future version. */
       throw new SessionFormatUnsupportedError(
         `${sessionFormatVersionRefusal(id, selected.sourceVersion)} (raw log: ${selected.sourcePath})`,
         { kind: 'jsonl', path: selected.sourcePath },
@@ -586,7 +586,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     } finally {
       preparation.waiters -= 1
       if (preparation.waiters === 0 && !preparation.settled) {
-        /* v8 ignore else -- a newer selected source may already own this id's preparation slot. */
+        /*! v8 ignore else -- a newer selected source may already own this id's preparation slot. */
         if (this.migrationPreparations.get(id) === preparation) {
           this.migrationPreparations.delete(id)
         }
@@ -646,7 +646,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     try {
       identity = await migration.value.publish()
     } catch (error: unknown) {
-      /* v8 ignore else -- a newer preparation may have replaced this stale cache entry. */
+      /*! v8 ignore else -- a newer preparation may have replaced this stale cache entry. */
       if (this.coldLogMemo.get(id) === stored) this.coldLogMemo.delete(id)
       throw this.generationFailure(id, migration.source, error)
     }
@@ -909,7 +909,7 @@ class JsonlSessionPersistence extends SessionPersistence {
       signal?.throwIfAborted()
       const headerFrame = decodedFrames.next()
       signal?.throwIfAborted()
-      /* v8 ignore next -- a non-empty structural frame list makes the decoder yield its first frame or throw. */
+      /*! v8 ignore next -- a non-empty structural frame list makes the decoder yield its first frame or throw. */
       if (headerFrame.done) throw new Error('empty or header-less Zstandard session log')
       assertZstdHeaderFrame(headerFrame.value)
       const scanner = new SessionLogScanner(headerFrame.value)
@@ -948,7 +948,7 @@ class JsonlSessionPersistence extends SessionPersistence {
         signal?.throwIfAborted()
         recoveredPlaintext = await decompressZstdPrefix(buffer.subarray(tornStart))
       } catch {
-        /* v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
+        /*! v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
         if (signal?.aborted) signal.throwIfAborted()
         // A structurally incomplete final frame may end before Node's decoder
         // can emit any plaintext; the complete prior frames remain recoverable.
@@ -964,7 +964,7 @@ class JsonlSessionPersistence extends SessionPersistence {
         recoveredTail: prefix.events.slice(complete.eventCount),
       }
     } catch (error) {
-      /* v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
+      /*! v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
       if (signal?.aborted) signal.throwIfAborted()
       throw error
     } finally {
@@ -1040,7 +1040,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     if (result.status === 'unsupported') {
       const physicalId = String((value as { id?: unknown }).id)
       let reason = result.reason
-      /* v8 ignore else -- released historical header migrations cannot refuse after physical decoding. */
+      /*! v8 ignore else -- released historical header migrations cannot refuse after physical decoding. */
       if (result.storedVersion > SESSION_FORMAT_VERSION) {
         reason = sessionFormatVersionRefusal(physicalId, result.storedVersion)
       }
@@ -1073,7 +1073,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     readonly delegationDepth: number
     readonly agentPreset?: string
   }): SessionHeader {
-    /* v8 ignore next 3 -- readable catalog results are restored to its configured current version. */
+    /*! v8 ignore next 3 -- readable catalog results are restored to its configured current version. */
     if (header.version !== SESSION_FORMAT_VERSION) {
       throw new Error(`format catalog returned non-current logical header v${header.version}`)
     }
@@ -1105,7 +1105,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     const finalPath = logPath(this.root, meta.cwd, meta.id, this.compression)
     await this.rejectOppositeArtifact(meta.cwd, meta.id)
     const content = await this.encodeMaterialization(meta, inheritedEventCount, events)
-    /* v8 ignore next -- native Windows coverage exercises this platform dispatch; Linux covers the POSIX peer */
+    /*! v8 ignore next -- native Windows coverage exercises this platform dispatch; Linux covers the POSIX peer */
     if (process.platform === 'win32') {
       await this.materializeWin32(project, dir, finalPath, meta.id, content)
     } else {
@@ -1113,7 +1113,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /* v8 ignore start -- Windows uses the Win32 durable-publish path; POSIX coverage exercises this peer. */
+  /*! v8 ignore start -- Windows uses the Win32 durable-publish path; POSIX coverage exercises this peer. */
   private async materializePosix(
     project: string,
     dir: string,
@@ -1139,7 +1139,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     } finally {
       // Remove an unpublished temp on failure. After publication, defer cleanup
       // until the directory entry is durable so cleanup cannot reject a live log.
-      /* v8 ignore next -- link failure is the TOCTOU/IO race guarded above; not reachable in test */
+      /*! v8 ignore next -- link failure is the TOCTOU/IO race guarded above; not reachable in test */
       if (!linked) await rm(tmp, { force: true })
     }
     // link() succeeded — the log is published. fsync the directory so the new
@@ -1152,12 +1152,12 @@ class JsonlSessionPersistence extends SessionPersistence {
     try {
       await rm(tmp, { force: true })
     } catch {
-      /* v8 ignore next -- redundant temp link; publish already durable, rm failure is an unreachable IO edge */
+      /*! v8 ignore next -- redundant temp link; publish already durable, rm failure is an unreachable IO edge */
     }
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 
-  /* v8 ignore start -- native Windows coverage exercises this integration path */
+  /*! v8 ignore start -- native Windows coverage exercises this integration path */
   private async materializeWin32(
     project: string,
     dir: string,
@@ -1177,7 +1177,7 @@ class JsonlSessionPersistence extends SessionPersistence {
       throw error
     }
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 
   private async rejectExistingLog(finalPath: string, id: SessionId): Promise<void> {
     // Never publish over an existing committed log: materialize is the first
@@ -1185,7 +1185,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     // different session shares this id on disk — reject loudly. (create already
     // guards the create path, so this is unreachable-in-practice TOCTOU
     // defense.)
-    /* v8 ignore next 3 -- create guards collisions before materialize; this is a TOCTOU backstop */
+    /*! v8 ignore next 3 -- create guards collisions before materialize; this is a TOCTOU backstop */
     if (await this.resolveGenerationInDirectory(dirname(finalPath)) !== undefined) {
       throw new Error(`refusing to materialize "${id}": a log already exists on disk (open it instead)`)
     }
@@ -1227,7 +1227,7 @@ class JsonlSessionPersistence extends SessionPersistence {
   }
 
   /** fsync a POSIX directory so a just-created/renamed entry is crash-durable. */
-  /* v8 ignore start -- Windows uses write-through namespace operations; POSIX coverage exercises directory fsync. */
+  /*! v8 ignore start -- Windows uses write-through namespace operations; POSIX coverage exercises directory fsync. */
   private async syncDirPosix(dir: string): Promise<void> {
     const handle = await open(dir, 'r')
     try {
@@ -1236,7 +1236,7 @@ class JsonlSessionPersistence extends SessionPersistence {
       await handle.close()
     }
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 
   /**
    * Append and fsync event lines. On a partial write or sync failure, restore the
@@ -1352,7 +1352,7 @@ class JsonlSessionPersistence extends SessionPersistence {
           signal?.throwIfAborted()
           plaintext = await decompressZstdFrame(content.subarray(first.start, first.end))
         } catch (error) {
-          /* v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
+          /*! v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
           if (signal?.aborted) signal.throwIfAborted()
           throw new Error('corrupt Zstandard session log: header frame failed validation', { cause: error })
         }
@@ -1493,9 +1493,9 @@ class JsonlSessionPersistence extends SessionPersistence {
       return actual === expected
     } catch (error) {
       signal?.throwIfAborted()
-      /* v8 ignore else -- non-ENOENT realpath failures require an external permission or I/O fault */
+      /*! v8 ignore else -- non-ENOENT realpath failures require an external permission or I/O fault */
       if (isENOENT(error)) return false
-      /* v8 ignore next -- non-ENOENT realpath failures are external I/O faults, propagated unchanged */
+      /*! v8 ignore next -- non-ENOENT realpath failures are external I/O faults, propagated unchanged */
       throw error
     }
   }
@@ -1605,22 +1605,22 @@ class JsonlSessionPersistence extends SessionPersistence {
     } catch (error) {
       // Only ENOENT means absent. A permission/I/O error must surface rather
       // than letting load or collision checks proceed under false absence.
-      /* v8 ignore else -- Windows reports file-valued parents as ENOENT; POSIX covers direct ENOTDIR. */
+      /*! v8 ignore else -- Windows reports file-valued parents as ENOENT; POSIX covers direct ENOTDIR. */
       if (isENOENT(error)) {
         // Windows reports ENOENT, not ENOTDIR, for `regular-file/child`, so it
         // alone verifies the immediate parent to keep a blocked session
         // directory a storage fault. POSIX open already reported ENOTDIR before
         // this point, where the extra stat would only cost a syscall per probe.
-        /* v8 ignore next -- native Windows coverage exercises this platform dispatch; POSIX reports ENOTDIR from open */
+        /*! v8 ignore next -- native Windows coverage exercises this platform dispatch; POSIX reports ENOTDIR from open */
         if (process.platform === 'win32') await this.assertLogParentAllowsAbsence(path)
         return false
       }
-      /* v8 ignore next -- Windows repairs ENOTDIR from ENOENT above; POSIX covers direct ENOTDIR. */
+      /*! v8 ignore next -- Windows repairs ENOTDIR from ENOENT above; POSIX covers direct ENOTDIR. */
       throw error
     }
   }
 
-  /* v8 ignore start -- native Windows coverage exercises this repair; POSIX open reports ENOTDIR before this point. */
+  /*! v8 ignore start -- native Windows coverage exercises this repair; POSIX open reports ENOTDIR before this point. */
   private async assertLogParentAllowsAbsence(path: string): Promise<void> {
     try {
       const parent = dirname(path)
@@ -1635,7 +1635,7 @@ class JsonlSessionPersistence extends SessionPersistence {
       throw error
     }
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 }
 
 /**

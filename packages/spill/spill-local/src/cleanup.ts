@@ -46,22 +46,22 @@ function warnSafely(warn: WarnFn, message: string): void {
 /** Whether another local OS user cannot replace children of this directory. */
 function isTrustedDirectory(stats: Stats): boolean {
   if (!stats.isDirectory()) return false
-  /* v8 ignore next -- POSIX ownership and mode bits have no Windows equivalent. */
+  /*! v8 ignore next -- POSIX ownership and mode bits have no Windows equivalent. */
   if (process.platform === 'win32' || process.geteuid === undefined) return true
-  /* v8 ignore start -- Windows takes the return above; POSIX tests exercise
+  /*! v8 ignore start -- Windows takes the return above; POSIX tests exercise
      owner and mode rejection. */
   return stats.uid === process.geteuid() && (stats.mode & 0o022) === 0
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 }
 
 /** Stable identity for de-duplicating aliases of one root. */
 function rootIdentity(path: string, stats: Stats): string {
-  /* v8 ignore next -- Windows file indexes are not portable inode identities. */
+  /*! v8 ignore next -- Windows file indexes are not portable inode identities. */
   if (process.platform === 'win32') return path.toLowerCase()
-  /* v8 ignore start -- Windows uses the canonical path identity above; POSIX
+  /*! v8 ignore start -- Windows uses the canonical path identity above; POSIX
      tests exercise device and inode identity. */
   return `${String(stats.dev)}:${String(stats.ino)}`
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 }
 
 /**
@@ -70,9 +70,9 @@ function rootIdentity(path: string, stats: Stats): string {
  * current user; this admits normal per-process roots below `/tmp`.
  */
 async function hasProtectedAncestors(path: string): Promise<boolean> {
-  /* v8 ignore next -- POSIX ancestry checks have no Windows ACL equivalent. */
+  /*! v8 ignore next -- POSIX ancestry checks have no Windows ACL equivalent. */
   if (process.platform === 'win32' || process.geteuid === undefined) return true
-  /* v8 ignore start -- Windows takes the return above; POSIX tests exercise
+  /*! v8 ignore start -- Windows takes the return above; POSIX tests exercise
      the ancestor ownership and mode policy. */
   const currentUid = process.geteuid()
   let child = path
@@ -81,18 +81,18 @@ async function hasProtectedAncestors(path: string): Promise<boolean> {
     const parent = dirname(child)
     if (parent === child) return true
     const stats = await lstat(parent)
-    /* v8 ignore next -- every ancestor of a successfully resolved path is a directory. */
+    /*! v8 ignore next -- every ancestor of a successfully resolved path is a directory. */
     if (!stats.isDirectory()) return false
     const writableByOthers = (stats.mode & 0o022) !== 0
     const sticky = (stats.mode & 0o1000) !== 0
     if (writableByOthers && !sticky) return false
-    /* v8 ignore next -- requires an ancestor owned by another OS account inside
+    /*! v8 ignore next -- requires an ancestor owned by another OS account inside
        a writable sticky parent; ordinary test fixtures cannot change uid. */
     if (writableByOthers && childStats.uid !== currentUid) return false
     child = parent
     childStats = stats
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 }
 
 /**
@@ -110,11 +110,11 @@ async function resolveRoot(path: string, allowSymlink: boolean, warn: WarnFn): P
   try {
     initial = await lstat(path)
   } catch (error: unknown) {
-    /* v8 ignore start -- non-ENOENT inspection failures depend on host ACL or
+    /*! v8 ignore start -- non-ENOENT inspection failures depend on host ACL or
        an entry racing away and cannot be reproduced portably. */
     if (!isErrno(error, 'ENOENT')) warnSafely(warn, `spill-local: failed to inspect root ${path}: ${String(error)}`)
     return undefined
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
   if (initial.isSymbolicLink()) {
     if (!allowSymlink) return undefined
@@ -129,29 +129,29 @@ async function resolveRoot(path: string, allowSymlink: boolean, warn: WarnFn): P
     canonical = await realpath(path)
     stats = await lstat(canonical)
   } catch (error: unknown) {
-    /* v8 ignore start -- a root lstat'd above reaches this only by racing away
+    /*! v8 ignore start -- a root lstat'd above reaches this only by racing away
        or by a host-specific realpath failure. */
     if (!isErrno(error, 'ENOENT')) warnSafely(warn, `spill-local: failed to resolve root ${path}: ${String(error)}`)
     return undefined
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
   let protectedAncestors = false
   try {
     protectedAncestors = await hasProtectedAncestors(canonical)
   } catch (error: unknown) {
-    /* v8 ignore start -- a canonical ancestor disappears only through a race;
+    /*! v8 ignore start -- a canonical ancestor disappears only through a race;
        other failures depend on host ACLs. */
     if (!isErrno(error, 'ENOENT')) warnSafely(warn, `spill-local: failed to inspect ancestors of root ${canonical}: ${String(error)}`)
     return undefined
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
-  /* v8 ignore start -- Windows has no POSIX ownership or mode rejection path;
+  /*! v8 ignore start -- Windows has no POSIX ownership or mode rejection path;
      POSIX tests exercise both unsafe-directory conditions. */
   if (!isTrustedDirectory(stats) || !protectedAncestors) {
     warnSafely(warn, `spill-local: skipped unsafe root ${canonical}: expected a current-user-owned directory with protected write and ancestor permissions`)
     return undefined
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
   return { path: canonical, identity: rootIdentity(canonical, stats) }
 }
 
@@ -197,13 +197,13 @@ async function unlinkIdempotent(path: string, warn: WarnFn): Promise<void> {
   try {
     await unlink(path)
   } catch (error: unknown) {
-    /* v8 ignore start -- reached only when a file selected for deletion (a
+    /*! v8 ignore start -- reached only when a file selected for deletion (a
        regular file that passed lstat) then fails to unlink: either it raced away
        (ENOENT) or a permission/IO fault struck between the stat and the unlink.
        Neither is deterministically reproducible in-process. */
     if (isErrno(error, 'ENOENT')) return
     warnSafely(warn, `spill-local: failed to delete ${path}: ${String(error)}`)
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
 }
 
@@ -227,13 +227,13 @@ async function sweepSessionDir(dir: string, cutoffMs: number, warn: WarnFn): Pro
   try {
     names = await readdir(dir)
   } catch (error: unknown) {
-    /* v8 ignore start -- the caller lstat'd this entry and confirmed a real
+    /*! v8 ignore start -- the caller lstat'd this entry and confirmed a real
        directory just before the call, so readdir fails only when the dir races
        away (ENOENT) or a permission/IO fault strikes in that window; not
        deterministically reproducible. False keeps it out of the prune step. */
     warnSafely(warn, `spill-local: failed to read ${dir}: ${String(error)}`)
     return false
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
   let remaining = names.length
   for (const name of names) {
@@ -242,13 +242,13 @@ async function sweepSessionDir(dir: string, cutoffMs: number, warn: WarnFn): Pro
     try {
       stats = await lstat(path)
     } catch (error: unknown) {
-      /* v8 ignore start -- an entry that readdir just returned then fails to
+      /*! v8 ignore start -- an entry that readdir just returned then fails to
          lstat only by racing away (ENOENT) or a permission/IO fault; keep it out
          of the deterministic test surface. */
       if (isErrno(error, 'ENOENT')) { remaining--; continue }
       warnSafely(warn, `spill-local: failed to stat ${path}: ${String(error)}`)
       continue
-      /* v8 ignore stop */
+      /*! v8 ignore stop */
     }
     // Only regular files expire. Symlinks and other special entries are skipped
     // (never followed) so the sweep cannot be redirected or delete a link.
@@ -290,11 +290,11 @@ export async function sweepSpillRoots(options: SweepOptions): Promise<void> {
     } catch (error: unknown) {
       // A root that does not exist yet (no spill ever written) is the common
       // case, not an error: ENOENT is silent, anything else is reported.
-      /* v8 ignore start -- the trusted root was resolved immediately above; a
+      /*! v8 ignore start -- the trusted root was resolved immediately above; a
          read failure now requires a race or host-specific ACL fault. */
       if (!isErrno(error, 'ENOENT')) warnSafely(warn, `spill-local: failed to read root ${root.path}: ${String(error)}`)
       continue
-      /* v8 ignore stop */
+      /*! v8 ignore stop */
     }
     // Track whether the root holds ANY entry the sweep did not fully reclaim, so
     // a discovered prior-default root can be pruned only when nothing remains.
@@ -312,12 +312,12 @@ export async function sweepSpillRoots(options: SweepOptions): Promise<void> {
         // target). Only a real directory is swept.
         stats = await lstat(dir)
       } catch (error: unknown) {
-        /* v8 ignore start -- an entry readdir just returned fails to lstat only
+        /*! v8 ignore start -- an entry readdir just returned fails to lstat only
            by racing away (ENOENT) or a permission/IO fault; not deterministically
            reproducible. */
         if (!isErrno(error, 'ENOENT')) warnSafely(warn, `spill-local: failed to stat ${dir}: ${String(error)}`)
         continue
-        /* v8 ignore stop */
+        /*! v8 ignore stop */
       }
       if (!isTrustedDirectory(stats)) {
         warnSafely(warn, `spill-local: skipped unsafe session directory ${dir}`)
@@ -329,7 +329,7 @@ export async function sweepSpillRoots(options: SweepOptions): Promise<void> {
       try {
         await rmdir(dir)
       } catch (error: unknown) {
-        /* v8 ignore start -- prune runs only on a dir observed empty; a failure
+        /*! v8 ignore start -- prune runs only on a dir observed empty; a failure
            here means a concurrent writer added a file (ENOTEMPTY) or a
            permission/IO fault struck — both are races outside deterministic
            in-process testing. */
@@ -337,7 +337,7 @@ export async function sweepSpillRoots(options: SweepOptions): Promise<void> {
         if (!isErrno(error, 'ENOENT') && !isErrno(error, 'ENOTEMPTY')) {
           warnSafely(warn, `spill-local: failed to prune ${dir}: ${String(error)}`)
         }
-        /* v8 ignore stop */
+        /*! v8 ignore stop */
       }
     }
     // A discovered prior-default root (one per past process) is removed once its
@@ -347,7 +347,7 @@ export async function sweepSpillRoots(options: SweepOptions): Promise<void> {
       try {
         await rmdir(root.path)
       } catch (error: unknown) {
-        /* v8 ignore start -- prune runs only on a root whose every child was
+        /*! v8 ignore start -- prune runs only on a root whose every child was
            reclaimed; a failure here means a concurrent writer added a fresh
            spill after our scan (ENOTEMPTY) or removed the root already (ENOENT)
            or a permission/IO fault struck — all races outside deterministic
@@ -355,7 +355,7 @@ export async function sweepSpillRoots(options: SweepOptions): Promise<void> {
         if (!isErrno(error, 'ENOENT') && !isErrno(error, 'ENOTEMPTY')) {
           warnSafely(warn, `spill-local: failed to prune root ${root.path}: ${String(error)}`)
         }
-        /* v8 ignore stop */
+        /*! v8 ignore stop */
       }
     }
   }

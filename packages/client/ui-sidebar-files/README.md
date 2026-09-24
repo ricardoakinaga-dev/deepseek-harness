@@ -60,6 +60,8 @@ None; directory listings travel over the Remote and assemble no model request.
 - **Listing only.** No search, artifact filter, drag-and-drop, rename, context menu, current-file highlight, or filesystem watching; a level changes only through reload.
 - **One root.** The tree is rooted at the session's working directory; there is no way to browse above it, and the Host refuses paths outside the workspace root anyway.
 
+**Runtime invariant:** No companion is published. The tree's only runtime state is one Slot store per tab, written by the body that owns it and forgotten on the tab's abort signal; there is no second observation of it to compare against.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -69,5 +71,3 @@ None; directory listings travel over the Remote and assemble no model request.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The tree's only runtime state is one Slot store per tab, written by the body that owns it and forgotten on the tab's abort signal; there is no second observation of it to compare against.

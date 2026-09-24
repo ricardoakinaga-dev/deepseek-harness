@@ -22,7 +22,6 @@
       "types": "./lib/types/search.d.ts",
       "default": "./lib/types/search.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [

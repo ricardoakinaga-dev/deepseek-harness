@@ -116,6 +116,8 @@ These limits define the delivery and data-protection guarantees a deployment get
 - **No built-in redaction rules** — with no `sessionTelemetry/record` listener mounted, records leave the process exactly as captured, including any credentials embedded in file contents or command output; a deployment exporting to a shared collector owns its rule set.
 - **On-demand redaction uses current state** — uncaptured events exist only in the canonical session log; a later `captureSession()` deep-copies and redacts their current values with the policy mounted at that time, and there is no capture-time telemetry snapshot or durable pre-capture spool.
 
+**Runtime invariant:** No companion is published. The package's whole output is the backend handoff — a synchronous `emit()` call outside every authoritative event stream — and its capture side never appends session events, so no event/data relation exists for an independent companion to observe.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -125,5 +127,3 @@ These limits define the delivery and data-protection guarantees a deployment get
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The package's whole output is the backend handoff — a synchronous `emit()` call outside every authoritative event stream — and its capture side never appends session events, so no event/data relation exists for an independent companion to observe.

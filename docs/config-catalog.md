@@ -95,6 +95,11 @@ export interface Config {
    * omission defaults to {@link DEFAULT_MAX_PARALLEL_TOOL_CALLS}.
    */
   maxParallelToolCalls?: number
+  /**
+   * Maximum Session events per append call while preparing a fresh or resumed agent.
+   * Defaults to 128 and is capped at 4096.
+   */
+  prepublicationAppendBatchSize?: number
   /** Agents created or resumed at plugin startup. */
   agents: (AgentOptions & {
     /** Stable config label used in logs and as the fresh combined-id prefix. */
@@ -111,7 +116,7 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md) · [`SessionId`](subsystems/core.md)
 
-Source: [`packages/core/agent-loop/src/index.ts:318`](../packages/core/agent-loop/src/index.ts)
+Source: [`packages/core/agent-loop/src/index.ts:350`](../packages/core/agent-loop/src/index.ts)
 
 <a id="deepseek-aidsh-agent-presets"></a>
 
@@ -361,7 +366,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/bash-local/src/index.ts:41`](../packages/shell/bash-local/src/index.ts)
+Source: [`packages/shell/bash-local/src/index.ts:43`](../packages/shell/bash-local/src/index.ts)
 
 <a id="deepseek-aidsh-bash-sandbox"></a>
 
@@ -406,7 +411,7 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Absolute browser-session lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
-  /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
+  /** Maximum bytes reserved by one buffered request and by all buffered requests in this Connection instance. Default: 300 MiB. */
   maxRequestBodyBytes?: number
 }
 
@@ -539,7 +544,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/compaction/compaction-resilience-policy/src/index.ts:33`](../packages/compaction/compaction-resilience-policy/src/index.ts)
+Source: [`packages/compaction/compaction-resilience-policy/src/index.ts:35`](../packages/compaction/compaction-resilience-policy/src/index.ts)
 
 <a id="deepseek-aidsh-compaction-tool-result-pruner"></a>
 
@@ -572,10 +577,20 @@ Requires: `tools`
 export interface Config {
   /** Maximum synchronous VM evaluation time in milliseconds. */
   vmTimeoutMs?: number
+  /** Execution plane; dynamic definitions are disabled unless an owner selects one. */
+  deployment?: DynamicCordisDeployment
+  /** Browser source policy; dynamic browser evaluation is denied unless explicitly enabled. */
+  browserDelivery?: DynamicCordisBrowserDelivery
 }
+
+/** Deployment plane permitted to execute dynamic definitions. */
+export type DynamicCordisDeployment = 'disabled' | 'host-only' | 'browser'
+
+/** Browser delivery exception required by the source evaluator. */
+export type DynamicCordisBrowserDelivery = 'disabled' | 'unsafe-eval-inline-style'
 ```
 
-Source: [`packages/extensions/cordis-host-runner/src/index.ts:88`](../packages/extensions/cordis-host-runner/src/index.ts)
+Source: [`packages/extensions/cordis-host-runner/src/index.ts:89`](../packages/extensions/cordis-host-runner/src/index.ts)
 
 <a id="deepseek-aidsh-credentials-local"></a>
 
@@ -962,7 +977,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/bundle/headless/src/index.ts:42`](../packages/bundle/headless/src/index.ts)
+Source: [`packages/bundle/headless/src/index.ts:44`](../packages/bundle/headless/src/index.ts)
 
 <a id="deepseek-aidsh-hmr"></a>
 
@@ -1167,7 +1182,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/jobs/jobs-local/src/index.ts:31`](../packages/jobs/jobs-local/src/index.ts)
+Source: [`packages/jobs/jobs-local/src/index.ts:33`](../packages/jobs/jobs-local/src/index.ts)
 
 <a id="deepseek-aidsh-llm-deepseek"></a>
 
@@ -1617,7 +1632,7 @@ export interface ReplayModelConfig {
 
 Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · [`SystemPromptUpdate`](../packages/llm/llm/src/index.ts)
 
-Source: [`packages/test-support/llm-replay/src/index.ts:1122`](../packages/test-support/llm-replay/src/index.ts)
+Source: [`packages/test-support/llm-replay/src/index.ts:1123`](../packages/test-support/llm-replay/src/index.ts)
 
 <a id="deepseek-aidsh-llm-retry"></a>
 
@@ -1919,7 +1934,14 @@ export interface Config {
   lockWaitMs?: number
   /** Bound on one registry lookup an inspection runs, in milliseconds. */
   inspectTimeoutMs?: number
+  /** Package-spec forms this profile owner permits for bundle installation. Empty means deny all forms. */
+  allowedSources?: InstallSpecKind[]
+  /** Publisher identities accepted after package metadata verification. Empty means deny all publishers. */
+  allowedPublishers?: string[]
 }
+
+/** The form one install spec takes, in pnpm's vocabulary. */
+export type InstallSpecKind = 'registry' | 'path' | 'git' | 'tarball'
 ```
 
 Source: [`packages/boot/plugin-manager/src/index.ts:33`](../packages/boot/plugin-manager/src/index.ts)
@@ -2095,7 +2117,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/sandbox/sandbox-local/src/index.ts:44`](../packages/sandbox/sandbox-local/src/index.ts)
+Source: [`packages/sandbox/sandbox-local/src/index.ts:57`](../packages/sandbox/sandbox-local/src/index.ts)
 
 <a id="deepseek-aidsh-sandbox-policy"></a>
 
@@ -2389,7 +2411,7 @@ Source: [`packages/session/session-title/src/index.ts:56`](../packages/session/s
 
 ## `@deepseek-ai/dsh-session-title-all-prompts-llm`
 
-Requires: `sessionTitle` · `llm` · `sessions`
+Requires: `sessionTitle` · `llm` · `sessions` · `sessionQuery`
 
 ```ts config-catalog
 /** Required LLM policy; this plugin adds no defaults. */
@@ -2404,7 +2426,7 @@ Source: [`packages/session/session-title-all-prompts-llm/src/index.ts:15`](../pa
 
 ## `@deepseek-ai/dsh-session-title-first-prompt-llm`
 
-Requires: `sessionTitle` · `llm` · `sessions`
+Requires: `sessionTitle` · `llm` · `sessions` · `sessionQuery`
 
 ```ts config-catalog
 /** Required LLM policy; this plugin adds no defaults. */
@@ -3074,7 +3096,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/tool-bash-persistent/src/index.ts:430`](../packages/shell/tool-bash-persistent/src/index.ts)
+Source: [`packages/shell/tool-bash-persistent/src/index.ts:432`](../packages/shell/tool-bash-persistent/src/index.ts)
 
 <a id="deepseek-aidsh-tool-fs"></a>
 
@@ -3255,7 +3277,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/tool-pwsh-persistent/src/index.ts:470`](../packages/shell/tool-pwsh-persistent/src/index.ts)
+Source: [`packages/shell/tool-pwsh-persistent/src/index.ts:472`](../packages/shell/tool-pwsh-persistent/src/index.ts)
 
 <a id="deepseek-aidsh-tool-ralph"></a>
 
@@ -3522,7 +3544,7 @@ export interface Config {
 export type ToolPresentationMode = 'native' | 'ptc' | 'both'
 ```
 
-Source: [`packages/core/tools/src/index.ts:656`](../packages/core/tools/src/index.ts)
+Source: [`packages/core/tools/src/index.ts:658`](../packages/core/tools/src/index.ts)
 
 <a id="deepseek-aidsh-typert-loader"></a>
 
@@ -3874,7 +3896,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-schedule` — requires `agents` · `sessions` · `tools` · `sessionPersistence` ([`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts))
 - `@deepseek-ai/dsh-session` ([`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts))
 - `@deepseek-ai/dsh-session-checkpoint-policy` — requires `llm` · `sessionPersistence` · `sessions` · `tools` ([`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts))
-- `@deepseek-ai/dsh-session-projection` ([`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts))
+- `@deepseek-ai/dsh-session-projection` — requires `sessions` ([`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts))
 - `@deepseek-ai/dsh-session-stats` — requires `sessionProjections` ([`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts))
 - `@deepseek-ai/dsh-session-turn-outline` — requires `sessionProjections` ([`packages/session/session-turn-outline/src/index.ts`](../packages/session/session-turn-outline/src/index.ts))
 - `@deepseek-ai/dsh-skill-badge` — requires `skills` ([`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts))

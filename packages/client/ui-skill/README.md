@@ -99,6 +99,8 @@ These limits define where the reference and the row fall back to generic behavio
 - **Text is the truth** — the reference is plain draft text; a hand-typed identical token is the same reference, and the host gesture boundary judges the sent text, not the menu interaction. Chip visuals derive from the lexicon scan; no occurrence identity, position tracking, or structured reference payload exists on the prompt wire.
 - **A menu opened before the prewarm settles** shows no skill candidates for that keystroke; the next keystroke re-polls the settled cache.
 
+**Runtime invariant:** No companion is published. The slash source, locale dictionaries, and keyed toolview are registry-owned registrations whose disposal is proven by the HMR-safety spec. They emit no Cordis events and own no cross-plugin mutable state.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -108,5 +110,3 @@ These limits define where the reference and the row fall back to generic behavio
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The slash source, locale dictionaries, and keyed toolview are registry-owned registrations whose disposal is proven by the HMR-safety spec. They emit no Cordis events and own no cross-plugin mutable state.

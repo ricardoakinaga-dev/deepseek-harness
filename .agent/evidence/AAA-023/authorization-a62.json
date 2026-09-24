@@ -1,0 +1,27 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A27",
+  "kind": "AUTHORIZATION_GATE_TRANSITION",
+  "timestamp": "2026-09-22T17:23:27-03:00",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-023-A27-POLICY-DISPOSITION-A62-001",
+  "gate_ref": ".agent/gates/implementation-ready-AAA-023-A27.json",
+  "authority": "CONFIRMED",
+  "gate_decision": "PASS",
+  "scope": [
+    "six exact-path customization-policy owners",
+    "removal of only 11 ignored .opencode state paths from the successor candidate",
+    "same-candidate local validation"
+  ],
+  "successor_preflight": {
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "policy_verifier": "PASS",
+    "improvements": 23,
+    "attributed_paths": 1445,
+    "clean": true
+  },
+  "preserved_candidate_tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "next_action": "AAA-023:A28",
+  "external_actions_authorized": false,
+  "limitations": "The successor still requires the complete local qualification matrix; required-platform, credentialed-provider, publication, release, and final-critic lanes remain outside this local gate."
+}

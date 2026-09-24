@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   pathMatches,
+  validateMirrorIdentity,
   validateCustomizationPolicy,
 } from './verify-customization-policy.mjs'
 
@@ -89,5 +91,59 @@ describe('customization policy', () => {
       'improvements[0].solutionType is not permitted for kind "extension"',
       'improvements[1].solutionType is not permitted for kind "governance"',
     ])
+  })
+
+  it.each(['configuration', 'profile-patch', 'skill'] as const)(
+    'rejects packageRoots on the non-packaged %s solution type',
+    (solutionType) => {
+      const policy = {
+        version: 1,
+        repository,
+        improvements: [{
+          id: `invalid-${solutionType}`,
+          kind: 'extension',
+          solutionType,
+          status: 'active',
+          summary: 'Reject a package source claim on a non-packaged extension.',
+          optIn: true,
+          packageRoots: ['packages/example/not-allowed/'],
+          paths: ['docs/example.md'],
+        }],
+      }
+      expect(validateCustomizationPolicy(policy, [])).toEqual([
+        `improvements[0].packageRoots is not permitted for solutionType "${solutionType}"`,
+      ])
+    },
+  )
+
+  it('accepts a mirror whose official and fork commits are equal', () => {
+    expect(validateMirrorIdentity({
+      mirrorRef: 'origin/master',
+      officialRef: 'deepseek-official/master',
+      mirrorCommit: 'a'.repeat(40),
+      officialCommit: 'a'.repeat(40),
+    })).toEqual([])
+  })
+
+  it('rejects a mismatched or missing mirror commit with an actionable diagnostic', () => {
+    expect(validateMirrorIdentity({
+      mirrorRef: 'origin/master',
+      officialRef: 'deepseek-official/master',
+      mirrorCommit: 'a'.repeat(40),
+      officialCommit: 'b'.repeat(40),
+    })).toEqual([
+      'origin/master resolves to ' + 'a'.repeat(40) + ', but deepseek-official/master resolves to ' + 'b'.repeat(40) + '; fetch the official branch and fast-forward the fork mirror before running customization checks',
+    ])
+    expect(validateMirrorIdentity({
+      mirrorRef: 'origin/master',
+      officialRef: 'deepseek-official/master',
+      mirrorCommit: null,
+      officialCommit: 'b'.repeat(40),
+    })).toEqual(['origin/master: ref is missing or does not resolve to a commit'])
+  })
+
+  it('runs official-mirror verification before the attributed-delta check', () => {
+    const workflow = readFileSync(new URL('../.github/workflows/customization-policy.yml', import.meta.url), 'utf8')
+    expect(workflow).toContain('node scripts/verify-customization-policy.mjs --base origin/master --require-official-mirror')
   })
 })

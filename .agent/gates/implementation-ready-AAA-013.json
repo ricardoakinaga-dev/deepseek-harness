@@ -1,0 +1,86 @@
+{
+  "record_id": "GATE-AAA-013-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-20T21:24:19-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-013 frontend-static resolved-target containment and symlink/junction regression coverage",
+  "scope_ref": "AAA-013",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The implementation scope names the confirmed outside-byte escape, the official frontend-static owner, the canonicalization policy, the package documentation, and the real-composition fixture paths.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-013/findings.json",
+        ".agent/evidence/AAA-013/commands.jsonl",
+        ".agents/customization-policy.json",
+        ".agents/notes/implemented/bug-fix/2026-09-20-frontend-static-symlink-containment.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate covers the frontend-static source, its real-composition test, and paired package documentation; it does not qualify other filesystem providers or a kernel-grade concurrent-attacker boundary."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation has a direct outside-byte reproduction, an existing composition baseline, and a focused post-change acceptance method for in-root aliases, outside symlinks or junctions, missing targets, status codes, and teardown.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-013/findings.json",
+        ".agent/evidence/AAA-013/commands.jsonl",
+        "packages/host/frontend-static/tests/frontend-static.spec.ts",
+        "packages/host/frontend-static/README.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The negative fixture and implementation have not run yet; the current gate authorizes that bounded change and requires the focused test to remain the central regression check."
+    },
+    {
+      "id": "IR-003",
+      "description": "No human product decision, credential, durable-data migration, or external deployment is required for this local upstream-package correction; the customization policy and Agent Note provide the required ownership and removal route.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agent/state.json",
+        ".agents/customization-policy.json",
+        ".agents/notes/implemented/bug-fix/2026-09-20-frontend-static-symlink-containment.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The final candidate still needs the full security, release, platform, and independent-audit matrix; this gate is task-scoped and does not qualify the repository."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-013/findings.json",
+    ".agent/evidence/AAA-013/commands.jsonl",
+    "packages/host/frontend-static/src/index.ts",
+    "packages/host/frontend-static/tests/frontend-static.spec.ts",
+    "packages/host/frontend-static/README.md",
+    "packages/host/frontend-static/README.zh.md",
+    ".agents/customization-policy.json",
+    ".agents/notes/implemented/bug-fix/2026-09-20-frontend-static-symlink-containment.md",
+    ".agents/notes/implemented/bug-fix/2026-09-20-frontend-static-symlink-containment.zh.md"
+  ],
+  "candidate_fingerprint": "7de6eb5e223b5822508cc2c962a7e371648080349b599c4ae216dd6801233011",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": false,
+    "state": "NOT_REQUIRED",
+    "actor": "Repository quality policy",
+    "scope": "AAA-013 frontend-static resolved-target containment and symlink/junction regression coverage",
+    "decision": "The official frontend-static package owns this behavior and no unresolved human-owned product choice remains for the bounded correction.",
+    "evidence_ref": ".agent/backlog.json",
+    "expires_or_revalidates": "Revalidate if the static serving owner, supported filesystem platforms, threat model, or package fallback contract changes."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Update frontend-static to resolve and contain canonical targets, add the real-composition symlink/junction negative fixtures, synchronize the paired README, and run the focused package and repository checks.",
+  "revalidation_triggers": [
+    "The frontend-static fallback owner or configured dist-root contract changes.",
+    "A deployment requires kernel-grade containment against concurrent filesystem mutation.",
+    "The test fixture cannot create the platform's directory-link equivalent.",
+    "The source implementation reads a link-shaped path after the containment check."
+  ],
+  "supersedes": null
+}

@@ -1,9 +1,10 @@
-import { Context } from '@deepseek-ai/cordis'
+import { Context, FiberState } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import LlmRuntime, { createUserMessage, LlmAdapter  } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import SessionQuerySqlite from '@deepseek-ai/dsh-session-query-sqlite'
 import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
 import SessionTitleService, { type SessionTitleProvider } from '@deepseek-ai/dsh-session-title'
 import * as providerPlugin from '@deepseek-ai/dsh-session-title-first-prompt-llm'
@@ -34,11 +35,28 @@ async function settle(): Promise<void> {
 }
 
 describe('first-prompt LLM title provider', () => {
+  it('keeps the plugin pending when its required query service is absent', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
+    await ctx.plugin(SessionTitleService, TITLE_CONFIG)
+
+    const fiber = await ctx.plugin(providerPlugin, LLM_CONFIG)
+
+    expect(providerPlugin.inject).toContain('sessionQuery')
+    expect(fiber.state).toBe(FiberState.PENDING)
+    expect(ctx.sessionQuery).toBeUndefined()
+    await ctx.fiber.dispose()
+  })
+
   it('rejects an impossible empty provider request at its own boundary', async () => {
     const ctx = new Context()
     await ctx.plugin(LlmRuntime)
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SessionQuerySqlite, { path: ':memory:', openAt: 'never' })
     ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
     await ctx.plugin(SessionTitleService, TITLE_CONFIG)
     let registered: SessionTitleProvider | undefined
@@ -52,14 +70,15 @@ describe('first-prompt LLM title provider', () => {
       session: Session.create(SessionId('empty-first-provider')),
       messages: [],
       signal: new AbortController().signal,
-    })).rejects.toThrow(/requires one human message/)
+    })).rejects.toThrow(/at least one source message/)
   })
 
-  it('always selects only the first eligible human message, including explicit refresh', async () => {
+  it('uses the first projection automatically and all eligible messages on explicit refresh', async () => {
     const ctx = new Context()
     await ctx.plugin(LlmRuntime)
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SessionQuerySqlite, { path: ':memory:', openAt: 'never' })
     ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
     await ctx.plugin(SessionTitleService, TITLE_CONFIG)
     const adapter = new RecordingAdapter()
@@ -75,18 +94,19 @@ describe('first-prompt LLM title provider', () => {
       header: { config: { provider: 'main', model: 'main-model' } }, reason: 'initial',
     })
     await settle()
-    session.append('user/message', createUserMessage({
-      content: [{ type: 'text', text: 'second input must be ignored' }], source: { kind: 'user' },
+    const second = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'second input from explicit refresh' }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
 
     await ctx.sessionTitle.refresh(session)
 
     expect(adapter.requests).toHaveLength(2)
-    for (const options of adapter.requests) {
-      const content = options.messages[0]?.content[0]
-      expect(content?.type === 'text' && content.text).toContain('first input')
-      expect(content?.type === 'text' && content.text).not.toContain('second input must be ignored')
-    }
-    expect(ctx.sessionTitle.get(session)).toMatchObject({ messageSeqs: [first.seq] })
+    const automaticPrompt = adapter.requests[0]?.messages[0]?.content[0]
+    expect(automaticPrompt?.type === 'text' && automaticPrompt.text).toContain('first input')
+    expect(automaticPrompt?.type === 'text' && automaticPrompt.text).not.toContain('second input')
+    const refreshedPrompt = adapter.requests[1]?.messages[0]?.content[0]
+    expect(refreshedPrompt?.type === 'text' && refreshedPrompt.text).toContain('first input')
+    expect(refreshedPrompt?.type === 'text' && refreshedPrompt.text).toContain('second input from explicit refresh')
+    expect(ctx.sessionTitle.get(session)).toMatchObject({ messageSeqs: [first.seq, second.seq] })
   })
 })

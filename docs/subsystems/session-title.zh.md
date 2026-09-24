@@ -2,13 +2,13 @@
 
 [English](session-title.md) | 中文
 
-[`@deepseek-ai/dsh-session-title`](../../packages/session/session-title) 所拥有的持久、后写覆盖的标题状态与可选异步提供方词汇。共享 LLM（大语言模型）辅助组件负责精确的辅助请求记录。各包 README 负责时序、回退、失败与 fork 行为；生成的[持久化日志事件目录](../persistence-catalog.zh.md)负责完整的事件声明。
+[`@deepseek-ai/dsh-session-title`](../../packages/session/session-title) 所拥有的持久、后写覆盖的标题状态与可选异步提供方词汇。服务提供首消息投影输入，或使用固定历史上限调用提供方加载器；共享 LLM（大语言模型）辅助组件负责通过查询服务读取历史及精确的辅助请求记录。各包 README 负责时序、回退、失败与 fork 行为；生成的[持久化日志事件目录](../persistence-catalog.zh.md)负责完整的事件声明。
 
 源码：[`packages/session/session-title/src/index.ts`](../../packages/session/session-title/src/index.ts)、[`packages/session/session-title-llm/src/index.ts`](../../packages/session/session-title-llm/src/index.ts)
 
 ## 持久标题状态
 
-提供方生成修订时会记录 `SessionTitleProviderId`。`SessionTitleEventData` 列出生成标题时使用的精确人类消息 seq，`SessionTitleSnapshot` 则加入 `ctx.sessionTitle.get()` 与 `foldSessionTitle()` 返回的持久事件封装信息。`title` 投影的版本 1 状态与客户端视图都只保留标题字符串或 `null`，因此既有持久化缓存行仍可读取。
+提供方生成修订时会记录 `SessionTitleProviderId`。`SessionTitleEventData` 列出生成标题时使用的精确人类消息 seq，`SessionTitleSnapshot` 则加入 `ctx.sessionTitle.get()` 与 `foldSessionTitle()` 返回的持久事件封装信息。`title` 投影的版本 2 状态会保存此快照，客户端视图则只提供标题字符串或 `null`。
 
 ```ts type-equiv
 /** Identifies one session-title provider registration. */
@@ -86,7 +86,7 @@ interface SessionTitleLlmRequestEventData {
 
 ## 提供方输入与输出
 
-服务会对截至某一修订的合格消息创建快照。提供方返回的 seq 仅可来自该请求；由服务负责的接纳流程会验证顺序、规范化标题、强制执行字节上限，并追加标题及其来源消息 seq 和来源类型。
+自动 `first-prompt` 工作使用首消息投影。`all-prompts` 工作与每次显式刷新都会以包含式 seq 上限调用提供方加载器。提供方返回的 seq 仅可来自该请求；由服务负责的接纳流程会验证顺序、规范化标题、强制执行字节上限，并追加标题及其来源消息 seq 和来源类型。
 
 ```ts type-equiv
 /** One eligible human text message exposed to title providers. */
@@ -95,6 +95,20 @@ interface SessionTitleUserMessage {
   readonly seq: SessionSeq
   /** Exact concatenated text-block content. */
   readonly text: string
+}
+```
+
+`sessionTitleUserMessageOf(event)` 会在一个人类 `user/message` 事件的拼接文本块包含非空规范化文本时返回标题消息。其他事件、空文本及非文本的人类提示词都不会生成提供方输入。
+
+```ts type-equiv
+/** Fixed history cut requested before one provider generation. */
+interface SessionTitleProviderMessageRequest {
+  /** Live session whose committed history is being read. */
+  readonly session: Session
+  /** Inclusive upper event sequence captured when the generation was scheduled. */
+  readonly throughSeq: SessionSeq
+  /** Cancellation for supersession, disposal, or an explicit caller. */
+  readonly signal: AbortSignal
 }
 ```
 
@@ -136,6 +150,13 @@ interface SessionTitleProvider {
   readonly id: SessionTitleProviderId
   /** When new human prompts start automatic generation. */
   readonly automatic: SessionTitleAutomaticMode
+  /**
+   * Load every eligible human text message through the requested fixed cut.
+   * @param request - live session, inclusive sequence cut, and cancellation.
+   * @returns ordered messages with their exact source sequences.
+   * @throws when the read fails or the request is cancelled.
+   */
+  loadMessages(request: SessionTitleProviderMessageRequest): Promise<readonly SessionTitleUserMessage[]>
   /**
    * Produce one title revision.
    * @param request - message snapshot, current route, session, and cancellation.

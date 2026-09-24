@@ -94,6 +94,8 @@ None; resource streams do not assemble model requests.
 - **Records live for the page lifetime** — an address's record stays in the registry after its last holder leaves; only its state is discarded. Memory grows with the number of distinct addresses ever read, not with reads.
 - **Providers own abort compliance** — the registry drops what a released stream still yields, but a provider that ignores `signal` keeps working until its next frame.
 
+**Runtime invariant:** No companion is published. Provider ownership and holder counts have one owner, the registry, with no independent runtime source to compare against; registration disposal and the open/close lifecycle are asserted by behavior specs.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -103,5 +105,3 @@ None; resource streams do not assemble model requests.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Provider ownership and holder counts have one owner, the registry, with no independent runtime source to compare against; registration disposal and the open/close lifecycle are asserted by behavior specs.

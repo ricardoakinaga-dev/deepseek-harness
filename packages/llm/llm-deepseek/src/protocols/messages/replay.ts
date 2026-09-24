@@ -38,7 +38,7 @@ export function replayState(model: string, blocks: ReplayBlock[]): ReplayEnvelop
  */
 export function readReplay(message: Message, model: string, onDegrade?: (reason: string) => void): ReplayBlock[] | undefined {
   try { return validateReplay(message, model) } catch (error) {
-    /* v8 ignore next -- the validator only throws INVALID_REPLAY_STATE; preserve future non-replay failures. */
+    /*! v8 ignore next -- the validator only throws INVALID_REPLAY_STATE; preserve future non-replay failures. */
     if (!(error instanceof LlmError) || error.code !== 'INVALID_REPLAY_STATE') throw error
     onDegrade?.(error.message)
     return undefined

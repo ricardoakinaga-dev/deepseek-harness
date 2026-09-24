@@ -109,6 +109,8 @@ A created session is observable in this process from the moment `create` resolve
 
 A log crashed mid-turn ends with an open `turn/start` and no `turn/end`. Persistence does **not** truncate or repair it — a single turn can be huge in a long-horizon task (many steps, large tool output), and those events were durably appended before the crash. It returns the physically valid contiguous log; only the incomplete fragment of a torn physical tail, belonging to an append that never resolved, is discarded — complete records recovered from it (the JSONL backend partially decodes a torn Zstandard frame) are durably rewritten by the write path before the handle's first new append. Repair is the reader's job: resume (agent-loop) reads the stored log through its write handle, computes `interruptedTurnClosers` — missing tool errors, any open `step/end`, and a synthetic `turn/end { reason: { kind: 'interrupted' } }` — and appends them through the same handle as an ordinary batch before publishing the Session. `interrupted` is the one `TurnEndReason` no loop emits (see [session.md](session.md#why-a-turn-ended-turnendreasonmap)).
 
+`AgentLoop` stores the constructor baseline, accepted setup appends, and repair closers before publication in pages capped by `prepublicationAppendBatchSize` (default `128`, maximum `4096` events per append call). The preparation feed supplies setup appends in sequence order, and the writer advances its cursor only after each handle append resolves. A rejected page may have taken effect in storage, so the loop never retries it or announces the Session; it closes the write handle and returns the original failure. A later explicit resume of the same id reads the backend's actual valid prefix and computes only the repair events still needed. After a fixed sequence cut drains, publication follows the final cancellation and cursor checks in the same stack, and `SessionStore.enter()` seals the preparation feed before subsequent events use the live persistence route. The page size limits event count, not bytes, and makes no throughput claim.
+
 Repair therefore writes only under write ownership: a live session's write handle is held by its lifecycle owner, so a concurrent `open(id, 'write')` rejects with `SessionAlreadyOwnedError` instead of racing repair against a live turn. Read-only observers (session-query) balance an interrupted cold log with the same closers in memory only, writing nothing back.
 
 Read-only observation is `open(id, 'read')`: the handle serves validated contiguous prefix slices, never a torn tail, and repeated reads on one handle never observe an older state than a prior read. There is no persistence-side prepared-Session cache: session-query owns its cold-read cache, keying one balanced cold Session per id on the `stat().revision` change token and re-reading only when the token changes. The [handle-based persistence Agent Note](../../.agents/notes/implemented/architecture/2026-08-27-handle-based-session-persistence.md) owns this lifecycle; the archived [Session preparation record](../../.agents/notes/archived/architecture/2026-08-05-session-preparation.md) documents the original publication-boundary `SessionPreparation` decision.
@@ -227,7 +229,7 @@ Replay/fork is therefore `ctx.agents.create({ sessionId, seed, meta })` — a fo
 
 ## Preparation and restoration ownership
 
-`SessionStore.prepare()` accepts ordinary creation options or an adoptable seed through `RestoredSessionOptions`. Its `eventState` says whether event values are independently owned or shared only after deep freezing; the producer establishes that state, and slicing does not infer a different state from result length. Restoration validates and adopts those values without another copy or freeze pass. `SessionPreparation` then owns the exact unpublished Session until publication or rollback; disposal is synchronous and idempotent. agent-loop's resume reads this result through the session's write handle and appends independently owned `interruptedTurnClosers` before preparation.
+`SessionStore.prepare()` accepts ordinary creation options or an adoptable seed through `RestoredSessionOptions`. Its `eventState` says whether event values are independently owned or shared only after deep freezing; the producer establishes that state, and slicing does not infer a different state from result length. Restoration validates and adopts those values without another copy or freeze pass. `SessionPreparation.baseline` retains the constructor-owned `SessionCreationBaseline`; accepted preparation-time appends flow separately through `subscribeAppends()`, which replays earlier accepted appends in sequence order before subscribing to future ones. Its synchronous `prepare(event)` callback computes provider-owned state and returns the closure that commits it; if `prepare` throws, the Session append is rejected before its sequence or log advances. `SessionStore.enter()` seals the feed, and its disposer removes the consumer. The `session/created` announcement receives the constructor cut plus every committed append made before announcement, so consumers initialize from the exact published cursor without reading history. `SessionPreparation` owns the exact unpublished Session until publication or rollback; disposal is synchronous and idempotent. agent-loop's resume reads this result through the session's write handle and appends independently owned `interruptedTurnClosers` before preparation.
 
 ```ts type-equiv
 /**
@@ -279,13 +281,26 @@ interface SessionPreparationOptions {
 declare class SessionPreparation implements Disposable {
   /** The exact Session to use for setup and publication. */
   readonly session: Session;
+  /** The constructor-owned cut before preparation-time appends. */
+  readonly baseline: SessionCreationBaseline;
   /**
    * Wrap an unpublished Session in one preparation lifetime.
    * @param session - exact unpublished Session.
    * @param options - optional provider release behavior.
    * @returns a preparation disposed after publication or rollback.
+   * @throws when the Session has no constructor cut, has changed since that cut, or already has an active preparation.
    */
   static create(session: Session, options?: SessionPreparationOptions): SessionPreparation;
+  /**
+   * Attach a synchronous consumer to accepted preparation-time appends.
+   * Existing accepted appends replay in order before future appends reach the
+   * consumer. The returned commit closure must only update provider-owned
+   * state; a throwing prepare function rejects a future Session append.
+   * @param prepare - compute one event's provider-owned update and return its commit operation.
+   * @returns the exact disposer that removes the consumer.
+   * @throws when the preparation feed is already sealed.
+   */
+  subscribeAppends(prepare: (event: SessionEvent) => () => void): () => void;
   /** Release provider state once when this preparation leaves its caller. */
   [Symbol.dispose](): void;
 }

@@ -124,6 +124,8 @@ These limits define when the sandbox backend is a poor fit or needs special oper
 - **Fence-vs-runner parity is derived from one owner** — the writable set comes from `writableRoots`, shared with the Seatbelt profile; a runner profile that defines its writable set elsewhere would drift.
 - **Requires `ctx.sandboxPolicy`** — tools use it to resolve each session policy and the backend uses it for agentless-call fallbacks; the backend does not confine without it composed.
 
+**Runtime invariant:** No companion is published. This stateless adapter delegates policy and filesystem relations to their owning seams.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -133,5 +135,3 @@ These limits define when the sandbox backend is a poor fit or needs special oper
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This stateless adapter delegates policy and filesystem relations to their owning seams.

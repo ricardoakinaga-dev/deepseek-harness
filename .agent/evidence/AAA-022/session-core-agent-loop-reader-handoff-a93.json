@@ -1,0 +1,82 @@
+{
+  "record_id": "EVID-AAA-022-W2-PREPUBLICATION-HANDOFF-A93-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A18",
+  "kind": "DESIGN_ADDENDUM",
+  "timestamp": "2026-09-23T03:35:00-03:00",
+  "status": "DESIGN_ADDENDUM_READY_FOR_REVIEW",
+  "source_design_ref": ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+  "review_finding_ref": "W2-CRITIC-A18-2026-09-23-2D7C",
+  "candidate": {
+    "branch": "custom/main",
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty work preserved",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false
+  },
+  "scope": "Clarify the W2-01 publication protocol and strengthen W2-03/W2-04 falsifiers; no production source changes.",
+  "publication_handoff": {
+    "source_ownership": "SessionPreparation owns one exact constructor baseline and every accepted append while its Session is unpublished. The source starts with the exact initial log and next-sequence cursor. New-session storage starts at seq 0; resume storage starts after the durable prefix and synthetic repair closers already accepted by the handle. inheritedEventCount remains lineage metadata and is not the storage cursor.",
+    "bounded_drain": [
+      "After setup commits, synchronously capture an exclusive high-water mark from the current Session seq before each drain; return ordered pages no larger than the configured page limit and no later than that fixed cut.",
+      "Append each page through the owned SessionHandle. Advance the source/storage cursor only after that append resolves successfully. Events accepted while an append is pending remain beyond the captured cut and are eligible for the next drain.",
+      "After each acknowledgment, capture a new cut and drain again until the stored cursor equals the Session's current seq. Append rejection, cancellation, or owner disposal prevents publication and releases the preparation and handle through the existing rollback path."
+    ],
+    "synchronous_final_handoff": [
+      "With no append promise pending, check cancellation and synchronously compare the next stored cursor with the Session seq. If the cursor is behind, capture and drain another fixed cut.",
+      "When the cursor equals Session seq, synchronously seal the preparation source, then invoke PreparedAgent.publish in the same JavaScript stack. There is no await, queued microtask, user callback, or other yield between the equality check, source seal, and publish call.",
+      "PreparedAgent.publish must continue synchronously through SessionStore.enter, AgentStore.enter, and SessionStore.announce before its first await. The current implementation does this before awaiting AgentStore.announce; keep that ordering observable in a focused test.",
+      "The source is sealed before publication callbacks can append. The existing session/event persistence listener is already mounted and the SessionHandle already owns the id. An append made by a session/created callback or immediately after announcement is therefore delivered once through the live route, while no source page can also contain that event.",
+      "If cancellation is already signaled at the final check, do not seal or publish. PreparedAgent.publish retains its own synchronous liveness check; any publication error follows the current rollback and handle-close path."
+    ],
+    "falsifying_cases": [
+      "Hold a bounded handle.append pending, accept another setup event beyond its fixed cut, release the append, and show a subsequent page stores that event before publication.",
+      "Hold the last page append pending, accept an event beyond that page's cut, release it, and show the source repeats the drain rather than sealing with a cursor behind Session seq.",
+      "Record the order of final cursor equality, source seal, SessionStore.enter, SessionStore.announce, and the first await; fail if a callback/yield can occur before the live route is available.",
+      "Append from a synchronous session/created listener and immediately after announcement; each contiguous sequence is stored exactly once, with no duplicate source page and no missing live event.",
+      "Reject an append and separately cancel immediately before the final seal; neither case announces the Session, advances an unacknowledged cursor, nor leaks the handle or preparation."
+    ]
+  },
+  "projection_and_cache_falsifiers": {
+    "system_prompt_surface_order": "A valid surface replacement inserts a system/message into a replacement range that contained no earlier system node, between surviving system nodes. The projection must retain the accepted post-replacement surface order, including the newly inserted system node.",
+    "pre_projection_checkpoint": "Restore a cache checkpoint written before the new projection keys existed, hydrate the new keys, and verify the registry refolds from seq 0 and yields the same projection state as a fresh full fold over the same durable log. Include a log with system nodes and a replacement; do not bump SESSION_FORMAT_VERSION or change released Session records."
+  },
+  "implementation_sequence_recommendation": [
+    {
+      "action": "AAA-022:A19",
+      "scope": "Add the preparation-owned exact baseline/append source and initialize/advance registered Session projections before ReactLoopAgent construction. Fix the observed unpublished turnBoundary baseline failure before dependent reader migrations."
+    },
+    {
+      "action": "AAA-022:A20",
+      "scope": "Consume bounded source pages for S020 persistence and implement the synchronous final seal/live-writer handoff."
+    },
+    {
+      "action": "AAA-022:A21",
+      "scope": "Replace S021's synchronous request reconstruction scan with the maintained request/header/message and turn-boundary projections."
+    },
+    {
+      "action": "AAA-022:A22",
+      "scope": "Replace S022/S023 history reads with the active system surface and owned runtime-context projections."
+    }
+  ],
+  "review_requirements": [
+    "Confirm the cursor and fixed-cut rules preserve every accepted event exactly once through the publication handoff.",
+    "Confirm source sealing immediately before PreparedAgent.publish is safe with the current synchronous enter/announce ordering and mounted live persistence route; identify any reentrant path that can append in the gap.",
+    "Confirm failure and cancellation do not publish and retain current rollback/handle-ownership semantics.",
+    "Confirm the added surface replacement and old-checkpoint falsifiers cover the review findings without changing prompt output or released data."
+  ],
+  "next_action": {
+    "id": "AAA-022:A18",
+    "kind": "DESIGN_REVIEW",
+    "summary": "Independently review the exact prepared-session seal and live-writer handoff protocol",
+    "completion_signal": "A fresh read-only reviewer accepts this addendum together with W2-01 through W2-05 in A92; then reconcile A18 and prepare a narrow A19 implementation-ready gate."
+  },
+  "production_changes": [],
+  "limitations": [
+    "The A92 focused baseline remains 5 files with 2 failing and 3 passing: 48 tests fail and 29 pass because unpublished Agent construction reads an uninitialized turnBoundary projection. The failure has not been rerun.",
+    "The four-reader source search remains exactly S020-S023. No projection implementation, old-cache fixture, or handoff test exists yet.",
+    "Canonical repository debt metrics remain unavailable on the incomplete pre-existing dirty worktree."
+  ],
+  "freshness": "CURRENT"
+}

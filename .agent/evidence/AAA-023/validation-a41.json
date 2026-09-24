@@ -1,0 +1,27 @@
+{
+  "record_id": "EVID-AAA-023-VALIDATION-A41-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A15",
+  "timestamp": "2026-09-22T06:10:11-03:00",
+  "result": "PASS",
+  "scope": "Post-recovery validation of the moved client UI source and local worktree hygiene",
+  "observed": {
+    "gui_test": {
+      "command": "pnpm run test:gui",
+      "result": "433 test files passed; 6,185 tests passed and 1 skipped"
+    },
+    "client_domain_graph": {
+      "command": "pnpm run verify-client-domain-graph",
+      "result": "client domain layering clean"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  },
+  "limitations": [
+    "The GUI run is jsdom-based and does not provide browser visual QA or a recorded GIF.",
+    "These checks run against the current worktree; they do not qualify the 16-path move at a sealed candidate SHA.",
+    "No staging, commit, publication, push, merge, release, or final verdict was performed."
+  ]
+}

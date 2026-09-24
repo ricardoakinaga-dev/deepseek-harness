@@ -22,6 +22,7 @@ function env(overrides: Partial<DynamicCordisClosureEnv> = {}): DynamicCordisClo
   return {
     invoke: () => Promise.resolve(null),
     noteError: () => {},
+    browserDelivery: 'unsafe-eval-inline-style',
     ...overrides,
   }
 }
@@ -31,12 +32,19 @@ async function run(source: string, closure: DynamicCordisClosureEnv = env()): Pr
   plugin: DynamicCordisEvaluatedPlugin | ((ctx: unknown) => unknown)
   styles: DynamicCordisStyles
 }> {
-  const styles = new DynamicCordisStyles(ID)
+  const styles = new DynamicCordisStyles(ID, 'unsafe-eval-inline-style')
   const plugin = await evaluateClientHalf(ID, source, closure, styles)
   return { plugin, styles }
 }
 
 describe('evaluateClientHalf', () => {
+  it('denies source evaluation and inline styles without the explicit browser delivery policy', async () => {
+    const styles = new DynamicCordisStyles(ID)
+    await expect(evaluateClientHalf(ID, 'return () => {}', env({ browserDelivery: 'disabled' }), styles))
+      .rejects.toThrow(/browser evaluation is disabled/)
+    expect(() => styles.insert('.blocked {}')).toThrow(/browser styles are disabled/)
+  })
+
   it('returns the object-form plugin and hands the page React instance to the closure', async () => {
     const { plugin } = await run(`
       if (React.createElement === undefined) throw new Error('React symbol missing')
@@ -156,7 +164,7 @@ describe('tagged console', () => {
 
 describe('DynamicCordisStyles', () => {
   it('stamps ownership, counts live tags, and disposes one tag or all of them', () => {
-    const styles = new DynamicCordisStyles(ID)
+    const styles = new DynamicCordisStyles(ID, 'unsafe-eval-inline-style')
     const first = styles.insert('.a { color: red }')
     styles.insert('.b { color: blue }')
     expect(styles.count).toBe(2)
@@ -172,7 +180,7 @@ describe('DynamicCordisStyles', () => {
   })
 
   it('rejects a non-string stylesheet', () => {
-    const styles = new DynamicCordisStyles(ID)
+    const styles = new DynamicCordisStyles(ID, 'unsafe-eval-inline-style')
     expect(() => styles.insert(42 as unknown as string)).toThrow(/needs a CSS string/)
   })
 

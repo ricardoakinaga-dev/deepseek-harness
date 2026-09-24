@@ -109,6 +109,8 @@ kind: "package-reference"
 - **Linux 选择器探查只读 `PATH`**——以其他途径可用的 zenity／kdialog（shell 别名、未装在 PATH 上）仍判定为 `browse`；把任一二进制装到 `PATH` 上，下次启动即恢复 `native` 资格。
 - **仅在启动时判定**——一次判定服务本次启动的所有客户端；按连接自适应（同一台服务器，本地浏览器用 native、远程浏览器用 browse）需要按客户端的能力对象以及 seam 未携带的协议通告，等到出现同时服务两种形态的部署再做。
 
+**运行时不变式：** 不发布伴生入口。唯一 effect 是由插件 fiber 持有的 boot-time Loader-entry mount，存储是权威来源。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -118,5 +120,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。唯一 effect 是由插件 fiber 持有的 boot-time Loader-entry mount，存储是权威来源。

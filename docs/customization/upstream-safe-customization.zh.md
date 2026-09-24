@@ -4,7 +4,7 @@
 
 ## 概述
 
-此 fork 通过分离干净的镜像分支和定制产品分支，使官方仓库保持易于更新。`master` 镜像 `deepseek-official/master`；`custom/main` 包含完整且持续维护的定制差异；短期改进分支从 `custom/main` 创建并合回该分支。[定制策略](../../.agents/customization-policy.json)为每个定制路径指定一个所有者，策略检查会拒绝未登记文件，也会拒绝扩展修改其自有包之外的生产源代码。
+此 fork 通过分离干净的镜像分支和定制产品分支，使官方仓库保持易于更新。`master` 镜像 `deepseek-official/master`；`custom/main` 包含完整且持续维护的定制差异；短期改进分支从 `custom/main` 创建并合回该分支。[定制策略](../../.agents/customization-policy.json)为每个定制路径指定一个所有者，策略检查会拒绝未登记文件，也会拒绝扩展修改其自有包之外的生产源代码。定制工作流会抓取配置的官方远程仓库，并在检查定制差异前拒绝与官方分支不完全相等的镜像提交。
 
 ## 目录
 
@@ -73,6 +73,6 @@ git push -u origin custom/main
 <a id="verification-and-recovery"></a>
 ## 验证与恢复
 
-每次定制推送前运行 `node scripts/verify-customization-policy.mjs --base master`。专用 GitHub 工作流会针对 `custom/**` 推送和以 `custom/main` 为目标的 pull request，与 `origin/master` 执行同一比较。仓库测试、文档检查、构建检查和快照仍按照受影响的产品路径执行；策略检查只验证归属与包隔离，不验证产品正确性。
+每次定制推送前运行 `node scripts/verify-customization-policy.mjs --base master`。专用 GitHub 工作流会针对 `custom/**` 推送和以 `custom/main` 为目标的 pull request 运行 `node scripts/verify-customization-policy.mjs --base origin/master --require-official-mirror`；该命令会抓取配置的 `deepseek-official/master`，并在归属检查前拒绝分歧。仓库测试、文档检查、构建检查和快照仍按照受影响的产品路径执行；策略检查只验证归属与包隔离，不验证产品正确性。
 
 上游合并前，通过提交当前主题或定制集成状态创建可恢复检查点。如果合并失败，请中止合并并返回该提交；不得重置镜像或丢弃未提交的用户工作。将发布 tag 保留在已验证的 `custom/main` 提交上，使已安装的定制构建能够独立于后续上游更新标识其精确来源。

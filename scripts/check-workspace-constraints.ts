@@ -50,12 +50,19 @@ const publicationSourceAllowlist: Readonly<Record<string, readonly string[]>> = 
 }
 /** Public source home recorded in maintained package manifests. */
 const publishedRepositoryUrl = 'git+https://github.com/deepseek-ai/deepseek-harness.git'
+/** Repository URL used by private fork-only packages that are not independently published. */
+export const forkRepositoryUrl = 'git+https://github.com/ricardoakinaga-dev/deepseek-harness.git'
 /** Packages that participate in the experimental policy. */
 const experimentalPackageDirectory = /^packages\/experimental\/[^/]+$/
 /** npm namespace reserved for experimental packages. */
 const experimentalPackageNamePrefix = '@deepseek-ai/dsh-experimental-'
 /** Ordinary directories whose packages this repository publishes: one release member each. */
 const standardReleaseMemberDirectory = /^(?:packages\/(?!experimental\/)[^/]+\/[^/]+|apps\/(?!desktop(?:-host)?$)[^/]+|vendor\/[^/]+)$/
+/** Fork-only packages that remain private until a separate publication decision authorizes them. */
+export const PRIVATE_FORK_PACKAGE_DIRECTORIES = [
+  'packages/bundle/resilient-compaction',
+  'packages/compaction/compaction-resilience-policy',
+] as const
 /** Installable application assembled by electron-builder rather than published to npm. */
 const desktopApplicationDirectory = 'apps/desktop'
 const localArtifactDirs = new Set(['node_modules'])
@@ -313,6 +320,11 @@ function isReleaseMemberDirectory(dir: string): boolean {
   return standardReleaseMemberDirectory.test(dir) || isPublicExperimentalPackageDirectory(dir)
 }
 
+/** Whether the directory is an explicitly private fork-only package. */
+export function isPrivateForkPackageDirectory(dir: string): boolean {
+  return PRIVATE_FORK_PACKAGE_DIRECTORIES.includes(dir as typeof PRIVATE_FORK_PACKAGE_DIRECTORIES[number])
+}
+
 /**
  * Require a dsh-family manifest to carry the workspace version.
  *
@@ -362,6 +374,16 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
       || manifest.repository.url !== publishedRepositoryUrl
       || manifest.repository.directory !== expectedDirectory) {
       errors.push(`${label}: published Landlock package repository must use ${publishedRepositoryUrl} with directory ${expectedDirectory}`)
+    }
+  } else if (isPrivateForkPackageDirectory(dir)) {
+    if (manifest.private !== true) {
+      errors.push(`${label}: private fork-only package must set "private": true`)
+    }
+    if (manifest.publishConfig !== undefined) {
+      errors.push(`${label}: private fork-only package must omit publishConfig`)
+    }
+    if (manifest.repository?.type !== 'git' || manifest.repository.url !== forkRepositoryUrl) {
+      errors.push(`${label}: private fork-only package repository must use ${forkRepositoryUrl}`)
     }
   } else if (isReleaseMemberDirectory(dir)) {
     // Release members state that they are publishable: npm refuses a private
@@ -420,6 +442,9 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
   }
 
   if (dir.startsWith('packages/') && manifest.name?.startsWith('@deepseek-ai/dsh-')) {
+    if (manifest.exports?.['./src/*'] !== undefined) {
+      errors.push(`${label}: package.json must not publish the unsupported "./src/*" export`)
+    }
     const peer = manifest.peerDependencies?.['@deepseek-ai/cordis']
     const dev = manifest.devDependencies?.['@deepseek-ai/cordis']
 

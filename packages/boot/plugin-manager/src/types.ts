@@ -99,8 +99,9 @@ export interface ChangeResult {
 /** Identifies one installation from its start to its settlement, including its log chunks and cancellation. */
 export type PluginInstallRequestId = Branded<'PluginInstallRequestId'>
 
-/** Bundle installation defaults to activation; callers that offer cancellation supply their request id. */
+/** Bundle installation is inert by default; callers that offer cancellation supply their request id. */
 export interface InstallBundleOptions {
+  /** Select the installed bundle only when explicitly true. */
   enabled?: boolean
   requestId?: PluginInstallRequestId
   /** Explicitly allow these pending packages' scripts for this profile, then install; a name no longer pending refuses the call. */

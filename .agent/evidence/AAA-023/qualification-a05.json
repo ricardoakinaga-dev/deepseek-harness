@@ -1,0 +1,59 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A05-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree after test-infrastructure corrections",
+  "timestamp": "2026-09-21T18:29:38-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "pnpm run test",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The full Vitest run passed 1,535 files and 26,283 tests, with 12 skipped files, 153 skipped tests, and one expected failure. The native-system prerequisite also completed successfully; the run duration was 214.61 seconds."
+    },
+    {
+      "command": "pnpm exec vitest run scripts/browser-bundled-externals.spec.ts packages/client/ui-deliverables/tests packages/client/ui-sidebar-documentpreview/tests packages/session-query/session-log-export/tests",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The browser dependency fixture and the previously affected client TSX/PDF suites passed 60 files and 592 tests. The output retained expected diagnostic stderr from intentional renderer/error-path tests and the PDF standard-font warning."
+    },
+    {
+      "command": "pnpm exec vitest run --project process-bound packages/deliverables/workspace-changes/tests",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The process-bound workspace-change plugin suite passed 1 file and 17 tests after the Git-backed turn scenarios received explicit 20-second budgets."
+    },
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The ownership gate attributed 693 custom paths across 12 improvements."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "implementation_refs": [
+    "vitest.config.ts",
+    "packages/client/ui-sidebar-documentpreview/tests/pdf-smoke.client.spec.ts",
+    "scripts/browser-bundled-externals.spec.ts",
+    "packages/deliverables/workspace-changes/tests/plugin.spec.ts"
+  ],
+  "summary": "The current full unit aggregate is green. The targeted changes corrected the explicit client TSX transform, the PDF worker resolver, the adaptive Vite backend expectation, and process-bound Git test timing. This improves AAA-QB-02 evidence but does not qualify the release candidate or the broader Quality Bar.",
+  "decision_dependent_gates": [
+    "AAA-009 client-domain ownership and shared document API placement",
+    "AAA-010 module-graph regeneration after AAA-009",
+    "AAA-012 WebSocket close postcondition",
+    "AAA-014 aggregate HTTP memory and admission policy",
+    "AAA-015 dynamic extension deployment, CSP, consent, and default policy",
+    "AAA-019 fork publication identity and namespace",
+    "AAA-020 public source-export compatibility",
+    "AAA-022 broad rule/compiler policy and remaining complete-history reader migrations"
+  ],
+  "limitations": "This is a current dirty-worktree checkpoint, not a sealed immutable release qualification. The skipped and expected-failure lanes remain explicitly reported; platform, credentialed-provider, packed-install, upstream-rehearsal, full required-gate, and final independent-critic evidence remain outstanding.",
+  "observed_at": "2026-09-21T18:29:38-03:00",
+  "freshness": "CURRENT"
+}

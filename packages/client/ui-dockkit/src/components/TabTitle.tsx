@@ -22,12 +22,12 @@ function markClipped(element: HTMLElement): void {
 export function TabTitle({ children }: { readonly children: ReactNode }): ReactNode {
   const span = useRef<HTMLSpanElement | null>(null)
   useLayoutEffect(() => {
-    /* v8 ignore next -- the span is rendered unconditionally. */
+    /*! v8 ignore next -- the span is rendered unconditionally. */
     if (span.current !== null) markClipped(span.current)
   })
   useLayoutEffect(() => {
     const element = span.current
-    /* v8 ignore next -- the span is rendered unconditionally. */
+    /*! v8 ignore next -- the span is rendered unconditionally. */
     if (element === null || typeof ResizeObserver === 'undefined') return undefined
     const observer = new ResizeObserver(() => { markClipped(element) })
     observer.observe(element)

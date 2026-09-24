@@ -54,11 +54,11 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### Adding a provider
 
-One optional asynchronous provider may be registered through `ctx.sessionTitle.register(provider)`; a second registration throws. The shipped model-backed providers are [first-prompt](../session-title-first-prompt-llm/README.md) and [all-prompts](../session-title-all-prompts-llm/README.md), both using the shared [LLM generation policy](../session-title-llm/README.md). A provider starts only after a marked loop-built request's exact route matches the logged `request/header`, and a newer revision supersedes and aborts older work.
+One optional asynchronous provider may be registered through `ctx.sessionTitle.register(provider)`; a second registration throws. The shipped model-backed providers are [first-prompt](../session-title-first-prompt-llm/README.md) and [all-prompts](../session-title-all-prompts-llm/README.md), both using the shared [LLM generation policy](../session-title-llm/README.md). Provider loaders can use `sessionTitleUserMessageOf(event)` to apply the service's human text-message eligibility when mapping query events. A provider starts only after a marked loop-built request's exact route matches the logged `request/header`, and a newer revision supersedes and aborts older work.
 
 ### Reading titles
 
-`get(session)` reads the latest folded title from one live or replayed session, and `foldSessionTitle(events)` is the pure fold over a log. The service requires `ctx.sessionProjections` and registers two units: the client-visible `title` unit (the accepted title string for client list rows) and the host-only `titleInput` unit, which folds the first and latest eligible messages plus their count so scheduling and fallback reads are O(1) through `stateOf()`; the full eligible prefix for one provider generation is scanned from the session log at execution time. An explicit `refresh(session)` materializes the fallback when needed, then explicitly runs the registered provider over the current eligible messages.
+`get(session)` returns a detached snapshot from the live `title` projection, and `foldSessionTitle(events)` remains the pure fold for detached or persisted event slices. The projection stores the accepted title facts needed after resume while its client view remains only the title string. The service also registers the host-only `titleInput` unit, which folds the first and latest eligible messages plus their count so scheduling and fallback reads are O(1) through `stateOf()`. Automatic `first-prompt` work reads the first message from that projection. `all-prompts` work and every explicit refresh call the provider's asynchronous `loadMessages()` with the inclusive sequence captured for that revision; the provider owns loading the ordered history through that cut. The service checks that the read is still current before calling `generate()`.
 
 ### Failures and recovery
 
@@ -89,6 +89,8 @@ Titles are durable, log-only state: every accepted revision is a `session/title`
 ### Lifecycle and concurrency
 
 Per-session work state tracks a revision counter, an in-flight fallback, and pending and active provider work. A newer user message, provider disposal, session disposal, or explicit refresh aborts older work through an `AbortController`; a completion whose provider, revision, session, or signal is stale cannot append. Explicit refreshes reserve their revision before provider work; overlapping automatic and explicit fallback requests share one session-local in-flight append. Service teardown cancels queued work and drains calls that ignore cancellation before unloading completes.
+
+The invariant companion seeds a per-session index of committed human `user/message` seqs for existing sessions and creation baselines, then adds newly committed human messages. Its pre-commit check validates title citations against that index.
 
 ### Normalization
 
@@ -137,6 +139,7 @@ These limits define what the title service does not provide. They are current pa
 
 - **No title deletion, search, or list indexing** — unpinning back to automatic titles without an explicit `refresh`, search, and list indexing are outside this service.
 - **At most one provider** — the registry deliberately accepts a single implementation, so a deployment cannot compose competing title strategies without writing one provider that owns their precedence.
+- **Providers own historical reads** — a provider's `loadMessages()` must return every eligible message in log order through the requested sequence. The title service checks that the list is ordered and ends at the requested message, while the provider supplies the complete read.
 
 <a id="dev-note"></a>
 ### Dev Note

@@ -1,0 +1,147 @@
+{
+  "record_id": "EVID-AAA-022-W2-NEW-LEDGER-CORRECTION-PROPOSAL-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-IMPLEMENT",
+  "kind": "NARROW_CORRECTION_AUTHORIZATION_PROPOSAL",
+  "timestamp": "2026-09-24T04:10:00-03:00",
+  "status": "AWAITING_USER_AUTHORIZATION",
+  "baseline": {
+    "retained_failures": 358,
+    "current_failures": 363,
+    "added": 5,
+    "added_diagnostics": [
+      "[FAIL] LOG_LIFECYCLE_CONTINUITY: EVT-AAA-022-CORRECTION-W2-SCHEDULE-IMPLEMENTATION-TRANSITION-001-143: lifecycle transition starts at SPEC, but the prior declared transition ended at BUILD",
+      "[FAIL] VERIFY_PASS_FRESHNESS: VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-2-001: PASS requires CURRENT evidence",
+      "[FAIL] VERIFY_ENUM: VER-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-20260924-001.evidence_kind='ARTIFACT_INSPECTION_AND_STATIC_VALIDATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']",
+      "[FAIL] VERIFY_PASS_CLAIM: VER-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-20260924-001: PASS evidence_kind='ARTIFACT_INSPECTION_AND_STATIC_VALIDATION' does not allow null exit_status",
+      "[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-20260924-001: evidence_kind 'ARTIFACT_INSPECTION_AND_STATIC_VALIDATION' cannot support PASS"
+    ],
+    "removed": 0
+  },
+  "scope": {
+    "exact_rows": 3,
+    "ledger_files": [
+      ".agent/verification.jsonl",
+      ".agent/execution-log.jsonl"
+    ],
+    "no_preexisting_baseline_rows": true,
+    "no_product_paths": true
+  },
+  "proposed_corrections": [
+    {
+      "ledger_path": ".agent/verification.jsonl",
+      "record_id": "VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-2-001",
+      "original_line_sha256": "56bce6f63104c58a424a40d42b03d7ceb48ca1f6357d1b6e9d8a16d615645a1b",
+      "proposed_line_sha256": "e2c59241423d5e88ffcceb19ace27b5e86ce3174c92b3f5a6b71c9245cfd00d2",
+      "field_changes": {
+        "freshness": {
+          "from": "STALE",
+          "to": "CURRENT"
+        }
+      },
+      "removed_fields": {},
+      "proposed_record": {
+        "id": "VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-2-001",
+        "task": "AAA-022",
+        "timestamp": "2026-09-24T03:53:03-03:00",
+        "scope": "AAA-022:W2-SCHEDULE-READERS-DESIGN independent review of amendment 2",
+        "procedure": "Inspect the read-only independent reviewer report and verify exact implementation and verification-only path sets, owner equality, provider/key tests, baseline error ownership, refcounting, and resume/fork acceptance.",
+        "procedure_status": "EXECUTED",
+        "evidence_kind": "ARTIFACT_INSPECTION",
+        "environment": "Linux x86_64; Python 3; preserved dirty custom/main at HEAD 60b5295027f6fb7652a1a350a68c6275715b5dbd.",
+        "result": "PASS",
+        "exit_status": null,
+        "evidence": "The reviewer approved 19 implementation paths and 7 disjoint verification-only paths, exact ownership of all 18 implementation paths except the owner policy file, explicit provider/key failure tests, baseline preflight error mapping, both shared-contributor disposal orders, and live resume/fork assertions. A subsequent in-memory policy validation exposed two path-owner collisions with coverage-marker-preservation; amendment 3 reassigns exactly those two files and is freshly reviewed.",
+        "artifacts": [
+          ".agent/evidence/AAA-022/schedule-reader-design-amendment-2-w2-20260924.json",
+          ".agent/evidence/AAA-022/schedule-reader-design-amendment-2-review-w2-20260924.json",
+          ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-w2-20260924.json",
+          ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json"
+        ],
+        "limitations": "No tests were run; the reviewer changed no product or policy files. This PASS applies to amendment 2 only and is superseded for gate use by amendment 3.",
+        "observed_at": "2026-09-24T03:40:17-03:00",
+        "freshness": "CURRENT"
+      }
+    },
+    {
+      "ledger_path": ".agent/verification.jsonl",
+      "record_id": "VER-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-20260924-001",
+      "original_line_sha256": "46560f59b6c7e031bfbfbbaa1ef16b33db9e9b3341777ca31e2a770c23b958da",
+      "proposed_line_sha256": "83e490349ce5dd05418974ad269a60179df1f2631231d722880ee4132193b698",
+      "field_changes": {
+        "evidence_kind": {
+          "from": "ARTIFACT_INSPECTION_AND_STATIC_VALIDATION",
+          "to": "ARTIFACT_INSPECTION"
+        }
+      },
+      "removed_fields": {},
+      "proposed_record": {
+        "id": "VER-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-20260924-001",
+        "task": "AAA-022",
+        "timestamp": "2026-09-24T04:01:50-03:00",
+        "scope": "AAA-022 W2 Schedule implementation-ready gate authority, candidate fingerprint, exact owner/path set, and canonical gate schema",
+        "procedure": "Recompute all 37 sorted fingerprint input hashes and candidate digest; directly validate the exact IMPLEMENTATION_READY gate with the engineering-framework contract validator; verify A03-derived gate authority, all three canonical criteria, exact 19/7 disjoint path sets, 18-path owner equality, zero-collision in-memory policy result, and the three preserved V8 lines.",
+        "procedure_status": "EXECUTED",
+        "evidence_kind": "ARTIFACT_INSPECTION",
+        "environment": "Linux x86_64; Python 3; preserved dirty custom/main at HEAD 60b5295027f6fb7652a1a350a68c6275715b5dbd.",
+        "result": "PASS",
+        "exit_status": null,
+        "evidence": "All 37 fingerprinted files match, the sorted candidate digest is 4c42bbba1bae3b485c68eea97c065355f52bc7fc767f27dbd13796ae7d39e812, and direct canonical gate validation reports PASS with zero findings. The confirmed authority matches the exact gate record; the 19 implementation and 7 verification-only paths are disjoint, and the 18-path Schedule owner is exact. The in-memory candidate reports zero errors and collisions; all three existing V8 lines remain present.",
+        "artifacts": [
+          ".agent/evidence/AAA-022/schedule-reader-implementation-gate-validation-20260924.json",
+          ".agent/gates/implementation-ready-AAA-022-W2-schedule-readers.json",
+          ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json",
+          ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-review-w2-20260924.json#REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-3-20260924-001",
+          ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-READERS-001"
+        ],
+        "limitations": "This PASS establishes implementation readiness only; no Schedule source, tests, or documentation were changed and no tests were run. The global state checker remains FAIL-358, and canonical audit:metrics retains its known ENOENT limitation.",
+        "observed_at": "2026-09-24T04:01:50-03:00",
+        "freshness": "CURRENT"
+      }
+    },
+    {
+      "ledger_path": ".agent/execution-log.jsonl",
+      "record_id": "EVT-AAA-022-CORRECTION-W2-SCHEDULE-IMPLEMENTATION-TRANSITION-001-143",
+      "original_line_sha256": "365d446a73da8994818cd14c63c7722fda9a64ea81be43e20119385248dcd46d",
+      "proposed_line_sha256": "6ec52443ee5e4ac4b6d536efdcce50405d49e7d56d89a54cb12ece48c915066c",
+      "field_changes": {},
+      "removed_fields": {
+        "lifecycle_from": "SPEC",
+        "lifecycle_to": "BUILD"
+      },
+      "proposed_record": {
+        "event_id": "EVT-AAA-022-CORRECTION-W2-SCHEDULE-IMPLEMENTATION-TRANSITION-001-143",
+        "timestamp": "2026-09-24T04:09:22-03:00",
+        "type": "CORRECTION",
+        "task": "AAA-022",
+        "action": "Correct the W2 implementation checkpoint to pass through the legal READY state",
+        "result": "PASS",
+        "verification": ".agent/evidence/AAA-022/schedule-reader-implementation-gate-validation-20260924.json",
+        "decision": "The effective W2 gate checkpoint transitions AAA-022 from IN_PROGRESS to READY in BUILD with no active action; the following START activates the exact Schedule implementation action.",
+        "next_state": "AAA-022 READY in BUILD after the approved Schedule gate; a following START activates implementation.",
+        "active_action_id": null,
+        "status_from": "IN_PROGRESS",
+        "status_to": "READY",
+        "corrects_event_id": "EVT-AAA-022-CHECKPOINT-W2-SCHEDULE-READERS-IMPLEMENTATION-001-142",
+        "corrected_event_type": "CHECKPOINT",
+        "correction_reason": "The original checkpoint declared an illegal IN_PROGRESS to IN_PROGRESS status transition. The corrected checkpoint records the required READY boundary before the gated implementation START."
+      }
+    }
+  ],
+  "in_memory_record_preflight": {
+    "verification_targets_new_findings": [],
+    "execution_targets_new_findings": [],
+    "result": "PASS"
+  },
+  "reason": "The current contract checker validates every verification object and offers no append-only correction type for verification rows. The execution correction event is allowed, but its own accidental duplicate lifecycle fields need correction. These three rows were first authored during the current W2 transaction and are not part of the user-retained pre-existing FAIL-358 baseline.",
+  "authorization_boundary": "Do not apply these in-place corrections until the user answers. If authorized, save original/corrected hashes and rerun the canonical state checker; if denied, preserve all rows and do not start product implementation.",
+  "source_refs": [
+    ".agent/evidence/AAA-022/w2-state-check-post-transition-correction-20260924.txt",
+    ".agent/evidence/AAA-022/a27-state-check-post-retention-20260924.txt",
+    ".agent/evidence/AAA-022/w2-gate-transition-correction-20260924.json"
+  ],
+  "limitations": [
+    "The in-memory check validates only the proposed rows against the execution-log and verification-ledger contract functions; it does not simulate the full state checker with these changes applied.",
+    "No correction has been written to either ledger."
+  ]
+}

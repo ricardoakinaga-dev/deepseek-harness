@@ -6,9 +6,9 @@ import {
   readFileSync,
   rmSync,
 } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -20,11 +20,10 @@ import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import * as claudeCode from '../src/index.ts'
 
 const execFileAsync = promisify(execFile)
+const require = createRequire(import.meta.url)
 const OFFICIAL_DEEPSEEK_MESSAGES_BASE_URL = 'https://api.deepseek.com/anthropic'
 const DEEPSEEK_MODEL = 'deepseek-v4-flash'
-const sdkRoot = dirname(fileURLToPath(
-  import.meta.resolve('@anthropic-ai/claude-agent-sdk'),
-))
+const sdkRoot = dirname(require.resolve('@anthropic-ai/claude-agent-sdk'))
 const sdkPackage = JSON.parse(readFileSync(
   join(sdkRoot, 'package.json'),
   'utf8',

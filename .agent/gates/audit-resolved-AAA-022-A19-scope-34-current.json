@@ -1,0 +1,133 @@
+{
+  "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+  "timestamp": "2026-09-23T17:55:02-03:00",
+  "gate_id": "AUDIT_RESOLVED",
+  "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+  "scope_ref": "AAA-022",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "AR-001-BASELINE-GAPS",
+      "description": "The original 24-input A19 implementation scope, historic 34-input documentation scope, and approved 31-input scope record remain preserved. The current exact input set is 34 paths: the prior 31 plus the three owning Session subsystem documentation files approved by the user.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/a19-scope-34-current-revalidation-20260923.json",
+        ".agent/gates/implementation-ready-AAA-022-A19.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+        ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+        ".agent/gates/audit-resolved-AAA-022-A19-scope-31-current.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-003"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The stable scope key is retained for lineage; the exact active membership is declared by the 34 fingerprint inputs."
+    },
+    {
+      "id": "AR-002-RESOLUTION-EVIDENCE",
+      "description": "The exact 34-input fingerprint is current; the prepared-session owner has 32 unique paths including docs/subsystems/session.*, and the API catalog retains the two existing owners. Focused type-equivalence, catalog, doc-quick, and diff checks pass.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/a19-scope-34-current-revalidation-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-CURRENT-REVALIDATION-001",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Repository-wide doc-sync remains PARTIAL at 37/43 and is retained as such."
+    },
+    {
+      "id": "AR-003-ACCEPTANCE-OR-ROUTING",
+      "description": "The user-authorized 34-path documentation and ownership scope is bound to confirmed authority. A19 runtime scope remains closed; AAA-022:A25 remains active for implementation-gate preparation.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-002",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-001",
+        ".agent/evidence/AAA-022/a19-scope-31-authority-repair-20260923.json",
+        ".agent/execution-log.jsonl#EVT-AAA-022-GATE-A19-SCOPE-34-CURRENT-002-110"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This gate revalidates local scope and authority only; it authorizes no external repository action."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-022/a19-scope-34-current-revalidation-20260923.json",
+    ".agent/evidence/AAA-022/a19-scope-34-gate-draft-correction-20260923.json",
+    ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-CURRENT-REVALIDATION-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-002",
+    ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-001",
+    ".agent/evidence/AAA-022/a19-scope-31-authority-repair-20260923.json",
+    ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+    ".agents/customization-policy.json"
+  ],
+  "candidate_fingerprint": "19c4a7ee6bf3486017885c46bece9eaf6c5c5f07acf9a7e05c4cd2a413f2dcaf",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session.i18n.yaml",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "hash_rule": "For each listed relative path in sorted order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+    "file_count": 34,
+    "preexisting_dirty_worktree": true
+  },
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+    "decision": "The user explicitly approved retaining all 34 A19 paths, including docs/subsystems/session.md, its Chinese pair, and sidecar, so the owning documentation for the public Session.isCommittedEvent and session/created baseline APIs stays in the same change. Bind the exact 34-input scope, update the prepared-session owner to 32 paths, retain both existing API-catalog owners, and keep A19 runtime scope and A20/external exclusions unchanged.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-002",
+    "expires_or_revalidates": "Revalidate if any of the exact 34 A19 fingerprint inputs or 32 prepared-session owner paths change, either API-catalog owner changes, or A19 runtime scope is proposed to change."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Continue AAA-022:A25 implementation-ready gate preparation; do not start interaction product implementation until its exact gate passes.",
+  "revalidation_triggers": [
+    "Any of the 34 A19 fingerprint inputs changes.",
+    "The prepared-session owner adds, removes, or changes one of its 32 paths.",
+    "Either existing API-catalog owner changes or a third owner is proposed.",
+    "A19 is proposed to change runtime behavior, Session data, model-visible input, SDK output, or A20 storage work."
+  ],
+  "supersedes": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-003",
+  "revalidation": {
+    "kind": "SCOPE_EXPANSION",
+    "previous_record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-003",
+    "previous_candidate_fingerprint": "24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e",
+    "reason": "The user approved retaining all 34 paths so owning documentation for the changed public Session APIs remains in the same A19 documentation scope. Add exactly docs/subsystems/session.md, its Chinese pair, and sidecar, and include those three files in the prepared-session owner.",
+    "authority_effect": "Adds only the three approved Session documentation paths to the exact 34-input scope and prepared-session owner. The existing A03 runtime authority, both API-catalog owners, and A20/external-action exclusions remain unchanged."
+  }
+}

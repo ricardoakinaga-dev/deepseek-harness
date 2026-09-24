@@ -72,7 +72,7 @@ export class SessionWriteLease {
     // Owner-only like materializePosix's directories: the lock may create the
     // session directory first, and both creators must agree on the mode.
     await mkdir(dir, { recursive: true, mode: 0o700 })
-    /* v8 ignore start -- native Windows coverage exercises this platform branch; Linux covers the POSIX peer */
+    /*! v8 ignore start -- native Windows coverage exercises this platform branch; Linux covers the POSIX peer */
     if (process.platform === 'win32') {
       let handle: number
       try {
@@ -84,7 +84,7 @@ export class SessionWriteLease {
       }
       return new SessionWriteLease({ kind: 'win32', handle })
     }
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
     // Bounded retry: locking an inode a releasing creator just unlinked (or a
     // recreated path) re-opens the fresh file; steady state needs one pass.
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -124,12 +124,12 @@ export class SessionWriteLease {
   async release(): Promise<void> {
     if (this.released) return
     this.released = true
-    /* v8 ignore start -- native Windows coverage exercises this platform branch; Linux covers the POSIX peer */
+    /*! v8 ignore start -- native Windows coverage exercises this platform branch; Linux covers the POSIX peer */
     if (this.held.kind === 'win32') {
       await releaseLockHandleWin32(this.held.handle)
       return
     }
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
     await this.held.handle.close()
   }
 }

@@ -136,7 +136,7 @@ describe('sandbox isolation and Node-API traps', () => {
   })
 
   it('honors the configured vmTimeoutMs for the synchronous portion', async () => {
-    const harness = await setup({ vmTimeoutMs: 50 })
+    const harness = await setup({ vmTimeoutMs: 50, deployment: 'host-only' })
     await expect(mount(harness, 'while (true) {}')).rejects.toThrow(/timed? ?out/i)
     expect(running(harness.runner, AGENT_A)).toEqual([{ id: 'probe-1', running: false }])
   })

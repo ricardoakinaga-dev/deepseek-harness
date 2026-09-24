@@ -266,7 +266,7 @@ export class ContinuableActivationRegistry {
     parentActivation.ownedChildren.add(childId)
     return () => {
       const live = this.resident.get(childId)
-      /* v8 ignore next 4 -- reaching this arm needs another delivery to establish the child
+      /*! v8 ignore next 4 -- reaching this arm needs another delivery to establish the child
        * between this operation's failure and its releaser running, which no test can schedule
        * deterministically: the ownership edge then belongs to that live Activation, so the
        * conservative keep leaves it for finishDisposal's releaseOwnership. */
@@ -673,7 +673,7 @@ export class ContinuableActivationRegistry {
       handle.agent.ctx.on('agent/inbox/discarded', wakeOnInboxRemoval)
       observer.start(handle.agent)
     } catch (error: unknown) {
-      /* v8 ignore next -- rollback failure must not mask the admission failure
+      /*! v8 ignore next -- rollback failure must not mask the admission failure
        * that prevented this operation from returning an accepted message id. */
       await this.rollbackUnpublished(activation).catch(() => undefined)
       throw error

@@ -60,7 +60,7 @@ export interface ApprovalPresentationRequest {
   readonly signal?: AbortSignal
 }
 
-/** Decisions this interactive Client presentation can return. */
+/** Decisions this interactive Client presentation can return; both are one-shot outcomes. */
 export type ApprovalDecision = 'allowed-once' | 'rejected'
 
 let nextApprovalKey = 0
@@ -118,6 +118,7 @@ export class PendingApproval {
   /**
    * Resolve the Host waterfall with the user's decision.
    * @param outcome - supported interactive decision.
+   * @returns a promise that settles after the result is resolved; it rejects when the presentation was already settled.
    */
   answer(outcome: ApprovalDecision): Promise<void> {
     return settlePendingComposer(() => {

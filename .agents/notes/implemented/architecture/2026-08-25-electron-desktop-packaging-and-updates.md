@@ -130,6 +130,7 @@ Architecture-specific builds report actual component-level compressed and instal
 
 - A clean offline machine without system Node.js or pnpm starts bundled dsh without installing core dependencies.
 - The signed application inventories final runtime files; every macOS native file has the release Developer ID, secure timestamp, and hardened runtime, and every Windows artifact has the configured hardware-backed EV signature.
+- Plugin lifecycle scripts execute third-party code. The profile's `allowBuilds` configuration determines which builds may execute.
 - `.dsh/profiles/desktop/node_modules` stores external plugins managed by the shared Web plugin manager.
 - Desktop package operations use launcher-supplied bundled pnpm and the shared manager’s subprocess environment and profile configuration.
 - The main application’s Plugins page sends structured package and activation requests to the shared Host service.
@@ -156,9 +157,6 @@ Architecture-specific builds report actual component-level compressed and instal
 | Initial platforms | macOS arm64/x64 and Windows x64; Linux has no supported release target |
 | Update behavior | Background check, explicit confirmation before differential download and restart, startup dsh reconciliation |
 
-## Risks
-
-Plugin lifecycle scripts execute third-party code. The profile’s `allowBuilds` configuration determines which builds may execute.
 
 Updating the bound dsh can invalidate plugin peer dependencies or native modules. Native recovery can disable third-party bundles and restart the application so the shared Plugins page can be used for repair.
 

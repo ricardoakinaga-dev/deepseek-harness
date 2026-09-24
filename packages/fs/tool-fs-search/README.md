@@ -216,6 +216,8 @@ These limits define when the search tools are a poor fit or need special operati
 - **The schemas expose one bounded page** — offset pagination, case-mode switches, alternate output modes, and provider-backed discovery remain outside this package; capped complete output requires a spill backend.
 - **Sampling, when enabled, groups by first path segment beneath the search root only** — an over-cap `glob` page balances across those top-level entries, so a result concentrated deeper is still shown unevenly below that level; recursive balancing is deferred.
 
+**Runtime invariant:** No companion is published. This model-facing adapter has no independent lifecycle stream; execution relations are owned by the capability seam it calls.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -225,5 +227,3 @@ These limits define when the search tools are a poor fit or need special operati
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This model-facing adapter has no independent lifecycle stream; execution relations are owned by the capability seam it calls.

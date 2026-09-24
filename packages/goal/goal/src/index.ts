@@ -152,7 +152,7 @@ export function applyGoalProjection(state: GoalProjectionState, event: SessionEv
     applyGoalEvent(folded, event)
     return goalProjectionState(folded)
   } catch (error: unknown) {
-    /* v8 ignore next -- the strict goal fold throws Error instances. */
+    /*! v8 ignore next -- the strict goal fold throws Error instances. */
     const message = error instanceof Error ? error.message : String(error)
     return { ...state, failure: `goal replay failed at session event ${event.seq}: ${message}` }
   }
@@ -498,7 +498,7 @@ export class GoalService extends TypertRemoteService {
     if (runtime.activation === activation) return
     runtime.activation = activation
     const state = this.ctx.sessionProjections.stateOf(session, 'goal')
-    /* v8 ignore next -- static inject requires the projection registry before this service activates. */
+    /*! v8 ignore next -- static inject requires the projection registry before this service activates. */
     if (state === undefined) return
     if (state.failure !== null) return
     const goal = this.view(state.current, runtime)
@@ -611,7 +611,7 @@ export class GoalService extends TypertRemoteService {
     runtime.pendingActivation = { offset: agent.session.seq, activation }
     try {
       const event = agent.session.append('goal/change', change)
-      /* v8 ignore next -- Session.append returns the event committed at the pre-append seq. */
+      /*! v8 ignore next -- Session.append returns the event committed at the pre-append seq. */
       if (SessionSeq(runtime.pendingActivation.offset) === event.seq) runtime.activation = activation
     } finally {
       runtime.pendingActivation = undefined

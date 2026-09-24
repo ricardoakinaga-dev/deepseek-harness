@@ -1,0 +1,40 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A28-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A04",
+  "timestamp": "2026-09-22T03:29:29-03:00",
+  "command": "pnpm run check:all",
+  "result": "PARTIAL",
+  "exit_status": 1,
+  "duration_seconds": 520.35,
+  "summary": "The current worktree matrix completed 77 gates with 74 passed, 3 failed, and 0 skipped.",
+  "passed_highlights": [
+    "The client-domain and module graphs passed.",
+    "The repaired duplication, build, Web build, package, documentation, catalog, policy, snapshot, and unit-test gates passed.",
+    "The previously build-dependent gates ran instead of being skipped."
+  ],
+  "failed_gates": [
+    {
+      "gate": "canonical audit metrics",
+      "exit_status": 1,
+      "finding": "scripts/audit-metrics.ts could not open packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx because the tracked old path is absent while the replacement source remains untracked under src/client/input."
+    },
+    {
+      "gate": "vendor rescope",
+      "exit_status": 1,
+      "finding": "scripts/rescope-vendor.ts could not open packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx for the same dirty tracked/untracked source move."
+    },
+    {
+      "gate": "test:expected",
+      "exit_status": 1,
+      "finding": "The creator-plugin-manager expected scenario passed 14 of 15 files and 93 of 94 tests, but the cordis preset could not mount tool-cordis because no cordisInspect service activated for the Web profile."
+    }
+  ],
+  "skipped_gates": [],
+  "limitations": [
+    "The worktree is dirty and no immutable candidate was sealed.",
+    "The two ContextMeter failures require the source move to be represented in one candidate tree before canonical path gates can pass; changing those gates to ignore the move is out of scope.",
+    "The test:expected failure is classified for the next inspection action only; no profile or host-runner change is authorized by this record.",
+    "This result is diagnostic evidence, not release qualification or a final verdict. External-provider, coverage, required-platform, upstream-rehearsal, publication, release-authority, and final-critic evidence remain outstanding."
+  ]
+}

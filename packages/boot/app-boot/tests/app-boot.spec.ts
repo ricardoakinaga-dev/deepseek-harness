@@ -513,6 +513,8 @@ describe('auditStartupEntries', () => {
     'headless-runner',
     'acp',
     'sdk-jsonrpc-server',
+    'session-title-first-prompt-llm',
+    'session-title-all-prompts-llm',
   ]
 
   interface FakeEntry {
@@ -772,6 +774,28 @@ describe('auditStartupEntries', () => {
       'headless-runner (required)  headlessStartup',
     )
   })
+
+  it.each([
+    ['session-title-first-prompt-llm', '@deepseek-ai/dsh-session-title-first-prompt-llm'],
+    ['title-provider-alias', '@deepseek-ai/dsh-session-title-first-prompt-llm'],
+    ['session-title-all-prompts-llm', '@deepseek-ai/dsh-session-title-all-prompts-llm'],
+    ['all-prompts-title-alias', '@deepseek-ai/dsh-session-title-all-prompts-llm'],
+  ])('rejects configured %s when sessionQuery is unavailable', async (id, name) => {
+    const error = await auditStartupEntries(ctxWith([{
+      fiber: fiber(0, undefined, { sessionQuery: {} }),
+      options: { id, name },
+    }]), NAME, vi.fn()).catch((error: unknown) => error)
+
+    expect(error).toBeInstanceOf(StartupError)
+    expect((error as StartupError).message).toContain(`${id} (required)`)
+    expect((error as StartupError).message).toContain('sessionQuery')
+    expect((error as StartupError).entries).toMatchObject([{
+      id,
+      required: true,
+      fiberState: 0,
+      outcome: { kind: 'pending', missing: ['sessionQuery'] },
+    }])
+  })
 })
 
 describe('loadOverlayPatches', () => {
@@ -794,6 +818,25 @@ describe('loadOverlayPatches', () => {
 })
 
 describe('boot', () => {
+  it.each([
+    'session-title-first-prompt-llm',
+    'session-title-all-prompts-llm',
+  ])('stops startup when configured %s waits for sessionQuery', async (id) => {
+    const dir = tmp()
+    writeFileSync(join(dir, 'provider.mjs'), 'export const inject = ["sessionQuery"]\nexport function apply() {}\n')
+    const config = join(dir, 'cordis.yml')
+    writeFileSync(config, `- id: ${id}\n  name: ./provider.mjs\n`)
+
+    const failure = await boot(NAME, config).catch((error: unknown) => error)
+
+    expect(failure).toBeInstanceOf(StartupError)
+    expect((failure as StartupError).entries).toMatchObject([{
+      id,
+      required: true,
+      outcome: { kind: 'pending', missing: ['sessionQuery'] },
+    }])
+  })
+
   it('retains import errors and inactive-entry metadata after disposing the startup tree', async () => {
     const dir = tmp()
     const config = join(dir, 'cordis.yml')

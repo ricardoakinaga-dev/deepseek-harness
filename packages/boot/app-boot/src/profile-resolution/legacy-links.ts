@@ -33,9 +33,9 @@ export function canonicalLinkPath(path: string): string | undefined {
     return join(realModuleDirectory(dirname(path)), basename(path))
   } catch (error) {
     // A missing parent means the candidate cannot identify an existing owned link.
-    /* v8 ignore next 2 -- a non-ENOENT realpath failure requires a host filesystem fault */
+    /*! v8 ignore next 2 -- a non-ENOENT realpath failure requires a host filesystem fault */
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
-    /* v8 ignore next -- see the host-filesystem exception above */
+    /*! v8 ignore next -- see the host-filesystem exception above */
     throw error
   }
 }
@@ -65,9 +65,9 @@ export function isProfileModuleFallbackLink(profileDir: string, packageName: str
   try {
     return lstatSync(link).isSymbolicLink() && symlinkPointsTo(link, target)
   } catch (error) {
-    /* v8 ignore next 2 -- a vanished candidate cannot claim local precedence */
+    /*! v8 ignore next 2 -- a vanished candidate cannot claim local precedence */
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return true
-    /* v8 ignore next -- non-ENOENT lstat/readlink failures require a host filesystem fault */
+    /*! v8 ignore next -- non-ENOENT lstat/readlink failures require a host filesystem fault */
     throw error
   }
 }

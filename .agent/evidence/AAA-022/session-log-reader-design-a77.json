@@ -1,0 +1,82 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-LOG-READER-DESIGN-A77-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A06",
+  "kind": "W1_SESSION_LOG_READER_DESIGN",
+  "status": "PASS",
+  "timestamp": "2026-09-22T19:36:00-03:00",
+  "authority": "AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "source_facts": [
+    {
+      "path": "packages/session-query/session-query/src/observation.ts",
+      "fact": "SessionObservationReader returns a live-preferred immutable observation with a fixed cursor, inheritedEventCount, cloned/prepared events, optional cancellation, and a disposable lease. The live lease captures session.seq before lazily materializing its prefix, so later appends cannot enter the captured cut."
+    },
+    {
+      "path": "packages/session-query/session-query/src/index.ts",
+      "fact": "SessionQueryEngine.observeSession(sessionId, options) already exposes the observation seam and propagates AbortSignal through live or persisted resolution."
+    },
+    {
+      "path": "packages/llm/deepseek-llm-api-extensions/src/index.ts",
+      "fact": "The extension registry passes the request AbortSignal to providers and stops awaiting provider preparation after cancellation."
+    },
+    {
+      "path": "packages/bundle/base/cordis.patch.yml",
+      "fact": "The base composition mounts the session-query SQLite provider."
+    },
+    {
+      "path": "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "fact": "The minimal SDK composition mounts session-log-deepseek but no session-query provider, so the migration must keep an explicit compatibility path there until composition changes are separately accepted."
+    },
+    {
+      "path": "packages/session/session-persistence/src/handle.ts",
+      "fact": "Persistence handles support offset/length reads and cancellation, but do not expose a stable page token or immutable end cursor; this slice does not invent one for the live upload path."
+    }
+  ],
+  "decision": {
+    "selected": "Use the optional SessionQueryEngine observation seam for session-log-deepseek preparation when the service is mounted. Require source === live, retain the observation lease through wire conversion, fold acceptance markers from the captured events, derive throughSeq from the fixed observation cursor, and dispose the lease in all paths.",
+    "compatibility": "When session-query is unavailable, preserve the existing minimal-profile behavior behind one explicit retained legacy path. Do not silently read persisted history for a request that previously required a live Session.",
+    "wire_invariants": [
+      "The dsh_session_log version, sessionFormatVersion, header, afterSeq, throughSeq, event order, raw numeric sequence fields, surface operations, and sourceEventSeqs remain unchanged.",
+      "The captured throughSeq is the observation cursor, so appends after preparation never enter the outgoing suffix.",
+      "A matching session id and format generation remain required for acceptance watermarks; inherited parent markers remain ignored by forked sessions.",
+      "Acceptance still appends the same durable delivery-accepted event and performs no independent I/O."
+    ],
+    "rejected": [
+      "A new synchronous Session history wrapper: it would rename the deprecated read without changing ownership or cancellation semantics.",
+      "Direct persistence paging in session-log-deepseek: it lacks a stable end cursor for the existing live-only request behavior and would duplicate session-query source resolution.",
+      "Making session-query mandatory in sdk-minimal: it would change the minimal profile dependency surface and remove a supported composition without an explicit bundle decision."
+    ]
+  },
+  "implementation_acceptance": {
+    "target": [
+      "packages/session/session-log-deepseek/src/index.ts",
+      "packages/session/session-log-deepseek/tests/upload.spec.ts",
+      "packages/session/session-log-deepseek/tests/feedback-composition.spec.ts",
+      "packages/session/session-log-deepseek/package.json",
+      "packages/session/session-log-deepseek/README.md",
+      "packages/session/session-log-deepseek/README.zh.md"
+    ],
+    "required_cases": [
+      "Base composition uses the observation path and produces byte-equivalent wire fields for a fixed live cut.",
+      "Appending after observation capture does not change throughSeq or the prepared suffix.",
+      "Cancellation before and during observation propagates the request abort without publishing a partial field.",
+      "Seeded/forked sessions retain inherited-prefix and matching-session-id watermark behavior.",
+      "sdk-minimal or a context without session-query preserves the current fallback behavior and its local retained reason.",
+      "The observation lease is disposed on success, omission, cancellation, and conversion failure."
+    ],
+    "required_checks": [
+      "Focused session-log-deepseek upload and feedback-composition tests",
+      "session-query observation cancellation tests",
+      "touched-package typecheck and Oxlint",
+      "dependency and generated API/catalog checks if package metadata or public declarations change",
+      "paired README and documentation gates",
+      "canonical metric command on a complete candidate tree"
+    ]
+  },
+  "limitations": [
+    "A06 is a design action; no production implementation or bundle composition change was made.",
+    "The preserved custom/main worktree still has 12 tracked source deletions that prevent the canonical audit-metrics command from completing; A07 must validate metrics on a complete candidate or retain the same explicit limitation.",
+    "The sealed A28 candidate remains unchanged and is not yet rebuilt for this design."
+  ],
+  "decision_summary": "Accept the optional observation-based W1 reader design and enter A07 implementation with the task-bound gate; keep complete-history and minimal-profile fallback reads explicitly retained until equivalent evidence exists."
+}

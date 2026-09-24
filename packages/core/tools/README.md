@@ -102,6 +102,8 @@ This section explains how the package realizes the behavior above; the observabl
 
 The registry holds typed `ToolDefinition`s in scoped layers and projects them onto the model-facing `ToolSchema` set at request time — `output`, `execute`, `finalizeContent`, `timeoutMs`, and presentation callbacks never leak onto the wire. Every call runs a fixed pipeline: `tools/pre-execute` (extensible allow/deny/ask) → registered monotonic guards → `tools/execute` (around-dispatch wrappers) → `tools/post-execute` (inspect/replace, attach context) → definition-owned `finalizeContent` → the observe-only `tools/result` event. Only the `tools/execute` view may replace the required signal, and the registry re-fuses the caller signal before the body.
 
+The internal scheduler key is process-global. A source-mode loader can mount `ToolRuntime` from `src` while `AgentLoop` uses `lib`; separate symbol instances would otherwise remove the scheduler view.
+
 ### Source map
 
 | File | Role |
@@ -229,6 +231,7 @@ These limits define when the registry needs special care. They are current packa
 - **PTC mode's SDK language follows the one loaded runtime, and a presentation is per agent rather than per tool** — `mode: ptc`/`both` rejects prompt assembly unless `ctx.ptcRuntime.language` has a registered SDK renderer; within one agent no tool can be native-only while another is ptc-only.
 - **PTC mode intermediate values are execution-local and unbounded by bytes** — they cannot be reconstructed from session replay and may exhaust process or worker memory; only the outer `run_code` output has the worker's configurable hard cap.
 - **`run_code` state is fresh per run** — a persistent REPL-style kernel is rejected for the MVP, because cross-call state would be invisible to the log.
+- **The invariant companion needs an empty store when it loads** — `dsh-tools/invariant` folds PTC ancestry from exact Session creation baselines and preparation appends; loading or reloading it after any stored Session has events fails because that constructor baseline is no longer available. See the [tools invariant lifecycle](../../../docs/subsystems/tools.md#runtime-invariant-companion).
 
 <a id="dev-note"></a>
 ### Dev Note

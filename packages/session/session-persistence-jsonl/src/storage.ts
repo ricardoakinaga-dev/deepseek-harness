@@ -250,7 +250,7 @@ export class JsonlSessionHandle implements SessionHandle {
       try {
         await this.lease?.release()
       } catch (releaseFailure: unknown) {
-        /* v8 ignore next -- lock releases reject with Error */
+        /*! v8 ignore next -- lock releases reject with Error */
         failures.push(releaseFailure instanceof Error ? releaseFailure : new Error(errorChain(releaseFailure)))
       }
       this.storage.releaseHandle(this, this.state.materialized)

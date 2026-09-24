@@ -1,0 +1,287 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-READERS-001",
+  "timestamp": "2026-09-24T03:59:02-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The exact W2 Schedule reader migration is covered by confirmed user-authorized A03 owner-scoped W0-W4 authority and the fresh independent PASS for amendment 3. The gate authorizes only the 19 implementation paths; all lifecycle, failure, restore/fork, documentation, and exclusion decisions are recorded in the reviewed design.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-READERS-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-3-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This authorizes the local 19-path W2 Schedule implementation and listed verification only; no broader Session API, event, persisted-format, catalog, generated-output, or external repository changes are included."
+    },
+    {
+      "id": "IR-002",
+      "description": "The in-memory customization-policy candidate uses the exact 18-path Schedule owner for all implementation paths except the owner declaration itself, moves only invariant.ts and runtime.ts from coverage-marker-preservation, and validates the union of the current custom delta plus all 19 planned implementation paths with zero collisions and zero validator errors.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-3-001",
+        ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The candidate owner is not installed. The policy candidate artifact has non-blocking older summary text; owner id, type, status, exact path set, validator result, and zero-collision result match. Official customization-policy validation is required after implementation."
+    },
+    {
+      "id": "IR-003",
+      "description": "A reviewable acceptance matrix covers all six removed readers, exact projection availability, fail-closed missing provider/key behavior, package-attributed invalid-baseline failure, both shared-key contributor disposal orders, persisted restore and inherited-only fork semantics, current-versus-seen Schedule IDs, preserved event/version behavior, bilingual docs, the exact seven verification-only paths, and the three protected Schedule exclusions.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-3-001",
+        ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json",
+        ".agent/evidence/AAA-022/a27-state-baseline-retention-20260924.json",
+        ".agent/evidence/AAA-022/a27-state-check-post-retention-20260924.txt"
+      ],
+      "confidence": "HIGH",
+      "limitations": "No implementation checks have run at gate time. Run every applicable command listed in verification_commands after implementation. The repository state checker remains FAIL-358 across 23 classes, and canonical audit:metrics remains unavailable because the moved ContextMeter.tsx path is absent; neither condition may be represented as an overall PASS or repaired in this scope."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-READERS-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+    ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-review-w2-20260924.json#REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-3-20260924-001",
+    ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-3-001",
+    ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+    ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json",
+    ".agent/evidence/AAA-022/schedule-reader-fingerprint-revalidation-w2-20260924.json",
+    ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-INITIAL-001",
+    ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-001",
+    ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-2-001"
+  ],
+  "candidate_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "candidate_fingerprint": "4c42bbba1bae3b485c68eea97c065355f52bc7fc767f27dbd13796ae7d39e812",
+  "candidate_fingerprint_record_sha256": "d8746d37c326b50f8591bf2b351bf5572ea3af36ce681f66bfb79147c862e19b",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agent/authority.jsonl",
+      ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-review-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-fingerprint-revalidation-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+      ".agents/customization-policy.json",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "AGENTS.md",
+      "apps/web/tests/schedule-after.e2e.ts",
+      "docs/AGENTS.md",
+      "docs/subsystems/schedule.i18n.yaml",
+      "docs/subsystems/schedule.md",
+      "docs/subsystems/schedule.zh.md",
+      "packages/AGENTS.md",
+      "packages/bundle/base/cordis.patch.yml",
+      "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "packages/schedule/schedule/README.i18n.yaml",
+      "packages/schedule/schedule/README.md",
+      "packages/schedule/schedule/README.zh.md",
+      "packages/schedule/schedule/package.json",
+      "packages/schedule/schedule/src/domain.ts",
+      "packages/schedule/schedule/src/index.ts",
+      "packages/schedule/schedule/src/invariant.ts",
+      "packages/schedule/schedule/src/projection.ts",
+      "packages/schedule/schedule/src/runtime.ts",
+      "packages/schedule/schedule/src/tools.ts",
+      "packages/schedule/schedule/tests/invariant.spec.ts",
+      "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "packages/schedule/schedule/tests/plugin.spec.ts",
+      "packages/schedule/schedule/tests/projection.spec.ts",
+      "packages/schedule/schedule/tests/runtime.spec.ts",
+      "packages/schedule/schedule/tests/tools.spec.ts",
+      "packages/subagent/subagent/tests/continuation.spec.ts",
+      "packages/test-support/agent-loop-testkit/src/index.ts"
+    ],
+    "excluded": [
+      ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json",
+      ".agent/gates/implementation-ready-AAA-022-W2-schedule-readers.json"
+    ],
+    "implementation_paths": [
+      ".agents/customization-policy.json",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "docs/subsystems/schedule.i18n.yaml",
+      "docs/subsystems/schedule.md",
+      "docs/subsystems/schedule.zh.md",
+      "packages/schedule/schedule/README.i18n.yaml",
+      "packages/schedule/schedule/README.md",
+      "packages/schedule/schedule/README.zh.md",
+      "packages/schedule/schedule/src/index.ts",
+      "packages/schedule/schedule/src/invariant.ts",
+      "packages/schedule/schedule/src/runtime.ts",
+      "packages/schedule/schedule/src/tools.ts",
+      "packages/schedule/schedule/tests/invariant.spec.ts",
+      "packages/schedule/schedule/tests/plugin.spec.ts",
+      "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "packages/schedule/schedule/tests/runtime.spec.ts",
+      "packages/schedule/schedule/tests/tools.spec.ts"
+    ],
+    "verification_only_paths": [
+      "packages/schedule/schedule/tests/projection.spec.ts",
+      "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "packages/subagent/subagent/tests/continuation.spec.ts",
+      "apps/web/tests/schedule-after.e2e.ts",
+      "packages/bundle/base/cordis.patch.yml",
+      "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "packages/test-support/agent-loop-testkit/src/index.ts"
+    ],
+    "protected_exclusion_paths": [
+      "packages/schedule/schedule/package.json",
+      "packages/schedule/schedule/src/domain.ts",
+      "packages/schedule/schedule/src/projection.ts"
+    ]
+  },
+  "verification_commands": [
+    {
+      "id": "W2-SCHEDULE-TESTS",
+      "command": "pnpm exec vitest run packages/schedule/schedule/tests/projection.spec.ts packages/schedule/schedule/tests/invariant.spec.ts packages/schedule/schedule/tests/plugin.spec.ts packages/schedule/schedule/tests/jsonl-restart.spec.ts packages/schedule/schedule/tests/runtime.spec.ts packages/schedule/schedule/tests/tools.spec.ts",
+      "purpose": "Verify state-version-2 projection reads, contributor refcount disposal, invalid baseline error attribution, missing-provider/key failures, live persistence resume/fork behavior, runtime ownership, and tools."
+    },
+    {
+      "id": "W2-SCHEDULE-TSC",
+      "command": "pnpm exec tsc -b packages/schedule/schedule/tsconfig.json --pretty false",
+      "purpose": "Typecheck the Schedule package and its project references."
+    },
+    {
+      "id": "W2-SCHEDULE-OXLINT",
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/schedule/schedule/src packages/schedule/schedule/tests",
+      "purpose": "Lint the modified Schedule source and owning tests."
+    },
+    {
+      "id": "W2-SCHEDULE-POLICY",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "purpose": "Validate the installed exact Schedule owner, including the two path reassignment, against the actual custom delta."
+    },
+    {
+      "id": "W2-SCHEDULE-DOC-QUICK",
+      "command": "pnpm run test:docs",
+      "purpose": "Run documentation quick gates after updating the three bilingual Schedule document pairs and sidecars."
+    },
+    {
+      "id": "W2-SCHEDULE-DOC-TYPECHECK",
+      "command": "pnpm run doc-typecheck",
+      "purpose": "Run repository documentation typecheck after the public API documentation update."
+    },
+    {
+      "id": "W2-SCHEDULE-TYPE-EQUIV",
+      "command": "pnpm run verify-type-equiv",
+      "purpose": "Check the Schedule public API examples against source declarations."
+    },
+    {
+      "id": "W2-SCHEDULE-PAIRING",
+      "command": "pnpm exec tsx scripts/verify-translation-pairing.ts packages/schedule/schedule/README.md docs/subsystems/schedule.md .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      "purpose": "Verify exact English/Chinese document pairing and all three pairing sidecars."
+    },
+    {
+      "id": "W2-SCHEDULE-EXPORT-JSDOC",
+      "command": "pnpm run verify-export-jsdoc",
+      "purpose": "Verify exported API JSDoc after the Schedule plugin and invariant changes."
+    },
+    {
+      "id": "W2-SCHEDULE-DOC-BUDGETS",
+      "command": "pnpm run verify-doc-budgets",
+      "purpose": "Check documentation budgets for the updated Schedule surfaces."
+    },
+    {
+      "id": "W2-STATE-BASELINE",
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness --contracts-root /home/ricardo/.agents/skills/engineering-framework",
+      "purpose": "Require exact diagnostic equality with the retained FAIL-358/23-class baseline; any added or removed diagnostic blocks closeout."
+    },
+    {
+      "id": "W2-READONLY-PATHS",
+      "command": "Recompute SHA-256 for all seven verification-only paths and three protected Schedule exclusions in the gate fingerprint artifact and compare byte-for-byte.",
+      "purpose": "Prove verification-only consumers, existing package.json/domain.ts work, and stateVersion-2 projection source remain unchanged."
+    },
+    {
+      "id": "W2-COVERAGE-MARKERS",
+      "command": "Assert the three exact V8 marker lines recorded in the gate fingerprint artifact remain byte-identical in invariant.ts and runtime.ts.",
+      "purpose": "Preserve the existing coverage-marker work while adding Schedule readers to those same source files."
+    },
+    {
+      "id": "W2-DIFF-CHECK",
+      "command": "git diff --check -- .agents/customization-policy.json .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md docs/subsystems/schedule.i18n.yaml docs/subsystems/schedule.md docs/subsystems/schedule.zh.md packages/schedule/schedule/README.i18n.yaml packages/schedule/schedule/README.md packages/schedule/schedule/README.zh.md packages/schedule/schedule/src/index.ts packages/schedule/schedule/src/invariant.ts packages/schedule/schedule/src/runtime.ts packages/schedule/schedule/src/tools.ts packages/schedule/schedule/tests/invariant.spec.ts packages/schedule/schedule/tests/plugin.spec.ts packages/schedule/schedule/tests/jsonl-restart.spec.ts packages/schedule/schedule/tests/runtime.spec.ts packages/schedule/schedule/tests/tools.spec.ts",
+      "purpose": "Check whitespace only across the authorized implementation paths."
+    }
+  ],
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+    "decision": "Apply the user-authorized W2 Schedule reader migration only to the exact 19 implementation paths in the independently reviewed amendment-3 scope, including the named customization-policy owner reassignment, and run the listed local verification. Keep the 7 verification-only paths, the separate dirty package.json and domain.ts edits, projection.ts, and the existing Session format byte-identical. Preserve the three existing V8 annotations. Do not edit historical state findings, broaden the reader migration, or perform push, merge, publication, registry, release, or final-verdict actions.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-READERS-001",
+    "expires_or_revalidates": "Revalidate if any implementation or protected path, policy owner candidate, confirmed A03 authority, persisted-format exclusion, FAIL-358 baseline, or external-action boundary changes."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-022:W2-SCHEDULE-READERS-IMPLEMENT and modify exactly the 19 implementation paths. Keep seven verification-only paths and three protected Schedule exclusions byte-identical; run each listed local acceptance check and retain the FAIL-358 and audit:metrics limitations.",
+  "revalidation_triggers": [
+    "Any change to the exact 19 implementation paths, 7 verification-only paths, or 3 protected exclusion paths before implementation starts.",
+    "The installed owner differs from the exact 18-path schedule-session-projection-readers declaration or assigns invariant.ts/runtime.ts to multiple owners.",
+    "Any Session event payload, SESSION_FORMAT_VERSION, Schedule event version, projection checkpoint schema/stateVersion, generated catalog, API service, or persisted format change becomes necessary.",
+    "A pre-existing V8 marker line is changed, moved, or removed.",
+    "The state checker differs from the retained FAIL-358/23-class baseline.",
+    "The canonical metrics limitation changes or a new claim depends on a metric result.",
+    "Any push, merge, publication, registry write, release, or final-verdict action is proposed."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-A27-AGGREGATE-REMEDIATION-001",
+  "implementation_paths": [
+    ".agents/customization-policy.json",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+    "docs/subsystems/schedule.i18n.yaml",
+    "docs/subsystems/schedule.md",
+    "docs/subsystems/schedule.zh.md",
+    "packages/schedule/schedule/README.i18n.yaml",
+    "packages/schedule/schedule/README.md",
+    "packages/schedule/schedule/README.zh.md",
+    "packages/schedule/schedule/src/index.ts",
+    "packages/schedule/schedule/src/invariant.ts",
+    "packages/schedule/schedule/src/runtime.ts",
+    "packages/schedule/schedule/src/tools.ts",
+    "packages/schedule/schedule/tests/invariant.spec.ts",
+    "packages/schedule/schedule/tests/plugin.spec.ts",
+    "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+    "packages/schedule/schedule/tests/runtime.spec.ts",
+    "packages/schedule/schedule/tests/tools.spec.ts"
+  ],
+  "verification_only_paths": [
+    "packages/schedule/schedule/tests/projection.spec.ts",
+    "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+    "packages/subagent/subagent/tests/continuation.spec.ts",
+    "apps/web/tests/schedule-after.e2e.ts",
+    "packages/bundle/base/cordis.patch.yml",
+    "packages/bundle/sdk-minimal/cordis.patch.yml",
+    "packages/test-support/agent-loop-testkit/src/index.ts"
+  ],
+  "protected_exclusion_paths": [
+    "packages/schedule/schedule/package.json",
+    "packages/schedule/schedule/src/domain.ts",
+    "packages/schedule/schedule/src/projection.ts"
+  ],
+  "nonchanges": [
+    "No product or documentation source was changed during design, review, authority binding, or gate preparation.",
+    "The current FAIL-358 baseline and sealed A28 candidate remain unchanged.",
+    "The actual customization policy has not been edited; its candidate validation is in-memory only."
+  ]
+}

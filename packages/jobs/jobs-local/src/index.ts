@@ -15,7 +15,9 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { AnonymousEntries, ScopedLayers, scopeOf } from '@deepseek-ai/dsh-scope'
 import type { ScopeLayer } from '@deepseek-ai/dsh-scope'
 import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the jobs package owns that behavior. */
 import { JobRegistry, JobId } from '@deepseek-ai/dsh-jobs'
+/*! v8 ignore stop */
 import type {
   JobDoneListener, JobKind, JobOutcome, JobRead, JobSnapshot, JobStart, JobStatus,
   JobsChangedListener,

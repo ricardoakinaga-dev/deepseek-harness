@@ -4,7 +4,7 @@
  * @module @deepseek-ai/dsh/bin
  */
 
-/* v8 ignore file -- built-bin acceptance exercises this self-executing dispatch. */
+/*! v8 ignore file -- built-bin acceptance exercises this self-executing dispatch. */
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

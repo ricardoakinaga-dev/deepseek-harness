@@ -1,0 +1,86 @@
+{
+  "record_id": "EVD-AAA-022-A17-STARTUP-SCOPE-REVALIDATION-A89-001",
+  "timestamp": "2026-09-23T02:29:40-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:A17",
+  "kind": "IMPLEMENTATION_SCOPE_REVALIDATION",
+  "status": "VERIFIED_WITH_RETAINED_REPOSITORY_FAILURES",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "design_ref": ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+  "gate_ref": ".agent/gates/implementation-ready-AAA-022-A17.json#GATE-AAA-022-IMPLEMENTATION-READY-A17-001",
+  "candidate_binding": {
+    "branch": "custom/main",
+    "head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "sealed_candidate": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "scoped_worktree_fingerprint": "e42f729a62ab9c8e346cc8a8bdde007a964cecf3bd78eb5e6fb8288cc3a7e0ce",
+    "scoped_file_count": 48
+  },
+  "finding": "Cordis leaves a plugin fiber PENDING while an injected service is absent. The DSH app-boot audit is the host path that turns an unresolved configured provider into a startup error after Loader settlement.",
+  "scope_extension": {
+    "reason": "A16 and the A17 gate require each shipped model-backed title provider to fail loading when sessionQuery is missing. The four title owner packages can declare and inject this dependency, but the host startup audit must reject a provider fiber that remains PENDING.",
+    "behavior": "Both canonical provider entry ids and both provider package names are required startup entries. Matching package names keeps the failure behavior when a profile assigns a custom Cordis entry id. Missing or explicitly disabled provider entries remain ignored by the existing audit policy.",
+    "exact_app_boot_paths": [
+      "packages/boot/app-boot/src/index.ts",
+      "packages/boot/app-boot/tests/app-boot.spec.ts",
+      "packages/boot/app-boot/README.md",
+      "packages/boot/app-boot/README.zh.md",
+      "packages/boot/app-boot/README.i18n.yaml"
+    ],
+    "unchanged_preexisting_app_boot_paths": [
+      "packages/boot/app-boot/package.json",
+      "packages/boot/app-boot/src/profile-resolution/legacy-links.ts",
+      "packages/boot/app-boot/src/profile-resolution/resolver.ts",
+      "packages/boot/app-boot/src/profile.ts",
+      "packages/boot/app-boot/tests/loader-shape.compat.spec.ts",
+      "packages/boot/app-boot/tests/profile-resolution.spec.ts"
+    ]
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run --no-cache --reporter=dot packages/boot/app-boot/tests/app-boot.spec.ts packages/session/session-title/tests/*.spec.ts packages/session/session-title-llm/tests/llm.spec.ts packages/session/session-title-first-prompt-llm/tests/provider.spec.ts packages/session/session-title-first-prompt-llm/tests/loader-composition.spec.ts packages/session/session-title-all-prompts-llm/tests/provider.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS: 12 files, 163 tests"
+    },
+    {
+      "command": "pnpm exec tsc -b --pretty false packages/boot/app-boot/tsconfig.json packages/session/session-title/tsconfig.json packages/session/session-title-llm/tsconfig.json packages/session/session-title-first-prompt-llm/tsconfig.json packages/session/session-title-all-prompts-llm/tsconfig.json",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/boot/app-boot/src packages/boot/app-boot/tests packages/session/session-title/src packages/session/session-title/tests packages/session/session-title-llm/src packages/session/session-title-llm/tests packages/session/session-title-first-prompt-llm/src packages/session/session-title-first-prompt-llm/tests packages/session/session-title-all-prompts-llm/src packages/session/session-title-all-prompts-llm/tests",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "observed_status": "PASS: 22 gates"
+    },
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base origin/master",
+      "exit_status": 1,
+      "observed_status": "FAIL: incomplete dirty tree has unrelated unowned paths and existing multiple-owner errors; none of the five exact app-boot paths in this scope were reported"
+    },
+    {
+      "command": "targeted validateCustomizationPolicy() check for the five exact app-boot paths",
+      "exit_status": 0,
+      "observed_status": "PASS: each path has exactly one compatible session-reader-migration owner"
+    },
+    {
+      "command": "pnpm run doc-sync",
+      "exit_status": 1,
+      "observed_status": "39 gates passed; four existing failures remain in tool catalog, config catalog, persistence catalog, and persistence type history. doc-typecheck, documentation build, translation pairing, and app-boot README checks passed."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "limitations": [
+    "The A17 gate extension fingerprints the four title package roots and only the five app-boot files changed for startup enforcement; unrelated preexisting app-boot changes remain outside A17 attribution.",
+    "The canonical repository audit metric remains unavailable on this incomplete worktree; no repository-wide count is claimed.",
+    "The sealed candidate remains unchanged and has not been rebuilt or requalified. No push, merge, release, publication, or final verdict is claimed."
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-CORE-FORK-OWN-EVENTS-DESIGN-A86-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A15",
+  "kind": "W1_CORE_SESSION_FORK_OWN_EVENTS_DESIGN",
+  "status": "PASS_WITH_RETAINED_EXCEPTIONS",
+  "timestamp": "2026-09-22T21:40:19-03:00",
+  "environment": {
+    "platform": "Linux x86_64",
+    "node": "v24.20.0",
+    "package_manager": "pnpm 11.11.0",
+    "branch": "custom/main",
+    "head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "worktree": "pre-existing dirty worktree preserved",
+    "sealed_candidate": {
+      "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+      "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+      "changed": false
+    }
+  },
+  "source_decision": ".agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md",
+  "scope": [
+    "REM-028-S024: Session.ownEvents",
+    "REM-028-S025 through REM-028-S027: SessionStore.fork history reads",
+    "packages/core/session/src/index.ts",
+    "packages/core/session/tests/fork.spec.ts",
+    "packages/core/session/tests/sequence-types.spec.ts"
+  ],
+  "inspection": {
+    "production_calls": [
+      {
+        "site": "Session.ownEvents",
+        "location": "packages/core/session/src/index.ts:672-675",
+        "observation": "Public deprecated compatibility method delegates to the deprecated range reader and is not a new history seam."
+      },
+      {
+        "site": "SessionStore._forkSeed",
+        "location": "packages/core/session/src/index.ts:1277-1321",
+        "observation": "Synchronous fork validates the current/default boundary, exact event identity and contiguous seq, then folds the selected prefix to reject an open turn."
+      }
+    ],
+    "fork_acceptance": [
+      "An omitted boundary selects the current last event, while an empty source creates an empty seed.",
+      "An explicit boundary is inclusive and must identify an existing contiguous event.",
+      "A selected prefix ending after turn/start without turn/end is rejected before child creation.",
+      "The inherited prefix is copied into a detached child seed and the constructor adds session/end-seed.",
+      "Unknown, stale, duplicate, invalid-boundary, and open-turn failures remain synchronous and leave no child registered."
+    ],
+    "verification": [
+      {
+        "command": "pnpm exec vitest run packages/core/session/tests/fork.spec.ts packages/core/session/tests/sequence-types.spec.ts",
+        "exit_status": 0,
+        "result": "2 files and 30 tests passed"
+      },
+      {
+        "command": "git diff --check -- packages/core/session packages/session/session-title .agent",
+        "exit_status": 0,
+        "result": "PASS"
+      }
+    ]
+  },
+  "decisions": {
+    "own_events": {
+      "decision": "Retain the public method as an existing deprecated compatibility API.",
+      "reason": "The method exposes a complete synchronous child-owned suffix and cannot be replaced by a new synchronous alias without preserving the storage-residency dependency prohibited by the deprecation decision.",
+      "condition_for_removal": "Remove or migrate existing callers only after an explicit storage-backed inherited-prefix reader is available and each owner proves equivalent fork/resume semantics."
+    },
+    "fork": {
+      "decision": "Retain SessionStore.fork as a named complete-history exception; do not add a wrapper or a new synchronous fork-cut reader in A15.",
+      "reason": "Fork needs an exact complete prefix and must synchronously reject invalid boundaries and open turns before registering a child. The current core API cannot await storage I/O, and adding a Session method that exposes the same synchronous history would violate the active policy.",
+      "future_capability": "A future storage-owned complete/inherited-prefix fork-cut capability must provide a fixed cut, exact event identity, contiguous prefix ordering, inherited count, open-turn validation, cancellation/error propagation, and a caller contract that permits asynchronous storage access or an already loaded cut. Core must not add a session-query dependency.",
+      "preserved_behavior": "Any successor must preserve inclusive boundaries, empty-source behavior, detached seed ownership, session/end-seed construction, lineage metadata, and synchronous failure-before-child-registration semantics at the public operation that remains synchronous."
+    }
+  },
+  "production_changes": [],
+  "next_action": {
+    "id": "AAA-022:A16",
+    "kind": "DESIGN",
+    "summary": "Design the remaining W1 session-telemetry and session-title historical-read successor seams",
+    "scope": "REM-028-S071 through S073 in session-telemetry and session-title, including bounded suffix capture, all-prompts title history, and synchronous pre-commit citation",
+    "completion_signal": "Each remaining caller has an owner decision, no dependency cycle is introduced, and any implementation successor has explicit fixed-cut, ordering, cancellation, and veto semantics before a production gate"
+  },
+  "limitations": [
+    "The canonical audit-metrics command remains unavailable on the incomplete current worktree because tracked source paths are absent.",
+    "Full doc-sync retains the four previously recorded catalog/tool-composition failures.",
+    "This design does not change production source, released Session data, the sealed candidate, or publication state."
+  ],
+  "freshness": "CURRENT"
+}

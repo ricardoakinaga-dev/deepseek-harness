@@ -34,6 +34,14 @@ import type { DshClientManifest } from '@deepseek-ai/dsh-package-manifest'
 import type { ClientEntries } from './entries.ts'
 import type { ClientModuleSystem } from './system.ts'
 
+/** Delivery mode declared by a browser package that evaluates source at runtime. */
+export type ClientDynamicDelivery = 'disabled' | 'unsafe-eval-inline-style'
+
+/** Local extension to the shared manifest used for explicit dynamic-package policy. */
+interface ParsedDshClientManifest extends DshClientManifest {
+  dynamic?: boolean
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** The client module system the web shell builds at boot (provided by the `./client` wrapper plugin). */
@@ -62,6 +70,8 @@ export interface WebBootEntry {
   immediately?: boolean
   /** Non-baseline module specifiers this row requests; omitted when it requests none. */
   external?: string[]
+  /** Marks a package whose browser code requires the explicit dynamic delivery policy. */
+  dynamic?: boolean
 }
 
 /** Initial scheduling phase for one revisioned combo script. */
@@ -155,7 +165,7 @@ export function optionalStringArray(subject: string, field: string, value: unkno
  * @returns the validated declaration, or undefined when the field is absent.
  * @throws {Error} when the field is present but any member is malformed.
  */
-export function parseDshClient(pkgName: string, value: unknown): DshClientManifest | undefined {
+export function parseDshClient(pkgName: string, value: unknown): ParsedDshClientManifest | undefined {
   if (value === undefined) return undefined
   if (typeof value !== 'object' || value === null) {
     throw new Error(`client-modules: ${pkgName} has a non-object dsh.client declaration`)
@@ -169,11 +179,15 @@ export function parseDshClient(pkgName: string, value: unknown): DshClientManife
   if (decl.immediately !== undefined && typeof decl.immediately !== 'boolean') {
     throw new Error(`client-modules: ${pkgName} dsh.client.immediately must be a boolean`)
   }
+  if (decl.dynamic !== undefined && typeof decl.dynamic !== 'boolean') {
+    throw new Error(`client-modules: ${pkgName} dsh.client.dynamic must be a boolean`)
+  }
   return {
     platform: decl.platform,
     ...(inject !== undefined ? { inject } : {}),
     ...(external !== undefined ? { external } : {}),
     ...(decl.immediately !== undefined ? { immediately: decl.immediately } : {}),
+    ...(decl.dynamic !== undefined ? { dynamic: decl.dynamic } : {}),
   }
 }
 
@@ -360,6 +374,8 @@ export interface DshWindow {
   __DSH_BOOT__?: unknown
   /** HTML-installed facade: a pending registration queue, then the live module-system target. */
   __ModuleLoader__?: ClientModuleLoaderTarget
+  /** Policy marker emitted by the host graph; CSP headers remain deployment-owned. */
+  __DSH_DYNAMIC_CORDIS_DELIVERY__?: ClientDynamicDelivery
 }
 
 /** Per-module bookkeeping in {@link ClientModuleLoader.loadCache} (flat module-graph boundary). */

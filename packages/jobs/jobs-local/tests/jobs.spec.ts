@@ -952,18 +952,23 @@ describe('LocalJobRegistry disposal', () => {
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(LocalJobRegistry)
     const standing = createScope(ctx, {})
+    const seen: JobId[] = []
     // One mount contributes both kinds into the same layer, as `tool-jobs`
     // does; unloading it must leave nothing serving the agents that joined it.
     const mount = await standing.ctx.plugin({
       inject: ['jobs'],
       apply(pluginCtx: Context) {
         pluginCtx.jobs.attachController('tool-jobs')
-        pluginCtx.jobs.onJobDone(() => {})
+        pluginCtx.jobs.onJobDone((snapshot) => { seen.push(snapshot.id) })
       },
     })
     const owner = stubAgent(ctx, 'joined', scopeOf(standing.ctx))
     await ctx.agents.register(owner)
-    expect(() => ctx.jobs.start(producer({ owner }).spec)).not.toThrow()
+    const job = producer({ owner })
+    expect(() => ctx.jobs.start(job.spec)).not.toThrow()
+    job.settle({ status: 'completed' })
+    await tick()
+    expect(seen).toHaveLength(1)
 
     await mount.dispose()
 

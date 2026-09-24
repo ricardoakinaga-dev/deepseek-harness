@@ -1,0 +1,81 @@
+{
+  "record_id": "GATE-AAA-005-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-20T20:04:23-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-005 adjacent current-writer Session fixture generation",
+  "scope_ref": "AAA-005",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The implementation scope names the resilient-compaction owner, the preserved v0 session.jsonl, and the adjacent v3 current-writer session.v3.jsonl that must be generated.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-005/findings.json",
+        ".agent/evidence/AAA-005/commands.jsonl",
+        "snapshots/session/resilient-compaction-timeout/snapshot.yml",
+        "snapshots/session/resilient-compaction-timeout/session.jsonl"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Only the owner fixture generation changes; the existing v0 file must remain byte-preserved and no retained-generation manifest is added."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation has a focused refresh, replay, and corpus-policy verification method that proves filename/header v3 agreement and preserves the committed v0 generation.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-005/findings.json",
+        "snapshots/AGENTS.md",
+        "vitest.snapshot.config.ts",
+        "scripts/session-snapshot-corpus.corpus.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The focused headless replay may still expose the separate resilient-compaction adapter-loading issue owned by AAA-006; that result cannot be normalized into a generation pass."
+    },
+    {
+      "id": "IR-003",
+      "description": "No human approval, credential, persistence-code migration, or external deployment is required for this local adjacent fixture generation.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agent/state.json",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The fixture is custom-extension evidence and does not qualify the broader Session/SDK compatibility criterion or the complete snapshot matrix."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-005/findings.json",
+    ".agent/evidence/AAA-005/commands.jsonl",
+    "snapshots/AGENTS.md",
+    "scripts/session-snapshot-corpus.corpus.ts",
+    "snapshots/session/resilient-compaction-timeout/snapshot.yml",
+    "snapshots/session/resilient-compaction-timeout/session.jsonl"
+  ],
+  "candidate_fingerprint": "b89cecdfd4cb130bf91c2e883cd4774294546810dff9ddb9d693425661013e15",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": false,
+    "state": "NOT_REQUIRED",
+    "actor": "Repository quality policy",
+    "scope": "AAA-005 adjacent current-writer Session fixture generation",
+    "decision": "The scoped fixture-only generation has no unresolved human-owned decision.",
+    "evidence_ref": ".agent/backlog.json",
+    "expires_or_revalidates": "Revalidate when the Session writer version, fixture ownership, or scenario adapter changes."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Run the scenario refresh in serial mode to generate session.v3.jsonl, verify session.jsonl is unchanged, then replay the focused corpus and scenario.",
+  "revalidation_triggers": [
+    "SESSION_FORMAT_VERSION changes.",
+    "The scenario gains a retained-generation manifest or another Session role.",
+    "The refresh command would modify an existing committed generation."
+  ],
+  "supersedes": null
+}

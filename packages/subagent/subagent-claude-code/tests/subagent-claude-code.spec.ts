@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { fileURLToPath } from 'node:url'
@@ -32,6 +33,8 @@ import type {
   SubprocessSpawnSpec,
 } from '@deepseek-ai/dsh-subprocess'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
+
+const require = createRequire(import.meta.url)
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import * as claudeCode from '../src/index.ts'
 import {
@@ -360,9 +363,7 @@ describe('task admission and package contracts', () => {
     expect(manifest.dependencies).toHaveProperty('zod', '^4.4.3')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-codex')
 
-    const sdkRoot = dirname(fileURLToPath(
-      import.meta.resolve('@anthropic-ai/claude-agent-sdk'),
-    ))
+    const sdkRoot = dirname(require.resolve('@anthropic-ai/claude-agent-sdk'))
     const sdkManifest = JSON.parse(readFileSync(
       resolve(sdkRoot, 'package.json'),
       'utf8',

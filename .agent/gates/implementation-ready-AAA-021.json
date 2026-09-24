@@ -1,0 +1,82 @@
+{
+  "record_id": "GATE-AAA-021-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-20T22:48:30-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-021 standalone hygiene prerequisite preflight",
+  "scope_ref": "AAA-021",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The reproduced gap identifies the standalone hygiene aggregate, its built-output consumers, and the documented build prerequisite.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-021/findings-a01.json",
+        ".agent/evidence/AAA-021/commands-a01.jsonl",
+        "docs/audits/auditoria-completa-2026-09-20.md",
+        "scripts/run-gates.ts",
+        "docs/development.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The active worktree was not cleaned because it contains user changes and ignored build outputs; fixture tests reproduce the missing-output condition without mutating the checkout."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation scope includes a manifest-driven output scan, actionable fail-fast diagnostics, missing and complete fixtures, and explicit scheduler dependencies.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-021/findings-a01.json",
+        "scripts/verify-hygiene-prerequisites.ts",
+        "scripts/verify-hygiene-prerequisites.spec.ts",
+        "scripts/run-gates.ts",
+        "scripts/run-gates.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The preflight checks output presence; downstream hygiene checks continue to own output validity and compatibility."
+    },
+    {
+      "id": "IR-003",
+      "description": "The correction is repository automation only, has no product or durable-data effect, and is owned by the repository gate orchestration policy.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agents/customization-policy.json",
+        ".agents/notes/implemented/process/2026-09-20-hygiene-prerequisite-preflight.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The final candidate still requires the complete governance, release, platform, and independent-audit matrix."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-021/findings-a01.json",
+    ".agent/evidence/AAA-021/commands-a01.jsonl",
+    "scripts/verify-hygiene-prerequisites.ts",
+    "scripts/run-gates.ts",
+    "docs/development.md"
+  ],
+  "candidate_fingerprint": "710595015b9d4eaf5b739fe6bc4aba45413321754dc8cceef48cb7de9ba70b7b",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": false,
+    "state": "NOT_REQUIRED",
+    "actor": "Repository gate orchestration owner",
+    "scope": "AAA-021 standalone hygiene prerequisite preflight",
+    "decision": "The correction changes only repository automation and preserves the existing explicit build ownership in check:all.",
+    "evidence_ref": ".agents/customization-policy.json",
+    "expires_or_revalidates": "Revalidate if hygiene gains a build-producing mode, its artifact consumers change, or the package publication contract changes."
+  },
+  "residual_risk": "LOW",
+  "decision": "PASS",
+  "next_action": "Run the preflight, focused scheduler and fixture tests, hygiene, typecheck, lint, documentation checks, and diff validation; then complete AAA-021 and return to the pending AAA-018 locale-channel decision.",
+  "revalidation_triggers": [
+    "A new hygiene leaf consumes a generated artifact not declared by a package manifest.",
+    "check:all changes its build ownership or artifact dependency ordering.",
+    "The package manifest publication fields stop naming the files consumed by publint or NodeNext verification."
+  ],
+  "supersedes": null
+}

@@ -34,15 +34,18 @@ it('configures MCP on a live profile, restores it on restart, and removes its to
   const bundle = join(root, 'demo-mcp')
   await mkdir(bundle)
   await writeFile(join(bundle, 'package.json'), JSON.stringify({ name: '@test/creator-mcp', version: '1.0.0',
-    dsh: { bundle: { patch: './cordis.patch.yml' } } }))
+    dsh: { bundle: { patch: './cordis.patch.yml', publisher: '@deepseek-ai' } } }))
   await writeFile(join(bundle, 'cordis.patch.yml'), JSON.stringify([{ insert: [{ id: 'demo',
     name: '@deepseek-ai/dsh-mcp-client', config: { serverName: 'demo', transport: 'streamable-http',
       url: mcp.url, failOnStartupError: true },
   }] }]))
   const patch = join(root, 'test.patch.yml')
-  await writeFile(patch, JSON.stringify([{ insert: [{ id: 'creator-manager-observer',
-    name: new URL('./fixtures/creator-plugin-manager.mjs', import.meta.url).href, config: { bundle },
-  }] }]))
+  await writeFile(patch, JSON.stringify([
+    { id: 'plugin-manager', config: { allowedSources: ['registry', 'path'], allowedPublishers: ['@deepseek-ai'] } },
+    { insert: [{ id: 'creator-manager-observer',
+      name: new URL('./fixtures/creator-plugin-manager.mjs', import.meta.url).href, config: { bundle },
+    }] },
+  ]))
   const start = async () => {
     const child = spawn(process.execPath, [join(repo, 'apps/cli/lib/bin.js'), '--profile', 'web', '--patch', patch,
       '--port', '0', '--no-open'], { cwd: join(root, 'workspace'),

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-upstream-mirror-workflow-equality.md
+2026-09-20-upstream-mirror-workflow-equality.md: 4fd5e0bf976e311ec8aa2f706fcf304787932d58
+2026-09-20-upstream-mirror-workflow-equality.zh.md: 5d467e089f65bcd5f49bd59b347ee40ad0001295

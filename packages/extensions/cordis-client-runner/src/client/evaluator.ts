@@ -10,6 +10,9 @@
 import * as React from 'react'
 import type { CordisDynamicPluginId } from '@deepseek-ai/dsh-api-remotes/client'
 
+/** Browser delivery policy carried by the host for one exact dynamic source. */
+export type DynamicCordisBrowserDelivery = 'disabled' | 'unsafe-eval-inline-style'
+
 /** A mountable plugin as the closure must return it (FUNCTION or OBJECT form). */
 export interface DynamicCordisEvaluatedPlugin {
   /** Optional plugin name; the runner overwrites it with the module id. */
@@ -26,6 +29,8 @@ export interface DynamicCordisClosureEnv {
   invoke(method: string, args: unknown): Promise<unknown>
   /** Mirror one runtime error text into the load report (console.error copies). */
   noteError(message: string): void
+  /** Host-selected delivery policy; absent and `disabled` both deny evaluation. */
+  browserDelivery?: DynamicCordisBrowserDelivery
 }
 
 const TIMER_REDIRECT
@@ -78,8 +83,14 @@ function harnessTrap(): unknown {
 export class DynamicCordisStyles {
   private readonly tags = new Set<HTMLStyleElement>()
 
-  /** @param pluginId - owning Plugin ID, stamped as `data-dyn` on every tag. */
-  constructor(private readonly pluginId: CordisDynamicPluginId) {}
+  /**
+   * @param pluginId - owning Plugin ID, stamped as `data-dyn` on every tag.
+   * @param browserDelivery - host-selected delivery policy for inline styles.
+   */
+  constructor(
+    private readonly pluginId: CordisDynamicPluginId,
+    private readonly browserDelivery: DynamicCordisBrowserDelivery = 'disabled',
+  ) {}
 
   /**
    * Inject one stylesheet, removed automatically on package unload.
@@ -88,6 +99,9 @@ export class DynamicCordisStyles {
    */
   insert(css: string): () => void {
     if (typeof css !== 'string') throw new Error('styles.insert(css) needs a CSS string')
+    if (this.browserDelivery !== 'unsafe-eval-inline-style') {
+      throw new Error('dynamic browser styles are disabled by the delivery policy')
+    }
     const tag = document.createElement('style')
     tag.dataset.dyn = this.pluginId
     tag.textContent = css
@@ -169,6 +183,12 @@ export async function evaluateClientHalf(
   env: DynamicCordisClosureEnv,
   styles: DynamicCordisStyles,
 ): Promise<DynamicCordisEvaluatedPlugin | ((ctx: unknown) => unknown)> {
+  if (env.browserDelivery !== 'unsafe-eval-inline-style') {
+    throw new Error(
+      'dynamic browser evaluation is disabled; configure the deployment delivery policy '
+      + 'only with an explicit CSP/Trusted Types exception',
+    )
+  }
   const traps = closureTraps()
   const parameters = ['React', 'console', 'styles', 'host', 'harness', ...Object.keys(traps), 'process', 'Buffer']
   let closure: (...args: unknown[]) => Promise<unknown>

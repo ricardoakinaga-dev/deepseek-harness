@@ -30,7 +30,7 @@ function applyChecked(state: GoalFoldState, event: SessionEvent, fail: Invariant
   try {
     applyGoalEvent(state, event)
   } catch (error) {
-    /* v8 ignore next -- the strict goal decoder throws Error instances */
+    /*! v8 ignore next -- the strict goal decoder throws Error instances */
     const message = error instanceof Error ? error.message : String(error)
     fail(`session event ${event.seq} violates the durable goal stream: ${message}`)
   }
@@ -48,7 +48,7 @@ const install: InvariantInstaller = Object.assign((ctx: Context, fail: Invariant
     states.set(session, state)
     return state
   }
-  /* v8 ignore next -- session/event always follows list() or session/created seeding */
+  /*! v8 ignore next -- session/event always follows list() or session/created seeding */
   const stateFor = (session: Session): GoalFoldState => states.get(session) ?? seed(session)
 
   for (const session of ctx.sessions.list()) seed(session)
@@ -62,7 +62,7 @@ const install: InvariantInstaller = Object.assign((ctx: Context, fail: Invariant
   }, { global: true })
   ctx.on('session/event', (session, event) => {
     const candidate = staged.get(event)
-    /* v8 ignore next 2 -- internal/dispatch stages the exact callback arguments */
+    /*! v8 ignore next 2 -- internal/dispatch stages the exact callback arguments */
     if (candidate === undefined || candidate.session !== session) {
       return fail('session/event reached publication without matching goal-fold validation')
     }

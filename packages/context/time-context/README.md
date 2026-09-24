@@ -71,13 +71,14 @@ The plugin prepends an `agent/pre-step` listener that delegates first and append
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Plugin entry: pre-step listener, due scheduling, reading composition |
+| [`src/projection.ts`](src/projection.ts) | Host-only fold of durable readings, turn state, and raw browser zones |
 | [`src/request-zone.ts`](src/request-zone.ts) | Browser-zone policy derivation from open-turn `user-rpc` sources |
 | [`src/timestamp.ts`](src/timestamp.ts) | `Intl.DateTimeFormat` creation and timestamp formatting |
 | [`src/invariant.ts`](src/invariant.ts) | Invariant companion for the snapshot contract |
 
 ### Main flow
 
-When an injection is due, the plugin samples the wall clock, derives the browser-zone policy from the open turn's `user-rpc` messages, resolves the display zone (request-local or fallback), and renders the three-line reading. Positive-interval scheduling scans raw durable session events for the latest plugin-attributed message — including one shadowed by compaction — so the schedule survives resume without a process-local cache. A reading records an entered step, not a completed or transmitted request; a later preparation failure can leave it in history.
+When an injection is due, the plugin samples the wall clock, derives the browser-zone policy from the open turn's `user-rpc` messages, resolves the display zone (request-local or fallback), and renders the three-line reading. A host-only Session projection folds each durable event, retaining the latest reading and raw browser zones even when compaction shadows their messages. Its checkpoint fingerprint includes the Node, V8, ICU, CLDR, and time-zone database versions used by `Intl`, so a runtime change refolds the state from the log. A reading records an entered step, not a completed or transmitted request; a later preparation failure can leave it in history.
 
 </details>
 

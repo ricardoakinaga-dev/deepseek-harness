@@ -1,0 +1,75 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A24",
+  "candidate_tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "temporary_candidate_commit": "bdd7998c89be65b400a1646351f9fbe4432bb324",
+  "upstream": {
+    "remote": "deepseek-official",
+    "ref": "deepseek-official/master",
+    "commit": "00102833dfaee1da9f48a3a8eae9d34005a75218",
+    "subject": "Merge pull request #4978 from deepseek-harness/worktree/release-dsh-0.1.7-alpha.2"
+  },
+  "fork": {
+    "remote": "origin",
+    "ref": "origin/master",
+    "commit": "ddefc45fbc7f8e46dd73185e68295696d1297887"
+  },
+  "common_base": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+  "disposable_worktree": "/tmp/dsh-a24-upstream.W7fYpl/candidate-rehearsal",
+  "rehearsal": {
+    "merge_command": "git merge --no-commit --no-ff deepseek-official/master",
+    "merge_result": "CONFLICT",
+    "merge_exit_status": 1,
+    "conflicted_paths": 233,
+    "modify_delete_conflicts": 12,
+    "conflict_samples": [
+      ".agents/notes/archived/architecture/2026-08-03-per-session-agent-presets.i18n.yaml",
+      ".agents/notes/implemented/architecture/2026-07-08-tool-output-spill-files.i18n.yaml",
+      ".agents/notes/implemented/architecture/2026-09-09-plugin-management-in-the-web-sidebar.md",
+      ".github/workflows/ci.yml",
+      "README.md",
+      "apps/desktop/package.json",
+      "packages/client/ui-settings-unarchive-sessions/README.md",
+      "packages/llm/llm-deepseek/src/protocols/chat-completions/adapter.ts",
+      "packages/preset/agent-presets/src/discovery.ts",
+      "pnpm-lock.yaml",
+      "vitest.config.ts"
+    ],
+    "candidate_delta_name_status_lines": {
+      "against_official": 5651,
+      "against_fork_master": 1456
+    },
+    "manifests": [
+      "/tmp/dsh-a24-candidate-vs-official.txt",
+      "/tmp/dsh-a24-candidate-vs-fork.txt",
+      "/tmp/dsh-a24-conflicts.txt",
+      "/tmp/dsh-a24-unmerged-paths.txt",
+      "/tmp/dsh-a24-merge-final.log"
+    ],
+    "abort_command": "git merge --abort",
+    "abort_result": "PASS",
+    "post_abort_tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+    "post_abort_worktree_status_entries": 0
+  },
+  "customization_policy": {
+    "command": "node scripts/verify-customization-policy.mjs --base origin/master",
+    "result": "FAIL",
+    "exit_status": 1,
+    "unowned_path_diagnostics": 293,
+    "log": "/tmp/dsh-a24-policy.log",
+    "interpretation": "The verifier does not attribute 293 candidate-delta paths to an improvement owner against the fork master. This is recorded as an attribution gap, not silently converted into a clean upstream result."
+  },
+  "result": "PARTIAL",
+  "decision": "A24 establishes the fetched upstream identity, full candidate-delta manifests, conflict inventory, and clean disposable abort, but does not establish clean upstream updateability or policy ownership. Advance to A25 to classify the conflicts and attribution gaps without mutating the candidate.",
+  "limitations": "No conflict was resolved, no candidate or custom/main tree was changed, and no merge, push, publication, release, or final verdict was performed. The official base is not an ancestor of the candidate; policy attribution was therefore evaluated against origin/master, while official integration remains a separate conflict rehearsal.",
+  "artifacts": [
+    "/tmp/dsh-a24-upstream.W7fYpl/candidate-rehearsal",
+    "/tmp/dsh-a24-policy.log",
+    "/tmp/dsh-a24-candidate-vs-official.txt",
+    "/tmp/dsh-a24-candidate-vs-fork.txt",
+    "/tmp/dsh-a24-conflicts.txt",
+    "/tmp/dsh-a24-unmerged-paths.txt",
+    "/tmp/dsh-a24-merge-final.log"
+  ],
+  "observed_at": "2026-09-22T16:53:22-03:00"
+}

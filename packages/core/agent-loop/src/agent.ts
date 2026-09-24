@@ -104,7 +104,7 @@ export class ReactLoopAgent implements Agent {
     this.scope = createScope(loopCtx, this)
     this.ctx = this.scope.ctx
     this.inbox = new ReactLoopInbox(this.ctx.sessionProjections, session, this.dispatch)
-    /* v8 ignore next -- the loop registers its own turnBoundary unit, so the key is always present */
+    /*! v8 ignore next -- the loop registers its own turnBoundary unit, so the key is always present */
     const lastTurn = this.loopCtx.sessionProjections.stateOf(session, 'turnBoundary')?.lastTurn ?? 0
     this.phase = { kind: 'idle', lastTurn }
     this.runtimeContext = new RuntimeContextProjection(this.ctx, session)
@@ -229,7 +229,7 @@ export class ReactLoopAgent implements Agent {
     } catch (_error) {
       // Reported failures and cancellation are contained at the driver boundary.
     } finally {
-      /* v8 ignore next -- kick owns a running phase until this driver boundary */
+      /*! v8 ignore next -- kick owns a running phase until this driver boundary */
       if (this.phase.kind === 'running') {
         const { turn, wakeRequested } = this.phase
         this.setPhase({ kind: 'idle', lastTurn: turn })
@@ -239,7 +239,7 @@ export class ReactLoopAgent implements Agent {
   }
 
   private async preStep(target: InboxTarget, position: { turn: number; step: number }): Promise<PreparedStep> {
-    /* v8 ignore next -- private callers establish the running phase before proposing a step */
+    /*! v8 ignore next -- private callers establish the running phase before proposing a step */
     if (this.phase.kind !== 'running') throw new Error(`agent "${this.id}": pre-step outside running phase`)
     const signal = this.phase.abort.signal
     const claimed = this.inbox.claim(target, position.turn)
@@ -351,7 +351,7 @@ export class ReactLoopAgent implements Agent {
   }
 
   private async step(decision: Extract<PreparedStep, { kind: 'enter' }>): Promise<StepEndReason | null> {
-    /* v8 ignore next -- private callers establish the running phase before executing a step */
+    /*! v8 ignore next -- private callers establish the running phase before executing a step */
     if (this.phase.kind !== 'running') throw new Error(`agent "${this.id}": step outside running phase`)
     const { turn, step, abort: { signal } } = this.phase
     signal.throwIfAborted()

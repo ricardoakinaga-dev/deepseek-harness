@@ -26,7 +26,7 @@ function privateSpillDir(): string {
 // remove, while a directory holding completed spill files keeps them (their
 // content is retained until an external cleanup). A SIGKILLed process cannot
 // run this at all; its residue is left to OS temp hygiene.
-/* v8 ignore next 4 -- exit listeners run after the coverage dump; removal is verified by the CI /tmp residue measurement. */
+/*! v8 ignore next 4 -- exit listeners run after the coverage dump; removal is verified by the CI /tmp residue measurement. */
 process.once('exit', () => {
   if (defaultSpillDir === undefined) return
   try { rmdirSync(defaultSpillDir) } catch { /* best-effort: ENOENT/ENOTEMPTY/EBUSY/EPERM must not change the exit code. */ }

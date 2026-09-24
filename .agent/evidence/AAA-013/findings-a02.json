@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-013",
+  "action_id": "AAA-013:A02",
+  "candidate_ref": "current working tree frontend-static resolved-target containment implementation",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T21:36:25-03:00",
+  "source_documents": [
+    {
+      "id": "frontend-static-source",
+      "location": "packages/host/frontend-static/src/index.ts:68-169",
+      "role": "The implementation retains lexical rejection, canonicalizes root and targets, and reads canonical in-root targets."
+    },
+    {
+      "id": "frontend-static-composition",
+      "location": "packages/host/frontend-static/tests/frontend-static.spec.ts:1-235",
+      "role": "The real Loader composition exercises in-root aliases, outside symlink or junction targets, missing outside children, index-link rejection, and preserved HTTP behavior."
+    },
+    {
+      "id": "frontend-static-contract",
+      "location": "packages/host/frontend-static/README.md:42-49",
+      "role": "The package contract documents canonical resolved-target containment, explicit 404 misses, and the application-level threat model."
+    },
+    {
+      "id": "customization-policy",
+      "location": ".agents/customization-policy.json:58-72",
+      "role": "The change is attributed as an active upstream-package-change."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-013-SYMLINK-ESCAPE",
+      "source_refs": ["frontend-static-source", "frontend-static-composition", "AAA-QB-05"],
+      "source_location": "packages/host/frontend-static/src/index.ts:131-150",
+      "observed_status": "PASS_AFTER_REMEDIATION",
+      "classification": "RESOLVED_TARGET_CONTAINMENT_ENFORCED",
+      "owner": "AAA-013",
+      "severity": "CRITICAL",
+      "summary": "The server now resolves the dist root, requested target, and configured index before reading; an outside resolved target returns 403 and no outside bytes reach the response.",
+      "limitations": "The portable application check narrows the resolve-to-read race but is not a kernel-grade guarantee against a concurrent filesystem attacker."
+    },
+    {
+      "id": "F-AAA-013-TEST-GAP",
+      "source_refs": ["frontend-static-composition", "AAA-QB-05"],
+      "source_location": "packages/host/frontend-static/tests/frontend-static.spec.ts:75-235",
+      "observed_status": "PASS",
+      "classification": "REAL_COMPOSITION_SYMLINK_JUNCTION_MATRIX_COVERED",
+      "owner": "AAA-013",
+      "severity": "HIGH",
+      "summary": "The real Loader composition serves an in-root alias, rejects an outside directory alias and its missing child, rejects a parent alias, rejects an outside configured index, and preserves the existing HTTP and teardown assertions."
+    }
+  ],
+  "implementation": {
+    "resolution_sequence": [
+      "Retain the lexical path check for traversal before filesystem resolution.",
+      "Resolve the dist root and requested target with fs.realpath.",
+      "For ENOENT or ENOTDIR, resolve the deepest existing ancestor and restore the missing suffix.",
+      "Compare canonical paths with relative-path containment and return 403 for resolved escapes.",
+      "Read the canonical target and pass a canonical index path to the renderer."
+    ],
+    "fixtures": [
+      "An in-root directory alias serves its regular file with 200 and expected bytes.",
+      "An outside directory symlink or Windows junction returns 403 with an empty body.",
+      "An outside missing child returns 403 rather than an in-root 404.",
+      "A link to the dist parent returns 403, proving the exact parent boundary is rejected.",
+      "An outside configured index returns 403 for both / and /index.html before HTML bytes are read."
+    ],
+    "threat_model": "This is trusted-host application containment for build inputs; the repository accepts the residual concurrent replacement race described by the existing cross-family filesystem containment precedent."
+  },
+  "decision": {
+    "result": "AAA-013:A02 PASS — resolved-target containment implemented and verified",
+    "product_change": true,
+    "diagnosis": "The lexical-only escape is closed by canonical root and target containment, and the real-composition suite proves both permitted in-root aliases and denied outside targets.",
+    "next_action": "Complete AAA-013 and advance to the next independent task while preserving the pending AAA-008 and AAA-009 maintainer decisions."
+  },
+  "validation": {
+    "commands": [
+      "pnpm exec vitest run packages/host/frontend-static/tests/frontend-static.spec.ts --coverage --coverage.include=packages/host/frontend-static/src/index.ts",
+      "pnpm run test:gui",
+      "pnpm run build:lib:host",
+      "pnpm run typecheck",
+      "pnpm run verify-translation-pairing .agents/notes/implemented/bug-fix/2026-09-20-frontend-static-symlink-containment.md packages/host/frontend-static/README.md",
+      "node scripts/verify-customization-policy.mjs --base master",
+      "pnpm run verify-agent-note-format -- .agents/notes/implemented/bug-fix/2026-09-20-frontend-static-symlink-containment.md",
+      "git diff --check"
+    ],
+    "raw_output_files": [
+      ".artifacts/aaa-013/aaa-013-a02-2026-09-20/focused-coverage.log",
+      ".artifacts/aaa-013/aaa-013-a02-2026-09-20/gui-test.log",
+      ".artifacts/aaa-013/aaa-013-a02-2026-09-20/build-typecheck.log",
+      ".artifacts/aaa-013/aaa-013-a02-2026-09-20/policy-docs.log"
+    ],
+    "raw_output_sha256": {
+      "focused-coverage.log": "6f603237608c90e3c55dfc2a4fd3457ebd2323dba2c59391bcb0401fb6161c10",
+      "gui-test.log": "ec7e898b9da0004ebe9661596430d70e5874de57dcd29be29b083b2bcb9320ff",
+      "build-typecheck.log": "33e067be9bc05087a15586aba5f289ae8d8e8d9ae0849910485a68110573d3f7",
+      "policy-docs.log": "1e1c137679d6e8f6614ec12fa5ccfd278da9ee77038d9f3a9d9aab62fd2d2a19"
+    },
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T21:36:25-03:00"
+  }
+}

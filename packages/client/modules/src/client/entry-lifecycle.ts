@@ -10,7 +10,7 @@ export async function tearDownEntryFiber(entry: Entry): Promise<void> {
   const fiber = entry.fiber
   if (fiber === undefined) return
   const runtime = fiber.runtime
-  /* v8 ignore next -- Loader entries own plugin fibers; only the root context has a null runtime. */
+  /*! v8 ignore next -- Loader entries own plugin fibers; only the root context has a null runtime. */
   if (runtime !== null) entry.ctx.registry.delete(runtime.callback)
   while (fiber.inertia !== undefined) await fiber.inertia
   delete entry.fiber

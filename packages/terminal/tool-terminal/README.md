@@ -173,6 +173,8 @@ These limits define the model-facing surface that is absent. They are current pa
 - **No TUI or key-sequence surface** — named key sequences, full-screen TUI interaction, BEL, resize, and auto-start are not exposed in any schema.
 - **Background mode requires the jobs surface** — `run_in_background` needs both `@deepseek-ai/dsh-jobs` and its model-facing controller (`@deepseek-ai/dsh-tool-jobs`); without them the argument is rejected.
 
+**Runtime invariant:** No companion is published. This stateless adapter contributes tools and prompt guidance, while PTY lifecycle and background-job relationships remain owned by the services it composes.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -182,5 +184,3 @@ These limits define the model-facing surface that is absent. They are current pa
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This stateless adapter contributes tools and prompt guidance, while PTY lifecycle and background-job relationships remain owned by the services it composes.

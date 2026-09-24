@@ -93,6 +93,8 @@ These limits define when the reference source cannot help; they are current pack
 - **No browser-side file scan** — Web completion requires a mounted Host `ctx.fileReferences` provider; the browser cannot fall back to its own filesystem.
 - **Session search remains metadata-only** — discovery filters session id, cwd, and the latest log-backed title through `ctx.sessionReferenceResolver`; message bodies and full transcripts are not searched.
 
+**Runtime invariant:** No companion is published. A single slash-source registration whose disposal is proven by the HMR-safety spec — it emits no cordis events and owns no cross-plugin mutable state.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -102,5 +104,3 @@ These limits define when the reference source cannot help; they are current pack
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. A single slash-source registration whose disposal is proven by the HMR-safety spec — it emits no cordis events and owns no cross-plugin mutable state.

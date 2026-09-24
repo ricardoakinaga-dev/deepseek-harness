@@ -19,18 +19,23 @@ jobs:
   pack:
     name: Pack npm tarballs
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       # Complete history: the release scripts read tags.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
@@ -42,7 +47,7 @@ jobs:
           store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
           echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
@@ -82,10 +87,49 @@ jobs:
       - name: Verify packed install
         run: pnpm run release:verify-packed-install --family dsh --from dist/npm --from dist/npm-vendor --from dist/npm-landlock
 
-      - uses: actions/upload-artifact@v4
+      - name: Generate release SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: dist/npm
+          format: spdx-json
+          output-file: dist/dsh-release.spdx.json
+          artifact-name: dsh-release-sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate release artifact attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/npm/*.tgz
+
+      - name: Generate release SBOM attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/npm/*.tgz
+          sbom-path: dist/dsh-release.spdx.json
+
+      - name: Verify release attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for artifact in dist/npm/*.tgz; do
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY" \
+              --predicate-type https://spdx.dev/Document/v2.3
+          done
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dsh-npm-tarballs
           path: dist/npm/*
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dsh-release-sbom
+          path: dist/dsh-release.spdx.json
           if-no-files-found: error
           retention-days: 7
 
@@ -93,6 +137,7 @@ jobs:
     name: Publish to npm
     needs: pack
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     # Required reviewers and the allowed tags live on the environment; this is
     # the only job in the sequence that can write to the registry.
     environment: npm-publish
@@ -101,18 +146,19 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
+      attestations: read
     steps:
       # Checkout and install carry the release scripts only. There is no build
       # step: publication uploads the bytes the pack job produced.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           registry-url: https://registry.npmjs.org
@@ -120,10 +166,26 @@ jobs:
       - name: Install (immutable, no package scripts)
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: dsh-npm-tarballs
           path: dist/npm
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: dsh-release-sbom
+          path: dist
+
+      - name: Verify release attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for artifact in dist/npm/*.tgz; do
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY" \
+              --predicate-type https://spdx.dev/Document/v2.3
+          done
 
       - name: Publish tarballs
         env:

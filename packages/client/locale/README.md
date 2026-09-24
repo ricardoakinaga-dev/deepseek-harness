@@ -129,6 +129,8 @@ These limits define where localization is incomplete or frozen at registration t
 - **Registry-held text reads its translation once** — copy captured at registration time outside the slot render path (e.g. the `/model` command description in the command registry) keeps the language it was registered under until re-registration; slot-rendered copy follows switches live.
 - **Language packs own language-specific behavior** — the registry supplies selection, persistence, browser matching, key fallback, and `<html lang>`; it does not add plural rules or bidirectional layout.
 
+**Runtime invariant:** No companion is published. The locale catalog and dictionaries have no independent runtime source to compare against; registration disposal, preference resolution, and fallback lookup are asserted by behavior specs.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -138,5 +140,3 @@ These limits define where localization is incomplete or frozen at registration t
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The locale catalog and dictionaries have no independent runtime source to compare against; registration disposal, preference resolution, and fallback lookup are asserted by behavior specs.

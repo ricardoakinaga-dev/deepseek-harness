@@ -102,6 +102,8 @@ These limits define what the shell itself provides versus what features must sup
 
 - **The General section has no built-in rows** — each row appears only when its owning feature plugin is mounted; the shell cannot fill the section alone.
 
+**Runtime invariant:** No companion is published. The settings seam validates and publishes the durable onboarding section, while slot conflicts fail loud in the slot core. The local document action is browser state over typed RPC responses and is covered by store/component tests rather than a Cordis runtime relationship.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -111,5 +113,3 @@ These limits define what the shell itself provides versus what features must sup
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The settings seam validates and publishes the durable onboarding section, while slot conflicts fail loud in the slot core. The local document action is browser state over typed RPC responses and is covered by store/component tests rather than a Cordis runtime relationship.

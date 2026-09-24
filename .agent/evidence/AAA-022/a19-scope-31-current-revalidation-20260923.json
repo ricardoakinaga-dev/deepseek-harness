@@ -1,0 +1,293 @@
+{
+  "record_id": "A19-SCOPE-31-CURRENT-REVALIDATION-20260923-002",
+  "timestamp": "2026-09-23T17:32:54-03:00",
+  "record_kind": "A19_SCOPE_FINGERPRINT_REFRESH",
+  "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+  "prior_scope_gate": {
+    "path": ".agent/gates/audit-resolved-AAA-022-A19-scope-31.json",
+    "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+    "candidate_fingerprint": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+    "fingerprint_input_count": 31,
+    "disposition": "preserved unchanged; current successor refreshes its working-tree fingerprint"
+  },
+  "preserved_implementation_gates": [
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A19.json",
+      "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+      "input_count": 24,
+      "disposition": "preserved unchanged"
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json",
+      "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+      "input_count": 34,
+      "disposition": "preserved unchanged"
+    }
+  ],
+  "user_approved_expansion": {
+    "from_input_count": 24,
+    "to_exact_input_count": 31,
+    "approval": "User selected “Expand to 31 paths (Recommended)” and authorized updating the allowlist, fingerprint, and authority/gate record.",
+    "added_paths": [
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/extensions/tool-cordis/src/api-catalog.ts"
+    ],
+    "excluded_from_active_a19_owner_allowlist": [
+      "docs/subsystems/session.i18n.yaml",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md"
+    ]
+  },
+  "active_owner_allowlist": {
+    "improvement_id": "prepared-session-projection-baseline",
+    "status": "active",
+    "path_count": 29,
+    "paths": [
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/README.i18n.yaml",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/architecture.i18n.yaml"
+    ],
+    "excludes": [
+      "docs/subsystems/session.i18n.yaml",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md"
+    ],
+    "matches_approved_scope": true
+  },
+  "api_catalog_attribution": {
+    "path": "packages/extensions/tool-cordis/src/api-catalog.ts",
+    "owners": [
+      "session-reader-migration",
+      "dynamic-extension-trust"
+    ],
+    "matches_existing_owners": true
+  },
+  "candidate_fingerprint": "24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "hash_rule": "For each listed relative path in this order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+    "file_count": 31,
+    "file_sha256": {
+      ".agents/customization-policy.json": "3bf74531e04533d680948bbcdab0af2dd9fa3a00616ec7cec34e3fc322c86066",
+      "docs/architecture.i18n.yaml": "13adf22627b605e5102b21afba489eaa8e54dcebad5058d0eaeb2298466bbb22",
+      "docs/architecture.md": "196c453bd14b1486fad83f1cc7b7b2de4e81399e76c7e83a191622bff0de7438",
+      "docs/architecture.zh.md": "50c0ba09896eb0042ba1348c1c8e108f477984a1407d7903e1e4c19711f9a0d8",
+      "docs/subsystems/persistence.i18n.yaml": "dfb4afc298b72624345ec71b571314d781016c5356586a112d82c6ce9b985d37",
+      "docs/subsystems/persistence.md": "a97d5a521c76fdaac1e910778564d74fcf13546391caf2063850ad7a1b9e2640",
+      "docs/subsystems/persistence.zh.md": "bf32617f5bec0187b626b740c33c39e56faeffbb9ce864143002724ee16b06ad",
+      "docs/subsystems/session-projection.i18n.yaml": "3ee16458a103bd59d966151bb26089eaccfe3cc5c864aed240b43fef2a52aa4c",
+      "docs/subsystems/session-projection.md": "e923abf355abeba04224751344d304f48e20153440417b9bc8a0c23261369da0",
+      "docs/subsystems/session-projection.zh.md": "6f314c2b7392420de17d96f1dc2d98691f882942abe1e37d73579f0b23008951",
+      "packages/core/agent-loop/README.i18n.yaml": "3e5bc5b664005f2aae65eeaa013ac32e33571f4df9eb7ff9ccf6a30a46b0678f",
+      "packages/core/agent-loop/README.md": "ccce148e349087c0beed2c6652215daa743b88466f5d87f3c48fdbdb434e368e",
+      "packages/core/agent-loop/README.zh.md": "e04a35de8347cd23a0ec00319ec3f0826afe3fcfffff18e15e04ac8d000fd708",
+      "packages/core/agent-loop/src/index.ts": "963798db801edaf2b83d17fc096128398bd9cc6d50ff64977573345975da2648",
+      "packages/core/agent-loop/tests/invariant.spec.ts": "aceaecfec38556bc876b4284dba17287b2dec2d888f7772f51604af5888fa8dd",
+      "packages/core/agent-loop/tests/resume.spec.ts": "558c57bc23e157ada7e780de9c4e40e9a67dc48add7d47c06d24c8eff26aba5b",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts": "e3e4cdddc2d7f73915afe79fa2bd19715c7f57b11c7ac662d4e31752734b2ba9",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts": "4a53d24b33e687b64cda8674998c9b3ba1b80edc6b1d5be7f345dbc0f096fa40",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts": "cf64519e1b37072d929c5b97592aa2da60696d4de8781d90ac233450ae01dc07",
+      "packages/core/session/README.i18n.yaml": "4f919a919b9adb3e5c7f93c2408e4f98e2915bc0de75fed8cb4cf03b9b382b85",
+      "packages/core/session/README.md": "679c439f61d9fff72c366980a9ebf63b2f85717ecae4df90ba98b48d574be0de",
+      "packages/core/session/README.zh.md": "1accdab6d9bfaaf424676dc43df8bf9cef5f4e5a9986ee52641c10c1f799e9a0",
+      "packages/core/session/src/index.ts": "879b8eba7fe61a1e08c4c8af08b5e2137a3f682ae0b642bfeda18feb8d08bed0",
+      "packages/core/session/src/preparation.ts": "d8f32d4c74cdd77267d56b0092161e69c84de95452d7cf7ee9d051c655228b3f",
+      "packages/core/session/tests/session.spec.ts": "6609cd47052a4d720ea4334840c725fd197a190cd3179b3cc7ec5c8f78a5639e",
+      "packages/extensions/tool-cordis/src/api-catalog.ts": "08ee1728154fb482147fca28c75a21d38d6efca0881654c844ed0e46edb04c79",
+      "packages/session/session-projection/README.i18n.yaml": "537ec57d9e816a2888f942b4a399b87799edd820073439b846453dd0b0242031",
+      "packages/session/session-projection/README.md": "088f5c75ae940a8520e6d2b2a85165e503236d6bb6d054ffa8762ad5831177e6",
+      "packages/session/session-projection/README.zh.md": "d11390564021aae5b4478c65a060a6527c44446d74935d93e36b8a784a9a46f3",
+      "packages/session/session-projection/src/index.ts": "5c31245f90025e0cfb62dfd0760f1d2ca2ea8c8bdc5077ffc9b9b975b21818c7",
+      "packages/session/session-projection/tests/registry.spec.ts": "49d210ab6283da3b11096182a47f2999a4ca80dafe83946870f65dfbf755dcc1"
+    },
+    "preexisting_dirty_worktree": true
+  },
+  "fingerprint_change": {
+    "previous": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+    "current": "24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e",
+    "explanation": "The exact approved path set and A19 owner attribution are unchanged. Later AAA-022 work updated shared inputs, including customization policy, projection subsystem pages/source, and generated API catalog; this refreshes the current digest without reopening A19 or widening scope."
+  },
+  "verification": {
+    "verify_type_equiv": {
+      "command": "pnpm run verify-type-equiv",
+      "exit_status": 0,
+      "result": "PASS",
+      "summary": "437 type-equiv blocks match source structure and JSDoc; 437 paired derivatives."
+    },
+    "verify_cordis_catalog": {
+      "command": "pnpm run verify-cordis-catalog",
+      "exit_status": 0,
+      "result": "PASS",
+      "summary": "111 generated file/region outputs are up to date."
+    },
+    "test_docs": {
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "result": "PASS",
+      "summary": "22 passed, 0 failed, 0 skipped."
+    },
+    "scoped_diff_check": {
+      "command": "git diff --check -- <31 approved fingerprint inputs>",
+      "exit_status": 0,
+      "result": "PASS"
+    },
+    "doc_sync": {
+      "command": "pnpm run doc-sync",
+      "exit_status": 1,
+      "result": "PARTIAL",
+      "passed": 37,
+      "failed": 6,
+      "failures": [
+        {
+          "gate": "doc-typecheck",
+          "summary": "Host doc typecheck fails on existing branded SessionLogOffset/SessionSeq fixture values, ContentBlock narrowing, and Promise<undefined> test typing in context, agent-loop, and session-projection-cache packages."
+        },
+        {
+          "gate": "doc graphs",
+          "summary": "docs/event-producer-consumer.md is stale."
+        },
+        {
+          "gate": "tool catalog",
+          "summary": "plugin-manager was booted without registering a tool; catalog diagnostic names missing ctx.tools, ctx.pluginManager, and ctx.sandboxPolicy composition."
+        },
+        {
+          "gate": "config catalog",
+          "summary": "docs/config-catalog.md is stale."
+        },
+        {
+          "gate": "persistence catalog",
+          "summary": "docs/persistence-catalog.md, docs/persistence-catalog.zh.md, docs/persistence-catalog.i18n.yaml, and docs/persistence-schema.json are stale."
+        },
+        {
+          "gate": "persistence type history",
+          "summary": "docs/persistence-schema.json is stale."
+        }
+      ]
+    },
+    "state_check_after_rollback": {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py --contracts-root /home/ricardo/.agents/skills/engineering-framework . --quiet",
+      "exit_status": 1,
+      "result": "FAIL",
+      "summary": "359 findings, matching the pre-A25 baseline; the transient draft gate findings were removed by rollback.",
+      "artifact": ".agent/evidence/AAA-022/a19-scope-31-gate-draft-rollback-state-check-20260923.txt"
+    },
+    "state_check_pre_verification_record": {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py --contracts-root /home/ricardo/.agents/skills/engineering-framework . --quiet",
+      "exit_status": 1,
+      "result": "FAIL",
+      "findings": 359,
+      "baseline_findings": 359,
+      "new_findings": 0,
+      "resolved_findings": 0,
+      "artifact": ".agent/evidence/AAA-022/a19-scope-31-current-state-check-20260923.txt",
+      "summary": "This command ran before its verification record was appended and matched the 359-finding baseline."
+    },
+    "state_check_after_record": {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py --contracts-root /home/ricardo/.agents/skills/engineering-framework . --quiet",
+      "exit_status": 1,
+      "result": "FAIL",
+      "findings": 360,
+      "additional_diagnostic": "RECONCILE_VERIFICATION_ORDER for VER-AAA-022-A19-STATE-CHECK-CURRENT-20260923-001",
+      "artifact": ".agent/evidence/AAA-022/a19-scope-31-current-state-check-final-20260923.txt",
+      "disposition": "Bind the verification record with the current state-last checkpoint; rerun the checker after the checkpoint."
+    },
+    "state_check_postcheckpoint": {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py --contracts-root /home/ricardo/.agents/skills/engineering-framework . --quiet",
+      "exit_status": 1,
+      "result": "FAIL",
+      "findings": 359,
+      "baseline_findings": 359,
+      "new_findings": 0,
+      "resolved_findings": 0,
+      "artifact": ".agent/evidence/AAA-022/a19-scope-31-current-state-check-postcheckpoint-20260923.txt",
+      "summary": "After the state-last checkpoint, the aggregate state checker again reports exactly the 359-finding pre-A25 baseline, with no new or resolved diagnostics."
+    }
+  },
+  "failed_draft_correction": {
+    "artifact": ".agent/evidence/AAA-022/a19-scope-31-gate-draft-correction-20260923.json",
+    "summary": "The first local gate draft used a different scope string from its predecessor and added three state-check findings. Its record, authority row, verification rows, and event were rolled back to state revision 232; the failed draft and 362-finding output remain preserved separately."
+  },
+  "authority_binding": {
+    "new_authority_id": "AUTH-AAA-022-A19-SCOPE-31-CURRENT-002",
+    "successor_gate_path": ".agent/gates/audit-resolved-AAA-022-A19-scope-31-current.json",
+    "successor_gate_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-003",
+    "previous_authority_id": "AUTH-AAA-022-A19-SCOPE-31-001",
+    "scope_effect": "Refresh only the fingerprint and bind the same user-approved 31-input scope; keep runtime scope and shared catalog owners unchanged."
+  },
+  "lifecycle_effect": "A19 remains closed; AAA-022:A25 remains active in BUILD/DESIGN at TECHNICALLY_SPECIFIED. No A19 implementation is reopened; no external repository action is authorized.",
+  "limitations": [
+    "Full repository doc-sync remains PARTIAL at 37/43 with the six failures above; no repository-wide documentation pass is claimed.",
+    "This record verifies current scope membership, owner attribution, current fingerprint, and A19-scoped API/documentation checks only.",
+    "No product behavior tests or generators in write mode were run for this scope revalidation."
+  ],
+  "state_check_ordering_checkpoint": {
+    "event_id": "EVT-AAA-022-CHECKPOINT-A19-STATE-CHECK-CURRENT-001-108",
+    "verification_id": "VER-AAA-022-A19-STATE-CHECK-CURRENT-20260923-001",
+    "timestamp": "2026-09-23T17:36:06-03:00",
+    "active_action_id": "AAA-022:A25"
+  }
+}

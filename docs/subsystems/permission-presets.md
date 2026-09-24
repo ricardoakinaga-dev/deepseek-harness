@@ -74,6 +74,12 @@ interface PresetOption {
 
 `permission/preset` is durable, log-only user intent: it stays out of the model transcript (the knob events own the model-visible consequences through their consumers), and it exists so `current()` can preserve which preset the user chose when two presets share a bundle. The `permissions` projection folds that selection with both knob events and retains the `session/end-seed` boundary used to distinguish a restored empty seed from a fresh session; replay needs no catch-up state or raw-log rescan. A restored `auto` selection requires the live Auto registration before Agent publication. The complete event declaration is in the [persistence log event catalog](../persistence-catalog.md); the method signatures are in the generated [service catalog](#ctxpermissionpresets--permissionpresetservice).
 
+## Preset history validation
+
+The permission invariant checks every `permission/preset` name from an exact, contiguous per-Session fold. It seeds from the borrowed creation baseline and advances after committed events; the `permissions` projection keeps only the current selection and cannot validate older names. Before a candidate event commits, the companion requires the fold to end at the candidate's preceding sequence and checks the candidate name against the configured table or currently live Auto entry.
+
+Creation and restored baselines fail when they contain an unknown preset name. A stored `auto` name is valid only while its integration is live. Provider and invariant fibers share one fold for the exact Session; unloading one fiber preserves it while another lease remains. Final release removes the fold, so a later provider cannot rebuild an eventful Session from its log, while an empty Session can start at the empty prefix.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>

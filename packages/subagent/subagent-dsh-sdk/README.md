@@ -174,6 +174,8 @@ These limits define when this backend is a poor fit or needs special operational
 - **The child's transcript stays in the child's own session root** — the parent log records only the delegation tool call and result; the streamed `session.event` channel is consumed for output extraction, not bridged into the parent log.
 - **Local child processes only** — the resolved working directory is a local path; a remote runtime would need its own backend.
 
+**Runtime invariant:** No companion is published. Run lifecycle pairing is owned and checked by the subagent seam's invariant; this backend's own state lives in the child process beyond this context's event streams.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -186,5 +188,3 @@ This Dev Note is working context for maintainers: open questions and undecided d
 - **Remote runtimes** — a remote runtime would need its own backend and workspace mapping.
 
 </details>
-
-**Runtime invariant:** No companion is published. Run lifecycle pairing is owned and checked by the subagent seam's invariant; this backend's own state lives in the child process beyond this context's event streams.

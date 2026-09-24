@@ -762,7 +762,7 @@ export class Session implements SessionFace {
   /** Single removal point: drop the echo, publish, then notify the owner. */
   private finishSubmission(requestId: SessionRequestId, retirement: PendingSubmissionRetirement): void {
     const settlement = this.submissionSettlements.get(requestId)
-    /* v8 ignore next -- retiring latches before every schedule, so one settlement never finishes twice. */
+    /*! v8 ignore next -- retiring latches before every schedule, so one settlement never finishes twice. */
     if (settlement === undefined) return
     this.submissionSettlements.delete(requestId)
     this.pendingSubmissions = this.pendingSubmissions.filter(echo => echo.requestId !== requestId)

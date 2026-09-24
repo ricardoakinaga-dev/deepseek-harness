@@ -80,6 +80,8 @@ These limits define the current feedback surface. They are current package const
 - **No cross-tab push** — a second tab's rating becomes visible on reconnect or on the next conflict reply, not immediately; the controller does not consume feedback log events.
 - **Chat view only** — the trajectory and waterfall views render no feedback controls even though their assistant nodes carry the same `messageId`.
 
+**Runtime invariant:** No companion is published. The plugin owns two slot registrations, one command decoration, and one per-session controller-pair map, all released by the plugin fiber's effect disposers. The lifecycle spec proves the registrations are withdrawn and every controller pair is dropped when the owning fiber is disposed, so no second authority exists to check at runtime.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -89,5 +91,3 @@ These limits define the current feedback surface. They are current package const
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The plugin owns two slot registrations, one command decoration, and one per-session controller-pair map, all released by the plugin fiber's effect disposers. The lifecycle spec proves the registrations are withdrawn and every controller pair is dropped when the owning fiber is disposed, so no second authority exists to check at runtime.

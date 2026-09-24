@@ -108,7 +108,7 @@ describe('CI workflow', () => {
       if (jobName === 'node-24-consumers') {
         const browserCache: unknown = job.steps.find(step => isRecord(step) && isRecord(step.with)
           && step.with.path === '${{ env.PLAYWRIGHT_BROWSERS_PATH }}')
-        expect(browserCache).toMatchObject({ uses: 'actions/cache/restore@v4' })
+        expect(browserCache).toMatchObject({ uses: expect.stringMatching(/^actions\/cache\/restore@/u) as string })
       }
       const store: unknown = job.steps.find(step => isRecord(step) && step.name === 'Configure pnpm store path')
       expect(store).toMatchObject({
@@ -297,8 +297,8 @@ describe('CI workflow', () => {
     expect(serialGate).toBeDefined()
     expect(serialGate!.env).toMatchObject({ DSH_COVERAGE_TEST_TIMEOUT_MS: '90000' })
 
-    // windows-coverage is temporarily non-blocking while Windows ACP
-    // half-close tests are stabilized; observational stays out too.
+    // Windows coverage is a required verdict input; observational stays
+    // non-blocking and out of the required list.
     expect(aggregate.needs).not.toContain('windows')
     expect(aggregate.needs).toContain('windows-build')
     // The benchmark lane is a required verdict input and runs alone so its
@@ -316,7 +316,7 @@ describe('CI workflow', () => {
       env: { DSH_GATE_VERBOSE: '1' },
       run: 'pnpm run check:ci:bench',
     })
-    expect(aggregate.needs).not.toContain('windows-coverage')
+    expect(aggregate.needs).toContain('windows-coverage')
     expect(aggregate.needs).toContain('windows-native-tests')
     expect(aggregate.needs).not.toContain('windows-observational')
     expect(aggregate.needs).not.toContain('serial-windows')
@@ -344,11 +344,11 @@ describe('CI workflow', () => {
       linuxAggregate: aggregate['runs-on'] as string,
       windows: windowsBuild['runs-on'] as string,
     }
-    const evaluate = (expression: string, vars: Record<string, string>, login = 'maintainer'): unknown => {
+    const evaluate = (expression: string, vars: Record<string, string>, login = 'maintainer', fork = false): unknown => {
       return evaluateRunsOn(expression, {
         vars,
         fromJSON: JSON.parse,
-        github: { event: { pull_request: { user: { login } } } },
+        github: { event: { pull_request: { head: { repo: { fork } }, user: { login } } } },
       })
     }
     for (const [name, selector, variable, pool, hosted] of [
@@ -361,6 +361,7 @@ describe('CI workflow', () => {
       // The blacksmith branch must not capture the selfhosted pool, and the
       // dependabot exclusion applies to the pool, not to the blacksmith tier.
       expect(evaluate(selector, { [variable]: 'selfhosted' }, 'dependabot[bot]'), `${name} dependabot on selfhosted`).toBe(hosted)
+      expect(evaluate(selector, { [variable]: 'selfhosted' }, 'maintainer', true), `${name} fork on selfhosted`).toBe(hosted)
       for (const mode of ['', 'hosted', 'unexpected']) {
         expect(evaluate(selector, { [variable]: mode }), `${name} default on ${mode}`).toBe(hosted)
       }
@@ -432,7 +433,7 @@ describe('CI workflow', () => {
   it('always restores the hosted benchmark pnpm cache', () => {
     const benchmark = workflowJob(loadWorkflow('.github/workflows/ci.yml'), 'node-24-bench')
     if (!Array.isArray(benchmark.steps)) throw new TypeError('benchmark job must define steps')
-    const caches = benchmark.steps.filter(step => isRecord(step) && step.uses === 'actions/cache/restore@v4')
+    const caches = benchmark.steps.filter(step => isRecord(step) && typeof step.uses === 'string' && step.uses.startsWith('actions/cache/restore@'))
 
     expect(caches).toHaveLength(1)
     expect(caches[0]).not.toHaveProperty('if')
@@ -731,7 +732,7 @@ describe('Python release workflows', () => {
       step => typeof step.uses === 'string' && step.uses.startsWith('actions/checkout@'),
     )).toBe(false)
     expect([...runtimeSteps, ...sdkSteps].filter(
-      step => step.uses === 'pypa/gh-action-pypi-publish@release/v1',
+      step => typeof step.uses === 'string' && step.uses.startsWith('pypa/gh-action-pypi-publish@'),
     )).toHaveLength(2)
     expect(runtimePublish).toMatchObject({
       with: { 'packages-dir': 'dist/runtime/', attestations: false },

@@ -7,17 +7,22 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { z as zod } from 'zod'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
+import type { PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { UserMessage } from '@deepseek-ai/dsh-llm'
-import { SessionSeq } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import {
-  deriveBrowserTimeZoneContext,
+  deriveBrowserTimeZoneContextFromInputs,
   renderBrowserTimeZoneContext,
 } from './request-zone.ts'
 import type { BrowserTimeZoneContext } from './request-zone.ts'
+import {
+  applyTimeContextEvent,
+  initialTimeContextProjection,
+  proposedBrowserTimeZoneInputs,
+  timeContextCacheFingerprint,
+  timeContextStateSchema,
+} from './projection.ts'
+import type { TimeContextProjection } from './projection.ts'
 import { createTimestampFormatter, formatTimestamp } from './timestamp.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
@@ -29,18 +34,6 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
     timeContext: TimeContextProjection
   }
 }
-
-const timeContextStateSchema = zod.object({
-  /** Time of the latest model-visible event (user/assistant message, tool result), or null. */
-  lastMessageTime: zod.number().nullable(),
-  /** Time of this plugin's latest durable injection, or null. */
-  lastInjectionTime: zod.number().nullable(),
-  /** Latest injection time in the open turn, or null before that turn receives one. */
-  lastTurnInjectionTime: zod.number().nullable(),
-})
-
-/** Folded time-context readings. */
-type TimeContextProjection = zod.infer<typeof timeContextStateSchema>
 
 /** The agent registry that owns pre-step processing. */
 export const inject = ['agents', 'sessionProjections']
@@ -74,20 +67,6 @@ function formatDuration(elapsedMs: number): string {
   if (minutes > 0) parts.push(`${minutes}m`)
   parts.push(`${seconds}s`)
   return parts.join(' ')
-}
-
-/** Collect already-entered and proposed user messages belonging to one open turn. */
-function requestMessages(agent: Agent, turn: number, proposed: readonly UserMessage[]): UserMessage[] {
-  const entered: UserMessage[] = []
-  for (let seq = agent.session.seq - 1; seq >= 0; seq -= 1) {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    const event = agent.session.eventAt(SessionSeq(seq))
-    if (event?.type === 'turn/start' && event.data.turn === turn) {
-      return [...entered.reverse(), ...proposed]
-    }
-    if (event?.type === 'user/message') entered.push(event.data)
-  }
-  return [...proposed]
 }
 
 function renderText(
@@ -152,30 +131,11 @@ export function apply(ctx: Context, config: Config): void {
 
   ctx.sessionProjections.register({
     key: 'timeContext',
-    stateVersion: 2,
+    stateVersion: 3,
+    cacheFingerprint: timeContextCacheFingerprint,
     stateSchema: timeContextStateSchema,
-    init: () => ({ lastMessageTime: null, lastInjectionTime: null, lastTurnInjectionTime: null }),
-    apply: (state, event) => {
-      if (event.type === 'turn/start' || event.type === 'turn/end') {
-        return state.lastTurnInjectionTime === null ? state : { ...state, lastTurnInjectionTime: null }
-      }
-      if (event.type === 'user/message') {
-        const injected = event.data.source.kind === 'plugin' && event.data.source.plugin === name
-        const withMessage = state.lastMessageTime === event.time
-          ? state
-          : { ...state, lastMessageTime: event.time }
-        if (!injected) return withMessage
-        return {
-          ...withMessage,
-          lastInjectionTime: event.time,
-          lastTurnInjectionTime: event.time,
-        }
-      }
-      if (event.type === 'assistant/message' || event.type === 'tool/result') {
-        return state.lastMessageTime === event.time ? state : { ...state, lastMessageTime: event.time }
-      }
-      return state
-    },
+    init: initialTimeContextProjection,
+    apply: applyTimeContextEvent,
   })
 
   ctx.on('agent/pre-step', async (
@@ -192,12 +152,15 @@ export function apply(ctx: Context, config: Config): void {
         && now >= lastInjection
         && now - lastInjection < refreshIntervalMs) return decision
     }
-    /* v8 ignore next 6 -- every later step follows a recorded injection in the same turn */
+    /*! v8 ignore next 6 -- every later step follows a recorded injection in the same turn */
     const previous = step === 1
       ? state.lastMessageTime ?? undefined
       : state.lastTurnInjectionTime ?? undefined
-    const messages = requestMessages(agent, turn, decision.messages)
-    const browser = deriveBrowserTimeZoneContext(messages)
+    const proposed = decision.messages
+    const browser = deriveBrowserTimeZoneContextFromInputs([
+      ...state.browserTimeZoneInputs,
+      ...proposedBrowserTimeZoneInputs(proposed),
+    ])
     const selectedTimeZone = browser.kind === 'resolved' ? browser.timeZone : fallbackTimeZone
     const text = renderText(
       now,

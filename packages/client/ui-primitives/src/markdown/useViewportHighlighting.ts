@@ -18,7 +18,7 @@ class HighlightViewport {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue
         const current = this.activators.get(entry.target)
-        /* v8 ignore next -- the observer reports only elements still registered with it. */
+        /*! v8 ignore next -- the observer reports only elements still registered with it. */
         if (current === undefined) continue
         this.activators.delete(entry.target)
         this.observer?.unobserve(entry.target)
@@ -63,7 +63,7 @@ export function useViewportHighlighting(
   useEffect(() => {
     if (activated || !supported) return
     const element = target.current
-    /* v8 ignore next -- React attaches the host ref before running effects. */
+    /*! v8 ignore next -- React attaches the host ref before running effects. */
     if (element === null) return
     return highlightViewport.observe(element, activate)
   }, [activate, activated, supported, target])

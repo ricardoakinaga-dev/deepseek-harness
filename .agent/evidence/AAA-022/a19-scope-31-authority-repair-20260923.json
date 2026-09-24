@@ -1,0 +1,103 @@
+{
+  "record_id": "A19-SCOPE-31-AUTHORITY-REPAIR-20260923-001",
+  "timestamp": "2026-09-23T16:09:55.007Z",
+  "task": "AAA-022",
+  "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+  "reason": "The user approved expanding A19 to exactly 31 paths and expressly authorized updating the allowlist, fingerprint, and authority/gate record. The prior authority row used a subject_type outside the canonical GATE/OVERRIDE enum, so it could not bind to a gate.",
+  "prior_record_preserved": {
+    "file": ".agent/authority.jsonl",
+    "line": 14,
+    "id": "AUTH-AAA-022-A19-SCOPE-31-001",
+    "sha256_before_ledger_edit": "1501c55401c539c7e4e17897e3f85a5e1df5624abac4685dfc117f402ba92d0e",
+    "sha256_after_ledger_edit": "36db665924eed654d65c3bcbbe701b661ea8ca8ddc221b4b70a7bbc8291ef22c",
+    "prior_line_sha256": "6df1aac3e9dda96fc76e8d7c70b0d2dcb67b7b32f5dcf4d5bfa6bd68c6897ec0",
+    "corrected_line_sha256": "cb6249af501d70474b95cfef412587b55d077169119b02e72137f20e69fabaf6",
+    "prior_line": "{\"id\":\"AUTH-AAA-022-A19-SCOPE-31-001\",\"timestamp\":\"2026-09-23T11:11:00-03:00\",\"actor\":\"Ricardo Akinaga\",\"scope\":\"AAA-022:A19 final 31-path authority and active prepared-session owner allowlist\",\"scope_ref\":\"AAA-022\",\"subject_type\":\"GATE_SCOPE_REVALIDATION\",\"subject_id\":\"A19-SCOPE-31-REVALIDATION-20260923-001\",\"decision\":\"The user explicitly approved the A19 expansion from 24 to exactly 31 paths: the persistence and session-projection subsystem documentation pairs and sidecars, plus the generated Cordis API catalog path in its existing ownership records. Exclude the three docs/subsystems/session.* paths from the active A19 owner allowlist. Preserve all prior gate and closeout records unchanged.\",\"status\":\"CONFIRMED\",\"evidence\":\"User selected “Expand to 31 paths (Recommended)” and explicitly approved updating the allowlist, fingerprint, and authority/gate record; the approval names docs/subsystems/persistence.*, docs/subsystems/session-projection.*, and packages/extensions/tool-cordis/src/api-catalog.ts.\",\"limitations\":\"This revalidation fixes A19 scope attribution only. The existing api-catalog.ts owners remain unchanged; the historical 34-path gate and closeout remain immutable. This does not reopen A19 implementation, alter A21, or authorize external repository actions.\",\"expires_at\":null}",
+    "corrected_record": {
+      "id": "AUTH-AAA-022-A19-SCOPE-31-001",
+      "timestamp": "2026-09-23T11:11:00-03:00",
+      "actor": "Ricardo Akinaga",
+      "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+      "scope_ref": "AAA-022",
+      "subject_type": "GATE",
+      "subject_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+      "decision": "The user explicitly approved the A19 expansion from 24 to exactly 31 paths: the persistence and session-projection subsystem documentation pairs and sidecars, plus the generated Cordis API catalog path in its existing ownership records. Exclude the three docs/subsystems/session.* paths from the active A19 owner allowlist. Preserve all prior gate and closeout records unchanged.",
+      "status": "CONFIRMED",
+      "evidence": "User selected “Expand to 31 paths (Recommended)” and explicitly approved updating the allowlist, fingerprint, and authority/gate record; the approval names docs/subsystems/persistence.*, docs/subsystems/session-projection.*, and packages/extensions/tool-cordis/src/api-catalog.ts.",
+      "limitations": "This revalidation fixes A19 scope attribution only. The existing api-catalog.ts owners remain unchanged; the historical 34-path gate and closeout remain immutable. This does not reopen A19 implementation, alter A21, or authorize external repository actions.",
+      "expires_at": null
+    }
+  },
+  "approved_scope": {
+    "from_path_count": 24,
+    "to_path_count": 31,
+    "fingerprint": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+    "fingerprint_inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "active_owner_path_count": 29,
+    "active_owner_excluded_paths": [
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "docs/subsystems/session.i18n.yaml"
+    ],
+    "api_catalog_owners": [
+      "session-reader-migration",
+      "dynamic-extension-trust"
+    ]
+  },
+  "gate_binding": {
+    "path": ".agent/gates/audit-resolved-AAA-022-A19-scope-31.json",
+    "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+    "gate_id": "AUDIT_RESOLVED",
+    "scope_ref": "AAA-022",
+    "prior_implementation_gate": {
+      "path": ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json",
+      "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+      "fingerprint_path_count": 34,
+      "disposition": "preserved unchanged"
+    },
+    "original_implementation_gate": {
+      "path": ".agent/gates/implementation-ready-AAA-022-A19.json",
+      "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+      "fingerprint_path_count": 24,
+      "disposition": "preserved unchanged"
+    }
+  },
+  "limitations": [
+    "This correction changes only the malformed A19 scope authority binding and adds its scope-resolution gate.",
+    "The existing prepared-session owner remains at 29 paths; the three docs/subsystems/session.* paths stay excluded.",
+    "The generated API catalog path remains under its two existing owners.",
+    "No A19 implementation, A21 action, runtime state, backlog, source code, or historical gate was changed."
+  ]
+}

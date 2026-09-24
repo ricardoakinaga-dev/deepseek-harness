@@ -216,11 +216,11 @@ function win32Structs(): { PVOID: KoffiType; PROCESSENTRY32W: ReturnType<Koffi['
     dwLowDateTime: 'uint32',
     dwHighDateTime: 'uint32',
   })
-  /* v8 ignore start -- a layout-mismatch guard fires only on ABI breakage; the windows-native suites exercise the real struct. */
+  /*! v8 ignore start -- a layout-mismatch guard fires only on ABI breakage; the windows-native suites exercise the real struct. */
   if (PROCESSENTRY32W.size !== 568) {
     throw new Error(`PROCESSENTRY32W layout mismatch: koffi computed ${PROCESSENTRY32W.size}, Windows headers say 568`)
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
   cachedStructs = { PVOID, PROCESSENTRY32W, FILETIME }
   return cachedStructs
 }
@@ -285,7 +285,7 @@ function snapshotWindowsProcesses(bindings: Win32Bindings): ProcessEntry[] {
   const koffi = requireKoffi()
   const { PROCESSENTRY32W } = win32Structs()
   const snapshot = bindings.createToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-  /* v8 ignore next -- an invalid snapshot for the process flag is not producible through the public API;
+  /*! v8 ignore next -- an invalid snapshot for the process flag is not producible through the public API;
      the guard mirrors POSIX's unreadable-proc tolerance and isInvalidHandle is unit-tested. */
   if (isInvalidHandle(snapshot)) return []
   const entries: ProcessEntry[] = []
@@ -318,13 +318,13 @@ function windowsProcessState(bindings: Win32Bindings, pid: number): WindowsProce
     const exit = allocNative(FILETIME, 1)
     const kernel = allocNative(FILETIME, 1)
     const user = allocNative(FILETIME, 1)
-    /* v8 ignore next -- a GetProcessTimes failure after a successful open races process exit and
+    /*! v8 ignore next -- a GetProcessTimes failure after a successful open races process exit and
        cannot be staged deterministically; the absent-process path is covered and the caller
        treats undefined as a detector miss. */
     if (bindings.getProcessTimes(handle, creation, exit, kernel, user) === 0) return undefined
     const record = koffi.decode(creation, FILETIME) as { dwLowDateTime: number; dwHighDateTime: number }
     const wait = bindings.waitForSingleObject(handle, 0)
-    /* v8 ignore next -- an opened process handle has exactly one of these two
+    /*! v8 ignore next -- an opened process handle has exactly one of these two
        zero-time wait states; an unexpected Win32 failure is an unreadable process. */
     if (wait !== WAIT_OBJECT_0 && wait !== WAIT_TIMEOUT) return undefined
     return {

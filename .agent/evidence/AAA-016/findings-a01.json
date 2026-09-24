@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-016",
+  "action_id": "AAA-016:A01",
+  "candidate_ref": "current customization-policy verifier",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T21:59:04-03:00",
+  "source_documents": [
+    {
+      "id": "package-roots-audit",
+      "location": "docs/customization/repository-audit-2026-09-20.md:108",
+      "role": "The current audit identifies acceptance of packageRoots on configuration records as a policy enforcement gap."
+    },
+    {
+      "id": "policy-verifier",
+      "location": "scripts/verify-customization-policy.mjs:103-117",
+      "role": "The current verifier validates packageRoots format only for packaged extension solution types and ignores the field on configuration, profile-patch, and skill records."
+    },
+    {
+      "id": "policy-tests",
+      "location": "scripts/verify-customization-policy.spec.ts:1-77",
+      "role": "The current focused suite covers valid packaged roots and unrelated classification errors but has no forbidden-packageRoots fixtures."
+    },
+    {
+      "id": "governance-owner",
+      "location": ".agents/customization-policy.json:85-100",
+      "role": "The existing upstream-safe-customization-governance record owns the verifier and its focused specification, so no competing policy owner is needed."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-016-PACKAGEROOTS-FALSE-GREEN",
+      "source_refs": ["package-roots-audit", "policy-verifier"],
+      "source_location": "scripts/verify-customization-policy.mjs:109-117",
+      "observed_status": "FAIL_REPRODUCED",
+      "classification": "FORBIDDEN_PACKAGE_ROOTS_ACCEPTED_ON_NON_PACKAGED_EXTENSION",
+      "owner": "AAA-016",
+      "severity": "CRITICAL",
+      "summary": "An extension record with solutionType configuration and packageRoots is accepted with no diagnostic, even though configuration does not ship package source and must not claim package roots.",
+      "limitations": "The probe used an in-memory policy record and did not alter the checked-in policy."
+    },
+    {
+      "id": "F-AAA-016-INVALID-FIXTURE-GAP",
+      "source_refs": ["policy-tests", "governance-owner"],
+      "source_location": "scripts/verify-customization-policy.spec.ts:1-77",
+      "observed_status": "FAIL_REPRODUCED",
+      "classification": "NEGATIVE_FIXTURE_MISSING",
+      "owner": "AAA-016",
+      "severity": "HIGH",
+      "summary": "The focused policy suite has no invalid fixtures for packageRoots on configuration, profile-patch, or skill solution types, so the false-green path is not protected by an executable test.",
+      "limitations": "The existing positive packaged-extension fixture remains valid and must continue to pass after the correction."
+    }
+  ],
+  "design": {
+    "solution_type": "repository-automation",
+    "official_owner": "scripts/verify-customization-policy.mjs and scripts/verify-customization-policy.spec.ts",
+    "implementation_scope": [
+      "Reject packageRoots when an extension solutionType is configuration, profile-patch, or skill.",
+      "Add one focused invalid fixture for each non-packaged extension type with an actionable diagnostic.",
+      "Preserve the required packageRoots validation for plugin, bundle, plugin-and-bundle, library, and capability-seam records.",
+      "Keep the existing policy improvement ownership and do not introduce a second owner for the verifier paths."
+    ],
+    "compatibility_obligations": [
+      "Existing valid packaged-extension records continue to pass.",
+      "Configuration, profile-patch, and skill records without packageRoots continue to pass.",
+      "No runtime package or released Session data changes.",
+      "The diagnostic names the offending record and forbidden field."
+    ]
+  },
+  "decision": {
+    "result": "AAA-016:A01 PASS — false-green packageRoots acceptance reproduced and bounded implementation scope specified",
+    "product_change": false,
+    "diagnosis": "The verifier's current conditional validates malformed package roots for packaged extensions but silently accepts the same field on non-packaged extension records. The existing governance owner and focused test file are the correct implementation surfaces.",
+    "next_action": "Bind the implementation-ready gate and add the forbidden-packageRoots rule with configuration, profile-patch, and skill invalid fixtures."
+  },
+  "validation": {
+    "commands": [
+      "node --input-type=module -e import validateCustomizationPolicy and probe configuration with packageRoots",
+      "rg -n packageRoots scripts/verify-customization-policy.mjs scripts/verify-customization-policy.spec.ts docs/customization/repository-audit-2026-09-20.md",
+      "pnpm exec vitest run scripts/verify-customization-policy.spec.ts",
+      "node scripts/verify-customization-policy.mjs --base master && git diff --check"
+    ],
+    "raw_output_files": [
+      ".artifacts/aaa-016/aaa-016-a01-2026-09-20/package-roots-probe.log",
+      ".artifacts/aaa-016/aaa-016-a01-2026-09-20/source-contract.log",
+      ".artifacts/aaa-016/aaa-016-a01-2026-09-20/current-policy-suite.log",
+      ".artifacts/aaa-016/aaa-016-a01-2026-09-20/ownership-gate.log"
+    ],
+    "raw_output_sha256": {
+      "package-roots-probe.log": "92c6460dcf524919753ea96ae8463cbc4d42e583e61b4f4c4c8bdd8bb1ec1914",
+      "source-contract.log": "3d596922c77889838b86f04c468cc72559e39fea4def5c8189302b605d045a60",
+      "current-policy-suite.log": "fa9d84671a95dd15326f55eeb0875b4f0d96eedd717710bb563540dd10f4eec2",
+      "ownership-gate.log": "57635bee8ca7c914abc154cf06e3181fab28ed0c751e5057d280f08b5ef9a36e"
+    },
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T21:59:04-03:00"
+  }
+}

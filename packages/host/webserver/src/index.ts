@@ -219,7 +219,7 @@ export class WebServer extends Service {
   /** Listen; resolves once the socket is bound (rejection = FAILED fiber). */
   async [Service.init](): Promise<void> {
     const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-      /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server
+      /*! v8 ignore next -- `?? '/'` arm: node:http always sets url on server
       requests; the field is only optional on the client-side IncomingMessage type */
       const rawPath = new URL(req.url ?? '/', 'http://x').pathname
       const route = this.match(rawPath)
@@ -266,7 +266,7 @@ export class WebServer extends Service {
       })
       let route: WebUpgradeRoute | undefined
       try {
-        /* v8 ignore next -- node:http always sets url on server requests. */
+        /*! v8 ignore next -- node:http always sets url on server requests. */
         route = this.upgrades.get(new URL(req.url ?? '/', 'http://x').pathname)
       } catch (error) {
         this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))

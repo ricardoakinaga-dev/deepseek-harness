@@ -42,7 +42,7 @@ function dotState(status: WorkflowRunStatus): StateDotState {
     case 'failed': return 'error'
     case 'cancelled':
     case 'interrupted': return 'warning'
-    /* v8 ignore next -- WorkflowRunStatus is closed and every variant is handled above. */
+    /*! v8 ignore next -- WorkflowRunStatus is closed and every variant is handled above. */
     default: return status satisfies never
   }
 }
@@ -154,14 +154,14 @@ function existingPhaseState(
   key: string,
 ): DisclosureState {
   const phase = phases.get(key)
-  /* v8 ignore next -- mounted phase callbacks are created from this owner map. */
+  /*! v8 ignore next -- mounted phase callbacks are created from this owner map. */
   if (phase === undefined) throw new Error(`Missing disclosure state for phase ${key}`)
   return phase
 }
 
 function preventPendingHeaderFocus(event: MouseEvent<HTMLElement>): void {
   const header = event.currentTarget.querySelector('[data-disclosure-row]')
-  /* v8 ignore next -- DisclosureRow always renders its header before the content. */
+  /*! v8 ignore next -- DisclosureRow always renders its header before the content. */
   if (header === null) throw new Error('Missing disclosure header')
   if (header.contains(event.target as Node)) event.preventDefault()
 }

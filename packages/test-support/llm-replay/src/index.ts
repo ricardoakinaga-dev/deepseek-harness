@@ -651,7 +651,7 @@ function inferStartedSubagents(
   for (const leaf of leaves) {
     for (const match of leaf.matchAll(/started subagent ([^\s"'<>]+)/g)) {
       const id = match[1]
-      /* v8 ignore next -- the fixed regular expression always has capture group 1. */
+      /*! v8 ignore next -- the fixed regular expression always has capture group 1. */
       if (id === undefined || liveSessionIds.includes(id)) continue
       const index = liveSessionIds.findIndex((value, candidate) => candidate > 0 && value === undefined)
       if (index < 0) return
@@ -860,14 +860,14 @@ class ReplayAdapter extends LlmAdapter {
 
   override providerInfo(provider: string): LlmProviderInfo {
     const configured = this.providers.get(provider)
-    /* v8 ignore next -- LlmRuntime only asks about routes registered from this same map. */
+    /*! v8 ignore next -- LlmRuntime only asks about routes registered from this same map. */
     if (configured === undefined) return super.providerInfo(provider)
     return { id: provider, name: configured.name ?? provider }
   }
 
   override providerRetryPolicy(provider: string): ResolvedRetryPolicy | undefined {
     const configured = this.providers.get(provider)
-    /* v8 ignore next -- LlmRuntime only asks about routes registered from this same map. */
+    /*! v8 ignore next -- LlmRuntime only asks about routes registered from this same map. */
     if (configured === undefined) return super.providerRetryPolicy(provider)
     return configured.retryPolicy === undefined
       ? undefined
@@ -887,7 +887,7 @@ class ReplayAdapter extends LlmAdapter {
 
   override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
     const configured = this.providers.get(provider)
-    /* v8 ignore next -- LlmRuntime only asks about routes registered from this same map. */
+    /*! v8 ignore next -- LlmRuntime only asks about routes registered from this same map. */
     if (configured === undefined) return Promise.resolve([])
     return Promise.resolve((configured.models ?? []).map(model => ({
       provider,
@@ -900,7 +900,7 @@ class ReplayAdapter extends LlmAdapter {
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
     const configured = this.providers.get(provider)
-    /* v8 ignore next -- LlmRuntime only asks about routes registered from this same map. */
+    /*! v8 ignore next -- LlmRuntime only asks about routes registered from this same map. */
     if (configured === undefined) return Promise.resolve({ provider, id: model, name: model })
     const configuredModel = configured.models?.find(candidate => candidate.id === model)
     return Promise.resolve({
@@ -988,9 +988,10 @@ async function* replayEntry(entry: ReplayEntry, signal: AbortSignal | undefined,
         if (signal?.aborted) { reject(new Error('aborted')); return }
         signal?.addEventListener('abort', () => { reject(new Error('aborted')) }, { once: true })
       })
-      /* v8 ignore next -- unreachable: the hang promise only ever rejects (on abort), never resolves; control never reaches here */
+      /*! v8 ignore start -- unreachable: the hang promise only ever rejects (on abort), never resolves; control never reaches here. */
       return
-    /* v8 ignore next -- sidecar entries are validated before they reach the closed local union. */
+      /*! v8 ignore stop */
+    /*! v8 ignore next -- sidecar entries are validated before they reach the closed local union. */
     default:
       return assertNever(entry, 'llm-replay replay entry')
   }
@@ -1004,7 +1005,7 @@ function providerAccepted(entry: ReplayEntry): boolean {
       return true
     case 'throw':
       return entry.accepted ?? entry.chunks.length > 0
-    /* v8 ignore next -- override parsing and derived entries close the local union before replay. */
+    /*! v8 ignore next -- override parsing and derived entries close the local union before replay. */
     default:
       return assertNever(entry, 'llm-replay acceptance entry')
   }

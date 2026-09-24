@@ -203,7 +203,7 @@ export function launchAcpTestAgent(options: AcpTestLaunchOptions): LaunchedAcpTe
         updates.push(params.update)
         for (let index = updateWaiters.length - 1; index >= 0; index--) {
           const waiter = updateWaiters[index]
-          /* v8 ignore next 1 -- index is bounded by the array length */
+          /*! v8 ignore next 1 -- index is bounded by the array length */
           if (waiter === undefined) continue
           let matches: boolean
           try {
@@ -228,13 +228,13 @@ export function launchAcpTestAgent(options: AcpTestLaunchOptions): LaunchedAcpTe
     closed: connection.closed,
     initialize: params => context.request(methods.agent.initialize, params),
     newSession: params => context.request(methods.agent.session.new, params),
-    /* v8 ignore next -- exercised by the real-process ACP control-surface conformance e2e. */
+    /*! v8 ignore next -- exercised by the real-process ACP control-surface conformance e2e. */
     listSessions: params => context.request(methods.agent.session.list, params),
-    /* v8 ignore next -- exercised by the real-process ACP control-surface conformance e2e. */
+    /*! v8 ignore next -- exercised by the real-process ACP control-surface conformance e2e. */
     resumeSession: params => context.request(methods.agent.session.resume, params),
-    /* v8 ignore next -- exercised by the real-process ACP control-surface conformance e2e. */
+    /*! v8 ignore next -- exercised by the real-process ACP control-surface conformance e2e. */
     closeSession: params => context.request(methods.agent.session.close, params),
-    /* v8 ignore next -- exercised by the real-process ACP control-surface conformance e2e. */
+    /*! v8 ignore next -- exercised by the real-process ACP control-surface conformance e2e. */
     setSessionConfigOption: params => context.request(methods.agent.session.setConfigOption, params),
     prompt: params => context.request(methods.agent.session.prompt, params),
     cancel: params => context.notify(methods.agent.session.cancel, params),
@@ -401,7 +401,7 @@ function linkProfilePackage(source: string, cwd: string, profile: string, packag
     }
     return
   }
-  /* v8 ignore next -- Windows uses directory junctions; the platform lane owns that branch. */
+  /*! v8 ignore next -- Windows uses directory junctions; the platform lane owns that branch. */
   symlinkSync(packageDir, link, process.platform === 'win32' ? 'junction' : 'dir')
 }
 

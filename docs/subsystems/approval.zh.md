@@ -87,6 +87,16 @@ interface ApprovalRequest extends ApprovalRequestEvent {
 
 审计事件仅写入日志，不进入模型 transcript（文本记录）。模型可见的行为是调用方派生的工具结果与当前运行时上下文快照。服务 dispose（资源释放）时会移除其上下文贡献；应答者监听器独立地通过 effect 绑定到其所属插件。
 
+<a id="current-session-state"></a>
+
+## 当前 Session 状态
+
+服务从每个 Session 的一份精确折叠中读取当前轮次与最新的 `approval/policy`。不变式伴生插件使用同一份折叠保留未匹配的审批 id，并在提交前校验 `approval/asked`、`approval/decided` 与策略值。折叠从创建基线开始，包括恢复与 fork 事件，并随已提交的 `session/event` 通知推进。同步读取要求游标等于 `session.seq - 1`；缺失基线、序列缺口或无效的已提交事件会锁存失败，并阻止后续读取。
+
+候选校验读取已提交前缀但不修改它，因此被拒绝的事件不会改变轮次、策略、待决 id 或游标。`turn/end` 会关闭当前轮次，但不会清除未匹配的审批 id。`request()` 会在追加事件或处理已中止信号之前检查当前轮次，然后在分发前从同一份折叠读取策略。
+
+每个服务提供者与不变式 fiber 都持有该折叠的 lease。兄弟 fiber 卸载后仍存活的 lease 会让当前读取与校验保持精确；最后一个 lease 释放时，折叠会被删除。后续挂载可以为存活的空 Session 初始化折叠，但没有活跃精确折叠的已有事件 Session 无法从日志重建。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -99,7 +109,7 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 
 ### `ctx.approval` — `ApprovalService`
 
-Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices.
+Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices. Open-turn and latest-policy reads require an exact package-owned Session fold.
 
 ```ts cordis-catalog
 /**
@@ -125,16 +135,20 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  * authoritative append cannot reject the request or suppress its matching
  * audit event.
  * @param req - the pending decision (agent, tool identity, reason, signal).
- * @returns the closed outcome; `'allowed-once'` is the only grant.
- * @throws when no turn is open or either audit event fails before the session
- *   append commit point.
+ * @returns the closed outcome; `'allowed-once'` is the only grant. A Session
+ *   without an exact owner fold returns `'unavailable'` before either audit
+ *   event is appended.
+ * @throws when no turn is open or either audit event fails before the append
+ *   commit point.
  */
 async request(req: ApprovalRequest): Promise<ApprovalOutcome>
 
 /**
- * Read the session override without applying the configured default.
+ * Read the latest policy override from the exact Session fold without
+ * applying the configured default.
  * @param session - session whose log supplies the override.
  * @returns the last logged policy, or `undefined` without one.
+ * @throws when this provider has no exact fold for the current Session prefix.
  */
 overrideOf(session: Session): ApprovalPolicy | undefined
 ```

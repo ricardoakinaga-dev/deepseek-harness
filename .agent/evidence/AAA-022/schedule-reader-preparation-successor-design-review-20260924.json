@@ -1,0 +1,81 @@
+{
+  "record_id": "REVIEW-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-20260924-001",
+  "observed_at": "2026-09-24T05:37:14-03:00",
+  "reviewer": "/root/w2_successor_gate_critic",
+  "independence": "INDEPENDENT",
+  "subject": "AAA-022:W2-SCHEDULE-READERS-IMPLEMENT successor scope and acceptance design",
+  "result": "PASS",
+  "path_scope": {
+    "implementation_paths": [
+      ".agents/customization-policy.json",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "docs/subsystems/schedule.i18n.yaml",
+      "docs/subsystems/schedule.md",
+      "docs/subsystems/schedule.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/schedule/schedule/README.i18n.yaml",
+      "packages/schedule/schedule/README.md",
+      "packages/schedule/schedule/README.zh.md",
+      "packages/schedule/schedule/src/index.ts",
+      "packages/schedule/schedule/src/invariant.ts",
+      "packages/schedule/schedule/src/runtime.ts",
+      "packages/schedule/schedule/src/tools.ts",
+      "packages/schedule/schedule/tests/invariant.spec.ts",
+      "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "packages/schedule/schedule/tests/plugin.spec.ts",
+      "packages/schedule/schedule/tests/projection.spec.ts",
+      "packages/schedule/schedule/tests/runtime.spec.ts",
+      "packages/schedule/schedule/tests/tools.spec.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "verification_only_paths": [
+      "apps/web/tests/schedule-after.e2e.ts",
+      "packages/bundle/base/cordis.patch.yml",
+      "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "packages/subagent/subagent/tests/continuation.spec.ts",
+      "packages/test-support/agent-loop-testkit/src/index.ts"
+    ],
+    "protected_exclusion_paths": [
+      "packages/schedule/schedule/package.json",
+      "packages/schedule/schedule/src/domain.ts",
+      "packages/schedule/schedule/src/projection.ts"
+    ],
+    "implementation_count": 29,
+    "verification_only_count": 6,
+    "protected_exclusion_count": 3,
+    "overlaps": []
+  },
+  "reviewed_design": {
+    "api": "Add effect-owned synchronous SessionProjectionRegistry.onBeforePrepareSession(listener), invoked after structural baseline validation and before projection folds/cells/feed installation, passing the exact SessionPreparation.",
+    "schedule": "Fold the Schedule definition over the preparation baseline and subscribe its pre-append validator to the same preparation feed. Convert ScheduleLogError only to the captured Schedule InvariantError; retain direct session/created preflight and post-initialization state checks.",
+    "lifecycle": "Disposing the hook registration prevents later hook calls. A consumer already attached to one SessionPreparation remains owned by that feed until seal/dispose. AgentLoop rollback disposes preparations; direct callers must dispose before retry after a failed preparation.",
+    "append_semantics": "A rejected new append leaves Session sequence and validator state unchanged so a valid same-sequence retry can succeed. Existing accepted suffix events replay in order; failed replay is distinguished because it cannot undo those already accepted unpublished events.",
+    "release_data": "No Session event or persisted format changes. Resume crash-repair events may already have been appended before Schedule validation, so tests must not promise rollback of those append-only repair events.",
+    "projection_spec": "Include the prior verification-only spec in implementation paths to repair missing SessionStore setup in two contexts and replace the invalid disappearance expectation after Schedule fiber disposal. The repository test invariant harness mounts a Schedule invariant owner, which may retain the shared projection after the Schedule feature fiber unloads; assert the actual registration disposer/lifetime.",
+    "docs_and_generation": "The Session Projection public service method requires the listed English/Chinese package and subsystem page pairs, pairing sidecars, and regenerated Cordis API catalog. No generator-source path is required.",
+    "exclusions": "No Session or AgentLoop source change is needed; no event schema, SESSION_FORMAT_VERSION, projection checkpoint schema, or persisted format change is included."
+  },
+  "acceptance": [
+    "Registry hook receives the exact preparation after structural checks and before cells/feed install; listener order, effect disposer, and failure cleanup are covered.",
+    "Schedule invalid create/resume baselines produce the package-owned InvariantError before publication while valid create, resume, and inherited-fork cuts work.",
+    "Invalid AgentSetup append is rejected before commit, leaves seq and validator state unchanged, and permits a valid append at the same sequence.",
+    "Accepted preparation suffix events replay in order; replay failure is tested separately from rejection of a future append.",
+    "The preparation-owned feed consumer is cleared on seal/disposal and is not retried without disposing the failed preparation.",
+    "Projection spec fixtures provide SessionStore and the effect test accounts for the automatic Schedule invariant owner.",
+    "All public API/docs/generated catalog changes remain inside the exact implementation path set; six prior consumers and three Schedule files remain read-only."
+  ],
+  "failure_reproduction": ".agent/evidence/AAA-022/w2-projection-spec-predecessor-failure-20260924.txt",
+  "prior_gate": ".agent/gates/implementation-ready-AAA-022-W2-schedule-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-READERS-001",
+  "findings": [],
+  "limitations": "Read-only design/scope review. The reviewer ran no tests or generators and changed no repository files. The implementation-ready decision does not verify implementation or release readiness."
+}

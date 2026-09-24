@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { fileURLToPath } from 'node:url'
@@ -29,6 +30,8 @@ import {
   type CodexRunSpec,
 } from '../src/run.ts'
 import { CodexAppServerWire } from '../src/wire.ts'
+
+const require = createRequire(import.meta.url)
 
 const { hostStderrWrite } = vi.hoisted(() => ({
   hostStderrWrite: {
@@ -372,7 +375,7 @@ describe('task admission and package contracts', () => {
     expect(manifest.dependencies).toHaveProperty('@openai/codex', CODEX_VERSION)
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-claude-code')
 
-    const codexPackageJson = fileURLToPath(import.meta.resolve('@openai/codex/package.json'))
+    const codexPackageJson = require.resolve('@openai/codex/package.json')
     const codexManifest = JSON.parse(readFileSync(codexPackageJson, 'utf8')) as {
       version: string
       bin: { codex: string }

@@ -48,6 +48,8 @@ None; registry fields are model-hidden provider metadata and do not alter the se
 - **No field ordering contract** — JSON object member order follows registration preparation but receivers address fields by name.
 
 
+**Runtime invariant:** No companion is published. Duplicate ownership, detached output, and one acceptance settlement are enforced inside the registry operation that owns each decision.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -57,5 +59,3 @@ None; registry fields are model-hidden provider metadata and do not alter the se
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Duplicate ownership, detached output, and one acceptance settlement are enforced inside the registry operation that owns each decision.

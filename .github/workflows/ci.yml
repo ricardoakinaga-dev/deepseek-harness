@@ -44,9 +44,11 @@ jobs:
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'blacksmith' && 'blacksmith-16vcpu-ubuntu-2404'
           || vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
+          && github.event.pull_request.head.repo.fork == false
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
           || 'dsh-ubuntu-24-04-16core' }}
+    timeout-minutes: 60
     name: node 24 / static
     env:
       DSH_GATE_CONCURRENCY: '8'
@@ -60,7 +62,7 @@ jobs:
           echo "TMPDIR=${{ runner.temp }}" >> "$GITHUB_ENV"
 
       # Fetch complete history so the archive gate can read the trusted PR base from a reused shallow checkout.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -71,11 +73,11 @@ jobs:
       - name: Redirect Node compile cache to runner temp
         run: echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
@@ -90,7 +92,7 @@ jobs:
       # Pull requests consume the default-branch cache but do not put cache
       # compression and upload on the paid latency-critical path. Skipped
       # under failover — see the coverage lane's identical rationale.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -111,9 +113,11 @@ jobs:
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'blacksmith' && 'blacksmith-16vcpu-ubuntu-2404'
           || vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
+          && github.event.pull_request.head.repo.fork == false
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
           || 'dsh-ubuntu-24-04-16core' }}
+    timeout-minutes: 120
     name: node 24 / coverage
     env:
       # Partitioning replaces the instrumented share; this budget gives the
@@ -138,7 +142,7 @@ jobs:
         run: |
           echo "TMPDIR=${{ runner.temp }}" >> "$GITHUB_ENV"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
@@ -148,11 +152,11 @@ jobs:
       - name: Redirect Node compile cache to runner temp
         run: echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
@@ -166,7 +170,7 @@ jobs:
 
       # Self-hosted runners reuse the shared persistent pnpm store.
       # Hosted runners restore the remote cache into their ephemeral store.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -198,15 +202,15 @@ jobs:
     # benchmark lane alone instead of joining a concurrent gate aggregate.
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
@@ -218,7 +222,7 @@ jobs:
           store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
           echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
@@ -241,9 +245,11 @@ jobs:
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'blacksmith' && 'blacksmith-16vcpu-ubuntu-2404'
           || vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
+          && github.event.pull_request.head.repo.fork == false
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
           || 'dsh-ubuntu-24-04-16core' }}
+    timeout-minutes: 120
     name: node 24 / snapshots and artifacts
     env:
       DSH_GATE_CONCURRENCY: '10'
@@ -264,7 +270,7 @@ jobs:
           echo "TMPDIR=${{ runner.temp }}" >> "$GITHUB_ENV"
           echo "PLAYWRIGHT_BROWSERS_PATH=${RUNNER_TEMP%/*}/ms-playwright" >> "$GITHUB_ENV"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
@@ -274,11 +280,11 @@ jobs:
       - name: Redirect Node compile cache to runner temp
         run: echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
@@ -295,7 +301,7 @@ jobs:
       # hosted cache keys, so each restore-keys fallback hits the matching archived
       # entry until it evicts, after which the store is cold. Self-hosted runners
       # reuse the shared persistent store instead of restoring the remote archive.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -304,7 +310,7 @@ jobs:
             ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
 
       # Self-hosted runners retain their own browser cache between jobs.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
         with:
           path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
@@ -374,6 +380,7 @@ jobs:
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
           || matrix.runner }}
+    timeout-minutes: 60
     name: ${{ matrix.name }}
     env:
       DSH_GATE_CONCURRENCY: ${{ matrix.gate_concurrency }}
@@ -401,7 +408,7 @@ jobs:
             runner: ubuntu-latest
             gate_concurrency: '1'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
@@ -413,11 +420,11 @@ jobs:
           echo "npm_config_devdir=$RUNNER_TEMP/node-gyp" >> "$GITHUB_ENV"
           echo "PNPM_CONFIG_STORE_DIR=$HOME/.local/share/pnpm/store" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         env:
           # The runner overwrites RUNNER_* step env before starting JavaScript actions.
           NODE_OPTIONS: ${{ runner.environment == 'self-hosted' && '--import=./scripts/ci-compatible-toolcache.mjs' || '' }}
@@ -456,11 +463,12 @@ jobs:
   python-sdk:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     name: python 3.10 / keyless SDK
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: actions/setup-python@v6.3.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.10'
           cache: pip
@@ -468,7 +476,7 @@ jobs:
       - name: Install uv
         run: python -m pip install uv==0.11.23
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
 
@@ -502,6 +510,7 @@ jobs:
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'blacksmith' && 'blacksmith-16vcpu-windows-2025'
           || vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
+          && github.event.pull_request.head.repo.fork == false
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
           || 'dsh-windows-2025-16core' }}
@@ -511,7 +520,7 @@ jobs:
       # A failing build or site aborts the sibling gate on the same runner.
       DSH_GATE_FAIL_FAST: '1'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - name: Enable Developer Mode (symlink support)
@@ -519,10 +528,10 @@ jobs:
         run: >-
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
       - name: Install (immutable)
@@ -547,6 +556,7 @@ jobs:
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'blacksmith' && 'blacksmith-16vcpu-windows-2025'
           || vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
+          && github.event.pull_request.head.repo.fork == false
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
           || 'dsh-windows-2025-16core' }}
@@ -561,7 +571,7 @@ jobs:
       # multi-minute instrumented run.
       DSH_GATE_FAIL_FAST: '1'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       # Checkout removes the gitignored duration history, so restore it from
@@ -571,7 +581,7 @@ jobs:
       # entries are immutable, so the save key is unique per run and the
       # restore matches the newest entry through the stable prefix.
       - name: Restore coverage duration history
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .coverage-times.json
           key: coverage-times-${{ github.run_id }}
@@ -582,10 +592,10 @@ jobs:
         run: >-
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
       - name: Install (immutable)
@@ -614,7 +624,7 @@ jobs:
         # measured durations remain useful even when a partition failed. The
         # per-run key keeps every save a fresh immutable cache entry.
         if: ${{ !cancelled() }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .coverage-times.json
           key: coverage-times-${{ github.run_id }}
@@ -624,13 +634,14 @@ jobs:
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'blacksmith' && 'blacksmith-16vcpu-windows-2025'
           || vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
+          && github.event.pull_request.head.repo.fork == false
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
           || 'dsh-windows-2025-16core' }}
     name: windows node 24 / native tests
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - name: Enable Developer Mode (symlink support)
@@ -638,10 +649,10 @@ jobs:
         run: >-
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
       - name: Install (immutable)
@@ -674,6 +685,7 @@ jobs:
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'blacksmith' && 'blacksmith-16vcpu-windows-2025'
           || vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
+          && github.event.pull_request.head.repo.fork == false
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
           || 'dsh-windows-2025-16core' }}
@@ -682,7 +694,7 @@ jobs:
     env:
       DSH_PUBLINT_CONCURRENCY: '8'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - name: Enable Developer Mode (symlink support)
@@ -690,10 +702,10 @@ jobs:
         run: >-
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
       - name: Install (immutable)
@@ -716,7 +728,8 @@ jobs:
   # Single stable required check for branch protection: require "all checks
   # passed" instead of enumerating matrix legs whose names change as lanes and
   # node versions evolve. Every blocking job in THIS workflow must be listed in
-  # `needs`. Native Windows build and process checks are required; Wine and
+  # `needs`. Native Windows build, coverage, and process checks are required;
+  # the observational lane remains non-blocking. Wine and
   # the deferred Python runtime targets live in ci-master.yml and do not
   # participate in this PR verdict. `needs` cannot cross workflow files.
   # An explicit status function runs the verdict after failed/skipped needs
@@ -735,10 +748,12 @@ jobs:
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'blacksmith' && 'blacksmith-4vcpu-ubuntu-2404'
           || vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
+          && github.event.pull_request.head.repo.fork == false
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
           || 'ubuntu-latest' }}
-    needs: [node-24, node-24-coverage, node-24-bench, node-24-consumers, node-compat, python-sdk, python-runtime, windows-build, windows-native-tests]
+    timeout-minutes: 15
+    needs: [node-24, node-24-coverage, node-24-bench, node-24-consumers, node-compat, python-sdk, python-runtime, windows-build, windows-coverage, windows-native-tests]
     if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     steps:
       - name: Fail if any needed job did not succeed

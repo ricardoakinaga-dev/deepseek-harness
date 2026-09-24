@@ -101,15 +101,24 @@ export function apply(ctx: Context, config: Config): void {
   const lifetime = new AbortController()
   const recorders = new Map<Session, TurnRecorder>()
   const byId = new Map<SessionId, TurnRecorder>()
+  const pendingDisposals = new Set<Promise<void>>()
   const forget = (session: Session): Promise<void> => {
     const recorder = recorders.get(session)
     recorders.delete(session)
     byId.delete(session.id)
-    return recorder?.dispose() ?? Promise.resolve()
+    if (recorder === undefined) return Promise.resolve()
+    const disposal = recorder.dispose()
+    pendingDisposals.add(disposal)
+    void disposal.then(
+      () => { pendingDisposals.delete(disposal) },
+      () => { pendingDisposals.delete(disposal) },
+    )
+    return disposal
   }
   ctx.effect(() => async () => {
     lifetime.abort()
     await Promise.all([...recorders.keys()].map(forget))
+    while (pendingDisposals.size > 0) await Promise.all([...pendingDisposals])
   })
   const service: WorkspaceChanges = {
     summary: (sessionId, seq) => byId.get(sessionId)?.summary(seq),

@@ -1,0 +1,72 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A28",
+  "kind": "SUCCESSOR_LOCAL_MATRIX",
+  "observed_at": "2026-09-22T18:08:46-03:00",
+  "candidate": {
+    "path": "/home/ricardo/dsh-aaa023-candidate.A28.Pqciac",
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "clean_git_worktree": true,
+    "tracked_opencode_paths": 0,
+    "policy_sha256": "8198f932d4b2e9d696b7ac393219a301b9d4ae62cc29a46e16ccdc4da676059e"
+  },
+  "comparison_candidate": {
+    "tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+    "preserved": true
+  },
+  "policy": {
+    "result": "PASS",
+    "improvements": 23,
+    "attributed_paths": 1445,
+    "base": "origin/master",
+    "base_commit": "ddefc45fbc7f8e46dd73185e68295696d1297887"
+  },
+  "local_matrix": {
+    "check_all": {
+      "result": "PASS",
+      "summary": "77 passed, 0 failed, 0 skipped; the first 74/77 run failed only because the fresh clone lacked generated lib/.artifacts and its local savepoint tag, then the unchanged tree passed after those ignored prerequisites were restored."
+    },
+    "coverage": {
+      "result": "PASS",
+      "summary": "1535 files passed, 12 skipped; 26314 tests passed, 1 expected failure, 153 skipped; statements, branches, functions, and lines all 100%."
+    },
+    "benchmark": {
+      "result": "PASS",
+      "summary": "check:ci:bench 1/1 passed in 132.20 seconds."
+    },
+    "node_compatibility": {
+      "result": "PASS",
+      "summary": "check:node-compat 6/6 passed on Node v24.20.0 Linux x64."
+    },
+    "e2e_keyless": {
+      "result": "PASS_WITH_SKIPS",
+      "summary": "43 files passed and 36 skipped; 164 tests passed and 103 skipped with DSH_E2E_MAX_WORKERS=1."
+    },
+    "official_build": {
+      "result": "PASS",
+      "summary": "build:official recorded 248 client artifacts."
+    },
+    "packed_install": {
+      "result": "PASS",
+      "summary": "DSH packing produced 293 tarballs, vendor packing 9; packed verification installed all 302 and observed 571 default-product packages with @deepseek-ai/dsh version 0.1.6-alpha.2."
+    }
+  },
+  "external_lanes": {
+    "windows_wine": {
+      "result": "EXTERNAL_PREREQUISITE",
+      "exit_status": 1,
+      "summary": "check:windows-wine stopped before mutation because wine is not installed."
+    },
+    "non_linux_platforms": {
+      "result": "EXTERNAL_PREREQUISITE",
+      "summary": "Linux x64 cannot execute the required macOS x64, macOS arm64, or Linux arm64 carriers."
+    },
+    "credentialed_providers": {
+      "result": "EXTERNAL_PREREQUISITE",
+      "summary": "DEEPSEEK_API_KEY, EXA_API_KEY, PERPLEXITY_API_KEY, AZURE_OPENAI_API_KEY, and ANTHROPIC_API_KEY are absent; keyless E2E does not qualify provider behavior."
+    }
+  },
+  "result": "PARTIAL",
+  "limitations": "The complete locally executable successor matrix passes. Required-platform, credentialed-provider, upstream updateability, release identity, publication, and final independent-critic evidence remain open; no merge, push, publication, release, or final verdict was performed."
+}

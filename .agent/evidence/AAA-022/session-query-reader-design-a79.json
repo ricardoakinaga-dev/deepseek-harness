@@ -1,0 +1,121 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-QUERY-READER-DESIGN-A79-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A08",
+  "kind": "W1_SESSION_QUERY_READER_PROJECTION_DESIGN",
+  "status": "PASS",
+  "timestamp": "2026-09-22T20:18:00-03:00",
+  "authority": "AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "source_inventory": [
+    {
+      "site": "REM-028-S060",
+      "path": "packages/session-query/session-query/src/corpus.ts:245-248",
+      "fact": "sourceLive currently exposes the live header and a complete snapshotEvents() array to a synchronous batch projector. The header and events are borrowed only for that callback, and retained projector output must be cloned by the callback."
+    },
+    {
+      "site": "REM-028-S061",
+      "path": "packages/session-query/session-query/src/corpus.ts:298-304",
+      "fact": "snapshotLive currently clones the header, inheritedEventCount, and every event after taking a complete live snapshot. SessionCorpus.load returns this detached LogicalSession for listEvents, surfaces, traces, windows, filters, and replay validation."
+    },
+    {
+      "site": "REM-028-S062",
+      "path": "packages/session-query/session-query/src/observation.ts:97-160,286-322",
+      "fact": "SessionObservationReader is the existing live-preferred observation owner. A live lease captures session.seq, lazily materializes only that prefix, carries inheritedEventCount and cursor, accepts AbortSignal, and is disposable. Prepared reads retain a balanced cold log and revision until lease disposal."
+    },
+    {
+      "site": "REM-028-S059",
+      "path": "packages/session-query/session-query-sqlite/src/index.ts:495-564,871-884",
+      "fact": "SQLite reconciliation stabilizes persistence with a before/after listing, skips persisted reads shadowed by live owners, then clones live events into documents and a fingerprint. The derived index needs an owned detached copy even after a live observation lease is released."
+    },
+    {
+      "site": "REM-028-S067-069",
+      "path": "packages/session/session-projection/src/index.ts:597-679",
+      "fact": "SessionProjectionRegistry owns synchronous cells, event delivery, lazy registration, and per-cell watermarks. A missing cell folds the in-memory log; an existing cell advances through exact event positions. It cannot import session-query without reversing the current dependency direction."
+    },
+    {
+      "path": "packages/session-query/session-query/src/corpus.ts:61-223",
+      "fact": "SessionCorpus preserves live precedence, optional persistence, list-before-inspect header compatibility checks, bounded persisted inspection concurrency, late live attachment preference, per-id projection isolation, and cancellation checks."
+    },
+    {
+      "path": "packages/session-query/session-query/src/index.ts:174-191,269-317",
+      "fact": "SessionQueryEngine public complete-history operations load LogicalSession, replay-validate readSession, and derive event records or current surfaces from the captured raw log. These operations are not projection-only reads."
+    }
+  ],
+  "decision": {
+    "selected": "Make SessionObservationReader the sole owner of live-cut capture for SessionCorpus and SQLite consumers. Add an internal captureLive(session, signal, projectionMode) helper to that reader for callers that already hold a known live Session; route Corpus live branches through a disposable fixed observation, while retaining the existing persistence listing and complete-history cold path. Route SQLite live reconciliation through observeSession(session.id, { signal, projectionMode: 'none' }), require source === 'live', clone documents and the fingerprint before disposal, and retry the stable observation if the owner disappears.",
+    "corpus": {
+      "load": "For a known live Session, capture one fixed live observation, clone header/inheritedEventCount/events into LogicalSession, check cancellation, and dispose the lease on every return or failure. After a cold inspection, use the same capture helper for an owner that attached during the read. Keep the persisted list, header compatibility check, balanced read, error mapping, and live-preferred retry unchanged.",
+      "projectMany": "Replace sourceLive with a scoped captureLive observation and pass a borrowed LogicalSessionSource only to the synchronous projector. Dispose the observation immediately after projectSource returns, including projector failure and cancellation. Preserve unique-id ordering, live results before persisted workers, per-id rejection isolation, bounded persisted concurrency, late attachment preference, and the no-persistence not-found result.",
+      "complete_history": "LogicalSession remains a detached complete raw log. readSession continues Session.create replay validation; listEvents, filterEvents, readSurface, traceEvent, readEvent, and title folding continue to consume the captured event order. The change moves the live capture owner but does not replace raw history with projections or a bounded window.",
+      "fallback": "Do not add a mandatory persistence or SQLite dependency and do not route the Corpus cold path through a search backend. A context with no persistence keeps current live-only behavior and current not-found/error taxonomy. The sdk-minimal no-query fallback from A07 remains untouched."
+    },
+    "sqlite": {
+      "live_route": "During each stable reconciliation attempt, observe each currently attached session through the inherited SessionQuery observation service with projectionMode none and the reconciliation AbortSignal. Accept only a live source; a prepared result means the live owner changed during capture and causes a full stability retry.",
+      "derived_ownership": "Immediately convert the observation header, inheritedEventCount, and events into the existing detached ObservedSession, documents, and SHA-256 fingerprint before disposing the lease. Keep the detached clone because SQLite retains rows and compares fingerprints after the observation ends.",
+      "stability": "Retain the before/after persistence snapshot comparison, persistence-binding identity check, live-id population check, immutable header compatibility check, generation updates, live overlay replacement, and cancellation mapping. A live session must never trigger a persisted log read merely to populate the derived index."
+    },
+    "projection_boundary": "Do not make session-projection depend on session-query or SQLite. Its synchronous event listener and cell watermarks are an independent projection owner; REM-028-S067-069 remain retained under a projection-specific follow-up that can introduce an owner-side current-event or restoration seam without making a query service part of the core session dependency graph.",
+    "fork": "Every live and cold LogicalSession keeps the header paired with its exact inheritedEventCount. SQLite includes the inherited count in the detached observation and fingerprint. No implementation may rebase event seq values or treat the inherited prefix as local events.",
+    "cancellation": "Check the signal before live capture, after asynchronous observation/list/read steps, before projection output is accepted, and before SQLite derived-index writes. SessionObservation leases are disposed before cancellation or source errors escape. Existing abort-ignoring persistence cleanup remains governed by the current corpus and SQLite tests.",
+    "rejected": [
+      "Replace every SessionCorpus.load call with observeSession: this would bypass the corpus list-before-inspect header conflict check, alter complete-history persistence error timing, and conflate point observations with the corpus's detached raw-log API.",
+      "Expose a live observation lease through LogicalSessionSource: the synchronous title projector could retain borrowed events after disposal and the source contract would become lifecycle-dependent.",
+      "Let SQLite call snapshotEvents directly or retain the SessionObservation events after disposal: both duplicate the live-read owner and risk aliasing the derived index to mutable session data.",
+      "Use projection snapshots for readSession, listEvents, traces, or surfaces: projections do not reconstruct raw log-only events, sequence ordering, source-event links, or replay validation.",
+      "Make session-projection import session-query: the package graph would cycle through session-query's projection types, and a query service cannot satisfy the registry's synchronous session/event lifecycle."
+    ]
+  },
+  "implementation_acceptance": {
+    "targets": [
+      "packages/session-query/session-query/src/corpus.ts",
+      "packages/session-query/session-query/src/observation.ts",
+      "packages/session-query/session-query/src/index.ts",
+      "packages/session-query/session-query-sqlite/src/index.ts",
+      "packages/session-query/session-query/tests/observation.spec.ts",
+      "packages/session-query/session-query/tests/session-query.spec.ts",
+      "packages/session-query/session-query-sqlite/tests/sqlite.spec.ts"
+    ],
+    "required_cases": [
+      "A live Corpus load captures a fixed cut, excludes an append after capture, preserves inheritedEventCount, returns detached header/event data, and disposes the lease on success and conversion failure.",
+      "Known live Corpus reads do not enter persistence listing or inspection even when the backend fails; a late live attachment after a persisted inspection remains authoritative and does not mutate storage.",
+      "Title batch projection keeps unique input order, bounded persisted concurrency, per-id failures, late attachment preference, cancellation, and the no-persistence fallback while using a scoped observation for live ids.",
+      "Cold complete-history reads still balance interrupted turns, retain persisted header compatibility checks, preserve Session.create replay validation, report typed absence/corruption/persistence/source-conflict errors, and keep fork event counts exact.",
+      "SQLite reconciliation observes live sessions through the query observation seam, never reads a shadowed persisted log, creates a detached fingerprint before lease disposal, retries a live-owner race, and preserves generation/cursor invalidation behavior.",
+      "AbortSignal is forwarded through the live/cold observation and SQLite reconciliation; no derived-index transaction commits after cancellation, and every observation lease is disposed on success, retry, error, and cancellation.",
+      "The only retained deprecated-reader waiver in this slice is inside the SessionObservationReader live owner; Corpus and SQLite no longer issue direct Session history reads. Projection-owned S067-069 waivers remain explicitly documented until their separate seam is accepted."
+    ],
+    "required_checks": [
+      "Focused session-query observation and SessionQuery test files",
+      "Focused session-query-sqlite tests covering live shadowing, stabilization, retries, cancellation, and derived-index replacement",
+      "Touched package TypeScript builds and Oxlint",
+      "Package dependency and optional-dependency import checks if implementation metadata or imports change",
+      "Export-JSDoc and documentation checks for any changed public/internal class contract",
+      "git diff --check",
+      "Canonical audit metrics on a complete successor candidate; the preserved dirty worktree may report only a retained environmental limitation"
+    ]
+  },
+  "retained_exceptions": [
+    "No broad lint or compiler default changes are part of A08.",
+    "No released Session generation, persistence schema, wire version, publication, registry write, push, merge, release, or final verdict action is part of A08.",
+    "REM-028-S067-069 remain with session-projection for a later owner-scoped projection design; A09 must not widen into that dependency graph.",
+    "The sealed A28 candidate remains unchanged; any implementation requires a new successor rebuild and requalification."
+  ],
+  "evidence_basis": [
+    ".agent/evidence/AAA-022/reader-inventory-a75.json",
+    ".agent/evidence/AAA-022/session-log-reader-design-a77.json",
+    "packages/session-query/session-query/src/corpus.ts",
+    "packages/session-query/session-query/src/observation.ts",
+    "packages/session-query/session-query/src/index.ts",
+    "packages/session-query/session-query-sqlite/src/index.ts",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session-query/session-query/tests/observation.spec.ts",
+    "packages/session-query/session-query/tests/session-query.spec.ts",
+    "packages/session-query/session-query-sqlite/tests/sqlite.spec.ts"
+  ],
+  "limitations": [
+    "A08 is a design action; no production source, package metadata, candidate tree, or public composition was changed.",
+    "The current worktree still lacks 12 tracked paths required by the canonical audit-metrics command; complete-candidate metrics remain a later implementation acceptance condition.",
+    "The existing repository-wide export-JSDoc check retains two unrelated declaration violations outside this slice."
+  ],
+  "decision_summary": "Accept the SessionObservationReader-owned live capture design for SessionCorpus and SQLite, preserve SessionCorpus complete-history and persistence semantics, keep SQLite's detached derived-index ownership and stabilization protocol, and defer session-projection's synchronous cell migration to its own owner. A task-bound implementation gate may now authorize the bounded Corpus/SQLite slice only."
+}

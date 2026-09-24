@@ -116,6 +116,8 @@ ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
 - **一次只能安装一个**——对话框一次运行一个 pnpm 命令；第二个 spec 要等前一个完成。
 - **没有版本选择器**——spec 按 pnpm 接受的写法输入；页面不列出注册表版本，也不提供升级。
 
+**运行时不变式：** 不发布伴生检查。本包只拥有一个基于 Host 事实的侧栏面板。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -125,5 +127,3 @@ ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生检查。本包只拥有一个基于 Host 事实的侧栏面板。

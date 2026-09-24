@@ -1,0 +1,51 @@
+{
+  "id": "EVIDENCE-AAA-022-W2-SCHEDULE-CLOSEOUT-LEDGER-CORRECTION-20260924-001",
+  "recorded_at": "2026-09-24T09:14:58-03:00",
+  "authorization": {
+    "source": "User reply to the exact two-row correction request",
+    "decision": "Authorize two-row correction",
+    "scope": "Correct only the named Schedule closeout execution-log event and verification record; preserve older history."
+  },
+  "corrections": [
+    {
+      "file": ".agent/execution-log.jsonl",
+      "line": 374,
+      "record_id": "EVT-AAA-022-CHECKPOINT-W2-SCHEDULE-PREPARATION-CLOSEOUT-001-148",
+      "original_line_sha256": "f47a3d5f1e2a59bbecf872670dd65eed1a11e889fe7f1986468fa28040219c4f",
+      "corrected_line_sha256": "a5843917ad5039087d0a1e9a1a4169ac19e1b1c157ea27cf0a91e4a945088a23",
+      "changes": [
+        "Removed no-op lifecycle_from=BUILD and lifecycle_to=BUILD fields.",
+        "Separated punctuation from the active action ID in next_state with a semicolon."
+      ]
+    },
+    {
+      "file": ".agent/verification.jsonl",
+      "line": 259,
+      "record_id": "VER-AAA-022-W2-SCHEDULE-PREPARATION-IMPLEMENTATION-20260924-001",
+      "original_line_sha256": "fd207f9a70dac1dabd6d9f5594654a576cf6ef45455810b661fd6c2be772b14f",
+      "corrected_line_sha256": "88ad483196ec704dfa61d6316d58bd95cfa0f651810acc85c2e27f3ab5b68237",
+      "changes": [
+        "Changed unsupported result PASS_WITH_RETAINED_REPOSITORY_LIMITATIONS to canonical PARTIAL."
+      ]
+    }
+  ],
+  "file_sha256": {
+    ".agent/execution-log.jsonl": {
+      "before": "7c023fa796957a2946f2eb72633867640502899e823d2522ef64ff7140f069de",
+      "after": "1680f4dfc0e7143e56ffd1fa5317e5b2f0169cc80c5be4c3c1ab1a273c5d68c1"
+    },
+    ".agent/verification.jsonl": {
+      "before": "3f691e5a3801bf7eb0808f7dd14d1b5c6b2f8d7a02c61270d234ed492b90b307",
+      "after": "366cd01e24b62dd6123e8f90b9911bb0f64cb94629814c5a568d10ef4119d1b6"
+    },
+    ".agent/state.json": "59c12c703059b4585f6d49b9dbe1b8623a7532bf0e2b1f645f78ffd806a9c286",
+    ".agent/backlog.json": "7300360ddbd933289a8786ba5a7c1bbf4992c5f749c67fb1c619c93ced8789ee"
+  },
+  "state_check": {
+    "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness --contracts-root /home/ricardo/.agents/skills/engineering-framework",
+    "result": "FAIL",
+    "finding_count": 358,
+    "interpretation": "The accepted FAIL-358 baseline is restored. These are the retained historical findings; the three findings caused by the corrected Schedule closeout rows are gone."
+  },
+  "scope": "No other ledger rows, state fields, backlog fields, gate records, or product files were changed by this correction."
+}

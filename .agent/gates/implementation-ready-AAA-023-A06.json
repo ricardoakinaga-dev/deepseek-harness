@@ -1,0 +1,87 @@
+{
+  "record_id": "GATE-AAA-023-IMPLEMENTATION-READY-002",
+  "timestamp": "2026-09-22T03:36:49-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-023 bounded Web host-inspection compatibility repair under the disabled dynamic-extension policy",
+  "scope_ref": "AAA-023",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The current aggregate matrix and A05 diagnosis reproduce the two ContextMeter path failures and the cordisInspect activation failure without treating the dirty worktree as a release candidate.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/check-all-a28.json",
+        ".agent/evidence/AAA-023/diagnosis-a29.json",
+        ".agent/verification.jsonl#VER-AAA-023-A05-DIAGNOSIS-A29-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The ContextMeter source move remains untracked and the candidate is not immutable."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation is bounded to the Web bundle's cordis-host-runner row: provide cordisInspect with explicit deployment: disabled and browserDelivery: disabled, while cordis-client-runner, ui-cordis, and plugin-manager remain disabled; it does not enable dynamic execution, browser source evaluation, or alter metric/vendor gate semantics.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/diagnosis-a29.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        "packages/bundle/web-app/cordis.patch.yml",
+        "packages/preset/agent-presets/presets/cordis/agent.cordis.yml",
+        "packages/extensions/tool-cordis/src/index.ts",
+        "packages/extensions/cordis-host-runner/src/inspect-registry.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Dynamic execution and browser delivery remain disabled by explicit configuration; external CSP and Trusted Types deployment controls remain outside repository authority."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires the focused creator-plugin-manager expected test, Web bundle/configuration validation, dynamic-extension policy checks, and the aggregate matrix after the repair.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/check-all-a28.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Passing focused checks will not establish same-SHA release qualification or unblock AAA-024."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-023/check-all-a28.json",
+    ".agent/evidence/AAA-023/diagnosis-a29.json",
+    ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"
+  ],
+  "candidate_fingerprint": "8833115fe3ae76eb8355d17d5f4332a9f4d9c70dd3cc22301847c01aa670c141",
+  "confidence": "HIGH",
+  "gaps": [
+    "The current worktree is dirty and the moved ui-conversation files are not yet represented by one immutable candidate.",
+    "The aggregate matrix remains partial until the bounded Web composition repair is validated."
+  ],
+  "conditions": [
+    "Do not enable dynamic execution or browser source evaluation; deployment and browserDelivery must remain disabled.",
+    "Keep cordis-client-runner, ui-cordis, and plugin-manager disabled in the default Web composition.",
+    "Do not modify audit baseline semantics or vendor postconditions to hide the deleted-path failures.",
+    "Do not stage, commit, publish, push, merge, release, or issue a final verdict as part of this gate."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-023 seven approved security, runtime, client-ownership, and publication-policy decisions",
+    "decision": "The user approved explicit dynamic-extension disabled-default controls and local compatibility validation; publication, registry, push, merge, release, and final-verdict actions remain outside scope.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+    "expires_or_revalidates": "Revalidate if the repair enables dynamic execution, browser source delivery, changes CSP/Trusted Types ownership, changes public exports, or alters audit/vendor policy."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-023:A06 to provide the cordisInspect service with explicit disabled dynamic policy, then run focused expected-profile and policy checks.",
+  "revalidation_triggers": [
+    "The Web row is configured with deployment other than disabled.",
+    "The browser delivery policy or Client runner row becomes enabled.",
+    "The cordis preset changes its tool-cordis dependency or provider set.",
+    "The repair requires a source move, public export, or external publication decision."
+  ],
+  "supersedes": "GATE-AAA-023-IMPLEMENTATION-READY-001"
+}

@@ -1,0 +1,64 @@
+{
+  "record_id": "REVIEW-AAA-022-W2-SCHEDULE-INITIAL-20260924-001",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-DESIGN",
+  "kind": "INDEPENDENT_T3_DESIGN_REVIEW",
+  "timestamp": "2026-09-24T03:35:00-03:00",
+  "reviewer": "/root/schedule_w2_design_critic",
+  "producer": "/root",
+  "independence_class": "INDEPENDENT",
+  "subject": ".agent/evidence/AAA-022/schedule-reader-design-w2-20260924.json",
+  "subject_sha256": "5bec325270a29344014de994bd0380f500861ef0c1cfb6ddc0d09f29982cf03e",
+  "candidate_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "procedure_status": "EXECUTED_READ_ONLY_NO_TESTS",
+  "verdict": "FAIL",
+  "findings": [
+    {
+      "id": "W2-DESIGN-01",
+      "severity": "HIGH",
+      "confidence": "HIGH",
+      "criterion": "Exact input binding",
+      "location": ".agent/evidence/AAA-022/schedule-reader-design-w2-20260924.json:12-13",
+      "evidence": "The 42 recorded per-file hashes and HEAD match, but canonical sorted-path recomputation is a3282a316bfd5fe279a38527bebc63f8a1679f8812e826093dcfd480003a0849, not 83e05a0512099f6ead361c1ef9a32260dc7e354c4186aa0eec9c3ce3d61dc399.",
+      "required_change": "Record the recomputed digest and an exact-input revalidation; do not use the original aggregate digest as a gate binding."
+    },
+    {
+      "id": "W2-DESIGN-02",
+      "severity": "MEDIUM",
+      "confidence": "HIGH",
+      "criterion": "Shared projection contributor lifecycle",
+      "location": "packages/session/session-projection/src/index.ts:305-355; packages/schedule/schedule/tests/projection.spec.ts:183-201; packages/schedule/schedule/tests/invariant.spec.ts:42-124",
+      "evidence": "Registry refcounting supports multiple contributors, but current tests exercise only single-contributor disposal.",
+      "required_change": "Add a scoped integration test for both disposal orders; the remaining contributor must retain state access and pre-append validation, and the key must disappear after the last contributor exits."
+    },
+    {
+      "id": "W2-DESIGN-03",
+      "severity": "MEDIUM",
+      "confidence": "HIGH",
+      "criterion": "Live restore/fork integration",
+      "location": "packages/schedule/schedule/tests/projection.spec.ts:97-151; packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "evidence": "Current projection tests cover pure fork cut and cold restore, while the production restart test does not inspect live registered projection state or fork-local runtime behavior.",
+      "required_change": "Add live integration evidence for inheritedEventCount, active and seenIds across restore/fork and verify a fork with inherited-only Schedule history does not wake a no-op runtime."
+    },
+    {
+      "id": "W2-DESIGN-04",
+      "severity": "HIGH",
+      "confidence": "HIGH",
+      "criterion": "Package-owned creation error attribution",
+      "location": "packages/session/session-projection/src/index.ts:232-245; packages/schedule/schedule/src/projection.ts:69-84; packages/core/session/src/index.ts:1177-1184; packages/schedule/schedule/src/invariant.ts:36-39; packages/schedule/schedule/tests/invariant.spec.ts:100-107",
+      "evidence": "SessionProjectionRegistry folds baseline events in its earlier synchronous session/created listener. A ScheduleLogError therefore vetoes creation before schedule-invariant can call fail() and produce the currently expected package-attributed InvariantError.",
+      "required_change": "Prepend a synchronous Schedule invariant baseline preflight using the same definition init/apply and exact inherited cut; catch only ScheduleLogError and call fail(). Retain a later post-projection stateOf check. Test preserved InvariantError and valid baseline visibility."
+    }
+  ],
+  "design_checks": {
+    "projection_authority": "scheduleProjectionDefinition is suitable: it applies the exact inheritedEventCount cut, retains seenIds for terminal IDs, and uses stateVersion 2.",
+    "candidate_validation": "Pure definition.apply(state, candidate) can preserve pre-append rejection without mutating committed state.",
+    "runtime_order": "The source change can remain local to projection reads if persistence barriers, maintenance admission, and catch behavior remain in place.",
+    "composition": "The registry is already mounted in base and sdk-minimal bundles and in the AgentLoop testkit; Schedule must make the service required and correct the README promise that it is optional."
+  },
+  "largest_gap": "Invalid original fingerprint plus untested multi-contributor lifecycle, restore/fork visibility, and seeded-session InvariantError ownership.",
+  "limitations": [
+    "No tests were run.",
+    "No product, documentation, policy, or generated files were changed by the reviewer."
+  ]
+}

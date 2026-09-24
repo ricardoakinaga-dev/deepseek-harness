@@ -70,6 +70,8 @@ None; this package neither assembles nor sends a provider request.
 - **The dictionaries gate the menu.** A host catalog extension without a matching `app.<id>` entry in both dictionaries stays invisible instead of showing a raw id; extending the catalog means extending [`dsh-host-open-in-app`](../../host/open-in-app/README.md) and this package's locales together.
 - **Availability is read once per page.** An application installed while the page is open appears after a reload (and, host-side, after a host restart).
 
+**Runtime invariant:** No companion is published. The plugin registers one dictionary effect and one header-slot entry whose disposal the HMR-safety spec proves; availability and choice live in the controller's snapshot stores with no second copy to diverge.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -79,5 +81,3 @@ None; this package neither assembles nor sends a provider request.
 The feature-level decisions, including the split into the host package and this surface, are recorded in the [promotion Agent Note](../../../.agents/notes/implemented/feature/2026-08-25-promote-open-anywhere-plugin.md).
 
 </details>
-
-**Runtime invariant:** No companion is published. The plugin registers one dictionary effect and one header-slot entry whose disposal the HMR-safety spec proves; availability and choice live in the controller's snapshot stores with no second copy to diverge.

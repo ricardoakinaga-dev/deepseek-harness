@@ -141,6 +141,8 @@ const price = ctx.tokenMeter.estimateMessage(message)
 - **系统提示词改写不带影子价**——循环替换 system 节点时没有紧邻的计量事件，因此 `contextPressure.projectedTokens` 以零增量折叠该替换，直到下一个用量样本；`contextBreakdown.systemTokens` 与 `measure()` 会立即按新提示词重新计价。
 - **构成检查点保留当前 surface**——精确的 system/message 分类需要位置条目；检查点大小和 surface 事件折叠成本为 O(当前保留 surface)。
 
+**运行时不变式：** 不发布伴生入口。用量 fold 在每次尝试内替换样本，总量不必单调。构成和测量共享位置替换规划器与固定估算器，因此启发式 surface 总量按构造一致，而非需要比较的独立可变观测。路由定价总量有意与之不同。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -153,5 +155,3 @@ const price = ctx.tokenMeter.estimateMessage(message)
 - 按提供方的精确分词器尚未决定；保持单一确定性启发式规则，正是让每个消费方的测量一致且回放稳定的原因。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。用量 fold 在每次尝试内替换样本，总量不必单调。构成和测量共享位置替换规划器与固定估算器，因此启发式 surface 总量按构造一致，而非需要比较的独立可变观测。路由定价总量有意与之不同。

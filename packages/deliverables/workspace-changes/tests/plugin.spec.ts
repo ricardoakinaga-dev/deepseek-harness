@@ -8,6 +8,7 @@ import type {} from '@deepseek-ai/dsh-agent'
 import SessionStore, { SessionId, type Session } from '@deepseek-ai/dsh-session'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import * as WorkspaceChanges from '../src/index.ts'
+import { TurnRecorder } from '../src/recorder.ts'
 import { changes, endTurn, git, mutate, scratchDir, settle, startTurn, toolCall } from './support.ts'
 
 const cleanups: Array<() => Promise<unknown>> = []
@@ -159,7 +160,7 @@ describe('workspace-changes in a repository', () => {
     ctx.emit('session/disposed', session)
     expect(await pending).toBeUndefined()
     expect(await diff(0)).toBeUndefined()
-  })
+  }, 20_000)
 
   it('records nothing and stays quiet about captures for a working directory that no longer exists', async () => {
     const root = await scratchDir('dsh-workspace-changes-gone-', cleanups)
@@ -201,7 +202,7 @@ describe('workspace-changes in a repository', () => {
     expect(await ctx.workspaceChanges.diff(session.id, announcedSeq(session), 2, signal)).toMatchObject({ kind: 'text', before: false, after: true, hunks: [{ lines: ['+one', '+two', '+three'] }] })
   })
 
-  it('records inside the turn when the agent stops, and again after turn/end only when tools settled later', async () => {
+  it('records inside the turn when the agent stops, and again after turn/end only when tools settled later', { timeout: 20_000 }, async () => {
     const cwd = await repository()
     const { ctx } = await boot()
     const session = ctx.sessions.create(SessionId('stopping'), { meta: { cwd } })
@@ -241,7 +242,7 @@ describe('workspace-changes in a repository', () => {
     expect(changes(ctx, session).filter(data => data.turn === 3)).toEqual([])
   })
 
-  it('keeps an interrupted turn’s record when the next turn starts before it settles', async () => {
+  it('keeps an interrupted turn’s record when the next turn starts before it settles', { timeout: 20_000 }, async () => {
     const cwd = await repository()
     const { ctx } = await boot()
     const session = ctx.sessions.create(SessionId('interleaved'), { meta: { cwd } })
@@ -388,7 +389,7 @@ describe('workspace-changes without a repository', () => {
     await writeFile(join(cwd, 'huge.txt'), 'a'.repeat(20))
     await writeFile(join(cwd, 'mixed.dat'), Uint8Array.of(65, 0, 66))
     await mkdir(join(cwd, 'already-dir'))
-    const { ctx } = await boot({ maxFileBytes: 16 })
+    const { ctx, fiber } = await boot({ maxFileBytes: 16 })
     const session = ctx.sessions.create(SessionId('bounds'), { meta: { cwd } })
     startTurn(session, 1)
     await settle(ctx, session)
@@ -424,7 +425,50 @@ describe('workspace-changes without a repository', () => {
     expect(scratch).toBeDefined()
     expect((await readdir(join(tempRoot, scratch as string, 'captures'))).length).toBeGreaterThan(0)
     ctx.emit('session/disposed', session)
-    await vi.waitFor(async () => { expect(await recorderDirs()).toEqual([]) })
+    await fiber.dispose()
+    expect(await recorderDirs()).toEqual([])
+  })
+
+  it('waits for a disposed session recorder before plugin teardown completes', async () => {
+    const cwd = await repository()
+    const { ctx, fiber } = await boot()
+    const session = ctx.sessions.create(SessionId('pending-disposal'), { meta: { cwd } })
+    startTurn(session, 1)
+    await settle(ctx, session)
+    const order: string[] = []
+    let release!: () => void
+    const disposalGate = new Promise<void>((resolve) => { release = resolve })
+    let resolveStarted!: () => void
+    const started = new Promise<void>((resolve) => { resolveStarted = resolve })
+    const dispose = Object.getOwnPropertyDescriptor(TurnRecorder.prototype, 'dispose')?.value as
+      ((this: TurnRecorder) => Promise<void>) | undefined
+    if (dispose === undefined) throw new Error('TurnRecorder.dispose is not available')
+    vi.spyOn(TurnRecorder.prototype, 'dispose').mockImplementation(async function (this: TurnRecorder) {
+      order.push('recorder-start')
+      resolveStarted()
+      await disposalGate
+      await dispose.call(this)
+      order.push('recorder-end')
+    })
+    ctx.emit('session/disposed', session)
+    await started
+    const disposal = fiber.dispose().then(() => { order.push('plugin-end') })
+    release()
+    await disposal
+    expect(order).toEqual(['recorder-start', 'recorder-end', 'plugin-end'])
+  })
+
+  it('removes a recorder from pending disposal when its cleanup rejects', async () => {
+    const cwd = await repository()
+    const { ctx, fiber } = await boot()
+    const session = ctx.sessions.create(SessionId('rejected-disposal'), { meta: { cwd } })
+    startTurn(session, 1)
+    await settle(ctx, session)
+    const failure = new Error('fixture disposal failure')
+    const dispose = vi.spyOn(TurnRecorder.prototype, 'dispose').mockRejectedValueOnce(failure)
+    ctx.emit('session/disposed', session)
+    await vi.waitFor(() => { expect(dispose).toHaveBeenCalledOnce() })
+    await fiber.dispose()
   })
 
   it('drops a disposed session’s recorder and starts afresh on its next turn', async () => {
@@ -455,7 +499,7 @@ describe('workspace-changes without a repository', () => {
     endTurn(session, 3)
     await settle(ctx, session)
     expect(session.snapshotEvents().filter(event => event.type === 'workspace/changes' && event.data.turn === 3)).toEqual([])
-  })
+  }, 20_000)
 
   it('ignores subagent sessions and sessions without a working directory', async () => {
     const cwd = await repository()

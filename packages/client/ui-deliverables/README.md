@@ -109,6 +109,8 @@ These limits define the current deliverables vocabulary. They are current packag
 - **Package-local header glyph** — the card's angle-bracket mark lives in `src/client/icons.tsx` until the shared icon set carries it; its props already match the shared icon contract.
 - **Files outside the workspace open by absolute path only** — the recorded path is the Host path at recording time; a moved workspace or a different viewing Session cannot relocate it.
 
+**Runtime invariant:** No companion is published. Prompt, slot, dictionary, file-action route, and optional service registrations are effect-owned; the Session log owns declarations and the filesystem owns file contents.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -118,5 +120,3 @@ These limits define the current deliverables vocabulary. They are current packag
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Prompt, slot, dictionary, file-action route, and optional service registrations are effect-owned; the Session log owns declarations and the filesystem owns file contents.

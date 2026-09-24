@@ -1,0 +1,107 @@
+{
+  "record_id": "A22-CLOSEOUT-20260923-001",
+  "timestamp": "2026-09-23T15:18:44-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:A22",
+  "disposition": "PASS_WITH_RETAINED_LIMITATIONS",
+  "scope": "A21-01 through A21-07 implementation within the exact A22 context, projection, cache, test, documentation, generated-catalog, and verification scope",
+  "implementation_path_count": 33,
+  "verification_only_path_count": 3,
+  "gate_fingerprint_input_count": 35,
+  "materialized_candidate_path_count": 37,
+  "gate_baseline_fingerprint": "714a1dbe3df54df12f58a655e65d246a516169f4d6cf492530853e60f8674fcf",
+  "current_gate_input_fingerprint": "26bdbc8daee35661c1754018c2602b403995e630597773b82df55a20b1632efc",
+  "materialized_scope_fingerprint": "6a552ffa3ada95d9ec92d4ff5e539a2d73f341c8179479909aba991218c1bf67",
+  "implementation_ready_gate": ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-A22-CONTEXT-READERS-001",
+  "independent_review": {
+    "reviewer": "/root/a22_context_reader_final_critic",
+    "verdict": "PASS",
+    "evidence": ".agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001",
+    "findings": "A21-01 through A21-07 pass with no remaining acceptance findings; exact 33 implementation paths and 3 verification-only paths are accepted.",
+    "fingerprint_before_review": "26bdbc8daee35661c1754018c2602b403995e630597773b82df55a20b1632efc",
+    "fingerprint_after_review": "26bdbc8daee35661c1754018c2602b403995e630597773b82df55a20b1632efc",
+    "materialized_scope_fingerprint": "6a552ffa3ada95d9ec92d4ff5e539a2d73f341c8179479909aba991218c1bf67",
+    "limits": "Read-only review; no tests or generators were run by the reviewer. Earlier review gaps and their fixes remain in the linked review-history artifact."
+  },
+  "checks": [
+    {
+      "command": "pnpm exec vitest run packages/context/time-context/tests/time-context.spec.ts packages/context/time-context/tests/invariant.spec.ts --reporter=dot",
+      "result": "PASS: 2 files, 60 tests"
+    },
+    {
+      "command": "pnpm exec vitest run packages/context/agent-instructions/tests/agent-instructions.spec.ts --reporter=dot",
+      "result": "PASS: 1 file, 159 tests"
+    },
+    {
+      "command": "pnpm exec tsc -b packages/context/time-context --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm exec tsc -b packages/context/agent-instructions --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "Focused Oxlint on the changed time-context and agent-instructions test files",
+      "result": "PASS"
+    },
+    {
+      "command": "Focused git diff --check on the changed time-context and agent-instructions test files",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm run test:docs",
+      "result": "PASS: 22 checks"
+    },
+    {
+      "command": "pnpm run verify-translation-pairing",
+      "result": "PASS: 1,027 pairs"
+    },
+    {
+      "command": "pnpm run verify-cordis-catalog",
+      "result": "PASS: 111 generated files/regions are current"
+    },
+    {
+      "command": "pnpm run verify-type-equiv",
+      "result": "PASS: 437 source blocks and paired derivatives match"
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "result": "PASS: all exported names in the affected package APIs are documented"
+    },
+    {
+      "command": "pnpm run doc-typecheck:contracts-ready",
+      "result": "PASS: 84 blocks compiled; 79 ignored; 842 type-equivalence/catalog blocks separately checked; 1,005 paired derivatives"
+    },
+    {
+      "command": "pnpm run website:build",
+      "result": "PASS: 4,368 fragment references resolve; 201 raw-Markdown files and llms.txt emitted"
+    },
+    {
+      "command": "Repository-wide doc-sync",
+      "result": "Not rerun for A22; the latest recorded result remains PARTIAL at 38/43 with five generated/runtime findings"
+    },
+    {
+      "command": "Repository state checker",
+      "result": "Not rerun during this scoped closeout; the latest recorded run reported 353 findings before the A19 scope-gate transaction"
+    }
+  ],
+  "diagnostic_history": [
+    "An initial scoped Oxlint run found three style diagnostics in the added regression tests; those diagnostics were corrected and subsequent scoped Oxlint runs pass.",
+    "Vitest continues to report its existing DateTimeFormat mock-style warning in the test for invalid configured or process time zones."
+  ],
+  "retained_limitations": [
+    "The pre-existing dirty worktree is preserved; unrelated dirty paths are not attributed to A22 and the worktree is not claimed clean.",
+    "The last recorded repository state check reported 353 findings before the A19 scope-gate transaction; A22 does not claim aggregate control-plane PASS.",
+    "The latest recorded repository doc-sync result is PARTIAL at 38/43 with five generated/runtime findings; scoped documentation checks pass.",
+    "The canonical deprecated-reader metric was not recomputed in A22; its latest recorded state remains the A02/A76 baseline and must be handled by the migration plan.",
+    "External platform/provider checks, release qualification, publication, and the final AAA audit remain outstanding."
+  ],
+  "post_checkpoint_verification_ref": ".agent/verification.jsonl#VER-AAA-022-A22-POST-CHECKPOINT-20260923-001",
+  "successor_action": {
+    "id": "AAA-022:A23",
+    "kind": "DECIDE",
+    "summary": "Reconcile the W2 owner-order omission for REM-028-S029 before selecting the next owner slice",
+    "target": ".agent/evidence/AAA-022/reader-migration-plan-a74.json and .agent/evidence/AAA-022/reader-inventory-a75.json#REM-028-S029",
+    "completion_signal": "An append-only disposition records whether S029 needs its own W2 owner slice and exact sequence relative to the remaining W2 owners without modifying the historical A74/A75 records or expanding A22 implementation scope."
+  }
+}

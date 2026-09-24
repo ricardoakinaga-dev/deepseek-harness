@@ -1,0 +1,77 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A33",
+  "kind": "IMMUTABLE_CANDIDATE_IDENTITY",
+  "observed_at": "2026-09-22T18:32:09-03:00",
+  "identity_status": "LOCAL_ONLY_NOT_RELEASED",
+  "candidate": {
+    "path": "/home/ricardo/dsh-aaa023-candidate.A28.Pqciac",
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "parent": "beaa2a8567525289ca20639d5d93015be13326a8",
+    "subject": "temporary successor attributes candidate deltas",
+    "clean_git_worktree": true,
+    "status_entries": 0,
+    "tracked_opencode_paths": 0
+  },
+  "refs": {
+    "custom_main_at_savepoint": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "savepoint_tag": "aaa-savepoint-2026-09-20-m0-a02-01",
+    "savepoint_commit": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "fork_master": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+    "official_master_fetched_for_rehearsal": "00102833dfaee1da9f48a3a8eae9d34005a75218",
+    "common_base": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+    "permanent_main_worktree_status_entries": 1308,
+    "permanent_main_worktree_note": "Pre-existing dirty custom/main was preserved and is not the candidate worktree."
+  },
+  "policy": {
+    "candidate_sha256": "8198f932d4b2e9d696b7ac393219a301b9d4ae62cc29a46e16ccdc4da676059e",
+    "result": "PASS",
+    "improvements": 23,
+    "attributed_paths": 1445,
+    "base": "origin/master"
+  },
+  "qualification": {
+    "check_all": "77 passed, 0 failed, 0 skipped",
+    "coverage": "100% statements, branches, functions, and lines; 1535 files passed",
+    "benchmark": "check:ci:bench 1/1 passed on Linux x64",
+    "node_compatibility": "6/6 passed on Node v24.20.0",
+    "keyless_e2e": "43 files passed; 36 skipped; 164 tests passed; 103 skipped",
+    "official_build": "248 client artifacts",
+    "packed_install": "302 tarballs installed and 571 default-product packages observed"
+  },
+  "open_conditions": {
+    "upstream_updateability": "UNRESOLVED; ordinary official merge rehearsal produced 233 conflicts and was aborted cleanly",
+    "required_platforms": "EXTERNAL_PREREQUISITE; Wine and non-Linux/ARM64 carriers unavailable on this host",
+    "credentialed_providers": "EXTERNAL_PREREQUISITE; required provider credentials absent",
+    "release_identity": "LOCAL_ONLY; this packet binds the candidate but does not publish or release it",
+    "independent_critic": "NOT_RUN; AAA-024 remains TODO"
+  },
+  "indexed_evidence": [
+    {
+      "path": ".agent/evidence/AAA-023/qualification-a28.json",
+      "sha256": "1401ad0e9bb5542d9e0d621bb77559a6294e253f9a3a8a192dc5cfe889c709fb"
+    },
+    {
+      "path": ".agent/evidence/AAA-023/upstream-rehearsal-a64.json",
+      "sha256": "29b746a6f9d85367d891cd24208124c268771af5ef1d1d7aa151298f4eb65376"
+    },
+    {
+      "path": ".agent/evidence/AAA-023/upstream-conflict-disposition-a65.json",
+      "sha256": "ab055478e155f09b215be997659479fc32ccea81d4d9144c3782b5809a847ae8"
+    },
+    {
+      "path": ".agent/evidence/AAA-023/upstream-updateability-a66.json",
+      "sha256": "90bb3b8e32b31aac5acadbeeb5dbf57f70f7e966df5f961cea35325df63c2152"
+    },
+    {
+      "path": ".agent/evidence/AAA-023/acceptance-gap-reconciliation-a67.json",
+      "sha256": "f40de37a96cd9e8f2fc2b351482bb979b40210658bffe16cfe4ad5754afdbc5c"
+    },
+    {
+      "path": ".agent/plans/deepseek-harness-aaa-quality-bar.json",
+      "sha256": "7ad222c5dc2bad191bacb06a5a58233ba5e4a55925cff7b2fcb35a625db4f60e"
+    }
+  ],
+  "decision": "This identity is sufficient for local evidence indexing only. It does not establish release identity for publication, authorize an upstream merge, or support an unconditional AAA verdict."
+}

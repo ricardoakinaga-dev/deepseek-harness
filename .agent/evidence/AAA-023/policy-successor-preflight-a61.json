@@ -1,0 +1,39 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A27",
+  "kind": "POLICY_SUCCESSOR_PREFLIGHT",
+  "source_candidate_tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "successor": {
+    "worktree": "/tmp/dsh-a27-successor-preflight.KPk0pt/repo",
+    "temporary_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "status_entries": 0,
+    "removed_local_state_paths": 11,
+    "policy_improvement_count": 23
+  },
+  "policy": {
+    "command": "node scripts/verify-customization-policy.mjs --base origin/master",
+    "result": "PASS",
+    "exit_status": 0,
+    "attributed_paths": 1445,
+    "log": "/tmp/dsh-a27-successor-preflight.KPk0pt/policy-final.log",
+    "policy_sha256": "8198f932d4b2e9d696b7ac393219a301b9d4ae62cc29a46e16ccdc4da676059e"
+  },
+  "draft_policy_changes": [
+    "coverage-comment-preservation: exact 266-path upstream-patch owner",
+    "dynamic-extension-fixture: exact 2-path upstream-patch owner",
+    "generated-persistence-catalog: exact 4-path governance owner",
+    "runtime-resolution-fixtures: exact 4-path upstream-patch owner",
+    "source-built-tool-runtime-identity: exact 5-path upstream-patch owner",
+    "jobs-lifecycle-test: exact 1-path upstream-patch owner",
+    "successor-only exclusion of 11 ignored .opencode state paths"
+  ],
+  "result": "PARTIAL",
+  "decision": "The exact proposed disposition is mechanically valid in a disposable successor. Keep it unpromoted until authority explicitly covers the six owner records and the successor candidate; then rerun the complete candidate matrix on tree e5db2822132da3cdcc48aad11d087cb3a3d32ab1 or its exact promoted equivalent.",
+  "limitations": "No policy file in custom/main or the sealed candidate was changed. No product gates, packed installation, upstream merge, push, publication, release, or final verdict ran on the successor.",
+  "artifacts": [
+    "/tmp/dsh-a27-successor-preflight.KPk0pt/repo",
+    "/tmp/dsh-a27-successor-preflight.KPk0pt/policy-final.log"
+  ],
+  "observed_at": "2026-09-22T17:18:11-03:00"
+}

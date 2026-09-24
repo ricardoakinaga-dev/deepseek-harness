@@ -1,0 +1,55 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A25-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "timestamp": "2026-09-22T02:28:13-03:00",
+  "command": "pnpm run check:all",
+  "result": "PARTIAL",
+  "exit_status": 1,
+  "summary": "The current worktree matrix completed 77 gates with 66 passed, 5 failed, and 6 skipped in 516.55 seconds.",
+  "passed_highlights": [
+    "The client-domain graph passed.",
+    "The module graph passed.",
+    "The documentation, catalog, Cordis, workflow, policy, package, and constraint gates that ran passed."
+  ],
+  "failed_gates": [
+    {
+      "gate": "duplication",
+      "exit_status": 1,
+      "finding": "One TypeScript clone was found in gen-tsconfig-paths.ts."
+    },
+    {
+      "gate": "canonical audit metrics",
+      "exit_status": 1,
+      "finding": "scripts/audit-metrics.ts could not open packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx."
+    },
+    {
+      "gate": "vendor rescope",
+      "exit_status": 1,
+      "finding": "scripts/rescope-vendor.ts could not open packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx."
+    },
+    {
+      "gate": "build",
+      "exit_status": 1,
+      "finding": "The client bundle purity gate rejected the runtime value import of @deepseek-ai/dsh-timeout because it was not declared as a client external or inline-safe layer."
+    },
+    {
+      "gate": "test",
+      "exit_status": 1,
+      "finding": "The sandbox-local Windows ACL probe expected runner.ts but resolved packages/sandbox/sandbox-windows-acl/lib/runner.js; 1,534 files passed, 1 failed, and 12 were skipped."
+    }
+  ],
+  "skipped_gates": [
+    "test:snapshot",
+    "test:expected",
+    "publint",
+    "verify-built-package-invariants",
+    "verify-node-next-types",
+    "doc-typecheck:contracts-ready"
+  ],
+  "limitations": [
+    "The worktree is dirty and no immutable candidate was sealed.",
+    "The result is diagnostic evidence, not release qualification or a final verdict.",
+    "No product or policy correction was inferred from this run; the missing ContextMeter path is part of the existing current worktree change set."
+  ]
+}

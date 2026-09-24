@@ -141,7 +141,7 @@ export async function admitAcpPrompt(
         throw new AcpContentError('audio prompt content is not supported', 'invalid')
       case 'resource':
         throw new AcpContentError('embedded resource prompt content is not supported', 'invalid')
-      /* v8 ignore next 2 -- ACP ContentBlock is a closed generated union. */
+      /*! v8 ignore next 2 -- ACP ContentBlock is a closed generated union. */
       default:
         throw new AcpContentError('unsupported ACP prompt content', 'invalid')
     }
@@ -186,12 +186,12 @@ export async function admitAcpPrompt(
         content.push({ type: 'image', attachment: ref })
         break
       }
-      /* v8 ignore start -- the validation pass above rejects both tags before reconstruction. */
+      /*! v8 ignore start -- the validation pass above rejects both tags before reconstruction. */
       case 'audio':
       case 'resource':
         break
-      /* v8 ignore stop */
-      /* v8 ignore next 2 -- validated by the first closed-union switch. */
+      /*! v8 ignore stop */
+      /*! v8 ignore next 2 -- validated by the first closed-union switch. */
       default:
         break
     }

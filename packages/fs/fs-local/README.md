@@ -135,6 +135,8 @@ These limits define when the local backend is a poor fit or needs special operat
 - **Guarded creation requires hard-link support** — filesystems or mounts that reject hard-link publication cannot serve `createIfAbsent`; the backend preserves the missing target and reports `FS_IO_ERROR`.
 - **Post-commit cleanup is best effort** — a successful publication remains successful if removal of its owner-only staging directory fails, leaving private residue for later operator cleanup.
 
+**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond contracts enforced at its owning seam.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -144,5 +146,3 @@ These limits define when the local backend is a poor fit or needs special operat
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond contracts enforced at its owning seam.

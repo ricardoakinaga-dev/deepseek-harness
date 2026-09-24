@@ -19,9 +19,10 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { ZodType } from 'zod'
-import { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
+import { SessionLogOffset, SessionPreparation, SessionSeq } from '@deepseek-ai/dsh-session'
 import type {
   Session,
+  SessionCreationBaseline,
   SessionEvent,
   SessionHeader,
   SessionSeqCursor,
@@ -90,6 +91,12 @@ export interface ProjectionDefinition<
    * into garbage. Non-negative integer.
    */
   stateVersion: number
+  /**
+   * Optional runtime identity for state whose fold depends on process data
+   * that can change without a code version, such as Intl databases. A row is
+   * usable only when this value exactly matches, including absence.
+   */
+  cacheFingerprint?: string
 }
 
 /**
@@ -131,6 +138,8 @@ export interface ProjectionCheckpointRow {
   seq: SessionSeqCursor
   /** The unit's internal state — plain JSON per the unit contract. */
   val: unknown
+  /** Optional runtime identity required by environment-dependent folds. */
+  cacheFingerprint?: string
 }
 
 /** Checkpoint rows keyed by projection key (one session's persisted cache value). */
@@ -144,6 +153,17 @@ interface ErasedDefinition {
   apply(state: unknown, event: SessionEvent): unknown
   wire: { viewSchema: { parse(value: unknown): unknown }; view(state: unknown): unknown } | undefined
   stateVersion: number
+  cacheFingerprint?: string
+}
+
+/** Whether a persisted row was produced by this exact fold implementation. */
+function rowMatchesDefinition(
+  row: ProjectionCheckpointRow | undefined,
+  definition: ErasedDefinition,
+): row is ProjectionCheckpointRow {
+  return row !== undefined
+    && row.ver === definition.stateVersion
+    && row.cacheFingerprint === definition.cacheFingerprint
 }
 
 /** Per-session per-unit watermark and fixed live-drive view buffer. */
@@ -183,22 +203,28 @@ function cursorBefore(offset: SessionLogOffset): SessionSeqCursor {
  * service subscribes to `session/event` once; every committed event passes
  * every registered unit's `apply` (eager drive). A changed state reference
  * computes the next client view; the change feed is notified only when its
- * raw result changes by `Object.is`.
- * Cells build lazily — a unit registered after events flowed, or a session
- * older than the registry, folds `init` over the in-memory log on first
- * touch (event or read). Registration is an effect (disposer rides the
- * calling fiber): an unloaded domain plugin's key disappears from snapshots
+ * raw result changes by `Object.is`. Session cells are initialized from the
+ * creation baseline or an explicit restore/hydrate cut; a live cell is never
+ * reconstructed by reading Session history. Registration is an effect
+ * (disposer rides the calling fiber): an unloaded domain plugin's key
+ * disappears from snapshots
  * and clients read it as capability absence. A host reader either declares
  * `sessionProjections` in its plugin `inject` or fails explicitly when the
  * registry or required key is absent. Contributors may preserve optional
- * registration through `ctx.inject(['sessionProjections'], ...)`. Registrants sharing a key
- * share one unit and are counted: the same tool package mounted in N agent
- * presets registers N times, and the key survives until the last one
- * unloads.
+ * registration through `ctx.inject(['sessionProjections'], ...)`. Registrants
+ * sharing a key share one unit only when both `stateVersion` and optional
+ * `cacheFingerprint` match exactly; absent and defined fingerprints are
+ * incompatible. Such registrants are counted: the same tool package mounted
+ * in N agent presets registers N times, and the key survives until the last
+ * one unloads.
  */
 export class SessionProjectionRegistry extends Service {
+  static inject = ['sessions']
+
   private readonly registrations = new Map<string, Registration>()
   private readonly listeners = new Set<ProjectionChangeListener>()
+  private readonly beforePrepareListeners = new Set<(preparation: SessionPreparation) => void>()
+  private readonly preparedSessions = new WeakSet<Session>()
 
   /**
    * Create and install the registry as `ctx.sessionProjections`.
@@ -206,15 +232,16 @@ export class SessionProjectionRegistry extends Service {
    */
   constructor(ctx: Context) {
     super(ctx, 'sessionProjections')
-    ctx.on('session/created', (session: Session) => {
-      if (session.seq !== 0) return
+    ctx.on('session/created', (session: Session, baseline: SessionCreationBaseline) => {
+      this.assertCreationBaseline(session, baseline)
       for (const registration of this.registrations.values()) {
         if (registration.cells.has(session)) continue
-        registration.cells.set(session, {
-          state: registration.def.init(session.header, session.inheritedEventCount),
-          observedSeq: -1,
-          views: [undefined, undefined],
-        })
+        registration.cells.set(session, this.buildCell(
+          registration.def,
+          session.header,
+          session.inheritedEventCount,
+          baseline.events,
+        ))
       }
     })
     ctx.on('session/event', (session: Session, event: SessionEvent) => {
@@ -223,11 +250,13 @@ export class SessionProjectionRegistry extends Service {
   }
 
   /**
-   * Register one domain's unit. The registration is an effect on the calling
-   * context's fiber: disposing the fiber (or calling the returned disposer)
-   * removes the key — and the unit's cached cells — from subsequent drives
-   * and snapshots.
-   * @param definition - key, state schema, pure unit functions, and stateVersion.
+   * Register one domain's unit. Registrants with the same key share one fold
+   * only when both `stateVersion` and optional `cacheFingerprint` match exactly;
+   * absent and defined fingerprints are incompatible. The registration is an
+   * effect on the calling context's fiber: disposing the fiber (or calling the
+   * returned disposer) removes the key — and its cached cells — from subsequent
+   * drives and snapshots.
+   * @param definition - key, state schema, pure unit functions, and cache identity.
    * @returns the exact disposer that unregisters this unit.
    */
   register<
@@ -240,8 +269,11 @@ export class SessionProjectionRegistry extends Service {
   ): () => void
   /**
    * Register one host-only unit. Its state is omitted from client snapshots
-   * and always checkpointed like every other unit.
-   * @param definition - key, state schema, pure unit functions, and stateVersion.
+   * and always checkpointed like every other unit. Registrants with the same
+   * key share one fold only when both `stateVersion` and optional
+   * `cacheFingerprint` match exactly; absent and defined fingerprints are
+   * incompatible.
+   * @param definition - key, state schema, pure unit functions, and cache identity.
    * @returns the exact disposer that unregisters this unit.
    */
   register<
@@ -266,29 +298,144 @@ export class SessionProjectionRegistry extends Service {
         ? undefined
         : { viewSchema: wire.viewSchema, view: state => wire.view(state as S) },
       stateVersion: definition.stateVersion,
+      ...(definition.cacheFingerprint === undefined ? {} : { cacheFingerprint: definition.cacheFingerprint }),
     }
     if (!Number.isSafeInteger(definition.stateVersion) || definition.stateVersion < 0) {
       throw new Error(`session projection ${JSON.stringify(definition.key)} stateVersion must be a non-negative integer, got ${String(definition.stateVersion)}`)
+    }
+    const current = this.registrations.get(erased.key)
+    if (current !== undefined && (
+      current.def.stateVersion !== erased.stateVersion
+      || current.def.cacheFingerprint !== erased.cacheFingerprint
+    )) {
+      throw new Error(
+        `session projection key ${JSON.stringify(erased.key)} is already registered with stateVersion `
+        + `${String(current.def.stateVersion)} and cacheFingerprint ${JSON.stringify(current.def.cacheFingerprint)}; `
+        + `refusing to share it with stateVersion ${String(erased.stateVersion)} and cacheFingerprint ${JSON.stringify(erased.cacheFingerprint)}`,
+      )
+    }
+    if (current === undefined) {
+      for (const session of this.ctx.sessions.list()) {
+        if (session.seq !== 0) {
+          throw missingProjectionBaseline(erased.key, session, 'registration requires a creation or restored baseline')
+        }
+      }
     }
     const dispose = this.ctx.effect(function* (this: SessionProjectionRegistry) {
       const key = erased.key
       const existing = this.registrations.get(key)
       if (existing === undefined) {
-        this.registrations.set(key, { def: erased, cells: new WeakMap(), refs: 1 })
+        const cells = new WeakMap<Session, UnitCell>()
+        for (const session of this.ctx.sessions.list()) {
+          cells.set(session, {
+            state: erased.init(session.header, session.inheritedEventCount),
+            observedSeq: -1,
+            views: [undefined, undefined],
+          })
+        }
+        this.registrations.set(key, { def: erased, cells, refs: 1 })
       } else {
-        if (existing.def.stateVersion !== erased.stateVersion) {
-          throw new Error(`session projection key ${JSON.stringify(key)} is already registered at stateVersion ${String(existing.def.stateVersion)}; refusing to share it with stateVersion ${String(erased.stateVersion)}`)
+        if (existing.def.stateVersion !== erased.stateVersion
+          || existing.def.cacheFingerprint !== erased.cacheFingerprint) {
+          throw new Error(
+            `session projection key ${JSON.stringify(key)} is already registered with stateVersion `
+            + `${String(existing.def.stateVersion)} and cacheFingerprint ${JSON.stringify(existing.def.cacheFingerprint)}; `
+            + `refusing to share it with stateVersion ${String(erased.stateVersion)} and cacheFingerprint ${JSON.stringify(erased.cacheFingerprint)}`,
+          )
         }
         existing.refs += 1
       }
       yield () => {
         const live = this.registrations.get(key)
-        /* v8 ignore next -- the disposer runs once per successful registration, so the entry it counted is still here */
+        /*! v8 ignore next -- the disposer runs once per successful registration, so the entry it counted is still here */
         if (live === undefined) return
         live.refs -= 1
         if (live.refs === 0) this.registrations.delete(key)
       }
     }.bind(this), 'sessionProjections.register()')
+    return () => void dispose()
+  }
+
+  /**
+   * Initialize every registered unit from the constructor cut and attach its
+   * synchronous append consumer before Agent construction. The preparation
+   * replays accepted suffix events first, then advances cells before each new
+   * append is accepted; publication seals that feed and the live event route
+   * continues from the same watermark.
+   * @param preparation - exact unpublished Session and its constructor baseline.
+   * @throws when the baseline or any projection transition is invalid.
+   */
+  prepareSession(preparation: SessionPreparation): void {
+    const session = preparation.session
+    const baseline = preparation.baseline
+    if (this.preparedSessions.has(session)) {
+      throw new Error(`session projections for session "${session.id}" are already prepared`)
+    }
+    this.assertBaselineStructure(session, baseline)
+
+    for (const listener of [...this.beforePrepareListeners]) listener(preparation)
+
+    const cells = new Map<Registration, UnitCell>()
+    for (const registration of this.registrations.values()) {
+      const cell = this.buildCell(
+        registration.def,
+        session.header,
+        session.inheritedEventCount,
+        baseline.events,
+      )
+      registration.def.stateSchema.parse(cell.state)
+      cells.set(registration, cell)
+    }
+
+    preparation.subscribeAppends((event) => {
+      const transitions: { cell: UnitCell; state: unknown }[] = []
+      for (const registration of this.registrations.values()) {
+        const cell = cells.get(registration)
+        if (cell === undefined) {
+          throw missingProjectionBaseline(registration.def.key, session, 'prepared append arrived before cell initialization')
+        }
+        const expectedPrevious = event.seq === 0 ? -1 : SessionSeq(event.seq - 1)
+        if (cell.observedSeq !== expectedPrevious) {
+          throw missingProjectionBaseline(
+            registration.def.key,
+            session,
+            `cell watermark ${String(cell.observedSeq)} does not precede prepared event ${String(event.seq)}`,
+          )
+        }
+        const state = registration.def.apply(cell.state, event)
+        registration.def.stateSchema.parse(state)
+        transitions.push({ cell, state })
+      }
+      return () => {
+        for (const { cell, state } of transitions) {
+          cell.state = state
+          cell.observedSeq = event.seq
+        }
+      }
+    })
+
+    for (const [registration, cell] of cells) registration.cells.set(session, cell)
+    this.preparedSessions.add(session)
+  }
+
+  /**
+   * Register synchronous validation for an unpublished Session's constructor
+   * baseline and setup appends. The registry calls listeners after checking
+   * baseline structure and before folding projection cells or attaching its
+   * own append consumer. A listener may attach a `SessionPreparation` append
+   * consumer; that consumer stays attached until preparation is sealed or
+   * disposed, even if this registration is later removed.
+   * The listener registration is an effect on its owning context's fiber.
+   * @param listener - synchronous validator for the exact preparation.
+   * @returns the exact disposer that removes this listener from future preparations.
+   */
+  onBeforePrepareSession(listener: (preparation: SessionPreparation) => void): () => void {
+    const dispose = this.ctx.effect(() => {
+      this.beforePrepareListeners.add(listener)
+      return () => {
+        this.beforePrepareListeners.delete(listener)
+      }
+    }, 'sessionProjections.onBeforePrepareSession()')
     return () => void dispose()
   }
 
@@ -328,7 +475,7 @@ export class SessionProjectionRegistry extends Service {
 
   /**
    * One consistent cut over every registered client-visible unit for one session, read from
-   * the watermark cache (missing cells fold lazily over the in-memory log).
+   * the watermark cache initialized by creation or an explicit restore/hydrate cut.
    * Fully synchronous — every value and `asOfSeq` reflect the same log
    * position. Each value passes its unit's `viewSchema` before leaving.
    * @param session - the session whose projection values are read.
@@ -381,8 +528,8 @@ export class SessionProjectionRegistry extends Service {
 
   /**
    * State-level checkpoint of every persisted unit for one session, read
-   * from the watermark cache (missing cells fold lazily over the in-memory
-   * log). This is the write side of the persisted projection cache: the
+   * from the watermark cache initialized by creation or an explicit
+   * restore/hydrate cut. This is the write side of the persisted projection cache: the
    * returned rows are the `(key → {ver, seq, val})` part of the durable
    * `(sessionId, key, ver, seq, val)`
    * rows. Every `val` is a DETACHED structured clone — never the live
@@ -401,6 +548,9 @@ export class SessionProjectionRegistry extends Service {
         ver: registration.def.stateVersion,
         seq: cell.observedSeq,
         val: structuredClone(cell.state),
+        ...(registration.def.cacheFingerprint === undefined
+          ? {}
+          : { cacheFingerprint: registration.def.cacheFingerprint }),
       }
     }
     return rows
@@ -409,7 +559,8 @@ export class SessionProjectionRegistry extends Service {
   /**
    * The stored seq a {@link restore} tail read over `checkpoint` must start
    * at: one event BELOW the lowest usable watermark (a row is usable when
-   * its `ver` matches the live unit's `stateVersion`; an absent or mismatched row
+   * its `ver` matches the live unit's `stateVersion` and its optional
+   * `cacheFingerprint` matches exactly, including absence; an absent or mismatched row
    * pulls the floor to `0` — that key must refold the full log). The
    * one-below anchor is load-bearing: the tail then proves how far the
    * stored log still extends, so {@link restore} can detect a log that
@@ -426,7 +577,7 @@ export class SessionProjectionRegistry extends Service {
     let floor: number | undefined
     for (const registration of this.registrations.values()) {
       const row = checkpoint[registration.def.key]
-      const need = row !== undefined && row.ver === registration.def.stateVersion
+      const need = rowMatchesDefinition(row, registration.def)
         ? Math.max(row.seq + 1, 0)
         : 0
       floor = floor === undefined ? need : Math.min(floor, need)
@@ -436,7 +587,8 @@ export class SessionProjectionRegistry extends Service {
 
   /**
    * View a checkpoint's rows without any log read: for every registered
-   * client-visible unit whose row's `ver` matches, serve the schema-validated
+   * client-visible unit whose `ver` matches the live `stateVersion` and whose
+   * optional `cacheFingerprint` matches exactly, including absence, serve the schema-validated
    * `view` of the schema-validated stored state; mismatched, malformed, or absent rows leave their key
    * absent (a cold or listing consumer treats it as not-yet-available and a
    * fuller read path refolds it). The zero-I/O rung of the read ladder —
@@ -456,7 +608,7 @@ export class SessionProjectionRegistry extends Service {
       if (def.wire === undefined) continue
       if (selected !== undefined && !selected.has(def.key)) continue
       const row = checkpoint[def.key]
-      if (row === undefined || row.ver !== def.stateVersion) continue
+      if (!rowMatchesDefinition(row, def)) continue
       let state: unknown
       try {
         state = def.stateSchema.parse(row.val)
@@ -475,8 +627,9 @@ export class SessionProjectionRegistry extends Service {
    * Call with the stored events at or past `restoreFloor(checkpoint)` (a
    * `SessionHandle.read` slice) and that same floor as
    * `baseSeq`; the floor's one-below anchor makes the supplied end honest,
-   * so a shrunk log is detected here. A row is usable iff its
-   * `ver` matches the live unit's `stateVersion`, it does not predate `baseSeq`
+   * so a shrunk log is detected here. A row is usable iff its `ver` matches
+   * the live unit's `stateVersion` and its optional `cacheFingerprint` matches
+   * exactly, including absence, it does not predate `baseSeq`
    * (`seq >= baseSeq - 1`), and it does not claim events past the
    * supplied end (`seq <= endSeq`); an unusable row is discarded
    * and its key refolds from `init` — which is only sound over the full
@@ -507,8 +660,7 @@ export class SessionProjectionRegistry extends Service {
     for (const registration of this.registrations.values()) {
       const def = registration.def
       const row = checkpoint[def.key]
-      const usable = row !== undefined
-        && row.ver === def.stateVersion
+      const usable = rowMatchesDefinition(row, def)
         && row.seq >= beforeBase
         && row.seq <= endSeq
       if (!usable && baseSeq > 0) {
@@ -531,7 +683,12 @@ export class SessionProjectionRegistry extends Service {
         state = def.apply(state, event)
       }
       if (def.wire !== undefined) values[def.key] = def.wire.viewSchema.parse(def.wire.view(state))
-      refreshed[def.key] = { ver: def.stateVersion, seq: endSeq, val: state }
+      refreshed[def.key] = {
+        ver: def.stateVersion,
+        seq: endSeq,
+        val: state,
+        ...(def.cacheFingerprint === undefined ? {} : { cacheFingerprint: def.cacheFingerprint }),
+      }
     }
     return {
       snapshot: { asOfSeq: endSeq, values: values },
@@ -594,7 +751,7 @@ export class SessionProjectionRegistry extends Service {
     return restored.snapshot
   }
 
-  /** Materialize every registered unit cell at the Session's current cursor. */
+  /** Verify every registered unit cell covers the live Session cursor. */
   private materializeCells(session: Session): void {
     for (const registration of this.registrations.values()) this.cellFor(registration, session)
   }
@@ -611,71 +768,29 @@ export class SessionProjectionRegistry extends Service {
     return { state, observedSeq: (events.at(-1)?.seq ?? -1), views: [undefined, undefined] }
   }
 
-  /** Read (or lazily build, folding the full in-memory log) one unit's cell. */
+  /** Read one unit's cell, requiring an exact baseline for a live Session. */
   private cellFor(registration: Registration, session: Session): UnitCell {
-    let cell = registration.cells.get(session)
+    const cell = registration.cells.get(session)
     if (cell === undefined) {
-      cell = this.buildCell(
-        registration.def,
-        session.header,
-        session.inheritedEventCount,
-        // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-        session.snapshotEvents(),
-      )
-      registration.cells.set(session, cell)
-    } else {
-      this.advanceCell(registration.def, cell, session, cursorBefore(session.seq))
+      throw missingProjectionBaseline(registration.def.key, session, 'cell was not initialized before the read')
+    }
+    if (this.ctx.sessions.get(session.id) === session && cell.observedSeq !== cursorBefore(session.seq)) {
+      throw missingProjectionBaseline(registration.def.key, session, 'cell watermark does not cover the live cursor')
     }
     return cell
-  }
-
-  /** Advance one existing cell through a contiguous Session prefix. */
-  private advanceCell(
-    def: ErasedDefinition,
-    cell: UnitCell,
-    session: Session,
-    throughSeq: SessionSeqCursor,
-  ): void {
-    if (cell.observedSeq >= throughSeq) return
-    for (let seq = cell.observedSeq + 1; seq <= throughSeq; seq++) {
-      // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-      const event = session.eventAt(SessionSeq(seq))
-      if (event === undefined || event.seq !== seq) {
-        throw new Error(`session projection ${JSON.stringify(def.key)} cannot advance across missing seq ${String(seq)}`)
-      }
-      const next = def.apply(cell.state, event)
-      if (!Object.is(next, cell.state)) {
-        cell.views[0] = cell.views[1]
-        cell.views[1] = undefined
-      }
-      cell.state = next
-      cell.observedSeq = SessionSeq(seq)
-    }
   }
 
   /** Eager drive: pass one committed event through every unit; notify on changed raw view references. */
   private drive(session: Session, event: SessionEvent): void {
     for (const registration of this.registrations.values()) {
-      let cell = registration.cells.get(session)
+      const cell = registration.cells.get(session)
       if (cell !== undefined && cell.observedSeq >= event.seq) continue
       if (cell === undefined) {
-        // Late build mid-stream: fold history before this event (seq = log
-        // index, so the prefix slice is exact), then take the normal gate.
-        cell = this.buildCell(
-          registration.def,
-          session.header,
-          session.inheritedEventCount,
-          // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-          session.snapshotEvents(SessionLogOffset(0), SessionLogOffset(event.seq)),
-        )
-        registration.cells.set(session, cell)
-      } else {
-        this.advanceCell(
-          registration.def,
-          cell,
-          session,
-          event.seq === 0 ? -1 : SessionSeq(event.seq - 1),
-        )
+        throw missingProjectionBaseline(registration.def.key, session, 'event delivery arrived before cell initialization')
+      }
+      const expectedPrevious = event.seq === 0 ? -1 : SessionSeq(event.seq - 1)
+      if (cell.observedSeq !== expectedPrevious) {
+        throw missingProjectionBaseline(registration.def.key, session, `cell watermark ${String(cell.observedSeq)} does not precede event ${String(event.seq)}`)
       }
       const previousState = cell.state
       const next = registration.def.apply(previousState, event)
@@ -709,6 +824,33 @@ export class SessionProjectionRegistry extends Service {
     if (wire === undefined) throw new Error(`session projection ${JSON.stringify(registration.def.key)} has no wire view`)
     return wire.viewSchema.parse(wire.view(cell.state))
   }
+
+  /** Verify that a creation callback carries the exact pre-live Session cut. */
+  private assertCreationBaseline(session: Session, baseline: SessionCreationBaseline): void {
+    this.assertBaselineStructure(session, baseline)
+    if (baseline.events.length !== session.seq) {
+      throw missingProjectionBaseline('session/created', session, 'creation payload is not the exact pre-live cut')
+    }
+  }
+
+  /** Verify the immutable constructor event prefix without consulting the current cursor. */
+  private assertBaselineStructure(session: Session, baseline: SessionCreationBaseline): void {
+    const lastSeq = baseline.events.at(-1)?.seq
+    const expectedLastSeq = baseline.events.length === 0
+      ? undefined
+      : SessionSeq(baseline.events.length - 1)
+    const contiguous = baseline.events.every((event, index) => event.seq === index)
+    if (!contiguous
+      || lastSeq !== expectedLastSeq
+      || baseline.firstLiveSeq > baseline.events.length) {
+      throw missingProjectionBaseline('session/created', session, 'constructor payload is not a contiguous creation cut')
+    }
+  }
+}
+
+/** Construct one explicit failure for a projection that lacks an exact baseline. */
+function missingProjectionBaseline(key: string, session: Session, reason: string): Error {
+  return new Error(`session projection ${JSON.stringify(key)} requires an exact baseline for session "${session.id}": ${reason}`)
 }
 
 export default SessionProjectionRegistry

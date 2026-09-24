@@ -161,6 +161,17 @@ describe('gate graph validation', () => {
     await expect(runGates(subject, subject.length, execute)).resolves.toHaveLength(subject.length)
   })
 
+  it('runs the full check-all test gate after every other gate', () => {
+    const subject = withPnpmEntrypoint(() => gatesForMode('check-all'))
+    const test = subject.find(item => item.id === 'test')
+
+    expect(test).toMatchObject({
+      displayCommand: 'pnpm run test -- --maxWorkers=4',
+      args: ['/private/pnpm.cjs', 'run', 'test', '--', '--maxWorkers=4'],
+    })
+    expect(test?.after).toEqual(subject.filter(item => item.id !== 'test').map(item => item.id))
+  })
+
   it('builds the native addon before benchmarks through the ci-bench script chain', () => {
     const subject = withPnpmEntrypoint(() => gatesForMode('ci-bench'))
     const { scripts } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
@@ -201,6 +212,60 @@ describe('gate graph validation', () => {
 
     expect(ids).toContain('public-repository-links')
   })
+
+  it.each(['ci-primary', 'ci-static', 'check-all'] as const)(
+    'keeps the fork runner policy in %s',
+    (mode) => {
+      const ids = withPnpmEntrypoint(() => gatesForMode(mode).map(subject => subject.id))
+
+      expect(ids).toContain('fork-runners')
+    },
+  )
+
+  it.each(['ci-primary', 'ci-static', 'check-all'] as const)(
+    'keeps workflow action pinning in %s',
+    (mode) => {
+      const ids = withPnpmEntrypoint(() => gatesForMode(mode).map(subject => subject.id))
+
+      expect(ids).toContain('workflow-pins')
+    },
+  )
+
+  it.each(['ci-primary', 'ci-static', 'check-all'] as const)(
+    'keeps workflow image digest pinning in %s',
+    (mode) => {
+      const ids = withPnpmEntrypoint(() => gatesForMode(mode).map(subject => subject.id))
+
+      expect(ids).toContain('workflow-images')
+    },
+  )
+
+  it.each(['ci-primary', 'ci-static', 'check-all'] as const)(
+    'keeps release SBOM and attestation policy in %s',
+    (mode) => {
+      const ids = withPnpmEntrypoint(() => gatesForMode(mode).map(subject => subject.id))
+
+      expect(ids).toContain('release-supply-chain')
+    },
+  )
+
+  it.each(['ci-primary', 'ci-static', 'check-all'] as const)(
+    'keeps the pnpm supply-chain policy in %s',
+    (mode) => {
+      const ids = withPnpmEntrypoint(() => gatesForMode(mode).map(subject => subject.id))
+
+      expect(ids).toContain('pnpm-supply-chain')
+    },
+  )
+
+  it.each(['ci-primary', 'ci-static', 'check-all'] as const)(
+    'keeps dependency advisory scanning in %s',
+    (mode) => {
+      const ids = withPnpmEntrypoint(() => gatesForMode(mode).map(subject => subject.id))
+
+      expect(ids).toContain('dependency-audit')
+    },
+  )
 
   it('keeps the concrete terminology policy in the documentation gate', () => {
     const ids = withPnpmEntrypoint(() => gatesForMode('doc-sync').map(subject => subject.id))
@@ -258,11 +323,12 @@ describe('gate graph validation', () => {
     const ids = withPnpmEntrypoint(() => gatesForMode('hygiene').map(subject => subject.id))
 
     expect(ids).toEqual([
-      'rescope-vendor', 'publint', 'constraints', 'default-product-isolation', 'package-dependencies', 'application-entrypoints',
+      'hygiene-prerequisites', 'rescope-vendor', 'publint', 'constraints', 'default-product-isolation', 'package-dependencies', 'application-entrypoints',
       'dsh-package-licenses', 'package-invariants', 'built-package-invariants', 'node-next-types',
       'optional-dependency-imports', 'client-packages', 'client-ui-i18n', 'no-bare-dispatcher', 'cordis-config',
       'runtime-closure',
     ])
+    expect(withPnpmEntrypoint(() => gatesForMode('hygiene').slice(1)).every(subject => subject.needs?.includes('hygiene-prerequisites'))).toBe(true)
     expect(defaultConcurrency('hygiene', ids.length, 8)).toEqual({
       workers: 4,
       source: '8 available CPU(s), hygiene cap 4',

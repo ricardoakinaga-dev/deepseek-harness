@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-004",
+  "action_id": "AAA-004:A01",
+  "candidate_ref": "refs/tags/aaa-savepoint-2026-09-20-m0-a02-01 plus working-tree AAA-004:A01 fixture correction",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T19:47:00-03:00",
+  "source_documents": [
+    {
+      "id": "repository-audit:unit-tests",
+      "location": "docs/customization/repository-audit-2026-09-20.md#executed-evidence",
+      "role": "Historical unit-test evidence that identifies spill cleanup failure under umask 0002 and passing isolation under umask 0022."
+    },
+    {
+      "id": "AAA-QB-v1.4",
+      "location": ".agent/plans/deepseek-harness-aaa-quality-bar.json",
+      "role": "Frozen quality criteria for deterministic unit-test and security-negative-control evidence."
+    },
+    {
+      "id": "spill-local-source-and-tests",
+      "location": "packages/spill/spill-local/src/store.ts; packages/spill/spill-local/src/cleanup.ts; packages/spill/spill-local/tests/spill-local.spec.ts",
+      "role": "Current implementation and focused fixture ownership."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-004-UMASK",
+      "source_refs": ["repository-audit:unit-tests", "AAA-QB-01", "AAA-QB-02"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md#executed-evidence; packages/spill/spill-local/tests/spill-local.spec.ts",
+      "command_ids": ["CMD-AAA-004-001", "CMD-AAA-004-002", "CMD-AAA-004-003", "CMD-AAA-004-004", "CMD-AAA-004-005", "CMD-AAA-004-006"],
+      "observed_status": "PASS_AFTER_FIXTURE_CORRECTION",
+      "classification": "TEST_FIXTURE_PORTABILITY_DEFECT_NOT_PRODUCT_DEFECT",
+      "owner": "AAA-004",
+      "severity": "HIGH_RESOLVED",
+      "summary": "The 9 failures under umask 0002 were caused by cleanup fixtures creating session-* directories with the process-default mode 0775. The shipped cleanup intentionally rejects group-writable session directories. The product writer already creates 0700 session directories and 0600 files. Declaring mode 0700 on trusted cleanup fixtures makes the same 41-test file pass under both umask 0002 and 0022, while the explicit unsafe-directory cases remain passing.",
+      "limitations": "This action covers the focused spill-local source-plane file only. It does not qualify the complete repository unit, coverage, snapshot, Web, or release matrices."
+    }
+  ],
+  "decision": {
+    "result": "AAA-004:A01 PASS",
+    "product_change": false,
+    "test_change": "Trusted session-directory fixtures now request mode 0700 explicitly; intentionally unsafe fixtures remain permissive or are chmodded unsafe.",
+    "next_action": "Complete AAA-004 and move to the next dependency-free backlog action after updating the current report pointer."
+  },
+  "validation": {
+    "command_record_count": 6,
+    "raw_output_files": 6,
+    "required_negative_control": "CMD-AAA-004-006",
+    "validation_method": "Parse commands.jsonl; require unique command IDs, existing raw-output files with matching SHA-256, non-empty source_refs, and a PASS after-fix run under both umask values plus the unsafe-directory negative control.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T19:47:00-03:00"
+  }
+}

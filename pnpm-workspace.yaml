@@ -18,10 +18,34 @@ overrides:
   'extract-zip>yauzl': '3.4.0'
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
+  # Keep transitive advisories on patched releases while their owning packages
+  # retain compatible major versions.
+  vite: '6.4.3'
+  js-yaml: '4.3.2'
+  fast-uri: '3.1.6'
+  ip-address: '10.3.1'
+  '@hono/node-server': '1.19.15'
+  hono: '4.13.5'
+  'brace-expansion@1': '1.1.21'
+  'brace-expansion@2': '2.1.7'
+  'brace-expansion@5': '5.0.12'
+  nanoid: '3.3.18'
+  postcss: '8.5.28'
+  browserslist: '4.28.7'
+  'undici@7': '7.29.0'
+  protobufjs: '7.6.5'
+  dompurify: '3.4.13'
+  qs: '6.16.0'
+  fflate: '0.8.3'
 
 peerDependencyRules:
   allowedVersions:
     typescript: '>=5 <7'
+
+# Hold newly published packages for one day unless a reviewed exact release is
+# listed below. This protects ordinary lockfile refreshes without blocking the
+# coordinated platform bundles that are qualified and released together.
+minimumReleaseAge: 1440
 
 # pnpm 10+ blocks any dependency shipping an install/build script until it is
 # explicitly reviewed here (strictDepBuilds defaults to true: an unlisted script

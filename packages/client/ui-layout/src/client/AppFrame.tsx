@@ -133,7 +133,7 @@ export function AppFrame({
   // Track the frame's own box (not the window): rAF-throttled ResizeObserver.
   useLayoutEffect(() => {
     const el = frameRef.current
-    /* v8 ignore next -- the ref is always attached by effect time: the frame div renders unconditionally. */
+    /*! v8 ignore next -- the ref is always attached by effect time: the frame div renders unconditionally. */
     if (el === null) return
     let raf: number | null = null
     let disposed = false

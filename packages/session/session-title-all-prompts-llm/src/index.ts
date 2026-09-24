@@ -9,7 +9,7 @@ import {
 import type { SessionTitleLlmConfig } from '@deepseek-ai/dsh-session-title-llm'
 
 export const name = 'session-title-all-prompts-llm'
-export const inject = ['sessionTitle', 'llm', 'sessions']
+export const inject = ['sessionTitle', 'llm', 'sessions', 'sessionQuery']
 
 /** Required LLM policy; this plugin adds no defaults. */
 export type Config = SessionTitleLlmConfig
@@ -28,9 +28,9 @@ export const Config: z<Config> = z.object({
 
 /**
  * Register the all-prompts model provider.
- * @param ctx - context exposing session-title, LLM, and session services.
+ * @param ctx - context exposing session-title, LLM, session, and session-query services.
  * @param config - required route, target, byte, token, and timeout policy.
  */
 export function apply(ctx: Context, config: Config): void {
-  registerSessionTitleLlmProvider(ctx, config, name, 'all-prompts', messages => messages)
+  registerSessionTitleLlmProvider(ctx, config, name, 'all-prompts')
 }

@@ -12,7 +12,9 @@ import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionInspection } from '@deepseek-ai/dsh-session-persistence'
 import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
+/*! v8 ignore start -- V8 attributes the external RemoteError module branch to this import; its behavior belongs to dsh-typert-protocol. */
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+/*! v8 ignore stop */
 import type {} from '@deepseek-ai/dsh-typert-registry'
 import type { ModelSelection } from './types.ts'
 

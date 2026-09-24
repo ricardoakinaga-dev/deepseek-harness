@@ -1,6 +1,6 @@
-/** Office preview registration backed by authorized Host rendering and the existing PDF body. */
+/** Office preview registration backed by authorized Host rendering and a top-level PDF assembly. */
 import type { Context } from '@deepseek-ai/cordis'
-import { retainDocumentTabs } from '../document/tab-lifetime.ts'
+import { retainDocumentTabs } from '../document-tab-lifetime.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-office-to-pdf/remote'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -8,11 +8,9 @@ import type {} from '@deepseek-ai/dsh-api-workspace-files/remote'
 import type {} from '@deepseek-ai/dsh-client-connection/client'
 import { documentFileBytes } from '../rpc.ts'
 import { failureLine } from '../failure-line.ts'
-import { documentTabInfoFactory } from '../document/contract.ts'
+import { documentTabInfoFactory } from '../document-contract.ts'
 import { en, zh, type OfficePreviewKey } from './locales.ts'
 import { OfficePreviewCache, type ReadOfficeBytes, type ReadOfficeDocument } from './cache.ts'
-import { pdfBodyRegistration } from '../pdf/index.ts'
-import { LazyPdfBody } from '../pdf/LazyPdfBody.tsx'
 import { OfficeBody, type OfficeBodyInjected } from './OfficeBody.tsx'
 import { createOfficeStore } from './store.ts'
 import type { Config } from '../../config.ts'
@@ -23,13 +21,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
+/** Package-local key for the Office renderer and its nested PDF presentation. */
+export const OFFICE_BODY_ID = '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/office'
+
 /**
  * Register Office previews with versioned PDF reuse and missing-font notices.
  * @param ctx - Client renderer registry, localized copy, and optional Host Remotes.
  * @param config - Resolved Office preview cache limits.
  */
 export function apply(ctx: Context, config: Config['office']): void {
-  const id = '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/office'
+  const id = OFFICE_BODY_ID
   const extensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']
   ctx.effect(() => ctx.locale.register('sidebarOffice', { zh, en }))
   const t = ctx.locale.bind('sidebarOffice')
@@ -57,10 +58,6 @@ export function apply(ctx: Context, config: Config['office']): void {
       retainTab: (tabId, signal) => { retainTab(tabId, signal, actions.forget) },
     }),
   }, OfficeBody)))
-  const pdfPresentation = pdfBodyRegistration(ctx)
-  ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document.office.pdf', () => ctx.slots.register({
-    name: 'sidebar.right.tab.document.office.pdf', key: id, locale: 'sidebarPdf', ...pdfPresentation,
-  }, LazyPdfBody)))
   ctx.inject(['remote', 'remote.officeToPdf', 'remote.workspaceFiles'], (scope) => {
     const convert: ReadOfficeBytes = async (file, signal, priority) => {
       signal.throwIfAborted()

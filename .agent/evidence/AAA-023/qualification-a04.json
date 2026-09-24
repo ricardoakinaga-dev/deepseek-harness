@@ -1,0 +1,97 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A04-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree at 60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "timestamp": "2026-09-21T17:36:22-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "pnpm run test",
+      "exit_status": 1,
+      "observed_status": "PARTIAL",
+      "summary": "The full Vitest run completed with 22 failed files, 1,513 passed files, and 12 skipped files; 186 failed tests, 26,097 passed tests, 153 skipped tests, and one expected failure. The dominant failures are React JSX runtime errors in client tests, the browser fixture expecting Rolldown while the installed Vite path uses Rollup, two workspace-change fixture timeouts, and environment-dependent real-subprocess/slot failures."
+    },
+    {
+      "command": "pnpm exec vitest run scripts/ci-workflow.spec.ts scripts/tests/ci-master-platforms.spec.ts scripts/tests/ci-release-selfhosted.spec.ts scripts/persistence-schema.spec.ts scripts/oxlint-contract.spec.ts packages/sdk/client/tests/launch.spec.ts packages/subprocess/subprocess-local/tests/spawn-runner.spec.ts packages/experimental/browser-use-stagehand-native/tests/worker-protocol.spec.ts packages/boot/app-boot/tests/profile-resolution.spec.ts packages/typert/loader/tests/loader.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "10 files and 312 tests passed after the ESM resolver, workflow fixture, and concurrent persistence-schema probe fixes."
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm run lint",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "22 documentation gates passed."
+    },
+    {
+      "command": "pnpm run duplication",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "No clones found across 1,985 analyzed TypeScript/TSX files."
+    },
+    {
+      "command": "pnpm run verify-package-invariants",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "39 hand-owned package companions conform."
+    },
+    {
+      "command": "pnpm run verify-translation-pairing",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "1,027 documentation pairs checked."
+    },
+    {
+      "command": "pnpm run verify-release-supply-chain",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base origin/master",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "689 custom paths are attributed across 12 improvements."
+    },
+    {
+      "command": "pnpm run audit:metrics -- --output .artifacts/audit-metrics-current.json",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The 4,436-file corpus keeps the non-increasing ratchet: deprecated_reader 89/90, lint_suppression 262/263, todo_marker 53/53, explicit_any 1,624/1,625, selected_skip 4/7."
+    },
+    {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "11/11 control-plane checks passed before this evidence transaction."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "decision_dependent_gates": [
+    "AAA-009 client-domain ownership and shared document API placement; the existing inventory still records 38 violations.",
+    "AAA-010 module-graph regeneration after AAA-009 ownership decisions.",
+    "AAA-012 WebSocket close postcondition.",
+    "AAA-014 aggregate HTTP memory and admission policy.",
+    "AAA-015 dynamic extension deployment, CSP, consent, and default policy.",
+    "AAA-019 fork publication identity and namespace.",
+    "AAA-020 public source-export compatibility.",
+    "AAA-022 broad lint/compiler policy and owner-scoped migration waves."
+  ],
+  "limitations": "This is a current remediation checkpoint, not a sealed release qualification. Platform lanes, credentialed providers, packed-install checks, upstream merge rehearsal, and the fresh final independent critic remain outstanding. The full test failures were retained as observed evidence; no normalizer or broad test skip was added.",
+  "observed_at": "2026-09-21T17:36:22-03:00",
+  "freshness": "CURRENT"
+}

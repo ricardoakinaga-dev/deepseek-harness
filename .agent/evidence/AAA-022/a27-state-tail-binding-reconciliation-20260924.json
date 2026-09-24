@@ -1,0 +1,40 @@
+{
+  "record_id": "AAA-022-A27-STATE-TAIL-BINDING-RECONCILIATION-20260924-001",
+  "captured_at": "2026-09-24T00:31:57-03:00",
+  "trigger": {
+    "check": "engineering-framework check_state.py after pointer reconciliation",
+    "baseline_failures": 359,
+    "post_transaction_failures": 359,
+    "removed": [
+      "BACKLOG_DEPENDENCY: AAA-023 depends on non-DONE AAA-022"
+    ],
+    "added": [
+      "RECONCILE_LOG_ACTION: tail checkpoint decision referenced a non-active task action ID"
+    ],
+    "historical_records_mutated": false
+  },
+  "disposition": {
+    "preserved_event_id": "EVT-AAA-022-CHECKPOINT-A27-POINTER-RECONCILIATION-001-128",
+    "successor_event_id": "EVT-AAA-022-CHECKPOINT-A27-ACTION-BINDING-RECONCILIATION-001-129",
+    "successor_supersedes": "EVT-AAA-022-CHECKPOINT-A27-POINTER-RECONCILIATION-001-128",
+    "successor_action": "AAA-022:A27-AGGREGATE-SCOPE",
+    "successor_authoritative_text_contains_only_active_action": true
+  },
+  "authorization": "Append-only correction within the user-authorized A27 state reconciliation; preserve the prior event and state history.",
+  "sha256": {
+    "before": {
+      ".agent/state.json": "3d152412017d8b6719e2b009f1bd69cc6121c07026623d1dc6908b469e1d0ed1",
+      ".agent/backlog.json": "e9bfbd16b6cd15438d6025cdaccad7930ae50a2633b1aac6d2beb1412b6aa8a6",
+      ".agent/plans/deepseek-harness-aaa.md": "c174a77fd41a928fa4976b3e6a3ad36c5b79ac2a0c12927bfc7957ce33e0c3e6",
+      ".agent/execution-log.jsonl": "9c6d37805d561794bd0c817b2555d1368f7539f32ec4c98c716fe1ecdef19247",
+      ".agent/verification.jsonl": "880d7bc6bc7f0637c76562f92791a21ea424609887bf5fbce7505d3847edb311"
+    },
+    "after": {
+      ".agent/plans/deepseek-harness-aaa.md": "05bffb3a3512d6d43f800a4e40b82a71801bb8a544f26549fd7fbab2a8fd38bd",
+      ".agent/backlog.json": "1a91493a3544954bc3cb10cfd0e742f3c90e093f3e901ed8eecd3567878ecd2a",
+      ".agent/execution-log.jsonl": "52e5e92c91598309d04999a79e2781ff22dd97043c84decea14983081444a37e",
+      ".agent/verification.jsonl": "c9de233693ec2f0b13576407ec6f073e8a960e882219bf5348fcaecccbd5fa3a",
+      ".agent/state.json": "7ccf2fca3cb7613d2db985806472c4829d31d36a4aac7726c1eccffe94f57bca"
+    }
+  }
+}

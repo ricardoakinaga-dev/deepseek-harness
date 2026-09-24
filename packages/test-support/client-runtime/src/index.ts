@@ -22,9 +22,11 @@ import { act, render, within } from '@testing-library/react'
 import type { RenderResult } from '@testing-library/react'
 import type { queries } from '@testing-library/dom'
 import type { BoundFunctions } from '@testing-library/dom'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import { bindSnapshotSelector as bindRendererSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/src/client/bind.ts'
-import { createSlotRenderer as createRenderer } from '@deepseek-ai/dsh-client-ui-renderer/src/client/scoped-slots.tsx'
+import {
+  bindSnapshotSelector as bindRendererSnapshotSelector,
+  createSlotRenderer as createRenderer,
+  SlotRegistry,
+} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import {
   apply as applyUiSession, inject as uiSessionInject,
 } from '@deepseek-ai/dsh-client-ui-session/client'

@@ -107,6 +107,8 @@ terminal model 使用浏览器安全入口 `@deepseek-ai/dsh-spill-policy/notice
 - **第一方工具视图集中在本包**：它们可以通过 keyed slot 独立迁移到各自所属的业务包。
 - **工具文案复用 `ui-conversation` locale namespace**：工具标题、行 chrome 与无 Cordis 的 primitive label 使用该字典；展示转换器模型保留 locale key 或数据，而不是已渲染文案。
 
+**运行时不变式：** 不发布伴生入口。工具组合只存在于浏览器，不贡献事件或跨插件可变状态；slot 所有权由 ui-slots 校验。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -116,5 +118,3 @@ terminal model 使用浏览器安全入口 `@deepseek-ai/dsh-spill-policy/notice
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。工具组合只存在于浏览器，不贡献事件或跨插件可变状态；slot 所有权由 ui-slots 校验。

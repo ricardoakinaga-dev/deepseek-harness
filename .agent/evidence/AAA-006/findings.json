@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-006",
+  "action_id": "AAA-006:A01",
+  "candidate_ref": "current working-tree AAA-005:A02 replay evidence",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T20:29:23-03:00",
+  "source_documents": [
+    {
+      "id": "built-snapshot-launch",
+      "location": "scripts/run-gates.ts; packages/test-support/loader-smoke/README.md; snapshots/session/headless.snapshot.ts",
+      "role": "The CI snapshot gate uses DSH_EXAMPLE_MODE=lib and loads the authored scenario through its real profile path."
+    },
+    {
+      "id": "resilient-adapter",
+      "location": "snapshots/session/resilient-compaction-timeout/resilient-compaction-snapshot-adapter.mjs; snapshots/session/resilient-compaction-timeout/cordis.yml",
+      "role": "The scenario declares a provider adapter module that imports @deepseek-ai/dsh-llm and registers resilience-snapshot."
+    },
+    {
+      "id": "root-consumer",
+      "location": "package.json",
+      "role": "The root snapshot consumer declares other authored-fixture workspace imports but does not declare @deepseek-ai/dsh-llm."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-006-ADAPTER-IMPORT",
+      "source_refs": ["AAA-QB-03", "AAA-QB-06"],
+      "source_location": "snapshots/session/resilient-compaction-timeout/resilient-compaction-snapshot-adapter.mjs; package.json",
+      "command_ids": ["CMD-AAA-006-001", "CMD-AAA-006-002"],
+      "observed_status": "FAIL_REPRODUCED",
+      "classification": "ROOT_SNAPSHOT_CONSUMER_MISSING_WORKSPACE_DEPENDENCY",
+      "owner": "AAA-006",
+      "severity": "CRITICAL_OPEN",
+      "summary": "The built snapshot scenario cannot activate its authored adapter because the module's @deepseek-ai/dsh-llm import is not resolvable from the repository root consumer. The real lib replay then reports NO_ADAPTER for resilience-snapshot.",
+      "limitations": "The dependency declaration and lockfile update require a task-bound implementation gate before editing governed repository files."
+    },
+    {
+      "id": "F-AAA-006-LAUNCHER-CONTROL",
+      "source_refs": ["AAA-QB-03", "AAA-QB-06"],
+      "source_location": "snapshots/session/headless.snapshot.ts; scripts/run-gates.ts",
+      "command_ids": ["CMD-AAA-006-003"],
+      "observed_status": "PASS",
+      "classification": "CUSTOM_SCENARIO_SPECIFIC",
+      "owner": "AAA-006",
+      "severity": "MEDIUM",
+      "summary": "A standard lib-mode headless tool scenario passes, so the built launcher and profile are not generally unavailable; the reproduced failure is specific to the custom adapter import path.",
+      "limitations": "One control scenario is not a complete lib snapshot qualification."
+    }
+  ],
+  "decision": {
+    "result": "AAA-006:A01 PASS",
+    "product_change": false,
+    "diagnosis": "The missing adapter is reproduced through the real built snapshot path and traced to the root consumer's absent dsh-llm workspace dependency. A standard lib control passes.",
+    "next_action": "Create an implementation-ready gate for the root snapshot consumer dependency and policy attribution, then install the dependency and rerun the custom lib scenario."
+  },
+  "validation": {
+    "command_record_count": 3,
+    "raw_output_files": 3,
+    "validation_method": "Parse commands.jsonl and findings.json; verify every raw-output file and digest; require one built replay failure, one direct import trace, and one passing lib control; run git diff --check.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T20:30:54-03:00"
+  }
+}

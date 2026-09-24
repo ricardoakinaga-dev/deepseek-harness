@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-022",
+  "action_id": "AAA-022:A01",
+  "candidate_ref": "current custom/main worktree",
+  "captured_at": "2026-09-21T19:35:45.277Z",
+  "source_report": ".artifacts/audit-metrics-current.json",
+  "baseline": {
+    "id": "AAA-018:A03",
+    "revision": "aaa-savepoint-2026-09-20-m0-a02-01",
+    "commit": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "corpus_file_count": 4436,
+    "corpus_files_digest": "b5cff71909ba95fd9660ebbde74bf22be39ebca8e7d729ae368f2938f7caa3cb"
+  },
+  "current_metrics": {
+    "deprecated_reader": { "count": 89, "budget": 90, "delta": -1 },
+    "lint_suppression": { "count": 262, "budget": 263, "delta": -1 },
+    "todo_marker": { "count": 53, "budget": 53, "delta": 0 },
+    "explicit_any": { "count": 1624, "budget": 1625, "delta": -1 },
+    "selected_skip": { "count": 4, "budget": 7, "delta": -3 }
+  },
+  "ratchet": {
+    "policy": "non_increasing",
+    "status": "passed",
+    "violations": []
+  },
+  "owner_groups": {
+    "deprecated_reader": [
+      { "owner": "packages/schedule", "package": "@deepseek-ai/dsh-schedule", "count": 6 },
+      { "owner": "packages/core", "package": "@deepseek-ai/dsh-session", "count": 5 },
+      { "owner": "packages/api", "package": "@deepseek-ai/dsh-api-session-controller", "count": 4 },
+      { "owner": "packages/core", "package": "@deepseek-ai/dsh-agent-loop", "count": 4 },
+      { "owner": "packages/session", "package": "@deepseek-ai/dsh-session-log-deepseek", "count": 4 },
+      { "owner": "packages/session", "package": "@deepseek-ai/dsh-session-title", "count": 3 },
+      { "owner": "packages/session", "package": "@deepseek-ai/dsh-session-projection", "count": 3 }
+    ],
+    "lint_suppression": [
+      { "owner": "packages/compaction", "package": "@deepseek-ai/dsh-compaction-basic", "count": 14 },
+      { "owner": "packages/core", "package": "@deepseek-ai/dsh-agent-loop", "count": 12 },
+      { "owner": "packages/extensions", "package": "@deepseek-ai/dsh-cordis-client-runner", "count": 12 },
+      { "owner": "packages/core", "package": "@deepseek-ai/dsh-tools", "count": 10 },
+      { "owner": "packages/session-query", "package": "@deepseek-ai/dsh-session-query", "count": 10 },
+      { "owner": "packages/subprocess", "package": "@deepseek-ai/dsh-subprocess-local", "count": 9 },
+      { "owner": "packages/core", "package": "@deepseek-ai/dsh-session", "count": 8 },
+      { "owner": "packages/schedule", "package": "@deepseek-ai/dsh-schedule", "count": 6 }
+    ]
+  },
+  "configuration_dispositions": {
+    "correctness_category": "off; no repository-wide enablement authorized",
+    "skipLibCheck": "true; no compiler-default change authorized",
+    "verbatimModuleSyntax": "false; no compiler-default change authorized",
+    "test_session_reader_allowance": ["snapshotEvents", "eventAt", "ownEvents"],
+    "next_required_authority": "Approve a named owner-scoped migration wave and any correctness/compiler probe before source or configuration changes."
+  },
+  "migration_candidates": [
+    {
+      "owner": "packages/session/session-title",
+      "observed_deprecated_reader_lines": 3,
+      "risk": "high",
+      "reason": "remaining calls cover a pre-commit invariant, restore scan, and complete-history provider read",
+      "required_precondition": "storage-backed reader or projection equivalent with reconstruction evidence"
+    },
+    {
+      "owner": "packages/session/session-projection",
+      "observed_deprecated_reader_lines": 3,
+      "risk": "high",
+      "reason": "projection application and invariant paths still inspect Session history",
+      "required_precondition": "reader contract that preserves ordering, cancellation, and invariant timing"
+    },
+    {
+      "owner": "packages/session/session-log-deepseek",
+      "observed_deprecated_reader_lines": 4,
+      "risk": "high",
+      "reason": "log upload and suffix reads depend on complete history and offset semantics",
+      "required_precondition": "paged reader with upload and suffix equivalence tests"
+    }
+  ],
+  "limitations": [
+    "This revalidation proves the canonical ratchet and owner inventory only; it does not claim AAA-022 completion.",
+    "The current report is measured against the immutable baseline commit while the worktree remains uncommitted.",
+    "No correctness rule, compiler default, or Session reader exception was changed by this action."
+  ]
+}

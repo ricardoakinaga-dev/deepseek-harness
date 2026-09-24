@@ -320,7 +320,7 @@ export class LocaleRuntime {
       if (seen.has(key)) throw new Error(`locale fallback cycle includes "${current.id}"`)
       seen.add(key)
       if (key === localeKey(FALLBACK_LOCALE)) return
-      /* v8 ignore next -- English is the only built-in terminal and every
+      /*! v8 ignore next -- English is the only built-in terminal and every
        * language accepted by addLanguage has a required fallback. */
       if (current.fallback === undefined) {
         throw new Error(`locale "${current.id}" fallback chain does not reach "${FALLBACK_LOCALE}"`)
@@ -402,7 +402,7 @@ export class LocaleRuntime {
     this.publish(this.snapshot.active, false)
     return () => {
       const owner = this.dicts.get(ns)
-      /* v8 ignore next -- defensive: a namespace's locales map is created on
+      /*! v8 ignore next -- defensive: a namespace's locales map is created on
        * first register and never removed, so the disposer always finds it. */
       if (!owner) return
       let removed = false

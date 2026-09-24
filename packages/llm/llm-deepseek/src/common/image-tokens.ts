@@ -87,7 +87,7 @@ function safeResize(height: number, width: number, paddedHeight: number, paddedW
   }
   if (direct.numTokens <= MAX_IMAGE_TOKENS) return direct
   const solved = solveResizeRatio(height, width, MAX_IMAGE_TOKENS)
-  /* v8 ignore next 3 -- the published solver's assertion; the closed-form
+  /*! v8 ignore next 3 -- the published solver's assertion; the closed-form
      solve stays within the budget for every positive geometry. */
   if (solved.numTokens > MAX_IMAGE_TOKENS) {
     throw new Error(`deepseek image tokens: no grid fits the token budget for ${width}x${height}`)
@@ -151,7 +151,7 @@ export function deepSeekImageTokens(width: number, height: number): number {
     if (sameResize(next, result)) return result.numTokens
     result = next
   }
-  /* v8 ignore next 2 -- the published solver's non-convergence guard; every
+  /*! v8 ignore next 2 -- the published solver's non-convergence guard; every
      pass is a projection, so a second identical pass is a fixpoint. */
   throw new Error(`deepseek image tokens: resize did not converge for ${width}x${height}`)
 }

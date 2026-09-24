@@ -143,6 +143,8 @@ None; this package neither assembles nor sends a provider request.
 - **Body cloning has cost** — full capture tees request and response streams up to the configured limits and can increase memory and I/O pressure. The retained-body limit does not include buffering inside the stream tee, including an oversized source chunk or data queued for a slower application reader.
 - **No automatic Worker restart** — an unexpected Worker exit fails the current Inspector instance; lifecycle recovery belongs to a later change.
 
+**Runtime invariant:** No companion is published. Wire parsing, generations, Worker lifecycle, and CDP sessions reject invalid relationships in their owning operations.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -152,5 +154,3 @@ None; this package neither assembles nor sends a provider request.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Wire parsing, generations, Worker lifecycle, and CDP sessions reject invalid relationships in their owning operations.

@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-此包会在适配器遵守取消信号时约束缓慢的压缩请求，并在适配器执行昂贵工作前拒绝已经超过日志所记模型容量的 agent loop（智能体循环）请求。压缩调用获得可配置的输出上限、可选推理强度和协作式总截止时间。普通模型调用保持其请求选项不变。如果希望采用经过测试的本地模型默认值而不编辑 profile 树，请选择可安装的 [`dsh-resilient-compaction`](../../bundle/resilient-compaction/README.zh.md) 组合包。
+此 fork 私有包会在适配器遵守取消信号时约束缓慢的压缩请求，并在适配器执行昂贵工作前拒绝已经超过日志所记模型容量的 agent loop（智能体循环）请求。压缩调用获得可配置的输出上限、可选推理强度和协作式总截止时间。普通模型调用保持其请求选项不变。请从仓库 checkout 使用它，或使用另行授权的 fork namespace 包；此 fork 不把 upstream namespace 作为发布身份。
 
 ## 目录
 

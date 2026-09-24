@@ -23,7 +23,7 @@ import type {
 import type { ClientModuleSystem } from '@deepseek-ai/dsh-client-modules/client'
 import type { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { DynamicCordisStyles, evaluateClientHalf, DYNAMIC_CLIENT_REDIRECTS } from './evaluator.ts'
-import type { DynamicCordisEvaluatedPlugin } from './evaluator.ts'
+import type { DynamicCordisBrowserDelivery, DynamicCordisEvaluatedPlugin } from './evaluator.ts'
 import { dynamicCordisContext } from './guard.ts'
 import type { DynamicCordisSlotLedgerRow } from './guard.ts'
 
@@ -68,6 +68,8 @@ export interface DynamicCordisClientHalf {
   name: string
   /** Browser-half source: an async function body returning a plugin. */
   code: string
+  /** Host-selected browser delivery policy; omitted values are denied. */
+  browserDelivery?: DynamicCordisBrowserDelivery
 }
 
 /**
@@ -341,12 +343,13 @@ export class DynamicCordisPackageRunner {
   }
 
   private async mount(half: DynamicCordisClientHalf): Promise<DynamicCordisLoadResult> {
-    const styles = new DynamicCordisStyles(half.pluginId)
+    const styles = new DynamicCordisStyles(half.pluginId, half.browserDelivery)
     const ledger: DynamicCordisSlotLedgerRow[] = []
     let plugin: DynamicCordisEvaluatedPlugin | ((ctx: unknown) => unknown)
     try {
       plugin = await evaluateClientHalf(half.pluginId, half.code, {
         invoke: (method, args) => this.env.invoke(half.pluginId, half.pluginRunId, method, args),
+        ...(half.browserDelivery === undefined ? {} : { browserDelivery: half.browserDelivery }),
         noteError: (message) => {
           // A loaded package's own console.error: a page-local diagnostic with
           // no wire carrier (the run round trip settled long before).

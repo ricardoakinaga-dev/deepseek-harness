@@ -142,7 +142,7 @@ export function jsonValueBytesUpTo(value: PtcJsonValue, maxBytes: number): numbe
     }
 
     const key = task.keys[task.index]
-    /* v8 ignore next -- an object frame is created and advanced only for an existing Object.keys entry. */
+    /*! v8 ignore next -- an object frame is created and advanced only for an existing Object.keys entry. */
     if (key === undefined) return undefined
     const keyBytes = jsonStringBytesUpTo(key, maxBytes - bytes)
     if (keyBytes === undefined) return undefined

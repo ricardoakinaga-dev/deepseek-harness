@@ -62,7 +62,7 @@ export function TabMenu({ labels, anchor, onClose, onDismiss, extras }: TabMenuP
 
   useEffect(() => {
     const menu = self.current
-    /* v8 ignore next -- the ref is attached by effect time: the menu renders unconditionally. */
+    /*! v8 ignore next -- the ref is attached by effect time: the menu renders unconditionally. */
     if (menu === null) return undefined
     // A press anywhere but inside the menu dismisses it; one with no element
     // target (dispatched to the window itself) counts as outside.

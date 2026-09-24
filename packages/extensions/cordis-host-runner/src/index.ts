@@ -28,6 +28,7 @@ import type {
   CordisInspectRequestId, CordisInspectResolveAck, DynamicCordisClientSource, DynamicCordisHostHalfResult,
   DynamicCordisInventoryRow, DynamicCordisInvokeResult, DynamicCordisRenderFailure, DynamicCordisResolveAck,
   DynamicCordisRunAttempt, DynamicCordisRunResolution, DynamicCordisRunResponse, DynamicCordisStopResponse,
+  DynamicCordisBrowserDelivery, DynamicCordisDeployment,
   DynamicCordisUndefineReceipt, RequestRunOutcome,
 } from './types.ts'
 
@@ -88,6 +89,10 @@ declare module '@deepseek-ai/cordis' {
 export interface Config {
   /** Maximum synchronous VM evaluation time in milliseconds. */
   vmTimeoutMs?: number
+  /** Execution plane; dynamic definitions are disabled unless an owner selects one. */
+  deployment?: DynamicCordisDeployment
+  /** Browser source policy; dynamic browser evaluation is denied unless explicitly enabled. */
+  browserDelivery?: DynamicCordisBrowserDelivery
 }
 
 type ResolvedConfig = Required<Config>
@@ -126,6 +131,8 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
 
   static Config: z<Config> = z.object({
     vmTimeoutMs: z.number().min(1).default(5000),
+    deployment: z.union(['disabled', 'host-only', 'browser'] as const).default('disabled'),
+    browserDelivery: z.union(['disabled', 'unsafe-eval-inline-style'] as const).default('disabled'),
   })
 
   private readonly rootCtx: Context
@@ -317,7 +324,7 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
    * @param pluginId - Stable Plugin identity to activate.
    * @param packageId - Immutable Package version to activate.
    * @param mode - Whether to run the current version or switch versions.
-   * @param requestId - Model-driven request identity, or null for a direct user gesture.
+   * @param requestId - Host-minted model request identity, or null for a host-only direct gesture.
    * @param approveFutureVersions - Whether this approval covers later Packages of the same Plugin.
    * @returns The exact Host activation or a failure message.
    */
@@ -332,6 +339,12 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
   ): Promise<DynamicCordisHostHalfResult> {
     const plan = this.resolvePlan(agent, pluginId, packageId, mode, requestId === null)
     if (!plan.ok) return { ok: false, message: plan.response.message }
+    if (requestId === null && plan.definition.clientCode !== undefined) {
+      return {
+        ok: false,
+        message: `dynamic plugin "${pluginId}" has a Client half; browser activation requires a host-issued approval request`,
+      }
+    }
     let attempt: DynamicCordisRunAttempt
     if (requestId !== null) {
       const pending = this.registry.peekRequest(requestId)
@@ -394,12 +407,16 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }
     const definition = plugin.packages.get(run.packageId)
     if (definition?.clientCode === undefined) throw new Error(`package "${run.packageId}" has no Client half`)
+    if (this.resolved.browserDelivery !== 'unsafe-eval-inline-style') {
+      throw new Error('dynamic browser delivery is disabled by the deployment policy')
+    }
     return {
       code: definition.clientCode,
       name: definition.name,
       pluginId,
       packageId: run.packageId,
       pluginRunId,
+      browserDelivery: this.resolved.browserDelivery,
     }
   }
 
@@ -778,6 +795,8 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     if (definition === undefined) {
       return { ok: false, response: { ok: false, reason: 'package-missing', message: `plugin "${pluginId}" has no package "${packageId}"` } }
     }
+    const policy = this.policyRefusal(pluginId, definition)
+    if (policy !== undefined) return { ok: false, response: policy }
     const current = plugin.currentPackageId
     if (mode === 'update' && (current === undefined || current === packageId)) {
       return {
@@ -805,6 +824,36 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
       return { ok: false, response: { ok: false, reason: 'transition-in-flight', message: `plugin "${pluginId}" is already starting` } }
     }
     return { ok: true, plugin, definition, mode }
+  }
+
+  /** Reject a definition before mode or lifecycle state can start it. */
+  private policyRefusal(
+    pluginId: CordisDynamicPluginId,
+    definition: DynamicCordisDefinition,
+  ): Extract<DynamicCordisRunResponse, { ok: false }> | undefined {
+    if (this.resolved.deployment === 'disabled') {
+      return {
+        ok: false,
+        reason: 'policy-denied',
+        message: `dynamic plugin "${pluginId}" is disabled by the deployment policy`,
+      }
+    }
+    if (definition.clientCode === undefined) return undefined
+    if (this.resolved.deployment === 'host-only') {
+      return {
+        ok: false,
+        reason: 'policy-denied',
+        message: `dynamic plugin "${pluginId}" has a Client half, but this deployment permits host-only execution`,
+      }
+    }
+    if (this.resolved.browserDelivery !== 'unsafe-eval-inline-style') {
+      return {
+        ok: false,
+        reason: 'policy-denied',
+        message: `dynamic plugin "${pluginId}" requires an explicit unsafe-eval/inline-style browser delivery policy`,
+      }
+    }
+    return undefined
   }
 
   private activate(

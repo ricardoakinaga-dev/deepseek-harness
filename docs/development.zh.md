@@ -99,7 +99,7 @@ Typert 只在 Host tsdown 中以 `tsconfig.host.json` 为种子运行。它分�
 pnpm run build
 ```
 
-`pnpm run hygiene` 包含 `publint`（用构建出的 `lib/*.js` 文件校验包入口点）和 `verify-node-next-types`（用一个临时的 NodeNext 消费方校验构建出的声明文件）。新 worktree 在 `pnpm run build` 运行之前没有打包的 JS 和声明文件；普通提交和推送无需构建，除非所选检查会使用这些产物。
+`pnpm run hygiene` 先运行 `verify-hygiene-prerequisites`，检查 manifest 声明的构建产物；如果需要 `pnpm run build`，它会在其他叶检查开始前停止。该聚合命令不会自动构建，请先运行 `pnpm run build`。通过预检查后，`publint` 用构建出的 `lib/*.js` 文件校验包入口点，`verify-node-next-types` 用一个临时的 NodeNext 消费方校验构建出的声明文件。普通提交和推送无需构建，除非所选检查会使用这些产物。
 
 ### 环境变量
 

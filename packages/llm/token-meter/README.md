@@ -141,6 +141,8 @@ These limits define where the measurement stops and future work begins. They are
 - **A system-prompt rewrite carries no shadow price** — the loop replaces a system node without an adjacent metering event, so `contextPressure.projectedTokens` folds that replacement at zero delta until the next usage sample; `contextBreakdown.systemTokens` and `measure()` reprice the new prompt immediately.
 - **Composition checkpoints retain the current surface** — exact system/message classification needs positional entries; checkpoint size and surface-event folding are O(current retained surface).
 
+**Runtime invariant:** No companion is published. Usage folds replace samples within each attempt; totals need not be monotone. Composition and measurement share the positional replacement planner and fixed estimator, so their heuristic surface totals agree by construction rather than through independent mutable observations. Route-priced totals deliberately differ.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -153,5 +155,3 @@ This Dev Note is non-authoritative working context: notes for maintainers and op
 - A per-provider exact tokenizer is not decided; keeping one deterministic heuristic is what makes every consumer's measurement agree and replay-stable.
 
 </details>
-
-**Runtime invariant:** No companion is published. Usage folds replace samples within each attempt; totals need not be monotone. Composition and measurement share the positional replacement planner and fixed estimator, so their heuristic surface totals agree by construction rather than through independent mutable observations. Route-priced totals deliberately differ.

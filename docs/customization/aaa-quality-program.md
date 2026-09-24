@@ -80,14 +80,14 @@ At the start of a task, the integrator reads current instructions and the comple
 
 At every milestone transition, update this page only when executive scope, order, acceptance, or human decisions changed. Update the ExecPlan for progress, discoveries, decisions, outcomes, and recovery. Update the backlog for status, dependencies, owner, classification, and next action. Append ledgers for chronology and evidence; never rewrite them to conceal a failed attempt.
 
-The first queued backlog action is `AAA-001:A01`: select the exact post-planning baseline commit and record its environment manifest without changing product code. It remains `TODO` until the planning checkpoint is validated, committed, pushed, and transitioned to READY. Current task state and later next actions are authoritative only in [`.agent/backlog.json`](../../.agent/backlog.json).
+The current execution pointer is `AAA-008:A02`, awaiting maintainer approval of the historical two-request oracle or its original failing-run trace before any AAA-008 product change. `AAA-018:A03` is complete at its scoped acceptance: the maintainer confirmed `README.md` as the canonical community-channel source; `README.zh.md` matches its three targets, the parity command passes, and the retained metrics result covers 4,436 tracked source files. The approved local decision wave has current scoped implementation and verification evidence for `AAA-009:A03`, `AAA-010:A01`, `AAA-012:A02`, `AAA-014:A02`, `AAA-015:A02`, `AAA-019:A02`, and `AAA-020:A02`; `AAA-023` and `AAA-024`, including final release qualification, remain open. Current task state and later next actions are authoritative only in [`.agent/backlog.json`](../../.agent/backlog.json).
 
 -----
 
 <a id="human-decisions"></a>
 ## Human decisions
 
-The fork maintainer or relevant product/security owner must decide the following before implementation or release: package namespace, repository URL, and publication authority; WebSocket logical disposal versus confirmed physical closure; aggregate HTTP memory and admission behavior; dynamic extension deployments, CSP, consent, and defaults; whether `./src/*` is a supported published API; and whether English and Chinese community-channel differences are intentional localization. Static asset handling is not an open trust choice: resolved targets must remain under the configured root and symlink escapes must fail closed.
+The fork maintainer or relevant product/security owner must decide the following before implementation or release: the historical two-request oracle or its original failing trace; client-domain owners and shared document API placement; package namespace, repository URL, and publication authority; WebSocket logical disposal versus confirmed physical closure; aggregate HTTP memory and admission behavior; dynamic extension deployments, CSP, consent, and defaults; whether `./src/*` is a supported published API; static-debt migration order; and any broad lint or compiler-default probe. Static asset handling is not an open trust choice: resolved targets must remain under the configured root and symlink escapes must fail closed.
 
 The backlog records the task that owns each decision. An agent may gather evidence and propose alternatives, but it must not infer publication authority, accept residual HIGH risk, or define exposed-deployment security policy without recorded human authority.
 
@@ -113,4 +113,4 @@ An audit score, a passing subset, or an accepted HIGH risk cannot produce the Tr
 <a id="dev-note"></a>
 ### Dev Note
 
-This page is the executive charter, not a release report. The exact baseline commands remain historical until M0 reproduces them on an immutable commit; the live verdict therefore remains FAIL.
+This page is the executive charter, not a release report. M0 and the current follow-up packets are recorded in the dated repository-analysis report; the live verdict remains FAIL because the aggregate client-domain and test gates, human decisions, and release lanes are unresolved.

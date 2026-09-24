@@ -1,0 +1,94 @@
+{
+  "record_id": "EVID-AAA-023-DIAGNOSIS-A26-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A02",
+  "timestamp": "2026-09-22T02:56:13-03:00",
+  "result": "PASS",
+  "scope": "Classification of the five failed gates and six dependent skips from check-all-a25",
+  "matrix_reference": ".agent/evidence/AAA-023/check-all-a25.json",
+  "worktree_facts": [
+    "packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx is tracked but absent from the worktree.",
+    "packages/client/ui-conversation/src/client/input/ContextMeter.tsx is present but untracked.",
+    "The same skeleton-to-input move is present for InputBar and its CSS files.",
+    "The repository is dirty, so no immutable release candidate was sealed by this diagnosis."
+  ],
+  "failed_gates": [
+    {
+      "gate": "duplication",
+      "classification": "source_change",
+      "owner": "scripts/gen-tsconfig-paths.ts",
+      "cause": "The newly added collectSourceAliases function repeats the duplicate-name detection and alias-record construction already present in collectPackageAliases.",
+      "evidence": "pnpm run duplication reported one clone: gen-tsconfig-paths.ts 109:89-134:16 and 158:67-178:16, 26 lines and 102 tokens.",
+      "safe_repair": "Extract the shared workspace-alias collection into one helper while retaining the different package-name predicates and existing duplicate-name errors.",
+      "focused_verification": [
+        "pnpm exec vitest run scripts/gen-tsconfig-paths.spec.ts",
+        "pnpm run duplication"
+      ]
+    },
+    {
+      "gate": "canonical audit metrics",
+      "classification": "worktree_state",
+      "owner": "scripts/audit-metrics.ts and the ui-conversation source move",
+      "cause": "The metrics corpus is enumerated with git ls-files, so it still includes the deleted tracked skeleton path; the current reader then opens that absent path while the replacement input path is not tracked.",
+      "evidence": "The focused command failed with ENOENT for packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx; the old path is absent and tracked, while the input path is present and untracked.",
+      "safe_repair": "Complete and seal the source move in the candidate tree before rerunning the canonical metrics gate; do not change the baseline or silently omit a deleted tracked source file in this dirty worktree.",
+      "focused_verification": [
+        "pnpm run audit:metrics",
+        "git ls-files --error-unmatch packages/client/ui-conversation/src/client/input/ContextMeter.tsx"
+      ]
+    },
+    {
+      "gate": "vendor rescope",
+      "classification": "worktree_state",
+      "owner": "scripts/rescope-vendor.ts and the ui-conversation source move",
+      "cause": "The rescope checker reads the same tracked source inventory and reaches the deleted skeleton path before it can evaluate its vendor postconditions.",
+      "evidence": "The focused command failed at scripts/rescope-vendor.ts:610 with ENOENT for packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx; the path facts match the metrics failure.",
+      "safe_repair": "Complete and seal the source move in the candidate tree, then rerun the checker; no vendor rename or postcondition edit is justified by this path error.",
+      "focused_verification": [
+        "pnpm run rescope-vendor:check"
+      ]
+    },
+    {
+      "gate": "build",
+      "classification": "source_change",
+      "owner": "packages/api/gateway/src/client/stream-client.ts and packages/client/tsdown.client.ts",
+      "cause": "The approved WebSocket close implementation adds a runtime value import of @deepseek-ai/dsh-timeout to a dynamic browser bundle. dsh-timeout is neither a default platform module nor an inline-safe entry, and it has no dynamic client row that could satisfy dsh.client.external.",
+      "evidence": "check-all-a25 reported the purity rejection; INLINE_SAFE.test('@deepseek-ai/dsh-timeout') is false; the timeout package has no dsh.client declaration and the platform module list does not include it.",
+      "safe_repair": "Keep the browser-side close bound as a fixed Node timer external-spec constant local to the gateway client, or introduce a narrowly scoped browser-safe timeout subpath with its complete build/export/test wiring. Do not add an unsatisfied dsh.client.external entry.",
+      "focused_verification": [
+        "pnpm exec vitest run packages/api/gateway/tests/gateway.client.spec.ts",
+        "pnpm run build",
+        "pnpm run verify-client-packages"
+      ]
+    },
+    {
+      "gate": "test",
+      "classification": "source_change",
+      "owner": "packages/sandbox/sandbox-local/src/index.ts",
+      "cause": "The source fallback now resolves @deepseek-ai/dsh-sandbox-windows-acl/runner for both the built and source entries. That export resolves to lib/runner.js, so the absent-built-entry test receives the built JavaScript path instead of src/runner.ts.",
+      "evidence": "The focused test reproduced the failure: expected runner.ts but received packages/sandbox/sandbox-windows-acl/lib/runner.js; require.resolve('@deepseek-ai/dsh-sandbox-windows-acl/runner') returns that lib path and the removed public src export is not available.",
+      "safe_repair": "Resolve the source fallback through the installation-relative source file URL (or another source-plane path), while retaining the package export for the production built entry and the pinned tsx loader.",
+      "focused_verification": [
+        "pnpm exec vitest run packages/sandbox/sandbox-local/tests/local.spec.ts -t 'falls back to the runner source through tsx when the built entry is absent'",
+        "pnpm exec vitest run packages/sandbox/sandbox-local/tests/local.spec.ts -t 'loads the full source runner independently of cwd and ambient tsconfig'"
+      ]
+    }
+  ],
+  "dependent_skips": {
+    "gates": [
+      "test:snapshot",
+      "test:expected",
+      "publint",
+      "verify-built-package-invariants",
+      "verify-node-next-types",
+      "doc-typecheck:contracts-ready"
+    ],
+    "classification": "build_prerequisite",
+    "cause": "The build gate failed, so these artifact-dependent gates were correctly skipped by the check-all scheduler.",
+    "next_verification": "Rerun the skipped gates only after build passes on the same candidate."
+  },
+  "limitations": [
+    "This PASS records complete diagnosis only; it does not qualify the candidate or close AAA-023.",
+    "No publication, registry, push, merge, release, or final-verdict action was taken."
+  ]
+}

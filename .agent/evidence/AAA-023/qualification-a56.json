@@ -1,0 +1,68 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A23",
+  "candidate_tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "local_requalification": {
+    "check_all": {
+      "result": "PASS",
+      "command": "pnpm run check:all",
+      "summary": "77 passed, 0 failed, 0 skipped in 494.78 seconds; test leaf 1535 files with 12 skipped and 26314 tests with 1 expected failure and 153 skipped"
+    },
+    "coverage": {
+      "result": "PASS",
+      "command": "pnpm run test:coverage",
+      "first_attempt": "PARTIAL: 1533 files passed and two tests exceeded coverage-run timeouts; the two tests passed 43/43 in a focused non-coverage recut",
+      "retry": "1535 files passed, 12 skipped; 26314 tests passed, 1 expected failure, 153 skipped; statements, branches, functions, and lines each 100%"
+    },
+    "benchmark": {
+      "result": "PASS",
+      "command": "pnpm run check:ci:bench",
+      "summary": "1 passed, 0 failed, 0 skipped in 128.43 seconds"
+    },
+    "node_compatibility": {
+      "result": "PASS",
+      "command": "pnpm run check:node-compat",
+      "summary": "6 passed, 0 failed, 0 skipped on Linux x64 with Node v24.20.0"
+    },
+    "e2e_keyless": {
+      "result": "PASS_WITH_SKIPS",
+      "command": "DSH_E2E_MAX_WORKERS=1 pnpm run test:e2e",
+      "summary": "43 files passed, 36 skipped; 164 tests passed, 103 skipped",
+      "repair": "The first run exposed three Vitest module-runner failures for import.meta.resolve; the three test sites now use createRequire(...).resolve(...), and the focused recut plus full rerun pass."
+    },
+    "official_build": {
+      "result": "PASS",
+      "command": "pnpm run build:official",
+      "summary": "Recorded 248 client artifacts"
+    },
+    "packed_install": {
+      "result": "PASS",
+      "commands": [
+        "pnpm run release:pack --family dsh --out /tmp/dsh-a23-dsh.xLzpG2 --concurrency 8",
+        "pnpm run release:pack --family vendor --out /tmp/dsh-a23-vendor.dTVKyh --concurrency 8",
+        "pnpm run release:verify-packed-install --family dsh --from /tmp/dsh-a23-dsh.xLzpG2 --from /tmp/dsh-a23-vendor.dTVKyh"
+      ],
+      "summary": "DSH packing produced 293 tarballs, vendor packing produced 9, and the isolated verifier installed 302 tarballs and reported @deepseek-ai/dsh version 0.1.6-alpha.2"
+    }
+  },
+  "external_lanes": {
+    "windows": {
+      "result": "EXTERNAL_PREREQUISITE",
+      "command": "pnpm run check:windows-wine",
+      "exit_status": 1,
+      "summary": "The local preflight stopped before mutation because wine is not installed; Windows Node 24 requires the hosted Wine lane"
+    },
+    "macos_and_arm64": {
+      "result": "EXTERNAL_PREREQUISITE",
+      "summary": "The current Linux x64 host cannot execute the required macOS arm64, macOS x64, or Linux arm64 native runtime carriers"
+    },
+    "credentialed_providers": {
+      "result": "EXTERNAL_PREREQUISITE",
+      "summary": "DEEPSEEK_API_KEY, EXA_API_KEY, PERPLEXITY_API_KEY, AZURE_OPENAI_API_KEY, and ANTHROPIC_API_KEY were absent; keyless E2E skips do not qualify real-provider behavior"
+    }
+  },
+  "result": "PARTIAL",
+  "candidate_tree_after": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "limitations": "A23 closes every locally executable platform/provider check and records the unavailable external prerequisites, but it does not claim required-platform or credentialed-provider PASS. Upstream rehearsal, release identity, publication authority, and final independent criticism remain outstanding.",
+  "observed_at": "2026-09-22T16:42:38-03:00"
+}

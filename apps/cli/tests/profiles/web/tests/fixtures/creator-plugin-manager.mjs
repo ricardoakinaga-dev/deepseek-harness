@@ -40,7 +40,7 @@ export function apply(ctx, config) {
       const bundlesAfterDenied = await ctx.pluginManager.listBundles()
       answer = 'allowed-once'
       const result = phase === 'initial'
-        ? JSON.parse((await manage({ action: 'install_bundle', target: config.bundle })).value)
+        ? JSON.parse((await manage({ action: 'install_bundle', target: config.bundle, enabled: true })).value)
         : await ctx.pluginManager.listBundles()
       const second = await make(`${phase}-second`)
       const after = names(first)

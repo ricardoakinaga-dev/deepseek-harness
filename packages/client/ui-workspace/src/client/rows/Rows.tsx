@@ -40,7 +40,7 @@ function displayTitle(node: SessionNode, t: RowTranslate): string {
  * @param revealed - whether the pointer is on the row.
  */
 function revealClippedTitle(title: HTMLSpanElement | null, revealed: boolean): void {
-  /* v8 ignore next -- defensive: the title span renders unconditionally. */
+  /*! v8 ignore next -- defensive: the title span renders unconditionally. */
   if (title === null) return
   if (revealed) {
     title.scrollLeft = title.scrollWidth - title.clientWidth
@@ -192,7 +192,7 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
               setMenuOpen(false)
               // Unknown ids leave before the dispatch: a future menu row must
               // not inherit the destructive branch as an else fallback.
-              /* v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
+              /*! v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
               if (id !== 'rename' && id !== 'delete') return
               if (id === 'rename') actions.rename()
               else actions.delete()
@@ -241,7 +241,7 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
   )
 }
 
-/* v8 ignore next 3 -- closed-union backstop; only reached if the status is forged */
+/*! v8 ignore next 3 -- closed-union backstop; only reached if the status is forged */
 function assertNever(value: never): never {
   throw new Error(`unknown pending interaction: ${String(value)}`)
 }
@@ -282,7 +282,7 @@ function sessionStatuses(
       pending = { state: 'warning', label: t('status.waitingAnswer') }
       break
     case undefined: break
-    /* v8 ignore next -- closed PendingInteractionStatus union */
+    /*! v8 ignore next -- closed PendingInteractionStatus union */
     default: return assertNever(node.pendingInteraction)
   }
   if (pending !== undefined) return subagents === undefined ? [pending] : [pending, subagents]

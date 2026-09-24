@@ -1,0 +1,13 @@
+{
+  "record_id": "EVID-AAA-008-DECISION-A24-2026-09-22",
+  "task": "AAA-008",
+  "action": "AAA-008:A02",
+  "timestamp": "2026-09-22T01:08:35-03:00",
+  "decision": "APPROVE_CURRENT_TWO_REQUEST_ORACLE",
+  "authority": "Ricardo Akinaga",
+  "source": "Explicit user instruction in the current conversation: \"aprovo\".",
+  "approved_scope": "The focused compatibility case's current two-request oracle: one user-triggered agent request followed by one background session-title request.",
+  "product_change": false,
+  "limitations": "The historical third request remains unexplained because its original failing-run trace and complete request-body capture were not retained; the external DeepSeek service was not contacted.",
+  "observed_at": "2026-09-22T01:08:35-03:00"
+}

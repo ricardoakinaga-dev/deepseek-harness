@@ -238,7 +238,7 @@ export class BrowserAuth {
    * @returns true only when the caller may serve index.html.
    */
   authorizeIndex(req: ConnectionIndexRequest, res: ConnectionIndexResponse): boolean {
-    /* v8 ignore next -- node:http always supplies url on server requests. */
+    /*! v8 ignore next -- node:http always supplies url on server requests. */
     const url = new URL(req.url ?? '/', 'http://dsh.invalid')
     const tokens = url.searchParams.getAll(TOKEN_QUERY)
     if (tokens.length > 0) {

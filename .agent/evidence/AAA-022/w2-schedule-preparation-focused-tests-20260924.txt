@@ -1,0 +1,8 @@
+
+ RUN  v4.1.11 /home/ricardo/deepseek-harness
+
+
+ Test Files  7 passed (7)
+      Tests  110 passed (110)
+   Start at  06:17:03
+   Duration  2.28s (transform 7.98s, setup 1.98s, import 8.80s, tests 1.75s, environment 1ms)

@@ -163,7 +163,7 @@ export function ModelSelect(
   useLayoutEffect(() => {
     if (!open) { setMenuPos(null); return }
     const place = (): void => {
-      /* v8 ignore next 2 -- the trigger ref is attached whenever the menu is open. */
+      /*! v8 ignore next 2 -- the trigger ref is attached whenever the menu is open. */
       const rect = triggerRef.current?.getBoundingClientRect()
       if (rect === undefined) return
       const MARGIN = 12

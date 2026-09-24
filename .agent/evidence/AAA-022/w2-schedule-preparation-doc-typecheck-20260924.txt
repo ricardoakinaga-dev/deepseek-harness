@@ -1,0 +1,15 @@
+$ npm run build:lib:host && npm run doc-typecheck:contracts-ready
+
+> @deepseek-ai/dsh-root@0.1.6-alpha.2 build:lib:host
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc -b tsconfig.host.json && tsdown --env.DSH_BUILD_FACE host
+
+packages/schedule/schedule/tests/plugin.spec.ts(55,42): error TS4104: The type 'readonly SessionEvent[]' is 'readonly' and cannot be assigned to the mutable type 'SessionEvent[]'.
+packages/schedule/schedule/tests/plugin.spec.ts(96,10): error TS2352: Conversion of type '{ type: "schedule/change"; seq: SessionSeq; time: number; data: { version: 9; operation: "delete"; id: string; }; }' to type 'SessionEvent' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ type: "schedule/change"; seq: SessionSeq; time: number; data: { version: 9; operation: "delete"; id: string; }; }' is not comparable to type '{ type: "schedule/change"; seq: SessionSeq; time: number; data: ScheduleChange; ignorable?: true; } & { surfaceOp?: never; sourceEventSeqs?: never; }'.
+    Type '{ type: "schedule/change"; seq: SessionSeq; time: number; data: { version: 9; operation: "delete"; id: string; }; }' is not comparable to type '{ type: "schedule/change"; seq: SessionSeq; time: number; data: ScheduleChange; ignorable?: true; }'.
+      Types of property 'data' are incompatible.
+        Type '{ version: 9; operation: "delete"; id: string; }' is not comparable to type 'ScheduleChange'.
+          Type '{ version: 9; operation: "delete"; id: string; }' is not comparable to type 'ScheduleDeleteChange'.
+            Types of property 'version' are incompatible.
+              Type '9' is not comparable to type '1'.
+[ELIFECYCLE] Command failed with exit code 1.

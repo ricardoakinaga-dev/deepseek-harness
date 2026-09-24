@@ -31,6 +31,10 @@ Mount `dsh-session` wherever a session must exist. It creates and holds event-so
 
 `ctx.sessions.create()` builds a live session bound to the calling fiber; `get(id)` and `list()` find sessions, and `fork()` creates a child session from a stable prefix of a live one.
 
+During synchronous publication, `session/created` listeners receive a transient `SessionCreationBaseline` containing the exact pre-publication event prefix and `firstLiveSeq`; consume it during the callback instead of retaining it as a history reader. Lifecycle consumers can initialize derived state before `session/event` begins.
+
+`SessionPreparation.create(session)` must run before the first append when synchronous consumers need to preflight detached writes. It retains the constructor cut and sends accepted appends to those consumers in order; a failed transition or state-schema check rejects that append before the log or sequence changes. Every committed append before `sessions.enter()` appears in the `session/created` baseline, even without a preparation feed. `sessions.enter()` seals an active feed.
+
 ```text
 const session = ctx.sessions.create(sessionId, { meta: { cwd: '/workspace' } })
 ctx.sessions.get(sessionId)      // the live session
@@ -57,7 +61,7 @@ Append, seed/restore, and event adoption/snapshot reject any `header.system` and
 
 ### Read the log
 
-`session.seq` reads the current log length without materializing an array, and `session.eventAt(seq)` reads one accepted, deeply frozen event by sequence number. `session.snapshotEvents(fromSeq?, toSeqExclusive?)` materializes a frozen, stable snapshot of a half-open range; a complete current snapshot is cached until the next append. `eventAt()`, `snapshotEvents()`, and `ownEvents()` are deprecated: existing logic may remain unmigrated for now, but new production calls are prohibited. Repository test files may use these three readers under their scoped lint allowance ([policy](../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md)). Callers that only need a length use `seq`.
+`session.seq` reads the current log length without materializing an array, and `session.eventAt(seq)` reads one accepted, deeply frozen event by sequence number. `session.snapshotEvents(fromSeq?, toSeqExclusive?)` materializes a frozen, stable snapshot of a half-open range; a complete current snapshot is cached until the next append. `session.isCommittedEvent(event)` performs an identity-only check for a canonical event received from the session event feed; it does not read history. `eventAt()`, `snapshotEvents()`, and `ownEvents()` are deprecated: existing logic may remain unmigrated for now, but new production calls are prohibited. Repository test files may use these three readers under their scoped lint allowance ([policy](../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md)). Callers that only need a length use `seq`.
 
 Session log positions use two numeric types. `SessionSeq` identifies an existing event or inclusive event watermark; `SessionLogOffset` identifies a gap, prefix length, or read boundary and may equal the event count. `SessionSeqCursor` adds the `-1` “no event yet” value, while `OptionalSessionSeq` uses `null` when absence is data. The constructors validate non-negative safe integers, and the brands disappear at runtime, so durable JSON and wire values remain ordinary numbers.
 

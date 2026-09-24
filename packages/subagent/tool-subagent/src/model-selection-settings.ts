@@ -53,7 +53,7 @@ export class SubagentModelSelectionConfig extends Service {
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'subagentModelSelection')
     // Cordis supplies the schema default; the fallback also covers direct construction.
-    /* v8 ignore next */
+    /*! v8 ignore next */
     const entry: SubagentModelSelectionSettings = {
       enabled: config.enabled ?? false,
       allowedModels: config.allowedModels ?? [],

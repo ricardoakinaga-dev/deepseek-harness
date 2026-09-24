@@ -6,6 +6,8 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+// Type-only: resolves the required SessionProjectionRegistry service.
+import type {} from '@deepseek-ai/dsh-session-projection'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import {
@@ -13,7 +15,6 @@ import {
   createAfterScheduleRecord,
   createAtScheduleRecord,
   createEveryScheduleRecord,
-  foldScheduleEvents,
   MIN_EVERY_INTERVAL_SECONDS,
   ScheduleId,
   ScheduleInputError,
@@ -21,6 +22,7 @@ import {
   scheduleView,
 } from './domain.ts'
 import { flushSchedulePersistence } from './persistence.ts'
+import type { ScheduleProjectionState } from './projection.ts'
 import { runScheduleTransaction } from './transaction.ts'
 import type {
   AtInput,
@@ -218,19 +220,21 @@ function inputError(error: ScheduleInputError): ScheduleToolError {
   return { code: error.code, message: error.message }
 }
 
-/** Fold only after a successful preflight, mapping corruption to a stable value. */
-function foldForTool(agent: Agent): ReturnType<typeof foldScheduleEvents> | ScheduleToolError {
+/** Read only after a successful preflight, mapping corrupt durable events to a stable value. */
+function foldForTool(rootCtx: Context, agent: Agent): ScheduleProjectionState | ScheduleToolError {
   try {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    return foldScheduleEvents(agent.session.ownEvents())
+    const state = rootCtx.sessionProjections.stateOf(agent.session, 'schedule')
+    if (state === undefined) throw new Error('required schedule session projection is unavailable')
+    return state
   } catch (error: unknown) {
-    return error instanceof ScheduleLogError ? corruptLogError() : internalError()
+    if (error instanceof ScheduleLogError) return corruptLogError()
+    throw error
   }
 }
 
 /** Whether a fold attempt produced an error rather than replay state. */
 function isToolError(
-  value: ReturnType<typeof foldScheduleEvents> | ScheduleToolError,
+  value: ScheduleProjectionState | ScheduleToolError,
 ): value is ScheduleToolError {
   return 'code' in value
 }
@@ -357,7 +361,7 @@ export function registerScheduleTools(
           const uncertain = await preflight(rootCtx, agent, 'create')
           if (uncertain !== undefined) return uncertain
           notifyDurableChange()
-          const folded = foldForTool(agent)
+          const folded = foldForTool(rootCtx, agent)
           if (isToolError(folded)) return folded
           const id = allocateScheduleId(folded)
           let record: ScheduleRecord
@@ -408,7 +412,7 @@ export function registerScheduleTools(
           const uncertain = await preflight(rootCtx, agent, 'list')
           if (uncertain !== undefined) return uncertain
           notifyDurableChange()
-          const folded = foldForTool(agent)
+          const folded = foldForTool(rootCtx, agent)
           if (isToolError(folded)) return folded
           const now = Date.now()
           return folded.active.map(record => scheduleView(record, now))
@@ -434,7 +438,7 @@ export function registerScheduleTools(
           const uncertain = await preflight(rootCtx, agent, 'delete', id)
           if (uncertain !== undefined) return uncertain
           notifyDurableChange()
-          const folded = foldForTool(agent)
+          const folded = foldForTool(rootCtx, agent)
           if (isToolError(folded)) return folded
           if (!folded.active.some(record => record.id === id)) {
             return { id, deleted: false, code: 'schedule_not_found' }

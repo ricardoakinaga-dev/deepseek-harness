@@ -1,0 +1,18 @@
+{
+  "record_id": "EVID-AAA-023-IMPLEMENTATION-A30-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A06",
+  "timestamp": "2026-09-22T03:41:50-03:00",
+  "result": "PARTIAL",
+  "scope": "Inspection-only Web host composition repair",
+  "change": "packages/bundle/web-app/cordis.patch.yml now mounts cordis-host-runner with deployment: disabled and browserDelivery: disabled while leaving cordis-client-runner and ui-cordis disabled.",
+  "command": "pnpm exec vitest run --config vitest.expected.config.ts apps/cli/tests/profiles/web/tests/creator-plugin-manager.expected.e2e.ts",
+  "observed": "The cordis preset mounted past its former cordisInspect wait and reached the plugin-manager install operation. The test then failed because the operation returned application: failed at stage: install for its temporary path bundle.",
+  "failure": "The Web bundle's plugin-manager config currently allows only registry sources, while this expected fixture passes an absolute local path as the install target.",
+  "next_owner": "The test-owned profile patch in creator-plugin-manager.expected.e2e.ts",
+  "limitations": [
+    "This focused test does not qualify the full aggregate matrix.",
+    "The production Web allowlist remains intentionally registry-only; no product policy change is inferred.",
+    "The ContextMeter source move remains a separate candidate-tree prerequisite."
+  ]
+}

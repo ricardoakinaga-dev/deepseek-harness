@@ -2,9 +2,10 @@
 
 import type { StdioOptions } from 'node:child_process'
 import { accessSync, constants as fsConstants, lstatSync, statSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { extname, isAbsolute } from 'node:path'
 import { inspect } from 'node:util'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { childEnv } from './spawn.ts'
 import { controlEnvironment } from './control-spawn.ts'
@@ -21,6 +22,12 @@ export type RunnerInvocation = [string, ...string[]]
 
 const SOURCE_TSCONFIG_PATH = fileURLToPath(new URL('../../../../tsconfig.base.json', import.meta.url))
 const RUNNER_CONTROL_ENV_PREFIXES = ['NODE_', 'TSX_'] as const
+const require = createRequire(import.meta.url)
+
+/** Resolve a runner entry without relying on Vite's incomplete import.meta.resolve shim. */
+function resolveModulePath(specifier: string): string {
+  return fileURLToPath(pathToFileURL(require.resolve(specifier)))
+}
 
 /**
  * Resolve the source, built, or packaged entry that calls the same runner core.
@@ -28,15 +35,15 @@ const RUNNER_CONTROL_ENV_PREFIXES = ['NODE_', 'TSX_'] as const
  */
 export function spawnRunnerInvocation(): RunnerInvocation {
   if ('pkg' in process) return [process.execPath]
-  /* v8 ignore next -- built-artifact smoke imports the emitted JavaScript runner entry;
+  /*! v8 ignore next -- built-artifact smoke imports the emitted JavaScript runner entry;
    * source-unit coverage cannot change import.meta.url. */
   if (extname(fileURLToPath(import.meta.url)) !== '.ts') {
-    return [process.execPath, fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-subprocess-local/runner'))]
+    return [process.execPath, resolveModulePath('@deepseek-ai/dsh-subprocess-local/runner')]
   }
   return [
     process.execPath,
     '--import',
-    import.meta.resolve('tsx/esm'),
+    resolveModulePath('tsx/esm'),
     fileURLToPath(new URL('./bin.ts', import.meta.url)),
   ]
 }

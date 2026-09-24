@@ -60,7 +60,9 @@ import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { toPiContext } from './context.ts'
 import { createModels, getSupportedThinkingLevels } from './models.ts'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the stream module owns that behavior. */
 import { toStreamChunks } from './stream.ts'
+/*! v8 ignore stop */
 
 /** One resolution's frozen view: the profiles and the collection built from them. */
 interface PiAiSnapshot {

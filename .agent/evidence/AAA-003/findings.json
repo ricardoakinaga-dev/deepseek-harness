@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-003",
+  "action_id": "AAA-003:A01",
+  "candidate_ref": "refs/tags/aaa-savepoint-2026-09-20-m0-a02-01 plus working-tree AAA-003:A01 classifier correction",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T19:52:00-03:00",
+  "source_documents": [
+    {
+      "id": "P2",
+      "location": "docs/audits/auditoria-completa-2026-09-20.md#P2",
+      "role": "Historical finding that the approval classifier names the removed Python runtime path and omits the live path."
+    },
+    {
+      "id": "repository-audit:weighted-approval",
+      "location": "docs/customization/repository-audit-2026-09-20.md#governance-and-publication",
+      "role": "Current audit ownership and approval-policy context."
+    },
+    {
+      "id": "AAA-QB-06",
+      "location": ".agent/plans/deepseek-harness-aaa-quality-bar.json",
+      "role": "Frozen upstream-safe customization and governance evidence criterion."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-003-PATH",
+      "source_refs": ["P2", "repository-audit:weighted-approval", "AAA-QB-06"],
+      "source_location": ".github/review-ownership/blame-production.py; .github/review-ownership/test_blame_production.py",
+      "command_ids": ["CMD-AAA-003-001", "CMD-AAA-003-002", "CMD-AAA-003-003"],
+      "observed_status": "PASS_WITH_ENVIRONMENT_LIMITATION",
+      "classification": "CONFIRMED_PATH_DRIFT_CORRECTED",
+      "owner": "AAA-003",
+      "severity": "HIGH_RESOLVED",
+      "summary": "The production classifier now recognizes packages/experimental/ptc-runtime-python/py/ and explicitly rejects the removed packages/experimental/code-runtime-python/py/ path. The documented uv environment runs all 12 classifier tests, and the approval-policy Node gate passes 80/80.",
+      "limitations": "The system Python command remains blocked by an unavailable Pygments TSX lexer; the documented uv launcher is the authoritative focused result. This task does not qualify the complete release matrix."
+    }
+  ],
+  "decision": {
+    "result": "AAA-003:A01 PASS",
+    "product_change": true,
+    "changed_paths": [
+      ".github/review-ownership/blame-production.py",
+      ".github/review-ownership/test_blame_production.py"
+    ],
+    "next_action": "Verify the evidence and complete AAA-003 before selecting the next backlog task."
+  },
+  "validation": {
+    "command_record_count": 3,
+    "raw_output_files": 3,
+    "validation_method": "Parse commands.jsonl; require unique command IDs, existing raw-output files with matching SHA-256, and a documented dependency-environment PASS for the focused classifier plus the approval-policy gate.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T19:52:00-03:00"
+  }
+}

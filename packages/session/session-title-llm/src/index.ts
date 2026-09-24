@@ -11,13 +11,18 @@ import type { FinishReason, GenerateOptions, Message } from '@deepseek-ai/dsh-ll
 import { deadline, MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type { SessionSeq } from '@deepseek-ai/dsh-session'
+import type { SessionQueryEngine } from '@deepseek-ai/dsh-session-query'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the session-title package owns that behavior. */
 import {
   normalizeSessionTitle,
   SessionTitleProviderId,
+  sessionTitleUserMessageOf,
 } from '@deepseek-ai/dsh-session-title'
+/*! v8 ignore stop */
 import type {
   SessionTitleAutomaticMode,
   SessionTitleModelIdentity,
+  SessionTitleProviderMessageRequest,
   SessionTitleProviderRequest,
   SessionTitleProviderResult,
   SessionTitleUserMessage,
@@ -139,33 +144,52 @@ export function resolveSessionTitleLlmConfig(
   return deepFreeze({ ...value })
 }
 
-/** Select the provider-owned message subset from one fixed service revision. */
-export type SessionTitleLlmMessageSelector = (
-  messages: readonly SessionTitleUserMessage[],
-) => readonly SessionTitleUserMessage[]
+/** Read one provider's all-history input from the exact live-preferred Session cut. */
+async function loadSessionTitleMessages(
+  query: SessionQueryEngine,
+  request: SessionTitleProviderMessageRequest,
+): Promise<readonly SessionTitleUserMessage[]> {
+  request.signal.throwIfAborted()
+  const observation = await query.observeSession(request.session.id, {
+    signal: request.signal,
+    projectionMode: 'none',
+  })
+  try {
+    request.signal.throwIfAborted()
+    const messages: SessionTitleUserMessage[] = []
+    for (const event of observation.events) {
+      if (event.seq > request.throughSeq) break
+      const message = sessionTitleUserMessageOf(event)
+      if (message !== undefined) messages.push(message)
+    }
+    request.signal.throwIfAborted()
+    return messages
+  } finally {
+    observation[Symbol.dispose]()
+  }
+}
 
 /**
  * Register one model-backed provider through the shared configuration and call policy.
- * @param ctx - context exposing the title and LLM services.
+ * @param ctx - context exposing the title, LLM, and session-query services.
  * @param config - untrusted required deployment policy.
  * @param id - stable plugin id recorded with generated titles.
  * @param automatic - provider-owned automatic generation cadence.
- * @param selectMessages - exact source-message selection for one revision.
  */
 export function registerSessionTitleLlmProvider(
   ctx: Context,
   config: SessionTitleLlmConfig,
   id: string,
   automatic: SessionTitleAutomaticMode,
-  selectMessages: SessionTitleLlmMessageSelector,
 ): void {
   const resolved = resolveSessionTitleLlmConfig(config)
   const titleProvider = SessionTitleProviderId(id)
   ctx.sessionTitle.register({
     id: titleProvider,
     automatic,
+    loadMessages: request => loadSessionTitleMessages(ctx.sessionQuery, request),
     async generate(request) {
-      return generateSessionTitleWithLlm(ctx, resolved, request, selectMessages(request.messages), titleProvider)
+      return generateSessionTitleWithLlm(ctx, resolved, request, request.messages, titleProvider)
     },
   })
 }

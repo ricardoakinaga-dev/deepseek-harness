@@ -145,7 +145,7 @@ class WorkspaceFollower {
   private closed = false
 
   push(frame: WorkspaceFollowFrame): void {
-    /* v8 ignore next -- closed followers are removed before later publication can reach them. */
+    /*! v8 ignore next -- closed followers are removed before later publication can reach them. */
     if (this.closed) return
     this.frames.pushBack(frame)
     this.waiting?.()
@@ -172,13 +172,13 @@ class WorkspaceFollower {
     return new Promise((resolve) => {
       const finish = (): void => {
         signal.removeEventListener('abort', finish)
-        /* v8 ignore next -- one read owns the sole installed wait callback. */
+        /*! v8 ignore next -- one read owns the sole installed wait callback. */
         if (this.waiting === finish) this.waiting = undefined
         resolve()
       }
       this.waiting = finish
       signal.addEventListener('abort', finish, { once: true })
-      /* v8 ignore next -- native signals and the private queue cannot change during this synchronous setup. */
+      /*! v8 ignore next -- native signals and the private queue cannot change during this synchronous setup. */
       if (signal.aborted || this.closed || this.frames.size > 0) finish()
     })
   }

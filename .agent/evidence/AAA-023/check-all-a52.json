@@ -1,0 +1,38 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A52-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A19",
+  "result": "PASS",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; sealed candidate tree 023906dd82be40ed0ef187acd59fd7b5fb56eaae; /home/ricardo/dsh-aaa023-candidate.eSCkTH",
+  "command": "pnpm run check:all",
+  "exit_status": 0,
+  "duration_seconds": 436.81,
+  "summary": {
+    "gates": { "passed": 77, "failed": 0, "skipped": 0 },
+    "test_gate": {
+      "test_files": { "passed": 1535, "skipped": 12 },
+      "tests": { "passed": 26314, "expected_failures": 1, "skipped": 153 }
+    },
+    "covered_surfaces": [
+      "build",
+      "snapshot",
+      "expected-output",
+      "documentation",
+      "catalogs",
+      "policy",
+      "package invariants",
+      "NodeNext consumers",
+      "client-domain graph",
+      "audit metrics",
+      "vendor rescope",
+      "test"
+    ]
+  },
+  "decision": "AAA-023:A19 passes the aggregate local matrix on the exact coverage-qualified sealed candidate. The candidate is ready for the remaining benchmark and external-lane qualification work; no release authority is inferred.",
+  "limitations": "This is a local aggregate qualification only. Designated runner benchmark, required-platform, credentialed-provider, packed-install, upstream-rehearsal, release-identity, publication, and final-critic evidence remain outstanding; no commit, publication, push, merge, release, or final verdict is claimed.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/check-all-a52.json",
+    "/tmp/dsh-a19-candidate-check-all.log"
+  ],
+  "observed_at": "2026-09-22T15:35:33-03:00"
+}

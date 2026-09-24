@@ -79,6 +79,8 @@ These limits define when the native chooser fits. They are current package const
 - **Local carriers only** — the Electron dialog selects local paths; ordinary Web opens the Host chooser. Remote-browser and in-process deployments use the `-browse` composition. Platform failures surface through the owner's retryable folder dialog.
 - **Linux automatic selection** — without zenity or kdialog, the Host selects browse even in Desktop; the Electron dialog is not used.
 
+**Runtime invariant:** No companion is published. The plugin registers a renderless flow occupant into two workspace holes as one transactional effect, whose disposal the HMR-safety spec proves, and it retains no state between picks.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -88,5 +90,3 @@ These limits define when the native chooser fits. They are current package const
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The plugin registers a renderless flow occupant into two workspace holes as one transactional effect, whose disposal the HMR-safety spec proves, and it retains no state between picks.

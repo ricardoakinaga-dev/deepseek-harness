@@ -112,6 +112,8 @@ None; the package never assembles or sends provider requests.
 - **Icon fidelity is platform-bound.** Windows icons come from `ExtractAssociatedIcon` at 32px — the most the stock .NET surface yields without a native addon — which can render slightly soft on high-DPI displays; Linux icons follow the hicolor theme and pixmaps only, not the user's active icon theme; several entries (CLI-only launchers without a desktop entry) have no icon source and keep the generic glyph.
 - **New installs appear after a restart.** Resolution runs once per host process; only the uninstall direction self-heals (a missing launcher re-resolves its one entry on the spot).
 
+**Runtime invariant:** No companion is published. The package serves one host resolution pass over three stateless routes; the route registrations prove disposal through their HMR-safety specs, and no independent observations can diverge.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -121,5 +123,3 @@ None; the package never assembles or sends provider requests.
 The promotion decisions — the host/`ui-` package split, why raw webServer routes instead of a Typert Remote, why the catalog stays compile-time fixed, the resolver redesign (verified launchers, one resolution pass, no per-click re-detection), the three-deadline configuration, and the per-platform icon strategies with their rejected alternatives — are recorded in the [promotion Agent Note](../../../.agents/notes/implemented/feature/2026-08-25-promote-open-anywhere-plugin.md).
 
 </details>
-
-**Runtime invariant:** No companion is published. The package serves one host resolution pass over three stateless routes; the route registrations prove disposal through their HMR-safety specs, and no independent observations can diverge.

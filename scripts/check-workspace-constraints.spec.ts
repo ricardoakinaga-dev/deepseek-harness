@@ -12,6 +12,9 @@ import {
   checkExperimentalDependencyIsolation,
   checkExperimentalManifest,
   expectedDshPackageFiles,
+  forkRepositoryUrl,
+  isPrivateForkPackageDirectory,
+  PRIVATE_FORK_PACKAGE_DIRECTORIES,
   type WorkspaceManifest,
 } from './check-workspace-constraints.ts'
 
@@ -163,7 +166,52 @@ describe('dsh family version coherence', () => {
   })
 })
 
+describe('private fork-only package constraints', () => {
+  it('keeps only the approved fork packages outside the release family', () => {
+    expect(PRIVATE_FORK_PACKAGE_DIRECTORIES).toEqual([
+      'packages/bundle/resilient-compaction',
+      'packages/compaction/compaction-resilience-policy',
+    ])
+    expect(isPrivateForkPackageDirectory('packages/bundle/resilient-compaction')).toBe(true)
+    expect(isPrivateForkPackageDirectory('packages/core/session')).toBe(false)
+  })
+
+  it('requires private fork metadata and the fork repository URL', () => {
+    const manifest = {
+      name: '@deepseek-ai/dsh-resilient-compaction',
+      version: '0.1.6-alpha.2',
+      private: true,
+      repository: { type: 'git', url: forkRepositoryUrl, directory: 'packages/bundle/resilient-compaction' },
+      type: 'module',
+      main: 'lib/index.js',
+      types: 'lib/types/index.d.ts',
+      exports: { '.': { types: './lib/types/index.d.ts', default: './lib/index.js' } },
+      files: ['lib/index.js', 'cordis.patch.yml', 'lib/types/**/*.d.ts'],
+      peerDependencies: { '@deepseek-ai/cordis': 'workspace:^' },
+      devDependencies: { '@deepseek-ai/cordis': 'workspace:^' },
+      dsh: { bundle: { patch: './cordis.patch.yml' } },
+    }
+    expect(checkWorkspaceManifest({ dir: 'packages/bundle/resilient-compaction', manifest })).toEqual([])
+    expect(checkWorkspaceManifest({
+      dir: 'packages/bundle/resilient-compaction',
+      manifest: { ...manifest, private: false },
+    })).toContain('packages/bundle/resilient-compaction/package.json: @deepseek-ai/dsh-resilient-compaction: private fork-only package must set "private": true')
+    expect(checkWorkspaceManifest({
+      dir: 'packages/bundle/resilient-compaction',
+      manifest: { ...manifest, repository: { ...manifest.repository, url: 'git+https://github.com/deepseek-ai/deepseek-harness.git' } },
+    })).toContain(`packages/bundle/resilient-compaction/package.json: @deepseek-ai/dsh-resilient-compaction: private fork-only package repository must use ${forkRepositoryUrl}`)
+  })
+})
+
 describe('package payload constraints', () => {
+  it('rejects a source export that is absent from ordinary package payloads', () => {
+    const manifest = JSON.parse(readFileSync(new URL('../packages/core/session/package.json', import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+    expect(checkWorkspaceManifest({
+      dir: 'packages/core/session',
+      manifest: { ...manifest, exports: { ...manifest.exports, './src/*': './src/*' } },
+    })).toEqual([expect.stringContaining('must not publish the unsupported "./src/*" export')])
+  })
+
   it('includes a declared profile patch without a package-name allowlist', () => {
     expect(expectedDshPackageFiles({
       name: '@deepseek-ai/dsh-private-profile',

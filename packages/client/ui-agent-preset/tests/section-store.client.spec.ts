@@ -94,7 +94,7 @@ function fakeCtx(
           record('read', { agentPreset })
           if (options.failRead !== undefined) return remoteFail(options.failRead)
           const preset = presets.get(agentPreset)
-          /* v8 ignore next -- every test reads an id the fake store holds */
+          /*! v8 ignore next -- every test reads an id the fake store holds */
           if (preset === undefined) return remoteFail(`unknown preset ${agentPreset}`)
           return remoteOk({
             agentPreset,
@@ -114,7 +114,7 @@ function fakeCtx(
           record('copy', { from, id, ...name === undefined ? {} : { name } })
           if (options.failCopy !== undefined) return remoteFail(options.failCopy)
           const source = presets.get(from)
-          /* v8 ignore next -- every test copies a source the fake store holds */
+          /*! v8 ignore next -- every test copies a source the fake store holds */
           if (source === undefined) return remoteFail(`unknown preset ${from}`)
           presets.set(id, {
             trust: 'user',

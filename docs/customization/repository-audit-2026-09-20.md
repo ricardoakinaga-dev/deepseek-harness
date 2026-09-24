@@ -137,7 +137,7 @@ The source Git worktree was clean at the audit checkpoint, and `git diff --check
 
 4. Decide and document the WebSocket close quiescence contract, symlink policy, HTTP bridge resource limits, and the fake WebSocket fixture behavior.
 
-5. Correct or explicitly approve README channel differences, historical count provenance, customization-policy enforcement, upstream-master checking, and package repository metadata.
+5. Correct or explicitly approve README channel differences, historical count sources, customization-policy enforcement, upstream-master checking, and package repository metadata.
 
 6. Rerun the focused gates and then `pnpm run check:all`; record the new commit, environment, and exact command results in the next dated audit.
 

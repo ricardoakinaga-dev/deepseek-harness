@@ -1,6 +1,8 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 import { afterEach, describe, expect, it } from 'vitest'
 import { WorkspaceAnalyzer } from '../src/analyzer.ts'
@@ -8,6 +10,7 @@ import type { InvocationModel } from '../src/model.ts'
 import { WorkspaceTypertGenerator } from '../src/workspace.ts'
 
 const fixtureRoot = resolve(import.meta.dirname, 'fixtures/remote-model')
+const zodModule = pathToFileURL(createRequire(import.meta.url).resolve('zod')).href
 const temporaryRoots: string[] = []
 
 function normalizedPath(path: string): string {
@@ -147,7 +150,7 @@ describe('Remote model generation', { timeout: 60_000 }, () => {
 
     const remoteJs = artifact?.remote?.js
     if (remoteJs === undefined) throw new Error('Remote fixture emitted no Host-for-Client JavaScript')
-    const executable = remoteJs.replace("from 'zod'", `from ${JSON.stringify(import.meta.resolve('zod'))}`)
+    const executable = remoteJs.replace("from 'zod'", `from ${JSON.stringify(zodModule)}`)
     const generated = await import(`data:text/javascript,${encodeURIComponent(executable)}`) as RuntimeRemoteModule
     expect(generated.TYPERT_REMOTE.package).toBe('@fixture/remote')
     const create = generated.TYPERT_REMOTE.descriptors[0]
@@ -203,7 +206,7 @@ export type {`,
 
     const remoteJs = artifact?.remote?.js
     if (remoteJs === undefined) throw new Error('undefined Remote fixture emitted no Host-for-Client JavaScript')
-    const executable = remoteJs.replace("from 'zod'", `from ${JSON.stringify(import.meta.resolve('zod'))}`)
+    const executable = remoteJs.replace("from 'zod'", `from ${JSON.stringify(zodModule)}`)
     const generated = await import(`data:text/javascript,${encodeURIComponent(executable)}`) as RuntimeRemoteModule
     const maybe = generated.TYPERT_REMOTE.descriptors.find(descriptor => descriptor.id.endsWith('/maybe'))
     const clear = generated.TYPERT_REMOTE.descriptors.find(descriptor => descriptor.id.endsWith('/clear'))
@@ -279,7 +282,7 @@ export type GenericResult = {
     )
     const remoteJs = artifact?.remote?.js
     if (remoteJs === undefined) throw new Error('generic Remote fixture emitted no Host-for-Client JavaScript')
-    const executable = remoteJs.replace("from 'zod'", `from ${JSON.stringify(import.meta.resolve('zod'))}`)
+    const executable = remoteJs.replace("from 'zod'", `from ${JSON.stringify(zodModule)}`)
     const generated = await import(`data:text/javascript,${encodeURIComponent(executable)}`) as RuntimeRemoteModule
     const dispatch = generated.TYPERT_REMOTE.descriptors.find(descriptor => descriptor.id.endsWith('/dispatch'))
     const schema = dispatch?.parameters[0]?.codec.create()

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { LlmAdapter, ToolCallId, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import * as toolSchedule from '../src/index.ts'
@@ -121,6 +121,11 @@ describe('Schedule production JSONL restart', () => {
     await dispatched
     await handle.agent.whenIdle()
     await expect(restarted.sessions.flush(handle.agent.session)).resolves.toBe(true)
+    expect(restarted.sessionProjections.stateOf(handle.agent.session, 'schedule')).toMatchObject({
+      inheritedEventCount: handle.agent.session.inheritedEventCount,
+      active: [],
+      seenIds: ['schedule-1'],
+    })
     const dispatchedStored = await readStored(restarted, sessionId)
     expect(foldScheduleEvents(dispatchedStored.events, dispatchedStored.inheritedEventCount).active)
       .toEqual([])
@@ -128,6 +133,17 @@ describe('Schedule production JSONL restart', () => {
       event.type === 'schedule/change' && event.data.operation === 'dispatch')
     expect(dispatches).toHaveLength(1)
     expect(dispatchingAdapter.requests).toHaveLength(1)
+
+    const nextReminder = await restarted.agents.withInitiator(handle.agent, () => restarted.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('schedule-jsonl-next-id'),
+      name: 'schedule_create',
+      arguments: { prompt: 'id remains reserved', after_seconds: 3_600 },
+      agent: handle.agent,
+    }))
+    expect(nextReminder.isError).toBe(false)
+    if (nextReminder.isError) throw new Error('expected next Schedule create value')
+    expect(nextReminder.value).toMatchObject({ id: 'schedule-2' })
     await handle.dispose()
     await disposeContext(restarted)
 
@@ -138,6 +154,11 @@ describe('Schedule production JSONL restart', () => {
       agentOptions: { provider: 'mock', model: 'mock' },
     })
     await replayed.sessions.flush(replayHandle.agent.session)
+    expect(replayed.sessionProjections.stateOf(replayHandle.agent.session, 'schedule')).toMatchObject({
+      inheritedEventCount: replayHandle.agent.session.inheritedEventCount,
+      active: [{ id: 'schedule-2' }],
+      seenIds: ['schedule-1', 'schedule-2'],
+    })
     await replayHandle.agent.whenIdle()
     await settleCurrentTasks()
     await replayed.sessions.flush(replayHandle.agent.session)

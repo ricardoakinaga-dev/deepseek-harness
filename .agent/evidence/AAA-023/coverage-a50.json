@@ -1,0 +1,24 @@
+{
+  "record_id": "EVID-AAA-023-COVERAGE-A50-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A18",
+  "result": "PARTIAL",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; sealed candidate tree f3b4cb2064db3af52807cfd631afda85dfa56aae; /home/ricardo/dsh-aaa023-candidate.eSCkTH",
+  "command": "pnpm run test:coverage",
+  "exit_status": 1,
+  "duration_seconds": 610.16,
+  "summary": {
+    "test_files": { "passed": 1535, "skipped": 12 },
+    "tests": { "passed": 26314, "expected_failures": 1, "skipped": 153 },
+    "coverage_percent": { "statements": 100, "branches": 99.99, "functions": 100, "lines": 100 },
+    "uncovered_locations": 1,
+    "failure": "packages/boot/plugin-manager/src/index.ts:335:59, the RHS of a redundant named.name ?? parsed.name expression is unreachable because named always receives parsed.name when inspection.name is absent"
+  },
+  "decision": "Keep AAA-023:A18 active for the bounded source simplification; do not add a suppression for a branch made unreachable by the local name construction.",
+  "limitations": "The candidate's prior aggregate 77/77 check-all remains valid for tree f3b4; coverage is not yet a PASS for the repaired successor tree. No threshold, skip, publication, push, merge, release, or final verdict action was performed.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/coverage-a50.json",
+    "/tmp/dsh-a18-candidate-coverage-final.log"
+  ],
+  "observed_at": "2026-09-22T15:10:39-03:00"
+}

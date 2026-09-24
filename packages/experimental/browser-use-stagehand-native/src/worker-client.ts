@@ -1,9 +1,13 @@
 /** Isolated Stagehand Workers own CDP connections; the host owns browser processes. */
 
+import { createRequire } from 'node:module'
 import { Worker } from 'node:worker_threads'
+import { pathToFileURL } from 'node:url'
 import { StagehandDrainError } from './native.ts'
 import type { NativeBrowserConfig, NativeBrowserRuntime } from './native.ts'
 import { request } from './worker-rpc.ts'
+
+const require = createRequire(import.meta.url)
 
 /**
  * Connect Stagehand through an isolated Worker that receives no ambient environment.
@@ -21,12 +25,13 @@ export async function openBrowserWorker(
   const env: NodeJS.ProcessEnv = {}
   if (process.env.TSX_TSCONFIG_PATH !== undefined) env.TSX_TSCONFIG_PATH = process.env.TSX_TSCONFIG_PATH
   let worker: Worker
-  /* v8 ignore next 3 -- native.e2e.ts starts the bundled Worker through a plain-Node provider fixture. */
+  /*! v8 ignore next 3 -- native.e2e.ts starts the bundled Worker through a plain-Node provider fixture. */
   if (!import.meta.url.endsWith('.ts')) {
     worker = new Worker(entry, { workerData: config, execArgv: [], env })
   } else {
     const source = new URL('./worker.ts', import.meta.url)
-    const bootstrap = `import { register } from ${JSON.stringify(import.meta.resolve('tsx/esm/api'))}; register(); await import(${JSON.stringify(source.href)})`
+    const tsxApi = pathToFileURL(require.resolve('tsx/esm/api')).href
+    const bootstrap = `import { register } from ${JSON.stringify(tsxApi)}; register(); await import(${JSON.stringify(source.href)})`
     worker = new Worker(new URL(`data:text/javascript,${encodeURIComponent(bootstrap)}`), { workerData: config, execArgv: [], env })
   }
   let termination: Promise<number> | undefined

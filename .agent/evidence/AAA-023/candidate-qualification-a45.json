@@ -1,0 +1,31 @@
+{
+  "record_id": "EVID-AAA-023-CANDIDATE-QUALIFICATION-A45-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A15",
+  "result": "PASS",
+  "candidate": {
+    "path": "/home/ricardo/dsh-aaa023-candidate.C6avS2",
+    "tree_hash": "594d3afbb864b88bb5239f12d0ffdf54adc983c9",
+    "tree_kind": "git-write-tree",
+    "staged_path_count": 1097,
+    "mutation": "private candidate only; no main-worktree staging or commit"
+  },
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; candidate outside /tmp to keep PTC bootstrap visible to workspace-write subprocesses",
+  "commands": [
+    { "command": "pnpm run build:lib", "exit_status": 0 },
+    { "command": "pnpm exec vitest run packages/core/agent-loop/tests/tool-calls.spec.ts -t 'keeps the scheduler view addressable'", "exit_status": 0, "summary": "1 passed, 21 skipped" },
+    { "command": "pnpm run test:snapshot", "exit_status": 0, "summary": "161 passed, 2 skipped" },
+    { "command": "pnpm run test:expected", "exit_status": 0, "summary": "94 passed" },
+    { "command": "pnpm run doc-sync", "exit_status": 0, "summary": "43 passed, 0 failed, 0 skipped" },
+    { "command": "pnpm run check:all", "exit_status": 0, "summary": "77 passed, 0 failed, 0 skipped in 435.13 seconds" },
+    { "command": "git diff --cached --check && git write-tree", "exit_status": 0, "summary": "tree 594d3afbb864b88bb5239f12d0ffdf54adc983c9" }
+  ],
+  "additional_checks": {
+    "translation_pairing": "1027 pairs checked; all consistent",
+    "client_domain_graph": "clean",
+    "focused_headless_bash_snapshot": "1 passed, 122 skipped",
+    "focused_scheduler_regression": "1 passed, 21 skipped"
+  },
+  "limitations": "This qualifies the sealed local candidate matrix only. Coverage, designated benchmark, required platform, credentialed-provider, packed-install, upstream-rehearsal, release-identity, and final independent-critic evidence remain outstanding. The tree is not a commit and no publication, push, merge, release, or final verdict is claimed.",
+  "observed_at": "2026-09-22T12:02:08-03:00"
+}

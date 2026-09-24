@@ -1,0 +1,81 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A07-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree after aggregate test-isolation corrections",
+  "timestamp": "2026-09-21T19:45:13-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "pnpm run test",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The native-system prerequisite completed and the full Vitest run passed 1,535 files and 26,284 tests, with 12 skipped files, 153 skipped tests, and one expected failure."
+    },
+    {
+      "command": "pnpm exec vitest run packages/deliverables/workspace-changes/tests/git.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The process-bound Git snapshot and diff suite passed 1 file and 11 tests after its real-subprocess case received an explicit 20-second budget."
+    },
+    {
+      "command": "pnpm exec vitest run packages/terminal/terminal-bash/tests/local.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The real-shell PTY suite passed 1 file and 7 tests, with 3 platform-conditional skips, after the file was assigned to the process-bound project."
+    },
+    {
+      "command": "pnpm exec vitest run scripts/browser-bundled-externals.spec.ts packages/client/ui-deliverables/tests packages/client/ui-sidebar-documentpreview/tests packages/session-query/session-log-export/tests",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The browser dependency fixture and affected client TSX/PDF/session-export suites passed 60 files and 592 tests."
+    },
+    {
+      "command": "DSH_EXAMPLE_MODE=lib pnpm run test:snapshot",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The official built-artifact snapshot lane passed 7 files and 167 tests, with 2 skipped tests out of 169 total."
+    },
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The ownership gate attributes 698 custom paths across 12 improvements, including the desktop packaging fixture correction."
+    },
+    {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "All 11 control-plane checks pass and state, backlog, ledgers, gate history, and active pointers reconcile."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "implementation_refs": [
+    "vitest.config.ts",
+    "packages/deliverables/workspace-changes/tests/git.spec.ts",
+    "packages/deliverables/workspace-changes/tests/plugin.spec.ts",
+    "packages/terminal/terminal-bash/tests/local.spec.ts",
+    "apps/desktop/tests/packaging-run.spec.ts",
+    "packages/client/ui-sidebar-documentpreview/tests/pdf-smoke.client.spec.ts",
+    "scripts/browser-bundled-externals.spec.ts",
+    ".agents/customization-policy.json"
+  ],
+  "summary": "The aggregate unit evidence is green after isolating real Git and PTY test files from the thread-safe pool and restoring local budgets for subprocess-heavy cases. The correction is limited to test topology, quiescent process observation, and fixture ownership; no product runtime workaround or assertion weakening was added.",
+  "decision_dependent_gates": [
+    "AAA-009 client-domain ownership and shared document API placement",
+    "AAA-010 module-graph regeneration after AAA-009",
+    "AAA-012 WebSocket close postcondition",
+    "AAA-014 aggregate HTTP memory and admission policy",
+    "AAA-015 dynamic extension deployment, CSP, consent, and default policy",
+    "AAA-019 fork publication identity and namespace",
+    "AAA-020 public source-export compatibility",
+    "AAA-022 broad rule/compiler policy and remaining complete-history reader migrations"
+  ],
+  "limitations": "This remains a dirty-worktree checkpoint, not a sealed immutable release qualification or final Gauntlet PASS. The latest check:all run still reports 38 AAA-009 client-domain violations and stale AAA-010 module-graph artifacts; its earlier aggregate test failures are superseded by the current green full pnpm run test. Platform, credentialed-provider, packed-install, upstream-rehearsal, complete required-gate, and final independent-critic evidence remain outstanding.",
+  "observed_at": "2026-09-21T19:45:13-03:00",
+  "freshness": "CURRENT"
+}

@@ -26,9 +26,9 @@ Status: implemented
 
 ### Session 日志权威与工具
 
-版本 1 `schedule/change` stream 是唯一持久的 Schedule 权威。create 记录拥有一个 Session 内不复用的品牌 id、trim 后的提示词、规则判别字段和 UTC 目标。delete 与一次性 dispatch 是终结转换。Every dispatch 会存储 id 与决策时点，使 fold 将该记录直接推进到错过的发生时点之后。严格 decoder 与纯 fold 会拒绝未知版本、额外字段、重复使用的 id、形状不匹配的 dispatch，以及针对非活动记录的转换。普通 Session 折叠完整 stream；fork 只折叠传入 projection 初始化的 `inheritedEventCount` 位置及其后的 event。
+版本 1 `schedule/change` stream 是唯一持久的 Schedule 权威。create 记录拥有一个 Session 内不复用的品牌 id、trim 后的提示词、规则判别字段和 UTC 目标。delete 与一次性 dispatch 是终结转换。Every dispatch 会存储 id 与决策时点，使 fold 将该记录直接推进到错过的发生时点之后。严格 decoder 与纯 fold 会拒绝未知版本、额外字段、重复使用的 id、形状不匹配的 dispatch，以及针对非活动记录的转换。必需的 Session projection 会折叠普通 Session 的完整 stream，并在 fork 的精确 `inheritedEventCount` 后折叠自有后缀。
 
-`ctx.sessionProjections` 存在时，Schedule 会注册一个复用同一 transition 的严格单元，并发布完整的活动 `ScheduleRecord[]`；共享的 [projection state 决策](../../archived/architecture/2026-08-19-session-projection-state-and-client-views.md)拥有其初始化与 restore 约定。损坏的持久输入会使既有读取路径失败，而不会产生部分数组。浏览器安全的记录词汇通过纯类型子路径 `@deepseek-ai/dsh-schedule/client` 暴露。
+Schedule 要求 `ctx.sessionProjections`，并由 runtime 插件与 invariant 配套模块共同注册严格单元；共享注册会让最后一个贡献方卸载前保留该 key。Runtime 与工具读取同一实时 host 状态，companion 会校验直接创建基线与准备中的构造基线，并在追加前检查 setup 或 live 候选事件。被拒绝的 setup 追加不会改变 Session 序列或 Schedule fold。共享的 [projection state 决策](../../archived/architecture/2026-08-19-session-projection-state-and-client-views.md)负责初始化与 restore。损坏的持久输入会使既有读取路径失败，而不会产生部分数组。浏览器安全的记录词汇通过纯类型子路径 `@deepseek-ai/dsh-schedule/client` 暴露。
 
 当前规则 union 接受非空提示词和恰好一个 selector。`after_seconds` 是正的安全整数 delay，其记录为 `{ id, kind: 'after', prompt, afterSeconds, scheduledAt }`。`at` 可以是带 `Z` 或数值偏移量且严格符合 RFC 3339 的值，也可以是带显式时区的结构化 `{ date, time, time_zone }`；其记录为 `{ id, kind: 'at', prompt, scheduledAt }`。`every_seconds` 是不小于 300 的安全整数，其 `{ id, kind: 'every', prompt, everySeconds, scheduledAt }` 记录始终与从创建时刻加一个间隔开始的序列对齐。一次性 dispatch 只存储 id；Every dispatch 存储 `id + acceptedAt`。工具值派生 `scheduled` 或 `overdue`，并包含 `deliveryMode: 'session-local'`。
 
@@ -54,7 +54,7 @@ Every 是固定时长间隔，而不是日历规则。第一个目标是创建�
 
 Agent-scoped owner 从持久 fold 派生最早目标。超长目标使用有界 timer 分段，每次 wake 都会重新读取墙钟，因此回拨不会提前触发，前跳则会形成 overdue。已到期的一次性提醒优先，每次准入一条；否则，所有逾期 Every 记录会按目标时间和创建顺序进入同一个批次。如果 Agent 已被某个轮次或另一项 maintenance task 占用，`runMaintenance()` 会拒绝此次认领；这些记录保持活动，并由一次 `whenIdle()` wait 触发另一次尝试。被拒绝的 preflight 或被收容的 framing／入队失败同样会使其保持活动，但不会启动私有重试 timer。
 
-获得准入的路径会刷新所有 pending persistence 并认领真正的 idle phase。它会重新折叠确切的 Session 后缀、采样 decision clock、用经过 JSON 转义的值构造固定提醒 framing、同步排入一个 `followup()`，并在释放 maintenance 前追加 dispatch。一次性提醒会追加只含 id 的终结 dispatch。固定速率批次会为每条参与记录追加一个 `id + acceptedAt` 转换。触发唤醒的 input 会保持 parked，直到 maintenance 释放，因此在 dispatch 进入日志前，消息不会被认领；随后 owner 会为 dispatch 执行 checkpoint。
+获得准入的路径会刷新所有 pending persistence 并认领真正的 idle phase。它会读取确切 Session projection、采样 decision clock、用经过 JSON 转义的值构造固定提醒 framing、同步排入一个 `followup()`，并在释放 maintenance 前追加 dispatch。一次性提醒会追加只含 id 的终结 dispatch。固定速率批次会为每条参与记录追加一个 `id + acceptedAt` 转换。触发唤醒的 input 会保持 parked，直到 maintenance 释放，因此在 dispatch 进入日志前，消息不会被认领；随后 owner 会为 dispatch 执行 checkpoint。
 
 dispatch 记录的是队列准入，而不是模型完成或用户收到提醒。framing 构造或同步入队失败不会追加 dispatch。append 失败会使该 owner fault，因为消息可能已经入队。Agent 或插件 dispose 会取消 timer、停止新工作、撤销工具注册，并等待进行中的工作，且不会删除持久记录。follow-up 获得准入后、持久 dispatch 前发生崩溃，可能使提醒在恢复后重复；本设计不作 exactly-once 承诺。
 

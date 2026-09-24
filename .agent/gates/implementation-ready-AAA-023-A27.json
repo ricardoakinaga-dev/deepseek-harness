@@ -1,0 +1,73 @@
+{
+  "record_id": "GATE-AAA-023-IMPLEMENTATION-READY-A62-001",
+  "timestamp": "2026-09-22T17:19:59-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-023 exact six-owner policy disposition and successor candidate excluding ignored local state",
+  "scope_ref": "AAA-023",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The confirmed local authority covers six exact-path improvement records, removal of only the 11 ignored .opencode state paths from the successor, and same-candidate validation without external repository actions.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-023-A27-POLICY-DISPOSITION-A62-001",
+        ".agent/evidence/AAA-023/upstream-disposition-a59.json",
+        ".agent/evidence/AAA-023/policy-successor-preflight-a61.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The authority does not cover publication, push, merge, release, or final verdict."
+    },
+    {
+      "id": "IR-002",
+      "description": "The disposable policy simulation uses exact paths and no wildcard ownership; it attributes 1445 paths across 23 improvements and exits successfully.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/policy-successor-preflight-a61.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The passing simulation is not yet the promoted candidate."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires constructing the successor candidate, rerunning the policy gate and complete local candidate matrix, and retaining the original candidate tree as an unchanged comparison point.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-023/qualification-a56.json",
+        ".agent/evidence/AAA-023/policy-successor-preflight-a61.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The successor matrix is the next action; this gate authorizes it but does not claim it passed."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-023-A27-POLICY-DISPOSITION-A62-001",
+    ".agent/evidence/AAA-023/upstream-disposition-a59.json",
+    ".agent/evidence/AAA-023/policy-successor-preflight-a61.json"
+  ],
+  "candidate_fingerprint": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-023 local exact-owner policy disposition and successor candidate validation",
+    "decision": "Apply the bounded local disposition and requalify the successor candidate; external repository actions remain outside scope.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-023-A27-POLICY-DISPOSITION-A62-001",
+    "expires_or_revalidates": "Revalidate if a wildcard owner, a different candidate exclusion, or an external repository action is proposed."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-023:A28 to construct and qualify the successor candidate with the exact policy disposition.",
+  "revalidation_triggers": [
+    "The policy uses a wildcard or attributes a path outside the six bounded groups.",
+    "Any current custom/main file is deleted or overwritten to remove .opencode state.",
+    "The successor matrix requires an external repository action."
+  ],
+  "supersedes": "GATE-AAA-023-IMPLEMENTATION-READY-005"
+}

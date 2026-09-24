@@ -30,6 +30,7 @@ import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-commands'
 import type { PermissionCatalog, PermissionSelection, PresetOption } from './types.ts'
+import { installPresetHistoryLease } from './preset-history.ts'
 
 export type * from './types.ts'
 
@@ -252,9 +253,9 @@ export class PermissionPresetService extends TypertRemoteService {
       apply: applyPermissionEvent,
       wire: { viewSchema: selectionSchema, view: state => ({ currentValue: this.derive(state) }) },
     })
-    ctx.on('session/created', (session) => {
-      this.pinInitialPermission(session)
-    })
+    installPresetHistoryLease(ctx, (message) => {
+      throw new Error(`permission preset history: ${message}`)
+    }, (session) => { this.pinInitialPermission(session) })
     for (const session of ctx.sessions.list()) {
       this.pinInitialPermission(session)
     }

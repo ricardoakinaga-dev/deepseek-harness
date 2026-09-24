@@ -11,7 +11,7 @@ import ToolRuntime, { TOOL_ABORTED, TOOL_ABORTED_BEFORE_DISPATCH } from '@deepse
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
 import * as ToolJobs from '@deepseek-ai/dsh-tool-jobs'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
@@ -33,12 +33,19 @@ afterAll(() => {
   rmSync(spillDir, { recursive: true, force: true })
 })
 
+async function mountProjectionSeam(ctx: Context): Promise<void> {
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
+}
+
 /** Foreground-only harness: no job runtime (backgrounding fails loud here). */
 async function setup() {
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(AgentRegistry)
+  await mountProjectionSeam(ctx)
   await ctx.plugin(LocalSubprocessRuntime)
   ;(ctx.subprocess as LocalSubprocessRuntime).internals = { spillDir }
   await ctx.plugin(BashEnvPlugin)
@@ -53,6 +60,7 @@ async function setupWithJobs() {
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(AgentRegistry)
+  await mountProjectionSeam(ctx)
   await ctx.plugin(LocalJobRegistry)
   await ctx.plugin(ToolJobs)
   await ctx.plugin(LocalSubprocessRuntime)
@@ -193,8 +201,7 @@ async function setupSandboxed(withApproval = false) {
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(LocalJobRegistry)
   await ctx.plugin(ToolJobs)
-  await ctx.plugin(SessionProjectionRegistry)
-  ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
+  await mountProjectionSeam(ctx)
   await ctx.plugin(SandboxPolicyService, {})
   await ctx.plugin(RecordingSandboxExecutor)
   if (withApproval) await ctx.plugin(ApprovalService)
@@ -204,29 +211,23 @@ async function setupSandboxed(withApproval = false) {
 }
 
 function sandboxAgent(
+  ctx: Context,
   mode?: 'read-only' | 'workspace-write' | 'danger-full-access',
-  ctx?: Context,
   onAppend?: (type: string) => void,
 ): Agent {
-  const events: Array<{ type: string; data?: Record<string, unknown>; seq: number }> = [{ type: 'turn/start', seq: 0, data: { turn: 1 } }]
-  if (mode !== undefined) events.push({ type: 'sandbox/mode', seq: events.length, data: { mode } })
-  const id = SessionId('sandbox-session')
+  const session = ctx.sessions.create()
+  const id = session.id
+  session.append('turn/start', { turn: 1 })
+  if (mode !== undefined) session.append('sandbox/mode', { mode })
+  if (onAppend !== undefined) {
+    ctx.on('session/event', (eventSession, event) => {
+      if (eventSession === session) onAppend(event.type)
+    })
+  }
   return {
     id,
-    ...ctx === undefined ? {} : { ctx: ctx.plugin(() => {}).ctx },
-    session: {
-      id,
-      header: { version: 0, id, createdAt: 0 },
-      get seq() { return events.length },
-      eventAt: (seq: number) => events[seq],
-      snapshotEvents: () => events,
-      append: (type: string, data: Record<string, unknown>) => {
-        const event = { type, data, seq: events.length }
-        events.push(event)
-        onAppend?.(type)
-        return event
-      },
-    },
+    ctx: ctx.plugin(() => {}).ctx,
+    session,
   } as unknown as Agent
 }
 
@@ -626,33 +627,29 @@ describe('sandbox escalation through the generic task producer', () => {
     const { ctx } = await setupSandboxed(true)
     const prompted = vi.fn()
     ctx.on('approval/request', () => { prompted(); return Promise.resolve<ApprovalOutcome>('allowed-once') })
-    const result = await call(ctx, 'bash', { ...escalate, sandbox_permissions: 'workspace-write' }, sandboxAgent('danger-full-access'))
+    const result = await call(ctx, 'bash', { ...escalate, sandbox_permissions: 'workspace-write' }, sandboxAgent(ctx, 'danger-full-access'))
     expect(text(result)).toContain('not strictly wider')
     expect(prompted).not.toHaveBeenCalled()
 
-    const malformed = sandboxAgent()
-    ;(malformed.session.snapshotEvents() as unknown as Array<{ type: string; data: { mode: string }; seq: number }>).push({
-      type: 'sandbox/mode',
-      data: { mode: 'unknown-mode' },
-      seq: malformed.session.seq,
-    })
+    const malformed = sandboxAgent(ctx)
+    malformed.session.append('sandbox/mode', { mode: 'unknown-mode' } as never)
     expect(text(await call(ctx, 'bash', escalate, malformed))).toContain('not strictly wider')
   })
 
   it.each(['workspace-write', 'danger-full-access'] as const)('runs a repeated %s request without approval', async (mode) => {
     const { ctx, bash } = await setupSandboxed()
-    const result = await call(ctx, 'bash', { ...escalate, sandbox_permissions: mode }, sandboxAgent(mode))
+    const result = await call(ctx, 'bash', { ...escalate, sandbox_permissions: mode }, sandboxAgent(ctx, mode))
     expect(result.isError).toBe(false)
     expect(bash.modes).toEqual([mode])
   })
 
   it('fails closed when approval cannot be routed', async () => {
     const withoutService = await setupSandboxed()
-    expect(text(await call(withoutService.ctx, 'bash', escalate, sandboxAgent()))).toContain('no approval service')
+    expect(text(await call(withoutService.ctx, 'bash', escalate, sandboxAgent(withoutService.ctx)))).toContain('no approval service')
 
     const withService = await setupSandboxed(true)
     expect(text(await call(withService.ctx, 'bash', escalate))).toContain('no agent to route')
-    expect(text(await call(withService.ctx, 'bash', escalate, sandboxAgent()))).toContain('no approval channel')
+    expect(text(await call(withService.ctx, 'bash', escalate, sandboxAgent(withService.ctx)))).toContain('no approval channel')
   })
 
   it.each([
@@ -661,7 +658,7 @@ describe('sandbox escalation through the generic task producer', () => {
   ] as const)('maps an approval %s to its distinct failure', async (outcome, message) => {
     const { ctx, bash } = await setupSandboxed(true)
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>(outcome))
-    const result = await call(ctx, 'bash', escalate, sandboxAgent())
+    const result = await call(ctx, 'bash', escalate, sandboxAgent(ctx))
     expect(text(result)).toContain(message)
     expect(bash.modes).toEqual([])
   })
@@ -669,7 +666,7 @@ describe('sandbox escalation through the generic task producer', () => {
   it('runs a granted foreground or background call under the approved mode', async () => {
     const { ctx, bash } = await setupSandboxed(true)
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
-    const agent = sandboxAgent(undefined, ctx)
+    const agent = sandboxAgent(ctx)
     await ctx.agents.register(agent)
     const foreground = await ctx.tools.execute({
       callId: ToolCallId('sandbox-signal'),
@@ -687,7 +684,7 @@ describe('sandbox escalation through the generic task producer', () => {
   it('does not publish detached work when cancellation follows the escalation grant', async () => {
     const { ctx, bash } = await setupSandboxed(true)
     const controller = new AbortController()
-    const agent = sandboxAgent(undefined, ctx, (type) => {
+    const agent = sandboxAgent(ctx, undefined, (type) => {
       if (type === 'approval/decided') controller.abort()
     })
     await ctx.agents.register(agent)
@@ -712,7 +709,7 @@ describe('sandbox escalation through the generic task producer', () => {
 
   it('uses the session override for ordinary calls and evaluates widening against it', async () => {
     const { ctx, bash } = await setupSandboxed(true)
-    const agent = sandboxAgent('workspace-write')
+    const agent = sandboxAgent(ctx, 'workspace-write')
     await call(ctx, 'bash', { command: 'true', description: 'ordinary' }, agent)
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
     await call(ctx, 'bash', { ...escalate, sandbox_permissions: 'danger-full-access' }, agent)
@@ -738,7 +735,7 @@ describe('sandbox escalation through the generic task producer', () => {
   it('keeps the exhaustiveness backstop for a rogue approval implementation', async () => {
     const { ctx } = await setupSandboxed(true)
     ctx.approval.request = () => Promise.resolve('rogue' as ApprovalOutcome)
-    const result = await call(ctx, 'bash', escalate, sandboxAgent())
+    const result = await call(ctx, 'bash', escalate, sandboxAgent(ctx))
     expect(text(result)).toContain('unreachable variant in EscalationOutcome')
   })
 })

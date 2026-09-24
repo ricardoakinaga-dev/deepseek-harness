@@ -102,6 +102,8 @@ ctx.tools.register(defineTool({
 
 注册表在作用域层中持有类型化 `ToolDefinition`，并在请求时把它们投影为面向模型的 `ToolSchema` 集合——`output`、`execute`、`finalizeContent`、`timeoutMs` 与呈现回调绝不会泄漏到协议上。每次调用都运行一条固定流水线：`tools/pre-execute`（可扩展的允许／拒绝／询问）→ 已注册单调守卫 → `tools/execute`（环绕分发包装层）→ `tools/post-execute`（检查／替换、附加上下文）→ 由定义持有的 `finalizeContent` → 仅观测的 `tools/result` 事件。只有 `tools/execute` 视图可以替换必填信号，注册表会在调用主体前重新融合调用方信号。
 
+内部调度器键使用进程全局符号。源代码模式的加载器可能从 `src` 挂载 `ToolRuntime`，同时让 `AgentLoop` 使用 `lib`；如果符号实例不同，调度器视图就会消失。
+
 ### 源码地图
 
 | 文件 | 职责 |
@@ -229,6 +231,7 @@ Program-only SDK bindings:
 - **PTC mode 的 SDK 语言由当前加载的运行时决定，且呈现方式按 agent 而非按工具**：`mode: ptc`/`both` 会拒绝组装提示词，除非 `ctx.ptcRuntime.language` 有已注册的 SDK 渲染器；同一个 agent 内不能让一个工具仅使用 Native，而另一个仅使用 PTC。
 - **PTC mode 中间值只存在于执行局部，且没有字节上限**：它们无法从会话回放重建，并可能耗尽进程或 worker 内存；只有外层 `run_code` 输出受 worker 可配置的硬上限约束。
 - **每次运行都会获得全新的 `run_code` 状态**：MVP 不采用持久 REPL 风格内核，因为跨调用状态不会出现在日志中。
+- **加载不变量配套入口时 store 必须为空**：`dsh-tools/invariant` 使用精确 Session 创建基线与 preparation 追加事件折叠 PTC 祖先关系；如果任一已存储 Session 已有事件，再加载或重新加载该入口会失败，因为原始构造基线已不可用。详见[工具不变量生命周期](../../../docs/subsystems/tools.zh.md#runtime-invariant-companion)。
 
 <a id="dev-note"></a>
 ### 开发备注

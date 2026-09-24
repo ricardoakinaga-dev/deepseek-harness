@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-020",
+  "action_id": "AAA-020:A01",
+  "candidate_ref": "current custom/main worktree",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T23:26:57-03:00",
+  "source_documents": [
+    "docs/audits/auditoria-completa-2026-09-20.md:68,88",
+    ".agent/evidence/AAA-001/commands.jsonl:17",
+    ".agent/evidence/AAA-001/findings.json",
+    "package.json",
+    "packages/*/*/package.json",
+    "scripts/publint-all.ts",
+    "scripts/verify-node-next-types.ts"
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-020-SOURCE-EXPORT-POLICY-UNSET",
+      "observed_status": "GAP_REPRODUCED",
+      "classification": "UNPUBLISHED_SOURCE_EXPORT_WARNING_DEBT",
+      "severity": "HIGH",
+      "summary": "The current inventory finds 279 of 293 package manifests exporting ./src/* while their files arrays omit source files. Current publint exits 0 but emits the same EXPORTS_GLOB_NO_MATCHED_FILES warning for the affected packages.",
+      "limitations": "The warning alone does not prove whether source exports are an intentional compatibility API or an accidental publication mismatch. No package export was changed."
+    }
+  ],
+  "current_export_inventory": {
+    "package_manifests": 293,
+    "source_export_manifests": 279,
+    "non_source_export_manifests": 14,
+    "source_files_in_files_arrays_for_affected_sample": false,
+    "publint_exit_status": 0,
+    "publint_warning": "pkg.exports[\"./src/*\"] is ./src/* but does not match any files."
+  },
+  "decision": {
+    "status": "PENDING_HUMAN_DECISION",
+    "required": "Approve the public source-export compatibility policy before changing exports or files arrays.",
+    "options": [
+      "Remove ./src/* from published exports and declare source imports unsupported, with a migration note for any known consumer.",
+      "Publish the corresponding source trees and define the supported source-import compatibility and licensing surface.",
+      "Keep the source export only in a separately authorized development/source distribution and remove it from ordinary runtime packages."
+    ],
+    "must_define": [
+      "whether any public consumer currently relies on package/src imports",
+      "which package families are covered",
+      "source publication files, license and security review if retained",
+      "migration and deprecation behavior",
+      "packed-install and NodeNext consumer acceptance"
+    ]
+  },
+  "validation": {
+    "commands": [
+      "node manifest inventory across packages/*/*/package.json",
+      "pnpm run publint",
+      "pnpm run verify-node-next-types"
+    ],
+    "observed_status": "PASS_WITH_DECISION_GAP",
+    "summary": "The source-export warning is reproducible and bounded to package publication metadata; the public compatibility policy remains undecided."
+  },
+  "limitations": "No source export was removed or published, no external consumer survey was performed, and the NodeNext check is not a substitute for a human public-API compatibility decision."
+}

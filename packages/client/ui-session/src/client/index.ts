@@ -1,4 +1,11 @@
-/** Session Controller adapter for React selector hooks and Slot scope data. */
+/**
+ * Connect Session Controller state to the Client Slot renderer.
+ *
+ * The adapter publishes root and Session-scoped observable sources, derives
+ * status and pending-interaction projections, and invalidates each source at
+ * its owning Session generation. React hooks remain a renderer concern; this
+ * module supplies the sources and typed props that the renderer binds.
+ */
 import { Service, type Context } from '@deepseek-ai/cordis'
 import type {
   ISessions,
@@ -64,7 +71,7 @@ export interface SessionStatus {
   readonly completionUnread: boolean
 }
 
-/** Current UI status indexed by Session identity. */
+/** Current UI status indexed by Session identity; the Map reference changes only when a status changes. */
 export type SessionStatusSnapshot = ReadonlyMap<SessionId, SessionStatus>
 /** Selector hook over the unified Session UI status snapshot. */
 export type UseSessionStatus = SnapshotSelectorHook<SessionStatusSnapshot>
@@ -101,7 +108,14 @@ export interface UseSessionRetainInfo {
   ): Selected
 }
 
-/** Publish one pending interaction and define how plugin teardown delegates it. */
+/**
+ * Publish one pending interaction and define how plugin teardown delegates it.
+ * The returned disposer removes only the supplied interaction; domain teardown
+ * delegates and awaits every interaction still published by that domain.
+ * @param interaction - Session-scoped value shown to the owning UI surface.
+ * @param delegate - operation that lets another waterfall listener handle the request.
+ * @returns disposer for the published interaction.
+ */
 export type PendingInteractionPublisher<T extends SessionPendingInteractionBase> = (
   interaction: T,
   delegate: () => Promise<void>,
@@ -203,8 +217,11 @@ export interface SessionSourceContribution<
   KeyedHooks extends SessionSourceRoster = SessionSourceRoster,
   Props extends SessionSourceRoster = SessionSourceRoster,
 > {
+  /** Bare observable sources made available as generated `use<Name>` hooks. */
   readonly hooks?: SessionSourceRecord<Hooks, HostObservable<unknown>>
+  /** Keyed observable sources made available as generated keyed hooks. */
   readonly keyedHooks?: SessionSourceRecord<KeyedHooks, KeyedStandardSource>
+  /** Stable plain values made available as generated component props. */
   readonly props?: SessionSourceRecord<Props, unknown>
 }
 
@@ -214,8 +231,11 @@ export interface SessionSourceDescriptor<
   KeyedHooks extends SessionSourceRoster = SessionSourceRoster,
   Props extends SessionSourceRoster = SessionSourceRoster,
 > {
+  /** Names of unkeyed observable sources returned by `resolve`. */
   readonly hooks?: Hooks
+  /** Names of keyed observable sources returned by `resolve`. */
   readonly keyedHooks?: KeyedHooks
+  /** Names of plain props returned by `resolve`. */
   readonly props?: Props
   /**
    * Resolve every declared member for one Session binding.
@@ -354,6 +374,8 @@ export class UiSession extends Service {
 
   /**
    * Register one Session-scoped standard-source contribution.
+   * The declared rosters are checked against every resolved contribution, and
+   * duplicate generated prop names or missing values reject registration.
    * @param descriptor - static member roster and per-binding resolver.
    * @returns disposer owned by the caller's Cordis fiber.
    */
@@ -383,7 +405,8 @@ export class UiSession extends Service {
   /**
    * Register one pending-interaction domain and return its publication function.
    * Domain teardown first removes its visible values, then delegates and awaits
-   * every still-active owner request.
+   * every still-active owner request. A Session receives the highest-precedence
+   * interaction currently published by the registered domains.
    * @param precedence - deterministic cross-domain precedence; larger values win.
    * @returns a function that publishes one interaction and its teardown delegation.
    */

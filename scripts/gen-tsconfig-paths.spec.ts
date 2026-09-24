@@ -4,8 +4,10 @@ import { describe, expect, it } from 'vitest'
 import {
   collectPackageAliases,
   collectPackageNames,
+  collectSourceAliases,
   mappedSpecifiers,
   renderAliases,
+  renderSourceAliases,
   uncoveredPackages,
   writeRegion,
 } from './gen-tsconfig-paths.ts'
@@ -42,6 +44,26 @@ describe('generated tsconfig package aliases', () => {
       '      "@deepseek-ai/dsh-b": ["./packages/g/b/src"]',
     ].join(',\n'))
     expect(body.endsWith(',')).toBe(false)
+  })
+
+  it('maps source subpaths in the source plane without publishing them', () => {
+    const aliases = collectSourceAliases()
+    expect(aliases.length).toBeGreaterThan(200)
+    const locale = aliases.find(alias => alias.specifier === '@deepseek-ai/dsh-client-locale')
+    expect(locale).toEqual({
+      specifier: '@deepseek-ai/dsh-client-locale',
+      source: './packages/client/locale/src',
+      hasInvariant: false,
+    })
+
+    const body = renderSourceAliases([
+      { specifier: '@deepseek-ai/dsh-a', source: './packages/g/a/src', hasInvariant: false },
+    ], new Set())
+    expect(body).toBe([
+      '      "@deepseek-ai/dsh-a/src": ["./packages/g/a/src"]',
+      '      "@deepseek-ai/dsh-a/src/*": ["./packages/g/a/src/*"]',
+    ].join(',\n'))
+    expect(body).not.toContain('exports')
   })
 
   it('replaces only the marked region', () => {

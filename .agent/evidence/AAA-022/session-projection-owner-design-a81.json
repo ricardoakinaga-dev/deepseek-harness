@@ -1,0 +1,92 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-PROJECTION-OWNER-DESIGN-A81-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A10",
+  "kind": "W1_SESSION_PROJECTION_OWNER_DESIGN",
+  "status": "PASS_WITH_RETAINED_EXCEPTIONS",
+  "timestamp": "2026-09-22T20:38:30-03:00",
+  "authority": "AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "source_inventory": [
+    {
+      "site": "REM-028-S067",
+      "path": "packages/session/session-projection/src/index.ts:614-629",
+      "fact": "A missing unit cell is built by folding init over session.snapshotEvents(). This handles a unit registered after events flowed or a session created before the registry, but it is a synchronous complete-history read owned by the projection registry."
+    },
+    {
+      "site": "REM-028-S068",
+      "path": "packages/session/session-projection/src/index.ts:632-654",
+      "fact": "An existing cell advances by looking up every missing sequence with session.eventAt(). The loop preserves a contiguous watermark and throws on a gap, but it assumes the complete log remains synchronously resident."
+    },
+    {
+      "site": "REM-028-S069",
+      "path": "packages/session/session-projection/src/index.ts:656-679",
+      "fact": "The eager event drive builds a late cell by folding the prefix before the delivered event, then applies that event. Removing this read without a lifecycle baseline would silently lose prior state or make the next event non-contiguous."
+    },
+    {
+      "path": "packages/core/session/src/index.ts:474-497,553-620,979-1054,1126-1160",
+      "fact": "Constructor seeds are not published through session/event; firstLiveSeq records the constructor boundary, and announce publishes session/created only after the seeded Session is entered. The core lifecycle therefore has the information needed for an explicit initial-state handoff, but the current event payload does not carry it to projection owners."
+    },
+    {
+      "path": "packages/session/session-projection/src/index.ts:495-595",
+      "fact": "The registry already owns restore and hydrate. They consume an explicit event cut and checkpoint, fold synchronously over supplied data, and install detached state without reading Session history themselves."
+    },
+    {
+      "path": "packages/session/session-projection-cache/src/index.ts:218-235,279-286",
+      "fact": "The projection cache is a fold shortcut and adapter: it supplies explicit cold events to hydrate/restore and persists checkpoints. It does not own live Session history and must not become a dependency of the core projection registry."
+    },
+    {
+      "path": "packages/session/session-projection/package.json, packages/session-query/session-query/package.json",
+      "fact": "session-projection depends on the core Session package and is imported by session-query for projection types; importing session-query into session-projection would reverse the package direction and create a cycle."
+    }
+  ],
+  "decision": {
+    "selected": "Keep SessionProjectionRegistry as the sole owner of projection cells, watermarks, eager current-event drive, and synchronous state reads. Migrate its three history reads only after core Session lifecycle exposes an explicit initial-state handoff and the projection owner can require a supplied baseline. Use the existing restore/hydrate methods for prepared or cold cuts; do not make the registry discover history through SessionQuery or SQLite.",
+    "owner_rules": [
+      "A projection unit may apply only the committed event delivered by the Session lifecycle or an explicit event cut supplied to restore/hydrate.",
+      "The registry must not create a missing cell by calling snapshotEvents() or advance a cell by calling eventAt() once the lifecycle handoff is available.",
+      "stateOf(), snapshot(), and checkpoint() remain synchronous after a cell has an exact baseline and watermark; a missing or stale baseline must fail explicitly instead of folding an implicit history read.",
+      "A late registration or a seeded/resumed Session requires an explicit adoption step before host state is read. Registration must not silently substitute init state or discard the inherited prefix."
+    ],
+    "next_seam": "Specify a core Session/SessionStore lifecycle handoff for the exact constructor seed or prepared cut, including existing-session registration and disposal ordering. The handoff is an initialization delivery, not a general arbitrary-history reader: it is available at Session publication/adoption and is not retained as a new public snapshot alias.",
+    "cache_and_cold": "Keep session-projection-cache as the storage adapter. Its cold read obtains the required event slice and calls restore; a prepared observation calls hydrate. A cache row remains a fold shortcut, never an authoritative live state source.",
+    "dependency_boundary": "session-projection remains independent of session-query, session-query-sqlite, persistence implementations, and storage backends. Query consumers may use projection state, but projection initialization does not call back into query.",
+    "retained_until": "REM-028-S067-069 remain line-scoped retained owner exceptions until the core lifecycle handoff and projection baseline precondition are implemented and verified. No new production call to a deprecated Session reader is permitted."
+  },
+  "acceptance_for_follow_up": [
+    "A fresh Session initializes every registered unit at cursor -1 and continues through delivered events without a history lookup.",
+    "A seeded or restored Session receives its exact constructor/prepared cut, including inheritedEventCount and the end-seed marker when present, before any projection consumer reads state.",
+    "A unit registered after a Session exists is explicitly hydrated or rejected with a named missing-baseline error; it never silently folds Session history.",
+    "A delivered event cannot advance a cell across a missing sequence; the owner reports the missing baseline instead of reading an arbitrary position.",
+    "restore/hydrate, checkpoint, projection-cache cold reads, HMR disposal, late registration, fork cuts, and change notifications preserve their current state, watermark, and lifecycle semantics.",
+    "Focused registry and projection-cache tests prove complete removal of S067-S069, and the candidate-bound deprecated-reader and suppression metrics decrease without a global lint or compiler relaxation."
+  ],
+  "rejected": [
+    "Import session-query or SQLite into session-projection: this creates a dependency cycle and makes a synchronous lifecycle owner depend on an asynchronous query service.",
+    "Route raw projection initialization through SessionQuery: this conflates query observations with projection state, adds persistence availability to the core seam, and changes sdk-minimal composition.",
+    "Make ProjectionDefinition.apply async: event publication and client snapshots are synchronous, so an async fold would break event ordering and the current watermark/change-feed guarantees.",
+    "Delete lazy registration behavior without an explicit lifecycle baseline: late plugin activation and seeded/resumed Sessions would either lose state or fail at an unrelated consumer read.",
+    "Remove the line-scoped waivers without the owner seam and focused equivalence tests: a lower count would not prove correct fork, resume, HMR, or late-registration behavior."
+  ],
+  "retained_exceptions": [
+    "REM-028-S067, REM-028-S068, and REM-028-S069 remain in packages/session/session-projection/src/index.ts under their existing local migration waivers.",
+    "A10 changes no production source, package metadata, Session format generation, persistence schema, wire version, candidate tree, or public composition.",
+    "The sealed A28 candidate remains unchanged; any implementation requires a successor rebuild and requalification."
+  ],
+  "evidence_basis": [
+    ".agent/evidence/AAA-022/reader-inventory-a75.json",
+    ".agent/evidence/AAA-022/session-query-reader-design-a79.json",
+    "packages/core/session/src/index.ts",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session/session-projection/tests/registry.spec.ts",
+    "packages/session/session-projection-cache/src/index.ts",
+    "packages/session/session-projection-cache/tests/cache.spec.ts",
+    "packages/session/session-projection/package.json",
+    "packages/session-query/session-query/package.json"
+  ],
+  "limitations": [
+    "A10 is a source-grounded design action; the core lifecycle handoff is not yet implemented.",
+    "The current worktree still lacks the 12 tracked paths required by the canonical audit-metrics command; candidate-bound metric promotion remains a later successor check.",
+    "No publication, registry, push, merge, release, or final-verdict action was taken."
+  ],
+  "decision_summary": "Accept the projection-owner design. Keep the registry synchronous and independent, use explicit restore/hydrate cuts, and retain S067-S069 only until a core lifecycle adoption seam can supply a complete baseline without a new arbitrary-history alias."
+}

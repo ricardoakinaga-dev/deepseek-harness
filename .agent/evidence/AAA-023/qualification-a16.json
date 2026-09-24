@@ -1,0 +1,59 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A16-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree at 60b5295027f6fb7652a1a350a68c6275715b5dbd; not an immutable candidate",
+  "timestamp": "2026-09-21T21:58:33-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "pnpm run release:verify --family dsh",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The DSH release family contains 295 members, all at version 0.1.6-alpha.2; publish order resolves and no peer declarations are unordered."
+    },
+    {
+      "command": "pnpm run release:verify --family vendor",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The vendor release family contains 9 members across 8 versions; publish order resolves. Two unordered peer declarations are reported by the verifier as non-blocking."
+    },
+    {
+      "command": "pnpm run test:coverage",
+      "exit_status": 1,
+      "observed_status": "FAIL",
+      "summary": "The bare local coverage command reports 2 failed, 1,533 passed, and 12 skipped files; 3 failed, 26,281 passed, 1 expected failure, and 153 skipped tests. The three failures are 5-second timeouts in two persistence-schema tests and one package-dependency fixture test."
+    },
+    {
+      "command": "DSH_COVERAGE_PARTITION_MODE=1 pnpm exec vitest run --coverage --testTimeout=90000 --expect.poll.timeout=90000 --hookTimeout=90000 --maxWorkers=1 scripts/persistence-schema.spec.ts scripts/verify-package-dependencies.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The two timeout-producing instrumented files pass 80/80 tests with the 90-second coverage budget configured by the Linux and Windows CI coverage jobs."
+    },
+    {
+      "command": "pnpm run check:ci:bench",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The performance benchmark gate passes its single worker, including build:bench, build:web, and test:bench:built, in 115.74 seconds."
+    },
+    {
+      "command": "pnpm run audit:metrics",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The current 4,436-file corpus records deprecated_reader 89/90, lint_suppression 262/263, todo_marker 53/53, explicit_any 1,624/1,625, and selected_skip 4/7; the non_increasing ratchet passes with no violations."
+    }
+  ],
+  "artifacts": [
+    ".agent/evidence/AAA-023/qualification-a16.json",
+    ".github/workflows/ci.yml",
+    "scripts/coverage-partitions.ts",
+    "scripts/persistence-schema.spec.ts",
+    "scripts/release/verify.ts",
+    "scripts/run-gates.ts",
+    "scripts/verify-package-dependencies.spec.ts"
+  ],
+  "summary": "Release-order verification, benchmark qualification, and audit-metric ratcheting pass. The bare local coverage command exposes three instrumentation-related default-timeout failures; the same files pass under the repository's 90-second CI coverage budget, identifying the failure mechanism without claiming a full coverage PASS.",
+  "limitations": "This is a diagnostic qualification on a dirty worktree, not same-SHA release evidence from an immutable candidate. The aggregate check:all graph failures remain in AAA-009 and sequenced AAA-010; human architecture and policy decisions, external provider/platform lanes, upstream rehearsal, publication/source-export policy, and a fresh final critic remain outstanding. The focused coverage run does not replace the failed bare command or the full CI coverage matrix.",
+  "observed_at": "2026-09-21T21:58:33-03:00",
+  "freshness": "CURRENT"
+}

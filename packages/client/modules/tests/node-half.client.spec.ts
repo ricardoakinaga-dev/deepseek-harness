@@ -246,6 +246,19 @@ describe('HTML bootstrap facade', () => {
       .toEqual([APPLICATION_URL, secondUrl])
   })
 
+  it('emits a disabled browser delivery marker unless the graph declares dynamic client code', () => {
+    const marker = (graph: WebBootGraph): unknown => {
+      const row = bootInjections(graph).find(item => item.kind === 'global'
+        && item.name === '__DSH_DYNAMIC_CORDIS_DELIVERY__')
+      return row?.kind === 'global' ? row.value : undefined
+    }
+    expect(marker(bootGraph())).toBe('disabled')
+
+    const dynamic = bootGraph()
+    dynamic.entries[1] = { ...dynamic.entries[1]!, dynamic: true }
+    expect(marker(dynamic)).toBe('unsafe-eval-inline-style')
+  })
+
   it('rejects a page that did not preload the modules bundle', () => {
     const graph = bootGraph()
     const { target } = injectedFacade(graph)
@@ -281,6 +294,19 @@ describe('HTML bootstrap facade', () => {
 })
 
 describe('client bundle activation', () => {
+  it('marks dynamic client rows and rejects malformed dynamic declarations', () => {
+    const dynamicName = '@fixture/dynamic-delivery'
+    writeBuiltPackage(dynamicName, { dynamic: true })
+    const service = construct([dynamicName])
+    expect(service.graph().entries).toEqual([expect.objectContaining({ id: dynamicName, dynamic: true })])
+    expect(bootInjections(service.graph()).find(row => row.kind === 'global'
+      && row.name === '__DSH_DYNAMIC_CORDIS_DELIVERY__')).toMatchObject({ value: 'unsafe-eval-inline-style' })
+
+    const malformedName = '@fixture/malformed-dynamic-delivery'
+    writeBuiltPackage(malformedName, { dynamic: 'yes' })
+    expect(() => construct([malformedName])).toThrow('dsh.client.dynamic must be a boolean')
+  })
+
   it.each(['v1', 'v2'] as const)(
     'resolves %s package metadata from the owning entry tree',
     (version) => {

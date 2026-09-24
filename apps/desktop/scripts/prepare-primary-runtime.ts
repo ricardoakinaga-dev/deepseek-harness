@@ -7,11 +7,11 @@ import { cp } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import extractZip from 'extract-zip'
 import { x as extractTar } from 'tar'
 import { workspaceDependencyPaths, type PrimaryRuntimeManifest } from '../../desktop-host/src/primary-runtime.ts'
 import { resolveDesktopBuildTarget, resolveDesktopTargetBuildPaths } from './desktop-build-paths.mjs'
 import { scrubWindowsSigningEnvironment } from './windows-sign.mjs'
+import { safeExtractZip } from './safe-extract-zip.ts'
 import lock from './primary-runtime-lock.json' with { type: 'json' }
 
 /**
@@ -65,7 +65,7 @@ export function primaryRuntimePayloadDigest(target: keyof typeof lock.targets, r
  * @returns Resolves after extraction without command wrappers; rejects other wheel installation schemes.
  */
 export async function unpackPrimaryRuntimeWheel(archive: string, destination: string): Promise<void> {
-  await extractZip(archive, {
+  await safeExtractZip(archive, {
     dir: destination,
     onEntry: (entry) => {
       const [directory, scheme] = entry.fileName.split('/')
@@ -107,7 +107,7 @@ export async function preparePrimaryRuntime(options: { deferSmoke?: boolean } = 
     const nodeArchive = await downloadPrimaryRuntimeAsset(`https://nodejs.org/dist/v${lock.nodeVersion}/${nodeFilename}`, artifact.nodeSha256, paths.downloads)
     const unpackedNode = join(staging, 'node')
     mkdirSync(unpackedNode)
-    if (target === 'win-x64') await extractZip(nodeArchive, { dir: unpackedNode })
+    if (target === 'win-x64') await safeExtractZip(nodeArchive, { dir: unpackedNode })
     else await extractTar({ file: nodeArchive, cwd: unpackedNode })
     const nodeSource = join(unpackedNode, nodeFilename.replace(/\.(?:zip|tar\.gz)$/u, ''))
     mkdirSync(join(dependencies, 'node', 'bin'), { recursive: true })

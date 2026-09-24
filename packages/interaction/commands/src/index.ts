@@ -14,6 +14,7 @@ import type { ScopeKey, ScopeLayer } from '@deepseek-ai/dsh-scope'
 import { SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionEventMap } from '@deepseek-ai/dsh-session'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
+import { installCommandAuditLease } from './audit-state.ts'
 import { CommandId } from './brand.ts'
 import type { CommandDefinitionId } from './brand.ts'
 import type {
@@ -126,7 +127,7 @@ export function parseCommand(line: string): ParsedCommand | undefined {
   const match = /^\/([a-z][a-z0-9_-]*)(?=$|[\t\n\r ])/u.exec(line)
   if (match === null) return undefined
   const name = match[1]
-  /* v8 ignore next -- the first capture is required whenever the regular expression matches */
+  /*! v8 ignore next -- the first capture is required whenever the regular expression matches */
   if (name === undefined) return undefined
   return Object.freeze({ name, rawInput: line.slice(match[0].length) })
 }
@@ -261,6 +262,9 @@ function normalizeResult(command: string, value: unknown): CommandResult {
  * globals for that agent.
  */
 export class CommandRuntime extends TypertRemoteService {
+  /** Session store required to seed exact command audit folds on creation. */
+  static inject = ['sessions']
+
   private readonly layers = new ScopedLayers(
     scope => new CommandLayer(scope),
     () => { this.notifyChange() },
@@ -275,6 +279,7 @@ export class CommandRuntime extends TypertRemoteService {
 
   constructor(ctx: Context) {
     super(ctx, 'commands')
+    installCommandAuditLease(ctx)
   }
 
   /**

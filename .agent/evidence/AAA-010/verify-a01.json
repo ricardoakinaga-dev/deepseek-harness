@@ -1,0 +1,19 @@
+{
+  "record_id": "EVID-AAA-010-A01-MODULE-GRAPH-2026-09-21",
+  "task": "AAA-010",
+  "action": "AAA-010:A01",
+  "timestamp": "2026-09-21T00:23:58-03:00",
+  "command": "pnpm run verify-module-graph",
+  "executed": true,
+  "exit_status": 1,
+  "observed_status": "FAIL",
+  "summary": "The owning generator reports stale docs/module-graph.md, docs/module-graph.zh.md, and docs/module-graph.i18n.yaml. Regeneration remains sequenced after the AAA-009 client ownership and shared-API decision.",
+  "limitations": "This is preparation evidence only. The generator was not run in write mode because AAA-009 has not settled the client-domain ownership contract; no derivative was edited.",
+  "evidence_refs": [
+    "scripts/gen-module-graph.ts",
+    "docs/module-graph.md",
+    "docs/module-graph.zh.md",
+    "docs/module-graph.i18n.yaml",
+    ".agent/backlog.json"
+  ]
+}

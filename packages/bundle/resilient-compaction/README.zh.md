@@ -1,5 +1,5 @@
 ---
-description: "可安装的 profile 层，用于约束本地模型压缩并在提供方分派前拒绝过大的 agent loop 请求。"
+description: "仅限 fork 的私有 profile 层，用于约束本地模型压缩并在提供方分派前拒绝过大的 agent loop 请求。"
 kind: "package-bundle"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-这个可选组合包为任何基于 base 的 `dsh --profile` 表面添加有界压缩，而无需替换官方压缩后端或复制 agent preset。它把压缩输出限制为 4,096 token，选择推理强度 `off`，应用八分钟协作式截止时间，并启用基于日志容量的请求准入。任何随附 profile 都不会自动包含它。当本地或吞吐受限模型让自动压缩慢到足以阻塞会话时，请安装它。
+这个可选的 fork 私有组合包为源码 checkout 中基于 base 的 `dsh --profile` 表面添加有界压缩，而无需替换官方压缩后端或复制 agent preset。它把压缩输出限制为 4,096 token，选择推理强度 `off`，应用八分钟协作式截止时间，并启用基于日志容量的请求准入。任何随附 profile 都不会自动包含它。它不会以 upstream namespace 发布；在安装到 profile 前，请使用仓库 checkout 或另行授权的 fork namespace 包。
 
 ## 目录
 
@@ -25,16 +25,15 @@ kind: "package-bundle"
 <a id="use-this-package"></a>
 ## 使用此包
 
-### 安装到 profile
+### 从 fork checkout 使用
 
-使用 profile 插件命令安装或移除组合包：
+此私有包不会从公共 registry 获取。请从此 checkout 通过 `--patch` 传入 [`cordis.patch.yml`](cordis.patch.yml) 来运行，或使用把包及其策略依赖映射到本地构建输出的 profile workspace：
 
 ```text
-dsh plugin --profile <name> add @deepseek-ai/dsh-resilient-compaction
-dsh plugin --profile <name> remove @deepseek-ai/dsh-resilient-compaction
+pnpm dsh web --patch packages/bundle/resilient-compaction/cordis.patch.yml
 ```
 
-发布安装通过 profile 的包管理器解析此包及其策略依赖。发布前，源码 checkout 的 manifest 仍使用 workspace 协议，因此 `file:` 安装无效。完成聚焦构建后，通过 `--patch` 传入 [`cordis.patch.yml`](cordis.patch.yml) 来运行 checkout；打包安装验证必须让 profile 包管理器同时能取得两个尚未发布的 tarball。成功添加后，profile 协调会读取 `dsh.bundle.patch` 并激活该层；缺少 patch 声明时只会留下已安装的普通依赖并产生警告。
+在单独决定 fork namespace、registry 权限、发布责任人与消费者迁移方案前，此包保持私有。打包安装可以使用明确的本地 tarball，但不能证明已经发布或可从 registry 获取。
 
 ### 获得的行为
 

@@ -183,7 +183,7 @@ export function AgentPresetSeat({
           const picked = state.options.find(option => option.id === id)
           // The fallback is for the row shape `find` cannot promise; the menu's
           // items ARE `state.options`, so an emitted id is always one of them.
-          /* v8 ignore next */
+          /*! v8 ignore next */
           const name = picked === undefined ? id : presetDisplayText(picked, t).name
           void select(id).then((refusal) => {
             // Announced only for a pick a person just made: `apply()` also runs

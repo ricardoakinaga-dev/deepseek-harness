@@ -31,7 +31,7 @@ kind: "package-reference"
 
 ### 声明客户端插件
 
-浏览器插件包在其 `package.json` 中以 `platform: 'web'` 声明 `dsh.client`，导出 `./client` bundle，并在 `dsh.client.external` 下列出任何基座之外的模块请求。宿主半侧把每份声明变成 `/plugins` 下提供的 bundle，并让动态提供方先于其消费方加载。
+浏览器插件包在其 `package.json` 中以 `platform: 'web'` 声明 `dsh.client`，导出 `./client` bundle，并在 `dsh.client.external` 下列出任何基座之外的模块请求。会求值源代码的包可以标记 `dsh.client.dynamic: true`；它的 graph row 会携带显式动态 delivery 标记。宿主半侧把每份声明变成 `/plugins` 下提供的 bundle，并让动态提供方先于其消费方加载。
 
 ### 浏览器加载什么
 
@@ -47,7 +47,7 @@ application combo 脚本只携带每个插件的 `client.js` 入口，并在启�
 
 ### 构建要求
 
-宿主提供的是已构建的客户端 bundle，因此启动前 `pnpm run build` 必须已产出每个 `lib/client.js`；缺失 bundle 会明确导致激活失败，并给出一条构建说明及包／路径列表。源码启动会把宿主侧导入映射到 TypeScript 源码，但仍消费这一构建后的客户端导出。本包自身不接受任何插件配置。
+宿主提供的是已构建的客户端 bundle，因此启动前 `pnpm run build` 必须已产出每个 `lib/client.js`；缺失 bundle 会明确导致激活失败，并给出一条构建说明及包／路径列表。源码启动会把宿主侧导入映射到 TypeScript 源码，但仍消费这一构建后的客户端导出。本包自身不接受任何插件配置；动态浏览器 delivery 由组合的 row 选择，row 缺失时保持禁用。
 
 -----
 
@@ -61,7 +61,7 @@ application combo 脚本只携带每个插件的 `client.js` 入口，并在启�
 
 ### 设计理念
 
-本包分为两侧：Node 半侧负责组合与提供（`ctx.clientModules`，`ClientModuleRegistry`），浏览器半侧负责加载（`ctx.modules`，`ClientModuleSystem`）。两者之间的协议是启动图——以 `window.__DSH_BOOT__` 注入的 `WebBootEntry` 行，`<` 已转义，插件控制的字符串无法逃出 script 元素。vendored Loader 唯一的消费点是 `EntryTree.import`，因此模块系统就是「插件代码如何到达」的唯一可替换实现。
+本包分为两侧：Node 半侧负责组合与提供（`ctx.clientModules`，`ClientModuleRegistry`），浏览器半侧负责加载（`ctx.modules`，`ClientModuleSystem`）。两者之间的协议是启动图——以 `window.__DSH_BOOT__` 注入的 `WebBootEntry` 行，`<` 已转义，插件控制的字符串无法逃出 script 元素。Node 半侧还注入动态 delivery 标记：没有动态 row 时为 `disabled`，显式组合动态 row 时为 `unsafe-eval-inline-style`。本包不会发送 CSP header，也不会配置 Trusted Types；这些控制由部署负责。vendored Loader 唯一的消费点是 `EntryTree.import`，因此模块系统就是「插件代码如何到达」的唯一可替换实现。
 
 ### 惰性 CJS 模型
 

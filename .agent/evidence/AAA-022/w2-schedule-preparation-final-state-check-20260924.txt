@@ -1,0 +1,365 @@
+[PASS] STATE_JSON: artifact parses (.agent/state.json)
+[PASS] BACKLOG_JSON: artifact parses (.agent/backlog.json)
+[PASS] EXECUTION_LOG: artifact parses (.agent/execution-log.jsonl)
+[PASS] VERIFICATION_LOG: artifact parses (.agent/verification.jsonl)
+[PASS] AUTHORITY_LEDGER: validated 25 authority decision record(s)
+[PASS] STATE_FIELDS: all canonical runtime fields are present
+[FAIL] BACKLOG_EVIDENCE_REF: AAA-022.evidence_refs[91] fragment does not resolve inside evidence target: .agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001
+[FAIL] LOG_CORRECTION: EVT-AAA-022-CORRECTION-A12-069: correction missing corrects_event_id, corrected_event_type, correction_reason
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A32-005: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A33-002: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A34-004: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A35-005: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A36-007: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A37-008: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A38-009: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A39-010: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-RECOVERY-A40-011: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-VALIDATION-A41-012: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A42-013: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-RECONCILE-A43-014: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-RECOVERY-A44-015: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A45-016: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A46-017: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A47-018: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A48-019: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A49-020: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A50-021: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A51-022: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A52-023: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A53-024: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A54-025: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A55-026: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A56-027: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A57-028: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A58-029: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A59-030: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A60-031: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-CHECKPOINT-A61-032: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-023-GATE-A62-033: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A04-047: invalid transition DECIDE -> IN_PROGRESS
+[FAIL] LOG_TRANSITION_CONTINUITY: EVT-AAA-022-START-A04-047: AAA-022 transition starts at DECIDE, but the prior declared transition ended at IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A05-049: invalid transition TODO -> IN_PROGRESS
+[FAIL] LOG_TRANSITION_CONTINUITY: EVT-AAA-022-START-A05-049: AAA-022 transition starts at TODO, but the prior declared transition ended at IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A06-051: invalid transition TODO -> IN_PROGRESS
+[FAIL] LOG_TRANSITION_CONTINUITY: EVT-AAA-022-START-A06-051: AAA-022 transition starts at TODO, but the prior declared transition ended at IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-CHECKPOINT-A06-053: gate lifecycle binding missing gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A07-054: gate lifecycle binding missing gate_decision, gate_fingerprint
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-CHECKPOINT-A07-055: gate lifecycle binding missing gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A07-055: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A08-056: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-CHECKPOINT-A08-058: gate lifecycle binding missing gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A09-059: gate lifecycle binding missing gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A09-060: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A10-061: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A10-062: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A11-063: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-CHECKPOINT-A11-065: gate lifecycle binding missing gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION_CONTINUITY: EVT-AAA-022-CHECKPOINT-A11-065: AAA-022 transition starts at IN_PROGRESS, but the prior declared transition ended at READY
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A12-066: gate lifecycle binding missing gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A12-067: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A13-068: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A13-068: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-CORRECTION-A12-069: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-CHECKPOINT-A13-071: gate lifecycle binding missing gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION_CONTINUITY: EVT-AAA-022-CHECKPOINT-A13-071: AAA-022 transition starts at IN_PROGRESS, but the prior declared transition ended at READY
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A14-072: gate lifecycle binding missing gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A14-073: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A15-074: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A15-074: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A15-075: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A16-076: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION: EVT-AAA-022-START-A16-076: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-CHECKPOINT-A16-078: gate lifecycle binding missing gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION_CONTINUITY: EVT-AAA-022-CHECKPOINT-A16-078: AAA-022 transition starts at IN_PROGRESS, but the prior declared transition ended at READY
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A17-080: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-CHECKPOINT-A18-082: gate lifecycle binding missing gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION_CONTINUITY: EVT-AAA-022-CHECKPOINT-A18-082: AAA-022 transition starts at IN_PROGRESS, but the prior declared transition ended at READY
+[FAIL] LOG_GATE_BINDING: EVT-AAA-022-START-A21-096: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A22-A23-001-102: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] LOG_TRANSITION: EVT-AAA-022-CHECKPOINT-A23-A24-001-104: invalid transition IN_PROGRESS -> IN_PROGRESS
+[FAIL] VERIFY_ENUM: VER-AAA-023-A02-DIAGNOSIS-A26-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-023-A02-DIAGNOSIS-A26-001: evidence_kind 'REVIEW' cannot support PASS
+[FAIL] VERIFY_ENUM: VER-AAA-023-A05-DIAGNOSIS-A29-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-023-A05-DIAGNOSIS-A29-001: evidence_kind 'REVIEW' cannot support PASS
+[FAIL] VERIFY_ENUM: VER-AAA-023-A09-DIAGNOSIS-A34-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-023-A09-DIAGNOSIS-A34-001: evidence_kind 'REVIEW' cannot support PASS
+[FAIL] VERIFY_ENUM: VER-AAA-023-A11-DIAGNOSIS-A36-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-023-A11-DIAGNOSIS-A36-001: evidence_kind 'REVIEW' cannot support PASS
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A13-CHECK-ALL-A38-001.artifacts[1] must be relative: /tmp/aaa023-a13-check-all-clean-index.out
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A14-SERIAL-TEST-A39-001.artifacts[1] must be relative: /tmp/aaa023-a14-test-serial.out
+[FAIL] VERIFY_ENUM: VER-AAA-023-A15-STATE-SUMMARY-A43-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-023-A15-STATE-SUMMARY-A43-001: evidence_kind 'REVIEW' cannot support PASS
+[FAIL] VERIFY_ENUM: VER-AAA-023-A15-CANDIDATE-ISOLATION-A44-001.evidence_kind='RECOVERY' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A16-COVERAGE-A47-001.artifacts[1] must be relative: /tmp/dsh-a16-candidate-coverage-green.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A17-CHECK-ALL-A48-001.artifacts[1] must be relative: /tmp/dsh-a17-candidate-check-all.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A17-CHECK-ALL-A49-001.artifacts[1] must be relative: /tmp/dsh-a17-candidate-check-all-fixed.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A18-COVERAGE-A50-001.artifacts[1] must be relative: /tmp/dsh-a18-candidate-coverage-final.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A18-COVERAGE-A51-001.artifacts[1] must be relative: /tmp/dsh-a18-candidate-coverage-green.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A19-CHECK-ALL-A52-001.artifacts[1] must be relative: /tmp/dsh-a19-candidate-check-all.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A20-BENCHMARK-A53-001.artifacts[1] must be relative: /tmp/dsh-a20-candidate-benchmark.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A20-BENCHMARK-A53-001.artifacts[2] must be relative: /tmp/dsh-a20-focused-benchmark.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A21-BENCHMARK-A54-001.artifacts[1] must be relative: /tmp/dsh-a21-candidate-benchmark.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A22-PACKED-INSTALL-A55-001.artifacts[1] must be relative: /tmp/dsh-a22-build-official.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A22-PACKED-INSTALL-A55-001.artifacts[2] must be relative: /tmp/dsh-a22-pack-dsh.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A22-PACKED-INSTALL-A55-001.artifacts[3] must be relative: /tmp/dsh-a22-pack-vendor.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A22-PACKED-INSTALL-A55-001.artifacts[4] must be relative: /tmp/dsh-a22-packed-install.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A23-REQUALIFICATION-A56-001.artifacts[1] must be relative: /tmp/dsh-a23-dsh.xLzpG2
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A23-REQUALIFICATION-A56-001.artifacts[2] must be relative: /tmp/dsh-a23-vendor.dTVKyh
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[1] must be relative: /tmp/dsh-a24-upstream.W7fYpl/candidate-rehearsal
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[2] must be relative: /tmp/dsh-a24-policy.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[3] must be relative: /tmp/dsh-a24-candidate-vs-official.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[4] must be relative: /tmp/dsh-a24-candidate-vs-fork.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[5] must be relative: /tmp/dsh-a24-conflicts.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[6] must be relative: /tmp/dsh-a24-unmerged-paths.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[7] must be relative: /tmp/dsh-a24-merge-final.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[1] must be relative: /tmp/dsh-a24-policy.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[2] must be relative: /tmp/dsh-a24-unowned-paths.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[3] must be relative: /tmp/dsh-a24-unmerged-paths.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[4] must be relative: /tmp/dsh-a24-conflicts.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[5] must be relative: /tmp/dsh-a24-candidate-vs-official.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[6] must be relative: /tmp/dsh-a24-candidate-vs-fork.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A26-UPSTREAM-DISPOSITION-A59-001.artifacts[1] must be relative: /tmp/dsh-a24-unowned-paths.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A26-UPSTREAM-DISPOSITION-A59-001.artifacts[2] must be relative: /tmp/dsh-a24-unmerged-paths.txt
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A27-CANDIDATE-EXCLUSION-PREFLIGHT-A60-001.artifacts[1] must be relative: /tmp/dsh-a27-successor-preflight.KPk0pt/repo
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A27-CANDIDATE-EXCLUSION-PREFLIGHT-A60-001.artifacts[2] must be relative: /tmp/dsh-a27-successor-preflight.KPk0pt/policy-committed.log
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A27-POLICY-SUCCESSOR-PREFLIGHT-A61-001.artifacts[1] must be relative: /tmp/dsh-a27-successor-preflight.KPk0pt/repo
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-023-A27-POLICY-SUCCESSOR-PREFLIGHT-A61-001.artifacts[2] must be relative: /tmp/dsh-a27-successor-preflight.KPk0pt/policy-final.log
+[FAIL] VERIFY_ENUM: VER-AAA-022-A03-AUTHORITY-A75-001.evidence_kind='AUTHORITY' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-022-A03-AUTHORITY-A75-001: evidence_kind 'AUTHORITY' cannot support PASS
+[FAIL] VERIFY_ENUM: VER-AAA-022-A04-READER-INVENTORY-A75-001.evidence_kind='STATIC_INVENTORY' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-022-A04-READER-INVENTORY-A75-001: evidence_kind 'STATIC_INVENTORY' cannot support PASS
+[FAIL] VERIFY_RESULT: VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001.evidence_kind='BOUNDED_IMPLEMENTATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A06-SESSION-LOG-READER-DESIGN-A77-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-022-A06-SESSION-LOG-READER-DESIGN-A77-001: evidence_kind 'SOURCE_GROUNDED_DESIGN' cannot support PASS
+[FAIL] VERIFY_RESULT: VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001.evidence_kind='IMPLEMENTATION_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001: evidence_kind 'SOURCE_GROUNDED_DESIGN' cannot support PASS
+[FAIL] VERIFY_RESULT: VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001.evidence_kind='IMPLEMENTATION_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_RESULT: VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001.result='PASS_WITH_RETAINED_EXCEPTIONS' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001: evidence_kind 'SOURCE_GROUNDED_DESIGN' cannot support PASS
+[FAIL] VERIFY_RESULT: VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001.evidence_kind='IMPLEMENTATION_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A12-CORRECTION-A83-002.evidence_kind='CONSUMER_TEST_CORRECTION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_PASS_EVIDENCE_KIND: VER-AAA-022-A12-CORRECTION-A83-002: evidence_kind 'CONSUMER_TEST_CORRECTION' cannot support PASS
+[FAIL] VERIFY_RESULT: VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001.result='PASS_WITH_RETAINED_EXCEPTIONS' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_RESULT: VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001.evidence_kind='IMPLEMENTATION_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_RESULT: VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001.result='PASS_WITH_RETAINED_EXCEPTIONS' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001.evidence_kind='SOURCE_GROUNDED_DESIGN_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_RESULT: VER-AAA-022-A16-W1-SESSION-TELEMETRY-TITLE-DISPOSITION-A87-001.result='PASS_WITH_RETAINED_EXCEPTIONS' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A16-W1-SESSION-TELEMETRY-TITLE-DISPOSITION-A87-001.evidence_kind='SOURCE_GROUNDED_DESIGN_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_RESULT: VER-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001.evidence_kind='IMPLEMENTATION_AND_INDEPENDENT_REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_RESULT: VER-AAA-022-A18-W2-READER-DESIGN-A96-001.result='PASS_WITH_RETAINED_BASELINE_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']
+[FAIL] VERIFY_ENUM: VER-AAA-022-A18-W2-READER-DESIGN-A96-001.evidence_kind='DESIGN_AND_INDEPENDENT_REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-022-A22-IMPLEMENTATION-20260923-001.artifacts[1] fragment does not resolve inside evidence target: .agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001
+[FAIL] VERIFY_ARTIFACT_REF: VER-AAA-022-A22-POST-CHECKPOINT-20260923-001.artifacts[2] fragment does not resolve inside evidence target: .agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A07.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A07.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A07.json.conditions[2] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-022-A07.json.authority.scope must exactly match the governed scope 'AAA-022 W1 optional observation-based session-log-deepseek reader migration'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A07.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A07.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A07.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A07.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A09.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A09.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A09.json.conditions[2] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A09.json.conditions[3] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A09.json.conditions[4] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-022-A09.json.authority.scope must exactly match the governed scope 'AAA-022 W1 SessionObservationReader-owned live capture for SessionCorpus and SQLite derived-index reconciliation'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A09.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A09.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A09.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A09.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A12.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A12.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A12.json.conditions[2] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A12.json.conditions[3] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A12.json.conditions[4] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-022-A12.json.authority.scope must exactly match the governed scope 'AAA-022 W1 transient SessionCreationBaseline handoff and strict SessionProjectionRegistry baseline ownership'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A12.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A12.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A12.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A12.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A14.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A14.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A14.json.conditions[2] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A14.json.conditions[3] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A14.json.conditions[4] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-022-A14.json.authority.scope must exactly match the governed scope 'AAA-022 W1 SessionCreationBaseline adoption in core/session and session-title invariant creation paths'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A14.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A14.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A14.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A14.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.criteria[4].evidence_refs[2] does not resolve to an existing file: packages/session/session-title/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.criteria[4].evidence_refs[3] does not resolve to an existing file: packages/session/session-title-llm/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.criteria[4].evidence_refs[4] does not resolve to an existing file: packages/session/session-title-all-prompts-llm/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.criteria[4].evidence_refs[5] does not resolve to an existing file: packages/session/session-title-first-prompt-llm/
+[FAIL] GATE_CRITERIA_COVERAGE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json: IMPLEMENTATION_READY has non-canonical criteria ['IR-004', 'IR-005', 'IR-006']
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[2] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[3] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[4] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[5] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[6] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[7] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority.scope must exactly match the governed scope 'AAA-022 W1 session-title asynchronous provider history loading, synchronous citation-index migration, and exact app-boot startup enforcement for both shipped title providers'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.criteria[4].evidence_refs[2] does not resolve to an existing file: packages/session/session-title/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.criteria[4].evidence_refs[3] does not resolve to an existing file: packages/session/session-title-llm/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.criteria[4].evidence_refs[4] does not resolve to an existing file: packages/session/session-title-all-prompts-llm/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.criteria[4].evidence_refs[5] does not resolve to an existing file: packages/session/session-title-first-prompt-llm/
+[FAIL] GATE_CRITERIA_COVERAGE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json: IMPLEMENTATION_READY has non-canonical criteria ['IR-004', 'IR-005', 'IR-006']
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[2] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[3] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[4] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[5] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[6] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[7] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority.scope must exactly match the governed scope 'AAA-022 W1 session-title asynchronous provider history loading, synchronous citation-index migration, and exact app-boot startup enforcement for both shipped title providers'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17.json.criteria[4].evidence_refs[2] does not resolve to an existing file: packages/session/session-title/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17.json.criteria[4].evidence_refs[3] does not resolve to an existing file: packages/session/session-title-llm/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17.json.criteria[4].evidence_refs[4] does not resolve to an existing file: packages/session/session-title-all-prompts-llm/
+[FAIL] GATE_CRITERION_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17.json.criteria[4].evidence_refs[5] does not resolve to an existing file: packages/session/session-title-first-prompt-llm/
+[FAIL] GATE_CRITERIA_COVERAGE: .agent/gates/implementation-ready-AAA-022-A17.json: IMPLEMENTATION_READY has non-canonical criteria ['IR-004', 'IR-005', 'IR-006']
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17.json.conditions[2] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17.json.conditions[3] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17.json.conditions[4] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17.json.conditions[5] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17.json.conditions[6] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A17.json.conditions[7] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-022-A17.json.authority.scope must exactly match the governed scope 'AAA-022 W1 session-title asynchronous provider history loading and synchronous citation-index migration for REM-028-S072/S073'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A17.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_CRITERIA_COVERAGE: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json: IMPLEMENTATION_READY is missing canonical criteria ['IR-001', 'IR-002', 'IR-003']
+[FAIL] GATE_CRITERIA_COVERAGE: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json: IMPLEMENTATION_READY has non-canonical criteria ['IP-001', 'IP-002', 'IP-003', 'IP-004', 'IP-005', 'IP-006', 'IP-007']
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[2] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[3] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[4] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[5] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[6] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority.scope must exactly match the governed scope 'AAA-022 task scope: A19 prepared Session append feed and synchronous projection readiness before Agent construction; exact upstream ownership, package tests and documentation'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_FIELDS: .agent/gates/implementation-ready-AAA-022-A19.json missing fields: supersedes
+[FAIL] GATE_GAPS: .agent/gates/implementation-ready-AAA-023-A06.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A06.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A06.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A06.json.conditions[2] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A06.json.conditions[3] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-023-A06.json.authority.scope must exactly match the governed scope 'AAA-023 bounded Web host-inspection compatibility repair under the disabled dynamic-extension policy'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence subject_type does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_GAPS: .agent/gates/implementation-ready-AAA-023-A07.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A07.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A07.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A07.json.conditions[2] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-023-A07.json.authority.scope must exactly match the governed scope 'AAA-023 bounded test-owned source-policy overlay for the Web plugin-manager expected lane'
+[FAIL] GATE_AUTHORITY: .agent/gates/implementation-ready-AAA-023-A07.json.authority: required authority must be CONFIRMED for a passing decision
+[FAIL] GATE_GAPS: .agent/gates/implementation-ready-AAA-023-A10.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A10.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A10.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A10.json.conditions[2] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-023-A10.json.authority.scope must exactly match the governed scope 'AAA-023 bounded rename-safe baseline reading for canonical audit metrics'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A10.json.authority.evidence_ref fragment does not resolve inside evidence target: .agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001; .agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A10.json.authority: authority record 'AUTH-AAA-018-CHANNEL-PARITY-001; .agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001' must resolve exactly once
+[FAIL] GATE_GAPS: .agent/gates/implementation-ready-AAA-023-A12.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A12.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A12.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023-A12.json.conditions[2] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-023-A12.json.authority.scope must exactly match the governed scope 'AAA-023 bounded test-only removal of the explicit_any matcher increase'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence subject_type does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-023-A27.json.authority.scope must exactly match the governed scope 'AAA-023 exact six-owner policy disposition and successor candidate excluding ignored local state'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence subject_type does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_GAPS: .agent/gates/implementation-ready-AAA-023.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023.json.conditions[0] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023.json.conditions[1] must be an object
+[FAIL] GATE_CONDITION: .agent/gates/implementation-ready-AAA-023.json.conditions[2] must be an object
+[FAIL] GATE_AUTHORITY_SCOPE: .agent/gates/implementation-ready-AAA-023.json.authority.scope must exactly match the governed scope 'AAA-023 bounded repair of the current check-all blockers'
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023.json.authority: authority evidence scope does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023.json.authority: authority evidence scope_ref does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023.json.authority: authority evidence subject_type does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023.json.authority: authority evidence subject_id does not match the governed record
+[FAIL] GATE_AUTHORITY_EVIDENCE: .agent/gates/implementation-ready-AAA-023.json.authority: authority evidence decision does not match the governed record
+[FAIL] GATE_HISTORY_SUPERSEDES: .agent/gates/implementation-ready-AAA-022-A09.json: supersedes does not resolve to an existing record ID
+[FAIL] GATE_HISTORY_SUPERSEDES: .agent/gates/implementation-ready-AAA-022-A12.json: supersedes does not resolve to an existing record ID
+[FAIL] GATE_HISTORY_SUPERSEDES: .agent/gates/implementation-ready-AAA-022-A14.json: supersedes does not resolve to an existing record ID
+[FAIL] GATE_HISTORY_SUPERSEDES: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json: supersedes does not resolve to an existing record ID
+[FAIL] GATE_HISTORY_SUPERSEDES: .agent/gates/implementation-ready-AAA-022-A17-revalidation.json: supersedes does not resolve to an existing record ID
+[FAIL] GATE_HISTORY_SUPERSEDES: .agent/gates/implementation-ready-AAA-022-A17.json: supersedes does not resolve to an existing record ID
+[FAIL] GATE_HISTORY_SCOPE: .agent/gates/implementation-ready-AAA-022-A20-prepared-pages.json: superseded record must match gate_id and scope
+[FAIL] GATE_HISTORY_SCOPE: .agent/gates/implementation-ready-AAA-022-A22-context-readers.json: superseded record must match gate_id and scope
+[FAIL] GATE_HISTORY_SCOPE: .agent/gates/implementation-ready-AAA-023-A06.json: superseded record must match gate_id and scope
+[FAIL] GATE_HISTORY_SCOPE: .agent/gates/implementation-ready-AAA-023-A07.json: superseded record must match gate_id and scope
+[FAIL] GATE_HISTORY_SCOPE: .agent/gates/implementation-ready-AAA-023-A10.json: superseded record must match gate_id and scope
+[FAIL] GATE_HISTORY_SCOPE: .agent/gates/implementation-ready-AAA-023-A12.json: superseded record must match gate_id and scope
+[FAIL] GATE_HISTORY_SCOPE: .agent/gates/implementation-ready-AAA-023-A27.json: superseded record must match gate_id and scope
+[FAIL] GATE_HISTORY_REOPEN: .agent/gates/implementation-ready-AAA-022-A09.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A07-001'
+[FAIL] GATE_HISTORY_REOPEN: .agent/gates/implementation-ready-AAA-022-A12.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A09-001'
+[FAIL] GATE_HISTORY_REOPEN: .agent/gates/implementation-ready-AAA-022-A14.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A12-001'
+[FAIL] GATE_HISTORY_REOPEN: .agent/gates/implementation-ready-AAA-022-A17.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A14-001'
+[FAIL] GATE_HISTORY_REOPEN: .agent/gates/implementation-ready-AAA-022-A19-task-scope.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A17-001'
+[FAIL] GATE_HISTORY_REOPEN: .agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022:A17' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A17-002'
+[FAIL] RECONCILE_GATE_EVENT_RESULT: EVT-AAA-023-RECOVERY-A44-015: result 'PARTIAL' contradicts gate decision 'PASS'
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-GATE-A07-052: gate binding does not match exact record, decision, fingerprint, and scope_ref
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-CHECKPOINT-A06-053: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A07-054: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-CHECKPOINT-A07-055: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-GATE-A09-057: gate binding does not match exact record, decision, fingerprint, and scope_ref
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-CHECKPOINT-A08-058: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A09-059: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-GATE-A12-064: gate binding does not match exact record, decision, fingerprint, and scope_ref
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-CHECKPOINT-A11-065: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A12-066: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A13-068: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-CORRECTION-A12-069: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-GATE-A14-070: gate binding does not match exact record, decision, fingerprint, and scope_ref
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-CHECKPOINT-A13-071: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A14-072: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A15-074: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A16-076: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-GATE-A17-077: gate binding does not match exact record, decision, fingerprint, and scope_ref
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-CHECKPOINT-A16-078: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A17-079: gate binding does not match exact record, decision, fingerprint, and scope_ref
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-GATE-A19-081: gate binding does not match exact record, decision, fingerprint, and scope_ref
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-CHECKPOINT-A18-082: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_EVENT: EVT-AAA-022-START-A21-096: gate lifecycle events require a complete typed binding
+[FAIL] RECONCILE_GATE_REOPENED: .agent/gates/implementation-ready-AAA-022-A19-canonical.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001: governing gate was reopened by EVT-AAA-022-GATE-A19-CANONICAL-REOPEN-001-086 and needs a later superseding decision
+RESULT FAIL (pass=6 warn=0 fail=358)

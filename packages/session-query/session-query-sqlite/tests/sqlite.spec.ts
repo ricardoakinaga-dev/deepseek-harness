@@ -837,6 +837,7 @@ describe('SQLite reconciliation and source lifecycle', () => {
     const detach = ctx.sessions.enter(live)
     ctx.sessions.announce(live)
     const persistence = await ctx.plugin(TestPersistence)
+    const observeSession = vi.spyOn(ctx.sessionQuery, 'observeSession')
 
     await expect(ctx.sessionQuery.searchSessions({
       query: 'live',
@@ -845,6 +846,9 @@ describe('SQLite reconciliation and source lifecycle', () => {
       items: [{ header: shared, live: true, persisted: true }],
     })
     expect(TestPersistence.reads.get(shared.id)).toBeUndefined()
+    expect(observeSession).toHaveBeenCalledWith(shared.id, {
+      projectionMode: 'none',
+    })
 
     detach()
     await expect(ctx.sessionQuery.searchSessions({ query: 'persisted' }))
@@ -864,6 +868,24 @@ describe('SQLite reconciliation and source lifecycle', () => {
 
     await expect(ctx.sessionQuery.searchSessions({ query: 'attached' }))
       .resolves.toMatchObject({ items: [{ header: { id: SessionId('attached') } }] })
+  })
+
+  it('retries when a live owner disappears during live observation', async () => {
+    const ctx = await liveContext()
+    const live = ctx.sessions.prepare(SessionId('disappearing-live'), {
+      seed: messageEvents('disappearing needle'),
+    })
+    const detach = ctx.sessions.enter(live)
+    ctx.sessions.announce(live)
+    const readObservation = ctx.sessionQuery.observeSession.bind(ctx.sessionQuery)
+    const observeSession = vi.spyOn(ctx.sessionQuery, 'observeSession')
+    observeSession.mockImplementationOnce(async (sessionId, options) => {
+      detach()
+      return readObservation(sessionId, options)
+    })
+
+    await expect(ctx.sessionQuery.searchSessions({ query: 'disappearing' })).resolves.toEqual({ items: [] })
+    expect(observeSession).toHaveBeenCalledTimes(1)
   })
 
   it('prefers a live owner that attaches during a persisted read and never mutates the store', async () => {

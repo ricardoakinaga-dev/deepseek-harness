@@ -184,6 +184,18 @@ export type PrepareSessionOptions =
   | (CreateSessionOptions & { readonly eventState?: undefined })
   | RestoredSessionOptions
 
+/**
+ * Constructor-owned Session state delivered during synchronous creation
+ * announcement. The event array is borrowed for the callback lifetime and is
+ * not a general history reader.
+ */
+export interface SessionCreationBaseline {
+  /** Contiguous events present before the Session enters live publication. */
+  readonly events: readonly SessionEvent[]
+  /** First sequence appended by the live Session after construction. */
+  readonly firstLiveSeq: SessionLogOffset
+}
+
 /** Why an active agent driver was cancelled. */
 export type AgentCancelCause =
   | { readonly kind: 'user' }

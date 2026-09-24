@@ -271,7 +271,7 @@ export async function compactSurfaceRegion(
       { cause: flushFailure },
     )
   }
-  /* v8 ignore next -- every path without a result records and throws a failure above. */
+  /*! v8 ignore next -- every path without a result records and throws a failure above. */
   if (result === undefined) throw new Error('compaction committed without a result')
   return result
 }

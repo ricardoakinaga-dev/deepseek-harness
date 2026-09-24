@@ -52,6 +52,21 @@ interface AcceptanceFold {
 
 const acceptanceFolds = new WeakMap<Session, AcceptanceFold>()
 
+/** Minimum optional Session-query view needed for one live observation. */
+interface SessionQueryObservation extends Disposable {
+  readonly source: 'live' | 'prepared'
+  readonly events: readonly SessionEvent[]
+  readonly cursor: SessionSeqCursor
+}
+
+/** Structural view that avoids importing the optional query implementation into this package's source graph. */
+interface SessionQueryService {
+  observeSession(
+    sessionId: SessionId,
+    options: { readonly signal: AbortSignal; readonly projectionMode: 'none' },
+  ): Promise<SessionQueryObservation>
+}
+
 /** Translate logical Session metadata to raw external request fields. */
 function wireHeader(session: Session): DeepSeekSessionLogWireHeader {
   const header = session.header
@@ -109,19 +124,16 @@ function wireSurfaceOp(op: SurfaceOp): DeepSeekSessionLogWireSurfaceOp {
     : { op: 'replace', startSeq: Number(op.startSeq), endSeq: Number(op.endSeq) }
 }
 
-/**
- * Highest confirmed sequence for this exact Session format generation.
- * @param session - canonical log whose matching acceptance events are folded.
- * @returns greatest accepted sequence, or `-1` before any accepted request.
- */
-export function acceptedThrough(session: Session): SessionSeqCursor {
+function foldAcceptedThrough(
+  session: Session,
+  length: SessionLogOffsetType,
+  read: (seq: SessionSeqType) => SessionEvent | undefined,
+): SessionSeqCursor {
   const previous = acceptanceFolds.get(session)
   let throughSeq = previous?.throughSeq ?? -1
-  const length = session.seq
   const start = previous?.scannedEvents ?? SessionLogOffset(0)
   for (let index = start; index < length; index++) {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    const event = session.eventAt(SessionSeq(index))
+    const event = read(SessionSeq(index))
     if (event === undefined) {
       throw new Error(`session-log-deepseek: missing event ${String(index)} below captured length ${String(length)}`)
     }
@@ -151,6 +163,57 @@ export function acceptedThrough(session: Session): SessionSeqCursor {
 }
 
 /**
+ * Highest confirmed sequence for this exact Session format generation.
+ * @param session - canonical log whose matching acceptance events are folded.
+ * @returns greatest accepted sequence, or `-1` before any accepted request.
+ */
+export function acceptedThrough(session: Session): SessionSeqCursor {
+  const length = session.seq
+  return foldAcceptedThrough(session, length, (seq) => {
+    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
+    return session.eventAt(seq)
+  })
+}
+
+function contributionFromEvents(
+  session: Session,
+  events: readonly SessionEvent[],
+  afterSeq: SessionSeqCursor,
+  throughSeq: SessionSeqCursor,
+): { value: DeepSeekSessionLogExtension; accept(): void } | undefined {
+  if (throughSeq === -1) return undefined
+  const value: DeepSeekSessionLogExtension = {
+    version: 1,
+    sessionFormatVersion: session.header.version,
+    session: wireHeader(session),
+    afterSeq: Number(afterSeq),
+    throughSeq: Number(throughSeq),
+    events: events.slice(Number(afterSeq) + 1).map(wireEvent),
+  }
+  return {
+    value,
+    accept: () => {
+      session.append('session-log-deepseek/delivery-accepted', {
+        sessionId: session.id,
+        sessionFormatVersion: session.header.version,
+        throughSeq,
+      })
+      // TODO: Add an immediate lightweight checkpoint if duplicate replay after a 2xx crash window becomes unacceptable.
+    },
+  }
+}
+
+function legacyContribution(session: Session): ReturnType<typeof contributionFromEvents> {
+  const afterSeq = acceptedThrough(session)
+  // oxlint-disable-next-line typescript/no-deprecated -- Explicit fallback for profiles without Session-query.
+  const snapshot = session.snapshotEvents()
+  const throughSeq = snapshot.at(-1)?.seq
+  return throughSeq === undefined
+    ? undefined
+    : contributionFromEvents(session, snapshot, afterSeq, throughSeq)
+}
+
+/**
  * Register the incremental `dsh_session_log` request contribution when enabled.
  * @param ctx - plugin context carrying Sessions and the DeepSeek request-extension registry.
  * @param config - validated configuration.
@@ -158,38 +221,23 @@ export function acceptedThrough(session: Session): SessionSeqCursor {
 export function apply(ctx: Context, config: Config): void {
   if (config.enabled !== true) return
   ctx.deepseekLlmApiExtensions.register('dsh_session_log', {
-    prepare: (request) => {
+    prepare: async (request) => {
       // TODO: Define an explicit wire result for direct or stale-session calls if they become a supported product path.
       if (request.sessionId === undefined) return undefined
       const session = ctx.sessions.get(brandString<SessionId>(request.sessionId))
       if (session === undefined) return undefined
 
-      const afterSeq = acceptedThrough(session)
-      // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-      const snapshot = session.snapshotEvents()
-      const throughSeq = snapshot.at(-1)?.seq
-      if (throughSeq === undefined) return undefined
-      // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-      const suffix = session.snapshotEvents(SessionLogOffset(afterSeq + 1))
-      const value: DeepSeekSessionLogExtension = {
-        version: 1,
-        sessionFormatVersion: session.header.version,
-        session: wireHeader(session),
-        afterSeq: Number(afterSeq),
-        throughSeq: Number(throughSeq),
-        events: suffix.map(wireEvent),
-      }
-      return {
-        value,
-        accept: () => {
-          session.append('session-log-deepseek/delivery-accepted', {
-            sessionId: session.id,
-            sessionFormatVersion: session.header.version,
-            throughSeq,
-          })
-          // TODO: Add an immediate lightweight checkpoint if duplicate replay after a 2xx crash window becomes unacceptable.
-        },
-      }
+      const query = ctx.get('sessionQuery') as unknown as SessionQueryService | undefined
+      if (query === undefined) return legacyContribution(session)
+      using observation = await query.observeSession(session.id, {
+        signal: request.signal,
+        projectionMode: 'none',
+      })
+      request.signal.throwIfAborted()
+      if (observation.source !== 'live') return undefined
+      const events = observation.events
+      const afterSeq = foldAcceptedThrough(session, SessionLogOffset(events.length), seq => events[Number(seq)])
+      return contributionFromEvents(session, events, afterSeq, observation.cursor)
     },
   })
 }

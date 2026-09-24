@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-018",
+  "action_id": "AAA-018:A02",
+  "captured_at": "2026-09-21T09:07:49-03:00",
+  "decision_status": "CONFIRMED",
+  "authority_actor": "Ricardo Akinaga",
+  "decision": "Use README.md as the source of truth for community and support channels. Align README.zh.md to the same channel targets and reject locale-only channels in the parity check.",
+  "source": "User instruction in the current conversation: use English as the source of truth.",
+  "canonical_source": {
+    "path": "README.md",
+    "section": "Community and support",
+    "channel_targets": [
+      "https://github.com/deepseek-ai/deepseek-harness/discussions",
+      "https://github.com/topics/dsh-plugin",
+      "https://discord.gg/Ycq5dCaS4"
+    ]
+  },
+  "localized_policy": {
+    "path": "README.zh.md",
+    "section": "社区与支持",
+    "required_behavior": "Translate the canonical English channel list and do not add locale-only channel targets."
+  },
+  "scope_limit": "This decision authorizes the AAA-018 README parity correction and repository metric/parity automation only. It does not authorize the other pending security, ownership, publication, or release decisions.",
+  "implementation_gate": ".agent/gates/implementation-ready-AAA-018.json"
+}

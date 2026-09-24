@@ -1,0 +1,42 @@
+$ npm run build:lib:host && npm run doc-typecheck:contracts-ready
+
+> @deepseek-ai/dsh-root@0.1.6-alpha.2 build:lib:host
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc -b tsconfig.host.json && tsdown --env.DSH_BUILD_FACE host
+
+packages/context/agent-instructions/tests/agent-instructions.spec.ts(246,5): error TS2345: Argument of type 'number' is not assignable to parameter of type 'SessionLogOffset'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionLogOffset"; }'.
+packages/context/agent-instructions/tests/agent-instructions.spec.ts(278,85): error TS2345: Argument of type 'number' is not assignable to parameter of type 'SessionLogOffset'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionLogOffset"; }'.
+packages/context/agent-instructions/tests/agent-instructions.spec.ts(299,73): error TS2345: Argument of type 'number' is not assignable to parameter of type 'SessionLogOffset'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionLogOffset"; }'.
+packages/context/agent-instructions/tests/agent-instructions.spec.ts(318,85): error TS2345: Argument of type 'number' is not assignable to parameter of type 'SessionLogOffset'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionLogOffset"; }'.
+packages/context/agent-instructions/tests/agent-instructions.spec.ts(4304,89): error TS2345: Argument of type 'number' is not assignable to parameter of type 'SessionLogOffset'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionLogOffset"; }'.
+packages/context/time-context/tests/invariant.spec.ts(413,41): error TS2339: Property 'text' does not exist on type 'ContentBlock'.
+  Property 'text' does not exist on type 'ImageBlock'.
+packages/context/time-context/tests/time-context.spec.ts(446,48): error TS2345: Argument of type '{ timeContext: { ver: number; seq: SessionLogOffset; val: { lastMessageTime: null; lastInjectionTime: null; lastTurnInjectionTime: null; }; }; }' is not assignable to parameter of type 'ProjectionCheckpoint'.
+  Property 'timeContext' is incompatible with index signature.
+    Type '{ ver: number; seq: SessionLogOffset; val: { lastMessageTime: null; lastInjectionTime: null; lastTurnInjectionTime: null; }; }' is not assignable to type 'ProjectionCheckpointRow'.
+      Types of property 'seq' are incompatible.
+        Type 'SessionLogOffset' is not assignable to type 'SessionSeqCursor'.
+          Type 'SessionLogOffset' is not assignable to type 'SessionSeq'.
+            Type 'SessionLogOffset' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+              Types of property '[BRAND]' are incompatible.
+                Type '"SessionLogOffset"' is not assignable to type '"SessionSeq"'.
+packages/context/time-context/tests/time-context.spec.ts(448,7): error TS2345: Argument of type '{ timeContext: { ver: number; seq: SessionLogOffset; val: { lastMessageTime: null; lastInjectionTime: null; lastTurnInjectionTime: null; }; }; }' is not assignable to parameter of type 'ProjectionCheckpoint'.
+  Property 'timeContext' is incompatible with index signature.
+    Type '{ ver: number; seq: SessionLogOffset; val: { lastMessageTime: null; lastInjectionTime: null; lastTurnInjectionTime: null; }; }' is not assignable to type 'ProjectionCheckpointRow'.
+      Types of property 'seq' are incompatible.
+        Type 'SessionLogOffset' is not assignable to type 'SessionSeqCursor'.
+          Type 'SessionLogOffset' is not assignable to type 'SessionSeq'.
+            Type 'SessionLogOffset' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+              Types of property '[BRAND]' are incompatible.
+                Type '"SessionLogOffset"' is not assignable to type '"SessionSeq"'.
+packages/core/agent-loop/tests/resume.spec.ts(273,35): error TS2322: Type 'number' is not assignable to type 'Promise<undefined>'.
+packages/session/session-projection-cache/tests/fixtures.spec.ts(248,48): error TS2345: Argument of type 'Record<string, { ver: number; seq: number; val: unknown; }>' is not assignable to parameter of type 'ProjectionCheckpoint'.
+  'string' index signatures are incompatible.
+    Type '{ ver: number; seq: number; val: unknown; }' is not assignable to type 'ProjectionCheckpointRow'.
+      Types of property 'seq' are incompatible.
+        Type 'number' is not assignable to type 'SessionSeqCursor'.
+[ELIFECYCLE] Command failed with exit code 1.

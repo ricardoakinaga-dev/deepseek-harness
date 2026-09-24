@@ -5,10 +5,11 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+// Type-only: resolves the required SessionProjectionRegistry service.
+import type {} from '@deepseek-ai/dsh-session-projection'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { EveryScheduleRecord, OneShotScheduleRecord } from './types.ts'
 import {
-  foldScheduleEvents,
   renderEveryReminderBatchFraming,
   renderReminderFraming,
   resolveEveryOccurrence,
@@ -149,10 +150,10 @@ export class ScheduleRuntime {
 
   /** Retire one exact run and honor a trigger that landed during its final microtask. */
   private retire(run: Promise<void>): void {
-    /* v8 ignore next -- only the exact stored run installs this callback. */
+    /*! v8 ignore next -- only the exact stored run installs this callback. */
     if (this.run !== run) return
     this.run = undefined
-    /* v8 ignore next -- covers a trigger in the promise-settlement microtask gap. */
+    /*! v8 ignore next -- covers a trigger in the promise-settlement microtask gap. */
     if (this.requested && !this.stopping && !this.faulted) this.requestDrive()
   }
 
@@ -202,15 +203,19 @@ export class ScheduleRuntime {
     )
   }
 
-  /** Fold the current exact runtime suffix and contain a corrupt durable stream. */
+  /** Read the exact live projection and contain unavailable or corrupt state. */
   private readFolded(): FoldedSchedules | undefined {
     try {
-      // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-      return foldScheduleEvents(this.agent.session.ownEvents())
+      const state = this.ctx.sessionProjections.stateOf(this.agent.session, 'schedule')
+      if (state === undefined) throw new Error('required schedule session projection is unavailable')
+      return state
     } catch (error: unknown) {
       this.faulted = true
-      const detail = error instanceof ScheduleLogError ? error.message : renderThrown(error)
-      this.ctx.logger.warn(`schedule: corrupt schedule log for agent "${this.agent.id}": ${detail}`)
+      if (error instanceof ScheduleLogError) {
+        this.ctx.logger.warn(`schedule: corrupt schedule log for agent "${this.agent.id}": ${error.message}`)
+      } else {
+        this.ctx.logger.warn(`schedule: projection unavailable for agent "${this.agent.id}": ${renderThrown(error)}`)
+      }
       return undefined
     }
   }

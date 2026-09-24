@@ -1,0 +1,85 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A14-001",
+  "timestamp": "2026-09-22T21:27:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 W1 SessionCreationBaseline adoption in core/session and session-title invariant creation paths",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "Confirmed authority covers the bounded W1 pre-commit/invariant seam and excludes general history readers, query dependencies, broad lint/compiler changes, released generations, publication, push, merge, release, and final-verdict actions.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/evidence/AAA-022/session-remaining-w1-disposition-design-a84.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A14 authorizes only synchronous baseline consumption by the two invariant companions and their focused tests."
+    },
+    {
+      "id": "IR-002",
+      "description": "The design supplies exact constructor events through session/created for new-session invariant seeding, preserves one explicit existing-session bootstrap scan, and retains synchronous pre-commit title citation validation.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-remaining-w1-disposition-design-a84.json",
+        "packages/core/session/src/invariant.ts",
+        "packages/session/session-title/src/invariant.ts",
+        "packages/core/session/src/types.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A14 must not make the borrowed baseline a public history reader or use an asynchronous storage operation to veto a synchronous append."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires seeded and fresh invariant lifecycle coverage, duplicate-fold protection, invalid-event rejection, late companion installation behavior, package type and lint checks, dependency policy, documentation ownership, and whitespace checks.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-remaining-w1-disposition-design-a84.json",
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate authorizes implementation only; it is not implementation or candidate-qualification evidence."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/session-remaining-w1-disposition-design-a84.json",
+    "packages/core/session/src/invariant.ts",
+    "packages/session/session-title/src/invariant.ts",
+    "packages/core/session/src/types.ts"
+  ],
+  "candidate_fingerprint": "040e988089383b42c71f94549bee55fe85c6d2e26514635a52fa826d83f16f39",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [
+    "Consume SessionCreationBaseline.events synchronously and do not retain or expose the borrowed array after session/created dispatch returns.",
+    "Keep the existing-session startup scan explicit and local; do not replace it with a silent init-only state or a registry-wide backlog.",
+    "Preserve pre-commit title citation validation, event ordering, invalid-event diagnostics, and seeded/forked Session semantics.",
+    "Do not change SESSION_FORMAT_VERSION, durable event envelopes, persistence schemas, projection wire values, package composition, or the retained complete-history and telemetry sites.",
+    "Update all affected typed session/created consumers and run focused tests, package typechecks, Oxlint, dependency, documentation, and diff checks before advancing."
+  ],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 REM-028 W0-W4 owner-scoped Session-reader migration and bounded asynchronous reader, projection, and pre-commit seams",
+    "decision": "Implement the bounded SessionCreationBaseline adoption in the core/session and session-title invariant creation paths; retain history-window and complete-history exceptions and exclude release actions.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    "expires_or_revalidates": "Revalidate if A14 adds a general history reader, changes durable Session data, adds a storage dependency, or requires external repository actions."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-022:A14 to implement SessionCreationBaseline adoption in the core and title invariant creation paths.",
+  "revalidation_triggers": [
+    "The implementation changes Session format generations, persistence rows, wire payloads, or raw event sequence values.",
+    "An invariant retains the borrowed baseline, silently skips a missing baseline, or changes synchronous append-veto timing.",
+    "Seeded, existing-session, late-installation, or invalid-event behavior loses its prior validation coverage.",
+    "The implementation reaches the retained telemetry or complete-history sites outside the named A14 scope."
+  ],
+  "supersedes": ".agent/gates/implementation-ready-AAA-022-A12.json"
+}

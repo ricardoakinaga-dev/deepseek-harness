@@ -1,0 +1,237 @@
+{
+  "record_id": "EVID-AAA-023-DECISION-PACKAGE-A12-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "kind": "DECISION_PACKET",
+  "status": "CONFIRMED_HUMAN_DECISIONS",
+  "candidate_ref": "current custom/main worktree",
+  "timestamp": "2026-09-21T21:11:00-03:00",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+  "purpose": "Present one source-grounded package for the seven decisions that can change security, platform support, public identity, or compatibility.",
+  "decisions": [
+    {
+      "id": "DEC-001",
+      "linked_rem": ["REM-001"],
+      "linked_audit": ["AUD-001"],
+      "linked_tasks": ["AAA-023"],
+      "topic": "Fork and untrusted pull-request runner policy",
+      "recommendation": "Use hosted runners for fork and untrusted pull-request code; permit an ephemeral equivalent only when it has no persistent workspace, shared package store, secrets, or reusable process state and has an equivalent teardown proof.",
+      "alternatives": [
+        "Hosted-only with no equivalent exception.",
+        "Ephemeral isolated runners with explicit lifecycle, secret, cache, and artifact controls."
+      ],
+      "impact": "Hosted-only is slower or more expensive for some lanes; an ephemeral exception preserves throughput but expands infrastructure and proof obligations.",
+      "reversibility": "High for workflow routing; changing runner class later does not alter package APIs, but a relaxed policy requires revalidating all fork isolation tests.",
+      "compatibility": "No runtime API change; changes CI scheduling, cache behavior, and release evidence requirements.",
+      "affected_files": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/ci-master.yml",
+        ".github/workflows/release.yml",
+        "scripts/verify-ci-fork-runners.ts",
+        "scripts/verify-ci-fork-runners.spec.ts",
+        "scripts/tests/ci-release-selfhosted.spec.ts"
+      ],
+      "status": "CONFIRMED"
+    },
+    {
+      "id": "DEC-002",
+      "linked_rem": ["REM-002"],
+      "linked_audit": ["AUD-002"],
+      "linked_tasks": ["AAA-023"],
+      "topic": "Proxy credential transport for model-authored execution",
+      "recommendation": "Keep proxy URLs and credentials out of model-authored PTC and workflow subprocess environments, argv, diagnostics, and logs; route any needed egress through a host-owned capability or separately authorized broker with redaction.",
+      "alternatives": [
+        "Direct model-authored egress with an explicitly sanitized, credential-free proxy endpoint.",
+        "Model-authored code runs direct and cannot use the host proxy."
+      ],
+      "impact": "Some model-authored scripts lose ambient proxy access; a broker preserves selected network capability but adds an authorization and protocol surface.",
+      "reversibility": "Medium: tightening is straightforward, while reintroducing proxy access requires new threat-model, logging, and subprocess tests.",
+      "compatibility": "The current PTC launch already starts with an empty child environment; the decision fixes the public security invariant and any supported exception mechanism.",
+      "affected_files": [
+        "packages/util/http-proxy/src/install.ts",
+        "packages/util/http-proxy/tests/install.spec.ts",
+        "packages/subprocess/subprocess/src/index.ts",
+        "packages/subprocess/subprocess/tests/egress.spec.ts",
+        "packages/ptc-runtime/ptc-runtime-node/src/index.ts",
+        "packages/workflow/workflow-ptc",
+        "packages/util/http-proxy/README.md",
+        "packages/util/http-proxy/README.zh.md"
+      ],
+      "status": "CONFIRMED"
+    },
+    {
+      "id": "DEC-003",
+      "linked_rem": ["REM-006"],
+      "linked_audit": ["AUD-006"],
+      "linked_tasks": ["AAA-015"],
+      "topic": "Dynamic extension deployment, consent, CSP, and defaults",
+      "recommendation": "Support only an explicit deployment matrix; require host-verifiable consent for untrusted or browser execution; use restrictive CSP and Trusted Types-compatible delivery; allowlist or verify publishers; and disable dynamic runners and installed bundles by default.",
+      "alternatives": [
+        "Host-only dynamic execution with browser halves disabled.",
+        "Browser execution with an explicitly accepted unsafe-eval/inline policy and per-install consent.",
+        "Allow arbitrary sources under an administrator-controlled registry and signature policy."
+      ],
+      "impact": "The recommended policy reduces convenience and may require package signing or deployment configuration; broader policies retain functionality while increasing trust and CSP exposure.",
+      "reversibility": "Medium: defaults can be relaxed later, but browser CSP and consent changes require new compatibility and security evidence.",
+      "compatibility": "Changes plugin installation defaults, browser execution availability, caller permissions, and supported headless/SDK/ACP deployments.",
+      "affected_files": [
+        "packages/extensions/cordis-host-runner/src/index.ts",
+        "packages/extensions/cordis-client-runner/src/client/evaluator.ts",
+        "packages/extensions/cordis-client-runner/src/client/orchestrator.ts",
+        "packages/client/modules/src/index.ts",
+        "packages/boot/plugin-manager/src/index.ts",
+        "packages/boot/plugin-manager/README.md",
+        "packages/bundle/web-app/cordis.patch.yml",
+        "apps/web/tests/shipped-composition.e2e.ts"
+      ],
+      "status": "CONFIRMED"
+    },
+    {
+      "id": "DEC-004",
+      "linked_rem": ["REM-007"],
+      "linked_audit": ["AUD-007"],
+      "linked_tasks": ["AAA-014"],
+      "topic": "Aggregate HTTP and RPC buffered-memory admission",
+      "recommendation": "Use one instance-owned limiter shared by buffered HTTP and RPC bridge entry points, reserve conservatively before intake, fail fast at a bounded budget with a deterministic rejection, and release only after cancellation, response disconnect, and owned handler work are quiescent.",
+      "alternatives": [
+        "Bounded FIFO admission instead of immediate rejection.",
+        "Separate per-route or per-connection budgets.",
+        "Retain only the existing per-request cap."
+      ],
+      "impact": "Concurrent large requests may be rejected earlier or queued; conservative reservations trade throughput for predictable memory use.",
+      "reversibility": "High at the configuration level if the limiter is explicit; changing semantics later requires replaying concurrency and cancellation tests.",
+      "compatibility": "Changes HTTP status/RPC error and retry behavior, deployment configuration, and the accepted concurrency envelope for buffered routes.",
+      "affected_files": [
+        "packages/client/connection/src/http-bridge.ts",
+        "packages/client/connection/src/rpc-host.ts",
+        "packages/client/connection/src/rpc.ts",
+        "packages/host/webserver/src/index.ts",
+        "packages/client/connection/tests/http-bridge.host.spec.ts",
+        "packages/client/connection/tests/node-half.host.spec.ts",
+        "packages/client/connection/tests/fetch-routes.host.spec.ts"
+      ],
+      "status": "CONFIRMED"
+    },
+    {
+      "id": "DEC-005",
+      "linked_rem": ["REM-008"],
+      "linked_audit": ["AUD-008"],
+      "linked_tasks": ["AAA-012"],
+      "topic": "RemoteStreamMuxClient close postcondition",
+      "recommendation": "Make the public close/disposal promise complete only after the relevant WebSocket reaches CLOSED or emits its close event, with explicit timeout, error, already-closed, repeated-close, and late-callback behavior.",
+      "alternatives": [
+        "Keep logical disposal as the postcondition and document that physical closure may follow.",
+        "Split close initiation from a separately awaited physical-closure API."
+      ],
+      "impact": "Callers may await longer and must handle timeout/error; logical disposal can preserve responsiveness but does not prove transport quiescence.",
+      "reversibility": "Medium: adding a separate wait API is additive, while changing the meaning of close can affect every disposer and teardown test.",
+      "compatibility": "Changes the awaited lifecycle contract for gateway client disposal and late WebSocket callback handling.",
+      "affected_files": [
+        "packages/api/gateway/src/client/stream-client.ts",
+        "packages/api/gateway/src/client/index.ts",
+        "packages/api/gateway/README.md",
+        "packages/api/gateway/tests/gateway.client.spec.ts",
+        "packages/api/gateway/src/stream-server.ts",
+        "packages/api/gateway/tests/stream-server.host.spec.ts"
+      ],
+      "status": "CONFIRMED"
+    },
+    {
+      "id": "DEC-006",
+      "linked_rem": ["REM-011"],
+      "linked_audit": ["AUD-011"],
+      "linked_tasks": ["AAA-009"],
+      "topic": "Client-domain ownership and shared document API placement",
+      "recommendation": "Move composer bodies into the input domain, Browser view bodies into the browser domain, keep top-level assembly as the only cross-domain composition owner, and expose only the minimal document contract/registry/tab-lifetime API through approved shared modules; keep renderer internals private.",
+      "alternatives": [
+        "Widen contract/ to expose the existing runtime modules.",
+        "Create a narrower shared adapter package and keep the registry implementation private.",
+        "Move all presentation files into their feature domains while preserving only assembly re-exports."
+      ],
+      "impact": "The source layout and package-private imports change across 38 edges; focused GUI and real-composition tests must prove registration and lifecycle equivalence.",
+      "reversibility": "Medium to low after public re-exports or generated graphs change; source moves are reversible before downstream consumers adopt new paths.",
+      "compatibility": "May change package-private source paths and generated module-graph output; approved public exports and runtime behavior must remain compatible.",
+      "affected_files": [
+        "packages/client/ui-conversation/src/client",
+        "packages/client/ui-sidebar-browser/src/client",
+        "packages/client/ui-sidebar-documentpreview/src/client",
+        "packages/client/AGENTS.md",
+        "scripts/verify-client-domain-graph.ts",
+        "scripts/gen-module-graph.ts",
+        "docs/module-graph.md",
+        "docs/module-graph.zh.md"
+      ],
+      "status": "CONFIRMED"
+    },
+    {
+      "id": "DEC-007",
+      "linked_rem": ["REM-012", "REM-017"],
+      "linked_audit": ["AUD-012", "AUD-017"],
+      "linked_tasks": ["AAA-019", "AAA-020"],
+      "topic": "Fork publication identity and public source exports",
+      "recommendation": "Use a fork-owned namespace and repository identity for any independently publishable package; keep unapproved fork-only packages private or unpublished; remove `./src/*` from ordinary runtime exports unless the maintainer explicitly authorizes publishing source trees with a compatibility, license, and packed-install policy.",
+      "alternatives": [
+        "Retain the upstream namespace and metadata only with explicit upstream publication authority.",
+        "Publish a bounded fork-owned package subset while keeping the rest private.",
+        "Publish source trees and support `./src/*` as a versioned compatibility surface."
+      ],
+      "impact": "A namespace migration requires package and consumer mapping; removing source exports may require migration notes for source-import consumers; retaining them expands the published surface and review burden.",
+      "reversibility": "Low after registry publication or consumer adoption; package identity and source-export changes require versioned migration and deprecation rather than silent rollback.",
+      "compatibility": "Directly changes package names, repository metadata, dependency resolution, packed-install contents, NodeNext consumers, and the supported public API.",
+      "affected_files": [
+        "package.json",
+        "packages/*/*/package.json",
+        "pnpm-workspace.yaml",
+        "scripts/publint-all.ts",
+        "scripts/verify-node-next-types.ts",
+        "docs/customization/upstream-safe-customization.md",
+        "docs/customization/improvement-development-standard.md",
+        ".agents/customization-policy.json"
+      ],
+      "status": "CONFIRMED"
+    }
+  ],
+  "source_evidence": [
+    ".agent/evidence/AAA-009/findings.json",
+    ".agent/evidence/AAA-012/scout-a01.json",
+    ".agent/evidence/AAA-014/scout-a01.json",
+    ".agent/evidence/AAA-015/scout-a01.json",
+    ".agent/evidence/AAA-019/scout-a01.json",
+    ".agent/evidence/AAA-020/scout-a01.json",
+    ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+    "packages/util/http-proxy/src/install.ts",
+    "packages/subprocess/subprocess/src/index.ts",
+    "scripts/verify-ci-fork-runners.ts"
+  ],
+  "validation": {
+    "required_fields": [
+      "recommendation",
+      "alternatives",
+      "impact",
+      "reversibility",
+      "compatibility",
+      "affected_files"
+    ],
+    "decision_count": 7,
+    "validation_status": "AUTHORIZED",
+    "implementation_authority": true
+  },
+  "independent_assurance": {
+    "commands": [
+      {
+        "command": "pnpm run verify-ci-fork-runners",
+        "exit_status": 0,
+        "observed_status": "PASS",
+        "summary": "Fork pull-request workflows exclude fork code from persistent runners."
+      },
+      {
+        "command": "pnpm exec vitest run packages/util/http-proxy/tests/install.spec.ts packages/subprocess/subprocess/tests/egress.spec.ts packages/workflow/workflow-ptc/tests/egress.spec.ts packages/ptc-runtime/ptc-runtime-node/tests/runtime.spec.ts --no-file-parallelism",
+        "exit_status": 0,
+        "observed_status": "PASS",
+        "summary": "Four security/process files pass 56 tests with one environment skip under serial file execution."
+      }
+    ],
+    "observed_at": "2026-09-21T21:12:27-03:00"
+  },
+  "limitations": "The user-approved recommendations authorize implementation and compatibility validation only. They do not approve AAA-008's unresolved request-count oracle, external publication, registry writes, push, merge, release, or the final AAA verdict."
+}

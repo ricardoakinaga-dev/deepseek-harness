@@ -46,10 +46,10 @@ function resolvePoint(layout: ComposerLayout, offset: number): ResolvedPoint | n
       return { key: before, offset: layout.children.get(before)?.length ?? 0, type: 'element' }
     }
     // Atomic leaf (chip / linebreak): the element point on its leading side.
-    /* v8 ignore next -- non-gap segments always carry their node. */
+    /*! v8 ignore next -- non-gap segments always carry their node. */
     if (segment.node === null) return null
     const element = segment.node.getParent()
-    /* v8 ignore next -- a walked leaf always has a parent element. */
+    /*! v8 ignore next -- a walked leaf always has a parent element. */
     if (element === null) return null
     return { key: element.getKey(), offset: segment.node.getIndexWithinParent(), type: 'element' }
   }
@@ -70,7 +70,7 @@ function selectSpan(layout: ComposerLayout, span: DetectSpan): RangeSelection | 
   if (span.start < 0 || span.start > span.end || span.end > layout.detectLength) return null
   const anchor = resolvePoint(layout, span.start)
   const focus = resolvePoint(layout, span.end)
-  /* v8 ignore next -- bounds were checked above; resolvePoint only fails out of bounds. */
+  /*! v8 ignore next -- bounds were checked above; resolvePoint only fails out of bounds. */
   if (anchor === null || focus === null) return null
   const selection = $createRangeSelection()
   selection.anchor.set(anchor.key, anchor.offset, anchor.type)

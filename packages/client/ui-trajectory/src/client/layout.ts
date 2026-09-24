@@ -580,7 +580,7 @@ export function appendTrajectoryPartialLayout(
   const turnIndex = turns.findIndex(turn => turn.turn === streamed.turn)
   if (turnIndex === -1) return [...turns, streamed]
   const current = turns[turnIndex]
-  /* v8 ignore next -- findIndex proved the dense array position exists. */
+  /*! v8 ignore next -- findIndex proved the dense array position exists. */
   if (current === undefined) return turns
   const groups = [...current.groups]
   for (const streamedGroup of streamed.groups) {
@@ -590,7 +590,7 @@ export function appendTrajectoryPartialLayout(
       continue
     }
     const group = groups[groupIndex]
-    /* v8 ignore next -- findIndex proved the dense array position exists. */
+    /*! v8 ignore next -- findIndex proved the dense array position exists. */
     if (group === undefined) continue
     const streamedCallIds = new Set(
       streamedGroup.cells.flatMap(cell => cell.callId === undefined ? [] : [cell.callId]),

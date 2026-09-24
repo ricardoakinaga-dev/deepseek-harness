@@ -80,13 +80,18 @@ The observable behavior is covered in [Use this package](#use-this-package); thi
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | `CommandRuntime` service: registration, scoping, dispatch, lifecycle events |
+| [`src/audit-state.ts`](src/audit-state.ts) | Shared exact-prefix command audit fold and provider leases |
 | [`src/types.ts`](src/types.ts) | Command definition, descriptor, execution, and result types |
 | [`src/brand.ts`](src/brand.ts) | Stable command-definition identities and per-execution lifecycle ids |
-| [`src/invariant.ts`](src/invariant.ts) | Invariant companion pairing `command/run` with `command/done` per session log |
+| [`src/invariant.ts`](src/invariant.ts) | Invariant companion checking command lifecycle candidates before Session append |
 
 ### Lifecycle events
 
 `execute()` mints a `commandId`, appends `command/run` before the handler runs, and appends `command/done` at settlement with the outcome kind and verbatim text; the exact payload fields live in [`src/index.ts`](src/index.ts). A successful result may name an earlier non-command authoritative domain event through `sourceEventSeq`; a thrown or aborted handler settles as `kind: 'error'`. Both events are direct standalone log-only appends: no turn wraps them, and persistence drains them at ordinary checkpoints and teardown. Admission misses (invalid syntax or unknown name) log nothing.
+
+### Lifecycle validation
+
+The provider keeps run ids, command event positions, and a contiguous cursor in a fold keyed by the exact Session object. Rejected lifecycle candidates leave the fold unchanged, including when their cursor exposes a missing prefix. A committed event gap or a stale current-prefix read latches a failure. Creation baselines seed only absent folds, accepted events advance them after commit, and concurrent providers share entries through provider reference counts. Final release clears a fold; an empty Session can seed again, and an eventful Session without a current exact prefix fails closed without deprecated history reads.
 
 ### Scoping
 

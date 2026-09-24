@@ -1,0 +1,60 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A32",
+  "kind": "ACCEPTANCE_GAP_RECONCILIATION",
+  "observed_at": "2026-09-22T18:28:34-03:00",
+  "candidate": {
+    "path": "/home/ricardo/dsh-aaa023-candidate.A28.Pqciac",
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "clean_worktree": true,
+    "tracked_opencode_paths": 0,
+    "policy": "PASS; 1445 custom paths attributed across 23 improvements"
+  },
+  "quality_bar_reconciliation": {
+    "AAA-QB-01": "LOCAL_PASS",
+    "AAA-QB-02": "LOCAL_PASS",
+    "AAA-QB-03": "LOCAL_PASS_WITH_KEYLESS_SKIPS",
+    "AAA-QB-04": "LOCAL_PASS",
+    "AAA-QB-05": "LOCAL_PASS",
+    "AAA-QB-06": "LOCAL_PASS",
+    "AAA-QB-07": "LOCAL_PASS",
+    "AAA-QB-08": "LOCAL_PASS",
+    "AAA-QB-09": "LOCAL_PASS",
+    "AAA-QB-10": "LOCAL_PASS_WITH_HOST_SCOPE",
+    "AAA-QB-11": "UNRESOLVED; 233 official-upstream merge conflicts",
+    "AAA-QB-12": "LOCAL_PASS",
+    "AAA-QB-13": "PARTIAL; required platform, supported Node matrix, and credentialed-provider lanes remain external",
+    "AAA-QB-14": "NOT_RUN; AAA-024 is TODO until AAA-023 acceptance"
+  },
+  "remaining_gaps": [
+    {
+      "id": "platform",
+      "status": "EXTERNAL_PREREQUISITE",
+      "evidence": "Wine is absent; Linux x64 cannot execute Windows, macOS x64, macOS arm64, or Linux arm64 carriers."
+    },
+    {
+      "id": "credentialed-providers",
+      "status": "EXTERNAL_PREREQUISITE",
+      "evidence": "DEEPSEEK_API_KEY, EXA_API_KEY, PERPLEXITY_API_KEY, AZURE_OPENAI_API_KEY, and ANTHROPIC_API_KEY are absent; keyless skips do not qualify provider behavior."
+    },
+    {
+      "id": "upstream-updateability",
+      "status": "UNRESOLVED",
+      "evidence": "The ordinary official-upstream merge rehearsal produced 233 conflicts and was cleanly aborted; no resolution is authorized here."
+    },
+    {
+      "id": "release-identity",
+      "status": "LOCAL_PACKET_REQUIRED",
+      "evidence": "The successor commit/tree and local matrix are fixed, but a consolidated identity packet must bind all refs and current evidence before final criticism."
+    },
+    {
+      "id": "independent-critic",
+      "status": "NOT_RUN",
+      "evidence": "AAA-024 remains TODO and requires an accepted candidate evidence index."
+    }
+  ],
+  "next_local_lane": "Assemble and inspect the immutable candidate identity/evidence index without publication or final verdict action.",
+  "result": "PASS",
+  "limitations": "This reconciles local evidence and external prerequisites; it does not convert host-dependent or credentialed lanes into PASS, resolve upstream conflicts, publish artifacts, or authorize the final independent critic."
+}

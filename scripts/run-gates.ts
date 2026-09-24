@@ -206,6 +206,16 @@ function pnpmScript(id: string, script: string, options: Partial<Gate> = {}): Ga
   }
 }
 
+/** Run the full local unit lane with the bounded worker budget used by check-all. */
+function checkAllUnitGate(): Gate {
+  return {
+    id: 'test',
+    label: 'test',
+    displayCommand: 'pnpm run test -- --maxWorkers=4',
+    ...pnpmInvocation(['run', 'test', '--', '--maxWorkers=4']),
+  }
+}
+
 /** Build official client artifacts inside a CI aggregate without changing sibling gate environments. */
 function ciBuildGate(id = 'build', options: Partial<Gate> = {}): Gate {
   return pnpmScript(id, 'build', {
@@ -260,12 +270,13 @@ export function gatesForMode(selected: Mode): Gate[] {
       return ciWindowsObservationalGates()
     case 'node-compat':
       return nodeCompatGates()
-    case 'check-all':
-      return [
+    case 'check-all': {
+      const gates: Gate[] = [
         pnpmScript('runtime-closure', 'verify-runtime-closure', { label: 'runtime closure' }),
         pnpmScript('cordis-config', 'verify-cordis-config', { label: 'Cordis config' }),
         pnpmScript('client-domain-graph', 'verify-client-domain-graph', { label: 'client domain graph' }),
-        pnpmScript('test', 'test'),
+        ...ciSupplyChainGates(),
+        checkAllUnitGate(),
         pnpmScript('approval-policy', 'test:approval-policy', { label: 'Weighted approval policy' }),
         pnpmScript('issue-management', 'test:issue-management', { label: 'Issue management policy' }),
         pnpmScript('duplication', 'duplication'),
@@ -281,11 +292,29 @@ export function gatesForMode(selected: Mode): Gate[] {
         }),
         pnpmScript('module-graph', 'verify-module-graph', { label: 'module graph' }),
       ]
+      // The full Vitest gate owns process-global state, real subprocesses, and
+      // temporary TypeScript files under the host compiler globs. Run it after
+      // every other check-all gate so it cannot race build's project scan or
+      // miss its 5-second fixture deadlines under aggregate CPU pressure.
+      const test = gates.find(gate => gate.id === 'test')
+      if (test === undefined) throw new Error('run-gates: check-all is missing its test gate.')
+      test.after = gates.filter(gate => gate.id !== test.id).map(gate => gate.id)
+      return gates
+    }
     case 'hygiene':
       return [
-        ...hygieneLeafGates(),
-        pnpmScript('cordis-config', 'verify-cordis-config', { label: 'Cordis config' }),
-        pnpmScript('runtime-closure', 'verify-runtime-closure', { label: 'runtime closure' }),
+        pnpmScript('hygiene-prerequisites', 'verify-hygiene-prerequisites', {
+          label: 'hygiene prerequisites',
+        }),
+        ...hygieneLeafGates({ prerequisiteNeeds: ['hygiene-prerequisites'] }),
+        pnpmScript('cordis-config', 'verify-cordis-config', {
+          label: 'Cordis config',
+          needs: ['hygiene-prerequisites'],
+        }),
+        pnpmScript('runtime-closure', 'verify-runtime-closure', {
+          label: 'runtime closure',
+          needs: ['hygiene-prerequisites'],
+        }),
       ]
     case 'doc-sync':
       return docSyncLeafGates()
@@ -296,6 +325,7 @@ export function gatesForMode(selected: Mode): Gate[] {
 
 function ciSharedStaticGates(): Gate[] {
   return [
+    ...ciSupplyChainGates(),
     pnpmScript('runtime-closure', 'verify-runtime-closure', { label: 'runtime closure' }),
     pnpmScript('default-product-isolation', 'verify-default-product-isolation', { label: 'default product isolation' }),
     pnpmScript('application-entrypoints', 'verify-application-entrypoints', { label: 'application entrypoints' }),
@@ -312,6 +342,20 @@ function ciSharedStaticGates(): Gate[] {
     pnpmScript('no-bare-dispatcher', 'verify-no-bare-dispatcher', { label: 'proxy-aware dispatchers' }),
     pnpmScript('approval-policy', 'test:approval-policy', { label: 'Weighted approval policy' }),
     pnpmScript('issue-management', 'test:issue-management', { label: 'Issue management policy' }),
+  ]
+}
+
+/** Shared repository-control gates used by CI and the local aggregate. */
+function ciSupplyChainGates(): Gate[] {
+  return [
+    pnpmScript('fork-runners', 'verify-ci-fork-runners', { label: 'fork runner policy' }),
+    pnpmScript('workflow-pins', 'verify-workflow-pins', { label: 'workflow action pins' }),
+    pnpmScript('workflow-images', 'verify-workflow-images', { label: 'workflow image digests' }),
+    pnpmScript('release-supply-chain', 'verify-release-supply-chain', { label: 'release SBOM and attestations' }),
+    pnpmScript('pnpm-supply-chain', 'verify-pnpm-supply-chain', { label: 'pnpm supply-chain policy' }),
+    pnpmScript('dependency-audit', 'verify-dependency-audit', { label: 'dependency advisory audit' }),
+    pnpmScript('workflow-timeouts', 'verify-workflow-timeouts', { label: 'workflow timeouts' }),
+    pnpmScript('audit-metrics', 'audit:metrics', { label: 'canonical audit metrics' }),
   ]
 }
 
@@ -695,9 +739,9 @@ function flagEnabled(envName: string): boolean {
   return true
 }
 
-function hygieneLeafGates(options: { artifactNeeds?: string[] } = {}): Gate[] {
+function hygieneLeafGates(options: { artifactNeeds?: string[]; prerequisiteNeeds?: string[] } = {}): Gate[] {
   const artifactOptions = options.artifactNeeds === undefined ? {} : { needs: options.artifactNeeds }
-  return [
+  const leaves = [
     pnpmScript('rescope-vendor', 'rescope-vendor:check', { label: 'vendor rescope' }),
     pnpmScript('publint', 'publint', artifactOptions),
     pnpmScript('constraints', 'constraints'),
@@ -718,6 +762,12 @@ function hygieneLeafGates(options: { artifactNeeds?: string[] } = {}): Gate[] {
     pnpmScript('client-ui-i18n', 'verify-client-ui-i18n', { label: 'client UI i18n' }),
     pnpmScript('no-bare-dispatcher', 'verify-no-bare-dispatcher', { label: 'proxy-aware dispatchers' }),
   ]
+  const prerequisiteNeeds = options.prerequisiteNeeds ?? []
+  if (prerequisiteNeeds.length === 0) return leaves
+  return leaves.map(gate => ({
+    ...gate,
+    needs: [...new Set([...(gate.needs ?? []), ...prerequisiteNeeds])],
+  }))
 }
 
 function docSyncLeafGates(options: {
@@ -785,6 +835,8 @@ function docSyncLeafGates(options: {
       label: 'documentation site checks',
     }),
     pnpmScript('package-readme-limitations', 'verify-package-readme-limitations', { label: 'package README limitations', quick: true }),
+    pnpmScript('package-readme-order', 'verify-package-readme-order', { label: 'package README order', quick: true }),
+    pnpmScript('readme-community-parity', 'verify-readme-community-parity', { label: 'README community parity', quick: true }),
   ]
 }
 

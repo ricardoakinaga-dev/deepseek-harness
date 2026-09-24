@@ -1,0 +1,90 @@
+{
+  "record_id": "A20-CLOSEOUT-20260923-001",
+  "timestamp": "2026-09-23T09:16:28.004476-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:A20",
+  "disposition": "PASS_WITH_RETAINED_LIMITATIONS",
+  "scope": "Exact 15-path bounded prepublication page writer, synchronous publication handoff, and ambiguous-append recovery scope",
+  "candidate_fingerprint": "81096ad9c391997963a8245b5dc2840e4a2aa461c6117c5ef0122d3ebed3ed8c",
+  "candidate_path_count": 15,
+  "implementation_ready_gate": ".agent/gates/implementation-ready-AAA-022-A20-prepared-pages.json#GATE-AAA-022-IMPLEMENTATION-READY-A20-PREPARED-PAGES-001",
+  "scoped_review": {
+    "reviewer": "/root/a20_final_critic",
+    "verdict": "PASS",
+    "findings": "No P1/P2 findings; the exact candidate digest was stable before and after review.",
+    "reviewed_candidate_fingerprint": "81096ad9c391997963a8245b5dc2840e4a2aa461c6117c5ef0122d3ebed3ed8c",
+    "evidence": ".agent/evidence/AAA-022/a20-critic-review-20260923.json",
+    "limits": "Scoped review only; it does not clear repository-wide documentation or state-checker findings."
+  },
+  "checks": [
+    {
+      "command": "pnpm exec vitest run --no-cache packages/core/agent-loop/tests/resume.spec.ts",
+      "result": "PASS: 1 file, 49 tests"
+    },
+    {
+      "command": "pnpm exec tsc -b packages/core/agent-loop/tsconfig.json --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/core/agent-loop/src/index.ts packages/core/agent-loop/tests/resume.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm exec tsdown --config tsdown.config.ts (from packages/core/agent-loop)",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm run test:docs",
+      "result": "PASS: 22/22"
+    },
+    {
+      "command": "pnpm run verify-config-catalog",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm run verify-type-equiv",
+      "result": "PASS: 437 blocks and paired derivatives"
+    },
+    {
+      "command": "Scoped translation pairing for the four A20 bilingual page pairs",
+      "result": "PASS"
+    },
+    {
+      "command": "Scoped customization-policy ownership check for all 15 gate paths",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check on all 15 gate paths",
+      "result": "PASS"
+    },
+    {
+      "command": "Fresh A20 scoped reviewer",
+      "result": "PASS: no P1/P2 findings; stable candidate digest"
+    },
+    {
+      "command": "Repository state checker at A20 gate activation",
+      "result": "FAIL: 351 findings, including one new GATE_HISTORY_SCOPE diagnostic; see .agent/evidence/AAA-022/a20-state-check-20260923.txt"
+    },
+    {
+      "command": "Repository doc-sync",
+      "result": "Not rerun for A20; the latest recorded A19 result remains PARTIAL at 38/43 with five documented findings"
+    }
+  ],
+  "retained_limitations": [
+    "The latest A20 activation state check reports 351 findings, one above the A19 total; the additional diagnostic is GATE_HISTORY_SCOPE on the A20 gate because its action-specific scope differs from the prior task-scoped scope.",
+    "The earlier A19 equal-timestamp RECONCILE_GATE_REOPENED finding and 349 recorded baseline findings remain.",
+    "The latest repository doc-sync evidence remains A19 PARTIAL at 38/43 with five documented generated/runtime findings; no aggregate doc-sync pass is claimed.",
+    "This closeout does not complete AAA-022, the M01-M50 program, release qualification, external platform/provider lanes, publication, or the final independent audit."
+  ],
+  "successor_action": {
+    "id": "AAA-022:A21",
+    "kind": "DESIGN",
+    "summary": "Design the W2 context-owned current-event and synchronous-invariant reader migrations",
+    "target": "REM-028-S014–S019 in packages/context/agent-instructions and packages/context/time-context",
+    "completion_signal": "Classify each eventAt and snapshotEvents call; select delivered-event or maintained-projection sources for current-event reads; preserve synchronous append/restore invariant failures through an equivalent owner seam; record restore, fork, cancellation, and failure behavior, exact owner paths, and falsifying tests before any implementation gate."
+  }
+}

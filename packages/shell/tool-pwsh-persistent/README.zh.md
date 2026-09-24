@@ -128,7 +128,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-命令共享每个 agent 一个 shell，因此 cwd、`$env:` 变量、函数与后台任务都会跨调用保留。结果排除私有完成标记、shell 提示词与回显的输入行（PSReadLine 会把提交的输入渲染回流中；标记锚定提取与包装源码剥离会移除它）。非零的包装命令追加 `[exit code: N]`——命令运行原生程序时给出确切原生退出码，PowerShell 终止错误则为 `1`。在报告该状态前就退出的 shell 改为追加 `[shell exited: code N]`、`[shell killed by signal: SIG]`，或后端两者都未提供时的 `[shell exited]`（Windows 强制终止报告 exit 1 且没有信号），然后重置并告诉模型下一次调用从全新状态开始。长输出保留最早的已保留前缀并附裁剪通知；若 terminal 已经丢弃该前缀，结果会明确说明。超时返回有界部分输出、关闭不确定的 shell 并报告重置。
+命令共享每个 agent 一个 shell，因此 cwd、`$env:` 变量、函数与后台任务都会跨调用保留。结果排除私有完成标记、shell 提示词与回显的输入行（PSReadLine 会把提交的输入渲染回流中；标记锚定提取与包装源码剥离会移除它）。非零的包装命令追加 `[exit code: N]`——命令运行原生程序时给出确切原生退出码，PowerShell 终止错误则为 `1`。在报告该状态前就退出的 shell 改为追加 `[shell exited: code N]`、`[shell killed by signal: SIG]`，或后端两者都未提供时的 `[shell exited]`（Windows 强制终止报告 exit 1 且没有信号），然后重置并告诉模型下一次调用从全新状态开始。长输出保留最早的已保留前缀并附裁剪通知；若 terminal 已经丢弃该前缀，结果会明确说明。超时时返回 `Your command timed out after <timeoutMs> ms. Below is partial output:`、有界部分输出和持久 shell 重置通知，然后关闭不确定的 shell。
 
 #### Token 影响
 

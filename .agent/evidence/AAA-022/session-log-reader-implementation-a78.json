@@ -1,0 +1,138 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-LOG-READER-IMPLEMENTATION-A78-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A07",
+  "kind": "W1_SESSION_LOG_READER_IMPLEMENTATION",
+  "status": "PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION",
+  "timestamp": "2026-09-22T19:57:09-03:00",
+  "authority": "AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "implementation": {
+    "files": [
+      "packages/session/session-log-deepseek/src/index.ts",
+      "packages/session/session-log-deepseek/tests/upload.spec.ts",
+      "packages/session/session-log-deepseek/package.json",
+      "packages/session/session-log-deepseek/README.md",
+      "packages/session/session-log-deepseek/README.zh.md",
+      "packages/session/session-log-deepseek/README.i18n.yaml",
+      "pnpm-lock.yaml"
+    ],
+    "facts": [
+      "The acceptance fold is shared between the retained synchronous compatibility reader and the captured-observation event array, so acceptance watermarks use the same validation and monotonic cache semantics in both paths.",
+      "When the optional sessionQuery service is present, preparation observes the requested live Session with the request AbortSignal and projectionMode none, requires source === live, folds the captured events, uses the observation cursor as throughSeq, and disposes the lease after wire conversion.",
+      "The wire contribution is built from one captured event array; appends after the captured cut cannot enter the prepared suffix, and accept() still appends the same delivery-accepted event without independent I/O.",
+      "When sessionQuery is unavailable, an explicit legacyContribution fallback preserves the sdk-minimal and no-query composition behavior with one in-memory snapshot.",
+      "The optional session-query peer and dev dependency are declared, while the consumer uses a minimal structural service view so the optional query implementation does not enter this package's source-plane cycle.",
+      "Focused tests cover fixed-cut wire output, lease disposal, request cancellation propagation, prepared-source omission, forked inherited-prefix behavior, and the existing no-query fallback behavior."
+    ],
+    "documentation": "The English and Chinese package READMEs describe the fixed live observation, post-cut append behavior, and explicit no-query fallback; the bilingual pairing record was regenerated."
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run packages/session/session-log-deepseek/tests",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "4 test files and 46 tests passed."
+    },
+    {
+      "command": "pnpm exec tsc -b packages/session/session-log-deepseek/tsconfig.json --pretty false",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/session/session-log-deepseek/src/index.ts packages/session/session-log-deepseek/tests/upload.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm run verify-package-dependencies",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "65 packages match the published dependency policy."
+    },
+    {
+      "command": "pnpm run verify-optional-dependency-imports",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "No optional dependency is loaded at module scope."
+    },
+    {
+      "command": "pnpm run verify-translation-pairing packages/session/session-log-deepseek/README.md",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The named English/Chinese pair is consistent."
+    },
+    {
+      "command": "pnpm run verify-md-wrap packages/session/session-log-deepseek/README.md",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The repository-wide Markdown wrap check covered 2069 files."
+    },
+    {
+      "command": "git diff --check -- packages/session/session-log-deepseek pnpm-lock.yaml",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm run audit:metrics",
+      "exit_status": 1,
+      "observed_status": "NOT_CANONICAL_ON_CURRENT_WORKTREE",
+      "summary": "The command cannot open 12 pre-existing tracked paths absent from the current checkout, beginning with packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx."
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "exit_status": 1,
+      "observed_status": "RETAINED_PREEXISTING_FAILURE",
+      "summary": "Two violations remain in packages/interaction/user-approval/src/index.d.ts and packages/session/session-projection-cache/src/index.d.ts; neither file is part of A07."
+    }
+  ],
+  "metrics": {
+    "probe": {
+      "command": "resolveMetricCorpus() plus countMetricLines() over existing tracked corpus files",
+      "corpus_file_count": 4436,
+      "measured_file_count": 4424,
+      "missing_preexisting_tracked_paths": 12,
+      "counts_over_measured_files": {
+        "deprecated_reader": 87,
+        "lint_suppression": 260,
+        "todo_marker": 53,
+        "explicit_any": 1619,
+        "selected_skip": 4
+      },
+      "delta_from_A05_current_worktree_probe": {
+        "deprecated_reader": -1,
+        "lint_suppression": -1,
+        "todo_marker": 0,
+        "explicit_any": 0,
+        "selected_skip": 0
+      },
+      "missing_paths": [
+        "packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx",
+        "packages/client/ui-conversation/src/client/skeleton/InputBar.tsx",
+        "packages/client/ui-sidebar-browser/src/client/view/BrowserBody.tsx",
+        "packages/client/ui-sidebar-browser/src/client/view/BrowserTitle.tsx",
+        "packages/client/ui-sidebar-documentpreview/src/client/TextPreview.tsx",
+        "packages/client/ui-sidebar-documentpreview/src/client/document/contract.ts",
+        "packages/client/ui-sidebar-documentpreview/src/client/document/registry.ts",
+        "packages/client/ui-sidebar-documentpreview/src/client/document/suffix.ts",
+        "packages/client/ui-sidebar-documentpreview/src/client/document/tab-lifetime.ts",
+        "packages/client/ui-sidebar-documentpreview/src/client/document/unviewable.ts",
+        "packages/client/ui-sidebar-documentpreview/src/client/face.ts",
+        "packages/client/ui-sidebar-documentpreview/src/client/store.ts"
+      ]
+    },
+    "canonical_promotion": "Withheld until a complete candidate checkout allows pnpm run audit:metrics to execute."
+  },
+  "candidate_binding": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "candidate_rebuild_required": true,
+    "reason": "A07 is implemented and validated on the preserved dirty custom/main worktree; AAA-023 must build and requalify a clean successor before any same-SHA or final qualification claim."
+  },
+  "limitations": [
+    "The canonical metrics command remains blocked by 12 pre-existing tracked deletions in the current worktree.",
+    "The full export-JSDoc gate retains two unrelated pre-existing declaration violations.",
+    "No bundle composition, released Session generation, broad lint/compiler rule, publication, registry, push, merge, release, or final-verdict action was taken."
+  ],
+  "decision": "Accept the bounded A07 observation-based reader implementation and advance AAA-022 to the next W1 owner design while keeping candidate requalification and aggregate audit status open."
+}

@@ -11,7 +11,9 @@ import z from '@deepseek-ai/schemastery'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { TerminalReadResult, TerminalSendResult, TerminalSessionId } from '@deepseek-ai/dsh-terminal'
 import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the tools package owns that behavior. */
 import { defineTool } from '@deepseek-ai/dsh-tools'
+/*! v8 ignore stop */
 
 const TRUNCATED_MESSAGE = '<response clipped><NOTE>Command output exceeded the configured limit. Narrow the command output or redirect it to a file, then inspect the relevant section.</NOTE>'
 const LOST_PREFIX_MESSAGE = '<response clipped><NOTE>The beginning of this command output was dropped by the terminal scrollback limit. The following text is the earliest retained output.</NOTE>\n'

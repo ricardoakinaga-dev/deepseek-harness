@@ -21,7 +21,7 @@ const install: InvariantInstaller = Object.assign((ctx: Context, fail: Invariant
   ctx.on('internal/dispatch', (_mode, eventName, args) => {
     if (eventName !== 'session/event') return
     const [session, event] = args as [Session, SessionEvent]
-    /* v8 ignore next -- non-Team Session events have no Agent Teams invariant. */
+    /*! v8 ignore next -- non-Team Session events have no Agent Teams invariant. */
     if (!isTeamEvent(event)) return
     const state = ctx.sessionProjections.stateOf(session, 'agentTeam') as TeamProjectionState
     const candidate = teamProjectionDefinition.apply(structuredClone(state), event)

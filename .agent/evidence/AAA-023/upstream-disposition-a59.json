@@ -1,0 +1,101 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A26",
+  "candidate_tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "scope": "Prepare exact ownership and candidate-exclusion dispositions after A25 without applying them",
+  "policy_disposition": {
+    "new_owner_proposal": {
+      "id": "coverage-comment-preservation",
+      "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
+      "status": "active",
+      "summary": "Preserve V8 coverage annotations through Vite/esbuild transforms without relaxing the per-file coverage bar.",
+      "path_scope": "Exactly the 266 paths classified as coverage-comment-preservation; use the path manifest and hash, not a packages/** wildcard.",
+      "upstreamPlan": "docs/customization/fork-v2-extraction.md#extraction-matrix",
+      "authority": "Not covered by AUTH-AAA-023-DECISIONS-A17-001; requires explicit owner approval before editing the policy record."
+    },
+    "existing_owner_extensions": [
+      {
+        "owner": "dynamic-extension-trust",
+        "paths": [
+          "apps/cli/tests/profiles/web/tests/creator-plugin-manager.expected.e2e.ts",
+          "apps/cli/tests/profiles/web/tests/fixtures/creator-plugin-manager.mjs"
+        ],
+        "reason": "The fixtures exercise the approved publisher and enabled-state dynamic-extension policy."
+      },
+      {
+        "owner": "runtime-resolution-and-ci-fixtures",
+        "paths": [
+          "packages/boot/app-boot/tests/loader-shape.compat.spec.ts",
+          "packages/experimental/inspector/tests/debugger.e2e.ts",
+          "packages/session/session-checkpoint-policy/tests/crash-recovery.e2e.ts",
+          "packages/subprocess/subprocess-local/tests/spawn-runner-built.e2e.ts"
+        ],
+        "reason": "These are ESM/source-built resolver fixtures and the A23 correction uses the existing compatibility owner."
+      },
+      {
+        "owner": "aaa-quality-program",
+        "paths": [
+          "docs/persistence-catalog.i18n.yaml",
+          "docs/persistence-catalog.md",
+          "docs/persistence-catalog.zh.md",
+          "docs/persistence-schema.json"
+        ],
+        "reason": "These are generated persistence-catalog outputs; the generator and verification path are already governed by the quality program."
+      }
+    ],
+    "new_or_unresolved_owner_proposals": [
+      {
+        "id": "source-built-tool-runtime-identity",
+        "paths": [
+          "packages/core/agent-loop/tests/tool-calls.spec.ts",
+          "packages/core/tools/README.i18n.yaml",
+          "packages/core/tools/README.md",
+          "packages/core/tools/README.zh.md",
+          "packages/core/tools/src/index.ts"
+        ],
+        "reason": "A process-global scheduler symbol is a source/lib interoperability behavior, not package-export policy."
+      },
+      {
+        "id": "jobs-lifecycle-test",
+        "paths": ["packages/jobs/jobs-local/tests/jobs.spec.ts"],
+        "reason": "A single lifecycle callback assertion has no existing semantically matching owner."
+      }
+    ]
+  },
+  "candidate_disposition": {
+    "exclude_from_successor_candidate": {
+      "paths": ".opencode/goals/** (11 ignored local state files)",
+      "method": "Create a new candidate tree without the ignored files; do not delete or modify the user's main-worktree state.",
+      "current_candidate": "Preserve tree 3762900cd0a28245ef433647b8bdaf4d5cd84fac unchanged."
+    },
+    "required_same_tree_requalification": [
+      "node scripts/verify-customization-policy.mjs --base origin/master",
+      "pnpm run check:all",
+      "pnpm run test:coverage",
+      "pnpm run check:ci:bench",
+      "DSH_E2E_MAX_WORKERS=1 pnpm run test:e2e",
+      "pnpm run build:official",
+      "pnpm run release:pack --family dsh",
+      "pnpm run release:pack --family vendor",
+      "pnpm run release:verify-packed-install"
+    ],
+    "upstream_rehearsal": "Repeat the disposable official merge only after the successor tree has an explicit policy disposition."
+  },
+  "manifests": {
+    "unowned_paths": {
+      "path": "/tmp/dsh-a24-unowned-paths.txt",
+      "sha256": "abcf5d43b7c41ca10f098f7fe6f0f616ba67ef02fc3329745b9d5f4137364829",
+      "lines": 293
+    },
+    "unmerged_paths": {
+      "path": "/tmp/dsh-a24-unmerged-paths.txt",
+      "sha256": "37a0a177f035c81c3cada90d9d1e40fea4b934a6de05f82ca706bf2fa469bd52",
+      "lines": 233
+    }
+  },
+  "result": "PARTIAL",
+  "decision": "The disposition is ready for an explicit authority decision. Do not add the proposed policy records or rebuild the candidate until the owner scope, ignored-state exclusion, and successor-tree requalification are authorized.",
+  "limitations": "No policy entry, conflict resolution, ignored-state deletion, candidate rebuild, merge, push, publication, release, or final verdict was performed.",
+  "observed_at": "2026-09-22T17:07:52-03:00"
+}

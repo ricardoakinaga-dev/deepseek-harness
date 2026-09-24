@@ -1,0 +1,45 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A30",
+  "kind": "UPSTREAM_CONFLICT_DISPOSITION",
+  "observed_at": "2026-09-22T18:20:04-03:00",
+  "source": {
+    "successor_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "official_ref": "00102833dfaee1da9f48a3a8eae9d34005a75218",
+    "fork_ref": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+    "common_base": "ddefc45fbc7f8e46dd73185e68295696d1297887"
+  },
+  "paths": [
+    {
+      "path": ".agents/notes/archived/architecture/2026-08-03-per-session-agent-presets.i18n.yaml",
+      "candidate_vs_base": "unchanged",
+      "fork_vs_base": "unchanged",
+      "official_vs_base": "official-only addition of six-line bilingual-pair metadata",
+      "disposition": "Upstream-owned addition; no custom policy owner is required. Future update resolution should retain the official metadata after the broader merge is independently resolved and requalified."
+    },
+    {
+      "path": "packages/client/ui-settings-agent-loop/README.i18n.yaml",
+      "candidate_vs_base": "unchanged",
+      "fork_vs_base": "unchanged",
+      "official_vs_base": "official-only addition of six-line bilingual-pair metadata",
+      "disposition": "Upstream-owned addition; no custom policy owner is required. Future update resolution should retain the official metadata after the broader merge is independently resolved and requalified."
+    },
+    {
+      "path": "packages/preset/agent-preset-registry/src/composition-inventory.ts",
+      "candidate_vs_base": "unchanged",
+      "fork_vs_base": "unchanged",
+      "official_vs_base": "official-only addition of 169 lines implementing composition inventory inspection",
+      "disposition": "Upstream-owned addition; no custom policy owner is required. Future update resolution should retain the official source after the broader merge is independently resolved and requalified."
+    }
+  ],
+  "decision": {
+    "owner_count": 0,
+    "wildcard_added": false,
+    "policy_mutated": false,
+    "candidate_mutated": false,
+    "merge_resolved": false,
+    "exact_disposition": "All three paths are upstream-only additions relative to the common base, not custom deltas. They are removed from the ownerless-custom-delta concern; the 233-path merge conflict remains unresolved and is handled as a separate updateability decision."
+  },
+  "result": "PASS",
+  "limitations": "This review classifies ownership and does not resolve the official merge. The successor remains a private, locally qualified candidate; no custom/main, policy, merge, push, publication, registry, release, or final-verdict action occurred."
+}

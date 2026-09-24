@@ -1,0 +1,42 @@
+{
+  "record_id": "EVID-AAA-023-DIAGNOSIS-A29-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A05",
+  "timestamp": "2026-09-22T03:34:00-03:00",
+  "result": "PASS",
+  "scope": "Classification of the three current AAA-023:A04 failures",
+  "findings": [
+    {
+      "gate": "canonical audit metrics",
+      "classification": "CANDIDATE_TREE_PREREQUISITE",
+      "cause": "The metric script resolves packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx from git-listed source paths. The path is tracked but deleted in the current worktree; the replacement packages/client/ui-conversation/src/client/input/ContextMeter.tsx exists only as an untracked path.",
+      "owner": "The source-move candidate tree and release qualification integrator",
+      "safe_action": "Represent the complete source move in one candidate tree before rerunning the path gate. Do not change the metric script to ignore a tracked deletion or stage/commit the user's source move without explicit repository-state authority."
+    },
+    {
+      "gate": "vendor rescope",
+      "classification": "CANDIDATE_TREE_PREREQUISITE",
+      "cause": "The rescope script reads the same tracked ContextMeter.tsx path and receives ENOENT while the replacement source remains untracked.",
+      "owner": "The source-move candidate tree and release qualification integrator",
+      "safe_action": "Resolve the same source move in the same candidate tree as the canonical metrics gate; no independent vendor-postcondition repair is justified."
+    },
+    {
+      "gate": "test:expected",
+      "classification": "PROFILE_COMPOSITION_INCOMPATIBILITY",
+      "cause": "The current uncommitted Web bundle hardening disables the cordis-host-runner row. The shipped cordis preset still mounts tool-cordis, whose inject list requires cordisInspect; cordis-host-runner owns that service, so the fail-loud Loader reports that tool-cordis is waiting for cordisInspect.",
+      "owner": "Web bundle host-plane composition and the cordis agent preset",
+      "safe_action": "Preserve disabled dynamic execution and browser delivery while making the host inspection service available to the cordis preset, for example by enabling cordis-host-runner with explicit deployment: disabled and browserDelivery: disabled. Keep cordis-client-runner, ui-cordis, and plugin-manager controls disabled unless a separate deployment policy opts in. Validate the expected profile test and the dynamic-extension policy gates before any release claim.",
+      "evidence": [
+        "packages/bundle/web-app/cordis.patch.yml changes cordis-host-runner to disabled: true",
+        "packages/preset/agent-presets/presets/cordis/agent.cordis.yml mounts @deepseek-ai/dsh-tool-cordis",
+        "packages/extensions/tool-cordis/src/index.ts injects cordisInspect",
+        "packages/extensions/cordis-host-runner/src/inspect-registry.ts constructs the cordisInspect service",
+        "AUTH-AAA-023-DECISIONS-A17-001 authorizes explicit dynamic-extension disabled-default controls and compatibility validation"
+      ]
+    }
+  ],
+  "limitations": [
+    "This classification does not seal an immutable candidate and does not authorize staging, committing, publication, registry writes, push, merge, release, or final verdict.",
+    "The recommended Web composition repair needs a successor implementation-ready gate because the existing gate is bound to the completed A03 source-repair scope."
+  ]
+}

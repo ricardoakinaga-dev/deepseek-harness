@@ -83,6 +83,8 @@ General Settings 行经 `ctx.settingsScope` 读取显式暴露的 `permission` S
 - **Auto review 仅限当前会话**——General Settings 行有意省略它，且只有通过可见选择器选择时才显示实验确认；显式键入 `/permission auto` 已经构成明确同意。
 - **预设描述来自宿主**——本地化的内置标签旁边可能显示另一种语言编写的描述。
 
+**运行时不变式：** 不发布伴生入口。命令与 slot 贡献的生命周期由 HMR（热模块替换）安全性测试验证；浏览器侧设置控制器不持有宿主事件或跨插件可变状态。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -92,5 +94,3 @@ General Settings 行经 `ctx.settingsScope` 读取显式暴露的 `permission` S
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。命令与 slot 贡献的生命周期由 HMR（热模块替换）安全性测试验证；浏览器侧设置控制器不持有宿主事件或跨插件可变状态。

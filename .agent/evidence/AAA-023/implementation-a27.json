@@ -1,0 +1,55 @@
+{
+  "record_id": "EVID-AAA-023-IMPLEMENTATION-A27-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A03",
+  "timestamp": "2026-09-22T03:10:36-03:00",
+  "result": "PASS",
+  "scope": "Three bounded source repairs authorized by implementation-ready-AAA-023",
+  "changes": [
+    {
+      "file": "scripts/gen-tsconfig-paths.ts",
+      "change": "Factored the shared workspace alias collection into collectAliases while preserving the package-name filters and duplicate-name diagnostics for both alias families.",
+      "regression": "The generator focused suite passes and jscpd reports zero clones."
+    },
+    {
+      "file": "packages/api/gateway/src/client/stream-client.ts",
+      "change": "Removed the dynamic browser value import of dsh-timeout and kept the fixed JavaScript timer maximum as a local external-spec constant, avoiding an unsatisfied module-table request.",
+      "regression": "The Gateway client suite and full build pass; the client bundle purity gate no longer rejects the stream client."
+    },
+    {
+      "file": "packages/sandbox/sandbox-local/src/index.ts",
+      "change": "Kept the package export for the built runner and resolved the source fallback through the installation-relative sandbox-windows-acl/src/runner.ts URL.",
+      "regression": "The sandbox-local source-fallback and cwd/ambient-tsconfig cases pass in the focused suite."
+    }
+  ],
+  "commands": [
+    {
+      "command": "pnpm exec vitest run scripts/gen-tsconfig-paths.spec.ts packages/api/gateway/tests/gateway.client.spec.ts packages/sandbox/sandbox-local/tests/local.spec.ts",
+      "result": "PASS",
+      "summary": "3 test files and 165 tests passed."
+    },
+    {
+      "command": "pnpm run duplication",
+      "result": "PASS",
+      "summary": "1,985 files analyzed; zero clones."
+    },
+    {
+      "command": "pnpm run verify-client-packages",
+      "result": "PASS",
+      "summary": "55 client packages satisfy package-mode and module-request rules; 3 explicit external requests remain valid."
+    },
+    {
+      "command": "pnpm run build",
+      "result": "PASS",
+      "summary": "Native host build, Host/Client library build, and Web Vite build passed; 248 client artifacts were recorded."
+    }
+  ],
+  "remaining_findings": [
+    "The canonical metrics and vendor-rescope checks still have the pre-existing dirty-worktree path condition: the tracked skeleton ContextMeter path is absent and the input replacement is untracked.",
+    "The full check-all matrix has not been rerun after this implementation; aggregate and build-dependent evidence remains pending."
+  ],
+  "limitations": [
+    "This PASS validates the bounded implementation only; it does not qualify AAA-023 or authorize AAA-024.",
+    "No publication, registry, push, merge, release, or final-verdict action was taken."
+  ]
+}

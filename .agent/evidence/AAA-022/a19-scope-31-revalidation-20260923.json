@@ -1,0 +1,146 @@
+{
+  "record_id": "A19-SCOPE-31-REVALIDATION-20260923-001",
+  "timestamp": "2026-09-23T11:11:00-03:00",
+  "record_kind": "A19_SCOPE_REVALIDATION",
+  "action": "AAA-022:A19",
+  "disposition": "CONFIRMED_SCOPE",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-001",
+  "prior_gate": {
+    "path": ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json",
+    "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+    "candidate_fingerprint": "c5c87df8f72111bf4b0c09801dc2a9ed683229a2487561f2cc2b82c527602b96",
+    "fingerprint_path_count": 34,
+    "disposition": "preserved unchanged as historical 34-path gate"
+  },
+  "original_gate": {
+    "path": ".agent/gates/implementation-ready-AAA-022-A19.json",
+    "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+    "fingerprint_path_count": 24,
+    "disposition": "preserved unchanged"
+  },
+  "approved_expansion": {
+    "from_original_path_count": 24,
+    "to_exact_path_count": 31,
+    "user_reply": "Expand to 31 paths (Recommended)",
+    "included_additions": [
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "packages/extensions/tool-cordis/src/api-catalog.ts"
+    ],
+    "excluded_from_active_a19_owner_allowlist": [
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "docs/subsystems/session.i18n.yaml"
+    ]
+  },
+  "owner_allowlist": {
+    "improvement_id": "prepared-session-projection-baseline",
+    "path_count": 29,
+    "paths": [
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/README.i18n.yaml",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/architecture.i18n.yaml"
+    ],
+    "excluded_paths": [
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "docs/subsystems/session.i18n.yaml"
+    ],
+    "api_catalog_owners": [
+      "session-reader-migration",
+      "dynamic-extension-trust"
+    ]
+  },
+  "candidate_fingerprint": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "hash_rule": "For each listed relative path in this order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+    "file_count": 31,
+    "preexisting_dirty_worktree": true
+  },
+  "limitations": [
+    "This record narrows the current A19 owner allowlist and binds the user-approved exact 31-path scope; it does not modify the immutable earlier gate or closeout.",
+    "The three session subsystem files remain in the preserved working tree as historical outputs from the former 34-path scope and are excluded from this 31-path revalidation.",
+    "packages/extensions/tool-cordis/src/api-catalog.ts remains under its two pre-existing owners; this record adds no third owner.",
+    "No tests or generators were run for this scope revalidation.",
+    "AAA-022:A21 remains the active design action and is not advanced by this A19 scope record."
+  ],
+  "last_fingerprint_refresh": {
+    "timestamp": "2026-09-23T11:30:43-03:00",
+    "previous_fingerprint": "96661bb45595e1046fb2d01adafe036a09fa15c3ff2a5ac455d51f617698fe38",
+    "reason": "The A22 context-reader owner was added to the shared customization policy, which is one of the approved 31 A19 fingerprint inputs; A19 path membership is unchanged."
+  },
+  "gate_revalidation": {
+    "predecessor_record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+    "predecessor_path_count": 34,
+    "approved_path_count": 31,
+    "approved_fingerprint": "461a37e4060e4cbf285e603b2c31369a5e91b65712c0fd703da90cb67f43f1a1",
+    "decision": "CONFIRMED_SCOPE",
+    "authority_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-001",
+    "scope_effect": "Supersedes the 34-path interpretation for the current A19 owner allowlist only; the canonical historical gate and closeout are preserved unchanged.",
+    "lifecycle_effect": "No lifecycle transition or implementation readiness claim; AAA-022:A21 remains the active design action."
+  }
+}

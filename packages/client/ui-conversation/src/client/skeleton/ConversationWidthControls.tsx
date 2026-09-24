@@ -98,10 +98,10 @@ function WidthHandle(props: {
   }, [])
   const onWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     const body = event.currentTarget.parentElement
-    /* v8 ignore next -- a width handle renders only inside the Conversation body. */
+    /*! v8 ignore next -- a width handle renders only inside the Conversation body. */
     if (body === null) return
     const scrollport = body.querySelector<HTMLElement>(':scope > [data-conversation-scroll]')
-    /* v8 ignore next -- the Conversation body always contains its direct scroll element. */
+    /*! v8 ignore next -- the Conversation body always contains its direct scroll element. */
     if (scrollport === null) return
     if (event.ctrlKey || event.deltaY === 0) return
     scrollport.scrollBy({ top: wheelDeltaY(event, scrollport) })

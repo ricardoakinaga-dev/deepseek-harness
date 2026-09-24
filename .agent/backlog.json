@@ -4,45 +4,65 @@
     {
       "id": "AAA-001",
       "title": "Freeze and reproduce the release baseline",
-      "stage": "AUDIT",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "origin": "Both 2026-09-20 audits; incompatible verdicts and incomplete same-SHA evidence",
       "dependencies": [],
       "owner": "Quality program integrator",
       "acceptance_summary": "A pristine checkout at one exact commit has an environment manifest and a current evidence matrix for every reported failure and every required unexecuted lane",
-      "evidence_refs": [".agent/verification.jsonl", ".agent/evidence/AAA-001/environment.json"],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-001-A02-004",
+        ".agent/evidence/AAA-001/environment.json",
+        ".agent/evidence/AAA-001/commands.jsonl",
+        ".agent/evidence/AAA-001/findings.json",
+        ".agent/plans/deepseek-harness-aaa-quality-bar.json",
+        ".gauntlet/bar.json"
+      ],
       "next_action": {
-        "id": "AAA-001:A02",
-        "kind": "REPRODUCE",
-        "summary": "Reproduce and classify every reported failing leaf and required unexecuted release lane",
+        "id": "AAA-001:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if current evidence is invalidated or a new baseline source is authorized",
         "target": ".agent/evidence/AAA-001/findings.json and commands.jsonl",
-        "completion_signal": "Every source finding and required lane has one command record, observed status, classification, owner, and retained-output digest"
+        "completion_signal": "A new evidence-invalidating event names the reason and installs a fresh reproduction action"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-02", "AAA-QB-13"],
+      "quality_bar_refs": [
+        "AAA-QB-01",
+        "AAA-QB-02",
+        "AAA-QB-13"
+      ],
       "risk": "HIGH"
     },
     {
       "id": "AAA-002",
       "title": "Make workspace preparation and ignored residue deterministic",
-      "stage": "AUDIT",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Portuguese P1; repository audit graph and generated-residue findings",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Workspace constraints and clean-path owners",
       "acceptance_summary": "The supported clean path removes only verified residue, no manifest-less package directory remains, and constraints passes from the prepared checkout",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-002-A01-002",
+        ".agent/evidence/AAA-002/targets.json",
+        ".agent/evidence/AAA-002/commands.jsonl"
+      ],
       "next_action": {
-        "id": "AAA-002:A01",
-        "kind": "INSPECT",
-        "summary": "Classify all ignored package-like directories as reproducible residue or preserved material",
-        "target": "packages/** directories without a tracked package manifest",
-        "completion_signal": "An exact target list and safe cleanup procedure exist before deletion"
+        "id": "AAA-002:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if new manifest-less package residue appears after the verified clean",
+        "target": ".agent/evidence/AAA-002/targets.json and commands.jsonl",
+        "completion_signal": "A new constraints failure supplies a fresh target inventory before cleanup"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-04"],
+      "quality_bar_refs": [
+        "AAA-QB-01",
+        "AAA-QB-04"
+      ],
       "risk": "HIGH"
     },
     {
@@ -50,21 +70,30 @@
       "title": "Repair weighted-approval ownership for the renamed Python runtime",
       "stage": "BUILD",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Portuguese P2; current review-ownership static evidence",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Review-ownership automation",
       "acceptance_summary": "The live ptc-runtime Python path counts as production, the removed path does not, and positive and invalid classifier fixtures pass",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-003-A01-001",
+        ".agent/evidence/AAA-003/findings.json",
+        ".agent/evidence/AAA-003/commands.jsonl",
+        ".agent/gates/implementation-ready-AAA-003.json"
+      ],
       "next_action": {
-        "id": "AAA-003:A01",
-        "kind": "IMPLEMENT",
-        "summary": "Update the production-path classifier and its focused test for the live runtime name",
-        "target": ".github/review-ownership/blame-production.py and its tests",
-        "completion_signal": "The focused classifier suite proves both the live and removed path cases"
+        "id": "AAA-003:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if production-path attribution regresses or the Python runtime is renamed again",
+        "target": ".github/review-ownership/blame-production.py and test_blame_production.py",
+        "completion_signal": "A new path observation or focused classifier failure identifies the regression before correction"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-06"],
+      "quality_bar_refs": [
+        "AAA-QB-06"
+      ],
       "risk": "HIGH"
     },
     {
@@ -72,87 +101,133 @@
       "title": "Make spill fixtures portable across supported umasks",
       "stage": "AUDIT",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit unit-test evidence",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "spill-local package",
       "acceptance_summary": "The focused spill suite passes under umask 0002 and 0022 while the explicit unsafe-directory case still proves rejection",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-004-A01-001",
+        ".agent/evidence/AAA-004/findings.json",
+        ".agent/evidence/AAA-004/commands.jsonl"
+      ],
       "next_action": {
-        "id": "AAA-004:A01",
-        "kind": "REPRODUCE",
-        "summary": "Reproduce the spill suite under both umasks and separate fixture leakage from product security behavior",
-        "target": "packages/spill/spill-local tests and temporary-directory setup",
-        "completion_signal": "The same focused command has retained results for both umasks and one attributed failure cause"
+        "id": "AAA-004:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if a supported-umask spill regression or unsafe-directory protection regression appears",
+        "target": "packages/spill/spill-local/tests/spill-local.spec.ts and cleanup behavior",
+        "completion_signal": "A new focused reproduction records the changed environment or product behavior before any correction"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-02"],
+      "quality_bar_refs": [
+        "AAA-QB-01",
+        "AAA-QB-02"
+      ],
       "risk": "HIGH"
     },
     {
       "id": "AAA-005",
       "title": "Reconcile recorded-session generation selection",
-      "stage": "AUDIT",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit snapshot evidence",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Session snapshot corpus",
       "acceptance_summary": "The selected generation, filename, and header agree and the focused replay passes without moving, overwriting, or deleting a committed generation",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-005-A01-001",
+        ".agent/evidence/AAA-005/findings.json",
+        ".agent/evidence/AAA-005/commands.jsonl",
+        ".agent/evidence/AAA-005/a02-findings.json",
+        ".agent/evidence/AAA-005/a02-commands.jsonl",
+        ".agent/evidence/AAA-005/a02-final-findings.json",
+        ".agent/evidence/AAA-005/a02-final-commands.jsonl",
+        ".agent/verification.jsonl#VER-AAA-005-A02-002",
+        ".agent/verification.jsonl#VER-AAA-005-A02-003"
+      ],
       "next_action": {
-        "id": "AAA-005:A01",
-        "kind": "REPRODUCE",
-        "summary": "Identify the exact scenario and generation-v0 versus generation-v3 selection path",
-        "target": "snapshot corpus generation resolver and failing scenario",
-        "completion_signal": "One focused replay reproduces the mismatch and names the owning source"
+        "id": "AAA-005:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if current-writer generation or focused replay regresses",
+        "target": "resilient-compaction session generations, corpus policy, and lib replay",
+        "completion_signal": "A new generation-selection or replay failure is reproduced with current artifacts before any correction"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-03", "AAA-QB-12"],
+      "quality_bar_refs": [
+        "AAA-QB-03",
+        "AAA-QB-12"
+      ],
       "risk": "HIGH"
     },
     {
       "id": "AAA-006",
       "title": "Restore the resilient-compaction built snapshot path",
-      "stage": "AUDIT",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit missing lib-mode resilience-snapshot adapter",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "resilient-compaction custom extension",
       "acceptance_summary": "The keyless lib-mode replay resolves its declared adapter through the shipped scenario path and the optional bundle remains removable",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-006-A01-001",
+        ".agent/evidence/AAA-006/findings.json",
+        ".agent/evidence/AAA-006/commands.jsonl",
+        ".agent/verification.jsonl#VER-AAA-006-A02-001",
+        ".agent/evidence/AAA-006/a02-findings.json",
+        ".agent/evidence/AAA-006/a02-commands.jsonl"
+      ],
       "next_action": {
-        "id": "AAA-006:A01",
-        "kind": "REPRODUCE",
-        "summary": "Run the resilient-compaction timeout scenario in lib mode and trace adapter resolution",
-        "target": "snapshots/session/resilient-compaction-timeout and snapshot adapter loading",
-        "completion_signal": "The missing adapter is reproduced through the real built entry path or the audit finding is closed with current evidence"
+        "id": "AAA-006:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if the built resilient-compaction adapter becomes unavailable again",
+        "target": "root snapshot consumer dependency, policy attribution, and resilient-compaction lib replay",
+        "completion_signal": "A new built-path reproduction records the changed dependency or adapter-resolution behavior before any correction"
       },
       "solutionType": "plugin-and-bundle",
-      "quality_bar_refs": ["AAA-QB-03", "AAA-QB-06"],
+      "quality_bar_refs": [
+        "AAA-QB-03",
+        "AAA-QB-06"
+      ],
       "risk": "HIGH"
     },
     {
       "id": "AAA-007",
       "title": "Provision the pinned browser for Web snapshot lanes",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit missing Playwright Chromium",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "CI and snapshot environment",
       "acceptance_summary": "A clean supported runner provisions the pinned browser before replay and a missing browser produces one actionable prerequisite diagnostic",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-007-A01-001",
+        ".agent/verification.jsonl#VER-AAA-007-A01-002",
+        ".agent/evidence/AAA-007/findings.json",
+        ".agent/evidence/AAA-007/commands.jsonl"
+      ],
       "next_action": {
-        "id": "AAA-007:A01",
-        "kind": "DESIGN",
-        "summary": "Choose the owning setup step for the pinned Playwright browser in local and CI snapshot lanes",
-        "target": "Playwright configuration and CI setup",
-        "completion_signal": "One documented provisioning owner and one failure diagnostic are specified"
+        "id": "AAA-007:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if a supported Web runner lacks the declared browser provisioning step or diagnostic",
+        "target": "Playwright package owner, CI install step, and Web snapshot prerequisite",
+        "completion_signal": "A changed runner or browser-resolution failure is reproduced before any correction"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-03"],
+      "quality_bar_refs": [
+        "AAA-QB-01",
+        "AAA-QB-03"
+      ],
       "risk": "MEDIUM"
     },
     {
@@ -160,198 +235,347 @@
       "title": "Resolve the DeepSeek expected request-count divergence",
       "stage": "AUDIT",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit expected-output evidence",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Headless profile and expected-output test owners",
       "acceptance_summary": "The focused compatibility case has an approved request-role oracle and deterministically observes the intended request count and content",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-008-A01-001",
+        ".agent/evidence/AAA-008/findings.json",
+        ".agent/evidence/AAA-008/commands.jsonl",
+        ".agent/evidence/AAA-008/decision-a24.json",
+        ".agent/verification.jsonl#VER-AAA-008-A02-DECISION-A24-001",
+        ".agent/verification.jsonl#VER-AAA-008-A02-COMPLETE-A24-001"
+      ],
       "next_action": {
-        "id": "AAA-008:A01",
-        "kind": "REPRODUCE",
-        "summary": "Capture all requests in the focused DeepSeek compatibility case and classify the extra request",
-        "target": "apps/cli headless expected-output scenario and assembled profile",
-        "completion_signal": "Each observed request has a role, trigger, and intended-or-defect decision"
+        "id": "AAA-008:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if a new request-count divergence or retained historical trace contradicts the approved two-request oracle",
+        "target": "AAA-008 focused evidence and maintainer decision",
+        "completion_signal": "A new divergence identifies a reproducible third-request trigger before reopening"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-03"],
+      "quality_bar_refs": [
+        "AAA-QB-03"
+      ],
       "risk": "MEDIUM",
-      "humanDecision": "Approve the intended request sequence if the third request is product behavior rather than a regression"
+      "humanDecision": "Confirmed: the current two-request oracle is approved; no product change is authorized, and the historical third request remains unqualified without its original failing trace"
     },
     {
       "id": "AAA-009",
       "title": "Restore client-domain ownership",
-      "stage": "AUDIT",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit 38 client-domain graph violations",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Client UI package owners",
       "acceptance_summary": "The client-domain graph passes after every sibling import moves through the owning public package or approved API",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-009-A01-001",
+        ".agent/evidence/AAA-009/findings.json",
+        ".agent/evidence/AAA-009/commands.jsonl",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        ".agent/evidence/AAA-009/implementation-a19.json",
+        ".agent/verification.jsonl#VER-AAA-009-A03-IMPLEMENTATION-A19-001",
+        ".agent/verification.jsonl#VER-AAA-009-A02-REVALIDATION-A21-001",
+        ".agent/verification.jsonl#VER-AAA-009-A03-FINAL-REVALIDATION-A22-001",
+        ".agent/verification.jsonl#VER-AAA-009-A03-FINAL-REVALIDATION-A23-001",
+        ".agent/gates/implementation-ready-AAA-009.json"
+      ],
       "next_action": {
-        "id": "AAA-009:A01",
-        "kind": "INSPECT",
-        "summary": "Group the 38 violations by intended domain owner and required public export",
-        "target": "client-domain graph output and implicated packages",
-        "completion_signal": "Every violation has one owner, dependency order, and focused acceptance path"
+        "id": "AAA-009:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if the client-domain graph, generated projection, or approved shared API regresses",
+        "target": "Conversation input, Browser view, document contract/registry/tab-lifetime, renderer imports, and top-level Office-to-PDF assembly",
+        "completion_signal": "A new client-domain or generated-projection regression identifies a bounded owner and focused correction before reopening"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-04"],
+      "quality_bar_refs": [
+        "AAA-QB-04"
+      ],
       "risk": "HIGH",
-      "humanDecision": "Resolve any domain ownership that is ambiguous after architecture inspection"
+      "humanDecision": "Confirmed: implement the proposed Conversation input, Browser, document shared API, renderer, and Office-to-PDF assembly ownership; preserve top-level composition as the only cross-domain assembly owner",
+      "last_gate_record": ".agent/gates/implementation-ready-AAA-009.json"
     },
     {
       "id": "AAA-010",
       "title": "Regenerate graph evidence through its owner",
       "stage": "BUILD",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit stale module graph",
-      "dependencies": ["AAA-009"],
+      "dependencies": [
+        "AAA-009"
+      ],
       "owner": "Module graph generator and documentation projection",
       "acceptance_summary": "Module graph generation and bilingual pairing pass with no hand-edited derivative",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-010-A01-MODULE-GRAPH-001",
+        ".agent/evidence/AAA-010/verify-a01.json",
+        ".agent/verification.jsonl#VER-AAA-010-A01-MODULE-GRAPH-REVALIDATION-A21-001",
+        ".agent/verification.jsonl#VER-AAA-010-A01-FINAL-REVALIDATION-A22-001",
+        ".agent/verification.jsonl#VER-AAA-010-A01-FINAL-REVALIDATION-A23-001"
+      ],
       "next_action": {
-        "id": "AAA-010:A01",
-        "kind": "RUN",
-        "summary": "Run the owning module-graph generator after client ownership changes settle",
+        "id": "AAA-010:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if the owner-generated module graph becomes stale again",
         "target": "module graph source, English output, Chinese output, and pairing record",
-        "completion_signal": "The freshness verifier and bilingual pairing command both pass"
+        "completion_signal": "A new stale generated artifact identifies the owning generator and current source change before regeneration"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-04", "AAA-QB-09"],
+      "quality_bar_refs": [
+        "AAA-QB-04",
+        "AAA-QB-09"
+      ],
       "risk": "MEDIUM"
     },
     {
       "id": "AAA-011",
       "title": "Synchronize persistent-shell model-visible behavior",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit stale shell timeout docs and missing keyless snapshot",
-      "dependencies": ["AAA-005", "AAA-007"],
+      "dependencies": [
+        "AAA-005",
+        "AAA-007"
+      ],
       "owner": "persistent-shell-diagnostics upstream patch",
       "acceptance_summary": "Bash and PowerShell READMEs, durable rationale, policy ownership, focused tests, and an assembled keyless snapshot describe and prove the shipped result wording",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-011-A01-001",
+        ".agent/evidence/AAA-011/findings-a01.json",
+        ".agent/evidence/AAA-011/commands-a01.jsonl",
+        ".agent/gates/implementation-ready-AAA-011.json",
+        ".agent/verification.jsonl#VER-AAA-011-REOPEN-001",
+        ".agent/evidence/AAA-011/findings-a02.json",
+        ".agent/evidence/AAA-011/commands-a02.jsonl",
+        ".artifacts/aaa-011/aaa-011-a02-2026-09-20/focused-tests.log",
+        ".artifacts/aaa-011/aaa-011-a02-2026-09-20/sdk-snapshot.log",
+        ".artifacts/aaa-011/aaa-011-a02-2026-09-20/pwsh-snapshot.log",
+        ".artifacts/aaa-011/aaa-011-a02-2026-09-20/package-typecheck.log",
+        ".artifacts/aaa-011/aaa-011-a02-2026-09-20/policy-docs.log"
+      ],
       "next_action": {
-        "id": "AAA-011:A01",
-        "kind": "DESIGN",
-        "summary": "Expand the existing improvement record to own the required documentation and snapshot paths",
-        "target": ".agents/customization-policy.json persistent-shell-diagnostics record",
-        "completion_signal": "The proposed path set attributes every planned shell documentation and snapshot delta before implementation"
+        "id": "AAA-011:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if a supported-platform replay or a new persistent-shell diagnostic regression invalidates the current scoped PASS",
+        "target": "packages/shell/tool-bash-persistent, packages/shell/tool-pwsh-persistent, and their owned snapshot families",
+        "completion_signal": "A new reproducible shell diagnostic mismatch or supported-platform snapshot failure invalidates the current scoped PASS"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-03", "AAA-QB-06", "AAA-QB-09"],
+      "quality_bar_refs": [
+        "AAA-QB-03",
+        "AAA-QB-06",
+        "AAA-QB-09"
+      ],
       "risk": "HIGH",
       "documentationPairs": [
-        ["packages/shell/tool-bash-persistent/README.md", "packages/shell/tool-bash-persistent/README.zh.md"],
-        ["packages/shell/tool-pwsh-persistent/README.md", "packages/shell/tool-pwsh-persistent/README.zh.md"],
-        [".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.md", ".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.zh.md"]
+        [
+          "packages/shell/tool-bash-persistent/README.md",
+          "packages/shell/tool-bash-persistent/README.zh.md"
+        ],
+        [
+          "packages/shell/tool-pwsh-persistent/README.md",
+          "packages/shell/tool-pwsh-persistent/README.zh.md"
+        ],
+        [
+          ".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.md",
+          ".agents/notes/implemented/simplification/2026-09-03-minimal-profiles-persistent-shell-only.zh.md"
+        ]
       ]
     },
     {
       "id": "AAA-012",
       "title": "Define and enforce WebSocket close quiescence",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit RemoteStreamClient close finding",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "API gateway stream client",
       "acceptance_summary": "The approved close postcondition is documented and a barrier-based test proves resolution timing, late-callback behavior, timeout, and teardown",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-012-A01-SCOUT-001",
+        ".agent/verification.jsonl#VER-AAA-012-A01-SCOUT-002",
+        ".agent/evidence/AAA-012/scout-a01.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        ".agent/evidence/AAA-012/implementation-a19.json",
+        ".agent/gates/implementation-ready-AAA-012.json",
+        ".agent/verification.jsonl#VER-AAA-012-A02-IMPLEMENTATION-A19-001",
+        ".agent/verification.jsonl#VER-AAA-012-A01-REVALIDATION-A21-001",
+        ".agent/verification.jsonl#VER-AAA-012-A01-REVALIDATION-A21-002",
+        ".agent/verification.jsonl#VER-AAA-012-A02-FINAL-REVALIDATION-A22-001",
+        ".agent/verification.jsonl#VER-AAA-012-A02-FINAL-REVALIDATION-A23-001"
+      ],
       "next_action": {
-        "id": "AAA-012:A01",
-        "kind": "DECIDE",
-        "summary": "Choose logical disposal or confirmed physical closure as the public close postcondition",
+        "id": "AAA-012:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if physical WebSocket close semantics or their focused barrier tests regress",
         "target": "RemoteStreamClient close contract",
-        "completion_signal": "The contract names success, timeout, error, and already-closed behavior and has human approval"
+        "completion_signal": "A new close lifecycle regression identifies the affected callback, timeout, or quiescence contract before correction"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-05", "AAA-QB-10"],
+      "quality_bar_refs": [
+        "AAA-QB-05",
+        "AAA-QB-10"
+      ],
       "risk": "HIGH",
-      "humanDecision": "Choose the caller-visible WebSocket close postcondition",
+      "humanDecision": "Confirmed: the public close promise waits for physical WebSocket closure with explicit timeout, error, already-closed, repeated-close, and late-callback behavior",
       "documentationPairs": [
-        ["packages/api/gateway/README.md", "packages/api/gateway/README.zh.md"]
+        [
+          "packages/api/gateway/README.md",
+          "packages/api/gateway/README.zh.md"
+        ]
       ]
     },
     {
       "id": "AAA-013",
       "title": "Enforce the static asset symlink policy",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit frontend-static containment finding",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "frontend-static package",
       "acceptance_summary": "Resolved filesystem targets remain inside the configured static root, and a symlink escape returns 403 or 404 without returning external bytes",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-013-A01-001",
+        ".agent/evidence/AAA-013/findings.json",
+        ".agent/evidence/AAA-013/commands.jsonl",
+        ".agent/verification.jsonl#VER-AAA-013-A02-001",
+        ".agent/evidence/AAA-013/findings-a02.json",
+        ".agent/evidence/AAA-013/commands-a02.jsonl",
+        ".artifacts/aaa-013/aaa-013-a02-2026-09-20/focused-coverage.log",
+        ".artifacts/aaa-013/aaa-013-a02-2026-09-20/gui-test.log",
+        ".artifacts/aaa-013/aaa-013-a02-2026-09-20/build-typecheck.log",
+        ".artifacts/aaa-013/aaa-013-a02-2026-09-20/policy-docs.log",
+        ".agent/gates/implementation-ready-AAA-013.json"
+      ],
       "next_action": {
-        "id": "AAA-013:A01",
-        "kind": "DESIGN",
-        "summary": "Specify race-safe resolved-target containment and its cross-platform symlink escape fixture",
-        "target": "frontend-static resolved filesystem containment",
-        "completion_signal": "The design names resolution timing, platform behavior, 403-or-404 response, and a fixture that proves no external bytes are returned"
+        "id": "AAA-013:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if a new static-serving regression or platform-specific containment failure is reproduced",
+        "target": "frontend-static resolved-target containment and its real-composition regression matrix",
+        "completion_signal": "A new reproducible outside-byte path or a supported-platform regression invalidates the current scoped PASS"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-05"],
+      "quality_bar_refs": [
+        "AAA-QB-05"
+      ],
       "risk": "HIGH",
       "documentationPairs": [
-        ["packages/host/frontend-static/README.md", "packages/host/frontend-static/README.zh.md"]
+        [
+          "packages/host/frontend-static/README.md",
+          "packages/host/frontend-static/README.zh.md"
+        ]
       ]
     },
     {
       "id": "AAA-014",
       "title": "Bound aggregate HTTP bridge buffering",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit HTTP bridge resource finding",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "client connection HTTP bridge",
       "acceptance_summary": "A validated aggregate memory policy bounds concurrent buffered requests, rejects or queues excess work predictably, and releases capacity on cancellation and disconnect",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-014-A01-SCOUT-001",
+        ".agent/verification.jsonl#VER-AAA-014-A01-SCOUT-002",
+        ".agent/evidence/AAA-014/scout-a01.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        ".agent/evidence/AAA-014/implementation-a19.json",
+        ".agent/gates/implementation-ready-AAA-014.json",
+        ".agent/verification.jsonl#VER-AAA-014-A02-IMPLEMENTATION-A19-001",
+        ".agent/verification.jsonl#VER-AAA-014-A01-REVALIDATION-A21-001",
+        ".agent/verification.jsonl#VER-AAA-014-A01-REVALIDATION-A21-002",
+        ".agent/verification.jsonl#VER-AAA-014-A02-FINAL-REVALIDATION-A22-001",
+        ".agent/verification.jsonl#VER-AAA-014-A02-FINAL-REVALIDATION-A23-001"
+      ],
       "next_action": {
-        "id": "AAA-014:A01",
-        "kind": "DECIDE",
-        "summary": "Set the aggregate memory budget, admission behavior, response, and deployment configurability",
+        "id": "AAA-014:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if an aggregate buffered-memory admission or release regression is reproduced",
         "target": "HTTP bridge resource policy",
-        "completion_signal": "The approved policy names limits, failure behavior, configuration owner, and concurrency test oracle"
+        "completion_signal": "A new admission, cancellation, disconnect, or quiescence regression identifies the bounded correction before reopening"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-05", "AAA-QB-10"],
+      "quality_bar_refs": [
+        "AAA-QB-05",
+        "AAA-QB-10"
+      ],
       "risk": "HIGH",
-      "humanDecision": "Approve the aggregate request-memory and admission policy",
+      "humanDecision": "Confirmed: use one instance-owned aggregate HTTP/RPC memory limiter with conservative reservation, deterministic bounded rejection, and release after cancellation, disconnect, and owned work quiesce",
       "documentationPairs": [
-        ["packages/client/connection/README.md", "packages/client/connection/README.zh.md"]
+        [
+          "packages/client/connection/README.md",
+          "packages/client/connection/README.zh.md"
+        ]
       ]
     },
     {
       "id": "AAA-015",
       "title": "Complete the dynamic extension threat model",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Portuguese P10 plus current runner documentation gap",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Cordis client and host extension runners",
       "acceptance_summary": "Owning documentation states who may supply code, the opt-in point, host enforcement, browser CSP requirements, supported deployments, and residual limits; claimed controls have negative tests",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-015-A01-SCOUT-001",
+        ".agent/verification.jsonl#VER-AAA-015-A01-SCOUT-002",
+        ".agent/evidence/AAA-015/scout-a01.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        ".agent/evidence/AAA-015/implementation-a19.json",
+        ".agent/gates/implementation-ready-AAA-015.json",
+        ".agent/verification.jsonl#VER-AAA-015-A02-IMPLEMENTATION-A19-001",
+        ".agent/verification.jsonl#VER-AAA-015-A01-REVALIDATION-A21-001",
+        ".agent/verification.jsonl#VER-AAA-015-A01-REVALIDATION-A21-002",
+        ".agent/verification.jsonl#VER-AAA-015-A02-FINAL-REVALIDATION-A22-001",
+        ".agent/verification.jsonl#VER-AAA-015-A02-FINAL-REVALIDATION-A23-001"
+      ],
       "next_action": {
-        "id": "AAA-015:A01",
-        "kind": "DECIDE",
-        "summary": "Approve the supported deployment, CSP, user-consent, and default-enable policy for dynamic extensions",
+        "id": "AAA-015:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if dynamic-extension deployment, consent, delivery, or default-policy controls regress",
         "target": "dynamic extension trust and deployment policy",
-        "completion_signal": "The threat model has an approved scope and identifies every enforced versus residual control"
+        "completion_signal": "A new dynamic-extension policy regression identifies the affected deployment or trust control before reopening"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-05", "AAA-QB-09"],
+      "quality_bar_refs": [
+        "AAA-QB-05",
+        "AAA-QB-09"
+      ],
       "risk": "HIGH",
-      "humanDecision": "Approve dynamic code execution deployment and consent policy",
+      "humanDecision": "Confirmed: use an explicit dynamic-extension deployment matrix, host-verifiable consent, restrictive CSP/Trusted Types-compatible delivery, publisher verification, and disabled defaults",
       "documentationPairs": [
-        ["packages/extensions/cordis-client-runner/README.md", "packages/extensions/cordis-client-runner/README.zh.md"],
-        ["packages/extensions/cordis-host-runner/README.md", "packages/extensions/cordis-host-runner/README.zh.md"]
+        [
+          "packages/extensions/cordis-client-runner/README.md",
+          "packages/extensions/cordis-client-runner/README.zh.md"
+        ],
+        [
+          "packages/extensions/cordis-host-runner/README.md",
+          "packages/extensions/cordis-host-runner/README.zh.md"
+        ]
       ]
     },
     {
@@ -359,21 +583,40 @@
       "title": "Reject forbidden package roots in customization records",
       "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit customization-policy enforcement gap",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Customization policy verifier",
       "acceptance_summary": "Configuration, profile-patch, and skill records cannot claim package source; invalid fixtures fail with an actionable diagnostic while packaged extension fixtures pass",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/evidence/AAA-016/findings-a01.json",
+        ".agent/evidence/AAA-016/commands-a01.jsonl",
+        ".artifacts/aaa-016/aaa-016-a01-2026-09-20/package-roots-probe.log",
+        ".artifacts/aaa-016/aaa-016-a01-2026-09-20/source-contract.log",
+        ".artifacts/aaa-016/aaa-016-a01-2026-09-20/current-policy-suite.log",
+        ".artifacts/aaa-016/aaa-016-a01-2026-09-20/ownership-gate.log",
+        ".agent/gates/implementation-ready-AAA-016.json",
+        ".agent/verification.jsonl#VER-AAA-016-A02-001",
+        ".agent/evidence/AAA-016/findings-a02.json",
+        ".agent/evidence/AAA-016/commands-a02.jsonl",
+        ".artifacts/aaa-016/aaa-016-a02-2026-09-20/focused-policy.log",
+        ".artifacts/aaa-016/aaa-016-a02-2026-09-20/invalid-package-roots-matrix.log",
+        ".artifacts/aaa-016/aaa-016-a02-2026-09-20/top-level-policy.log",
+        ".artifacts/aaa-016/aaa-016-a02-2026-09-20/note-pairing.log"
+      ],
       "next_action": {
-        "id": "AAA-016:A01",
-        "kind": "IMPLEMENT",
-        "summary": "Add the forbidden-packageRoots rule and focused invalid fixtures",
+        "id": "AAA-016:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if the customization taxonomy expands or packageRoots validation regresses",
         "target": "scripts/verify-customization-policy.mjs and its specification",
-        "completion_signal": "The focused suite rejects each non-packaged extension type with packageRoots and the top-level verifier passes"
+        "completion_signal": "A new non-packaged extension type accepts packageRoots or a focused invalid fixture no longer fails closed"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-06"],
+      "quality_bar_refs": [
+        "AAA-QB-06"
+      ],
       "risk": "HIGH"
     },
     {
@@ -381,158 +624,688 @@
       "title": "Enforce official mirror identity in automation",
       "stage": "SPEC",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit upstream-master workflow gap",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Customization policy workflow",
       "acceptance_summary": "The workflow proves the configured mirror branch equals fetched official upstream and rejects divergence even when attribution against the fork remote passes",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/evidence/AAA-017/findings-a01.json",
+        ".agent/evidence/AAA-017/commands-a01.jsonl",
+        ".artifacts/aaa-017/aaa-017-a01-2026-09-20/workflow-inspection.log",
+        ".artifacts/aaa-017/aaa-017-a01-2026-09-20/ref-equality.log",
+        ".artifacts/aaa-017/aaa-017-a01-2026-09-20/contract-scan.log",
+        ".artifacts/aaa-017/aaa-017-a01-2026-09-20/diff-check.log",
+        ".agent/gates/implementation-ready-AAA-017.json",
+        ".agent/verification.jsonl#VER-AAA-017-A02-001",
+        ".agent/evidence/AAA-017/findings-a02.json",
+        ".agent/evidence/AAA-017/commands-a02.jsonl",
+        ".artifacts/aaa-017/aaa-017-a02-2026-09-20/focused-policy.log",
+        ".artifacts/aaa-017/aaa-017-a02-2026-09-20/mirror-fixtures.log",
+        ".artifacts/aaa-017/aaa-017-a02-2026-09-20/workflow-equivalent.log",
+        ".artifacts/aaa-017/aaa-017-a02-2026-09-20/docs-note-pairing.log",
+        ".artifacts/aaa-017/aaa-017-a02-2026-09-20/note-format.log",
+        ".artifacts/aaa-017/aaa-017-a02-2026-09-20/diff-check.log"
+      ],
       "next_action": {
-        "id": "AAA-017:A01",
-        "kind": "DESIGN",
-        "summary": "Specify official-remote fetch and equality checks for push and pull-request contexts",
-        "target": ".github/workflows/customization-policy.yml and verifier integration",
-        "completion_signal": "Matching and mismatched mirror fixtures have executable workflow-level acceptance"
+        "id": "AAA-017:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if official remote identity or mirror equality enforcement regresses",
+        "target": "scripts/verify-customization-policy.mjs and .github/workflows/customization-policy.yml",
+        "completion_signal": "A workflow-equivalent run or supported GitHub Actions run shows a missing, stale, or divergent official mirror acceptance"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-06", "AAA-QB-11"],
+      "quality_bar_refs": [
+        "AAA-QB-06",
+        "AAA-QB-11"
+      ],
       "risk": "HIGH"
     },
     {
       "id": "AAA-018",
       "title": "Establish canonical audit metrics and semantic documentation parity",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Portuguese P12-P14; repository audit README and historical count findings",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Documentation and audit automation",
       "acceptance_summary": "One command emits named metrics with corpus, commit, environment, and count; maintained bilingual pages carry approved common channels and label intentional locale-only differences",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-018-A01-001",
+        ".agent/evidence/AAA-018/findings-a01.json",
+        ".agent/evidence/AAA-018/commands-a01.jsonl",
+        ".artifacts/aaa-018/aaa-018-a01-2026-09-20/environment.log",
+        ".artifacts/aaa-018/aaa-018-a01-2026-09-20/metric-owner-scan.log",
+        ".artifacts/aaa-018/aaa-018-a01-2026-09-20/exploratory-counts.log",
+        ".artifacts/aaa-018/aaa-018-a01-2026-09-20/community-parity.log",
+        ".artifacts/aaa-018/aaa-018-a01-2026-09-20/diff-check.log",
+        ".agent/verification.jsonl#VER-AAA-018-A02-ARCHITECTURE-GATES-001",
+        ".agent/evidence/AAA-018/architecture-gates-a02.json",
+        ".agent/verification.jsonl#VER-AAA-018-A02-REPORT-VALIDATION-005",
+        ".agent/verification.jsonl#VER-AAA-018-A03-IMPLEMENTATION-001",
+        ".agent/verification.jsonl#VER-AAA-018-A03-CLOSURE-002",
+        ".agent/verification.jsonl#VER-AAA-018-A03-CLOSURE-003",
+        ".agent/verification.jsonl#VER-AAA-018-A03-CLOSURE-004",
+        ".agent/evidence/AAA-018/implementation-a03.json",
+        ".artifacts/aaa-018/aaa-018-a03-2026-09-21/metrics.json"
+      ],
       "next_action": {
-        "id": "AAA-018:A01",
-        "kind": "DESIGN",
-        "summary": "Define metric names and corpora and decide the bilingual community-channel policy",
-        "target": "audit metric owner and root README pair",
-        "completion_signal": "The metric schema and communication-channel decision are explicit before prose or automation changes"
+        "id": "AAA-018:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if canonical metric reproducibility or README channel parity regresses",
+        "target": "scripts/audit-metrics.ts, scripts/verify-readme-community-parity.ts, README.md, and README.zh.md",
+        "completion_signal": "A new metric or parity regression is reproduced with current evidence before correction"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-08", "AAA-QB-09", "AAA-QB-13"],
+      "quality_bar_refs": [
+        "AAA-QB-08",
+        "AAA-QB-09",
+        "AAA-QB-13"
+      ],
       "risk": "MEDIUM",
-      "humanDecision": "Decide whether locale-specific community channels are intentional additions or semantic drift"
+      "humanDecision": "Confirmed: README.md is the canonical community-channel source; README.zh.md must align to it."
     },
     {
       "id": "AAA-019",
       "title": "Authorize fork package publication identity",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Repository audit custom package repository metadata",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Fork maintainer and package release owner",
       "acceptance_summary": "Fork-only package namespace, repository URL, directory metadata, and publication authority are approved and mechanically verified in packed manifests",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-019-A01-SCOUT-001",
+        ".agent/evidence/AAA-019/scout-a01.json",
+        ".agent/verification.jsonl#VER-AAA-019-A01-PUBLINT-002",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        ".agent/evidence/AAA-019/implementation-a19.json",
+        ".agent/gates/implementation-ready-AAA-019.json",
+        ".agent/verification.jsonl#VER-AAA-019-A02-IMPLEMENTATION-A19-001",
+        ".agent/verification.jsonl#VER-AAA-019-A01-REVALIDATION-A21-001",
+        ".agent/verification.jsonl#VER-AAA-019-A01-REVALIDATION-A21-002",
+        ".agent/verification.jsonl#VER-AAA-019-A02-FINAL-REVALIDATION-A22-001",
+        ".agent/verification.jsonl#VER-AAA-019-A02-FINAL-REVALIDATION-A23-001"
+      ],
       "next_action": {
-        "id": "AAA-019:A01",
-        "kind": "DECIDE",
-        "summary": "Choose whether fork-only packages remain private, use a fork-owned namespace, or are prepared solely as upstream contributions",
+        "id": "AAA-019:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if fork package identity or private/unpublished disposition changes",
         "target": "resilient-compaction package publication identity",
-        "completion_signal": "A maintainer decision names the namespace, repository URL, registry visibility, and authorized publisher"
+        "completion_signal": "A new identity or publication request supplies its namespace, repository, visibility, and authority before reopening"
       },
       "solutionType": "plugin-and-bundle",
-      "quality_bar_refs": ["AAA-QB-07", "AAA-QB-11"],
+      "quality_bar_refs": [
+        "AAA-QB-07",
+        "AAA-QB-11"
+      ],
       "risk": "HIGH",
-      "humanDecision": "Publication identity and authority cannot be inferred by an agent"
+      "humanDecision": "Confirmed: implement fork-owned namespace and repository metadata for independently publishable fork packages; keep unapproved fork-only packages private or unpublished and do not publish without separate release authority"
     },
     {
       "id": "AAA-020",
       "title": "Decide and verify public source-export policy",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Portuguese P4 publint warnings",
-      "dependencies": ["AAA-001", "AAA-019"],
+      "dependencies": [
+        "AAA-001",
+        "AAA-019"
+      ],
       "owner": "Package publication architecture",
       "acceptance_summary": "Source subpath exports are either published and packed consistently or removed through a compatibility-reviewed migration; packed-install and NodeNext consumer checks pass",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-020-A01-SCOUT-001",
+        ".agent/evidence/AAA-020/scout-a01.json",
+        ".agent/verification.jsonl#VER-AAA-020-A01-NODE-NEXT-002",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        ".agent/evidence/AAA-020/implementation-a19.json",
+        ".agent/gates/implementation-ready-AAA-020.json",
+        ".agent/verification.jsonl#VER-AAA-020-A02-IMPLEMENTATION-A19-001",
+        ".agent/verification.jsonl#VER-AAA-020-A01-REVALIDATION-A21-001",
+        ".agent/verification.jsonl#VER-AAA-020-A01-REVALIDATION-A21-002",
+        ".agent/verification.jsonl#VER-AAA-020-A02-FINAL-REVALIDATION-A22-001",
+        ".agent/verification.jsonl#VER-AAA-020-A02-FINAL-REVALIDATION-A23-001"
+      ],
       "next_action": {
-        "id": "AAA-020:A01",
-        "kind": "DECIDE",
-        "summary": "Determine whether ./src/* is a repository-only development facility or a supported published API",
+        "id": "AAA-020:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if a supported published source subpath is requested or source-export policy regresses",
         "target": "package export and publication policy",
-        "completion_signal": "The policy selects publish, remove, or mechanically exempt with compatibility evidence"
+        "completion_signal": "A new source-export compatibility request identifies the package consumers and packed-install acceptance before reopening"
       },
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-07"],
+      "quality_bar_refs": [
+        "AAA-QB-07"
+      ],
       "risk": "HIGH",
-      "humanDecision": "Source export compatibility policy"
+      "humanDecision": "Confirmed: remove ./src/* from ordinary published exports unless a separately authorized compatibility and source-publication policy is established"
     },
     {
       "id": "AAA-021",
       "title": "Make standalone hygiene prerequisites explicit",
-      "stage": "SPEC",
+      "stage": "BUILD",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "DONE",
       "origin": "Portuguese P9 and current run-gates evidence",
-      "dependencies": ["AAA-001"],
+      "dependencies": [
+        "AAA-001"
+      ],
       "owner": "Repository gate orchestration",
       "acceptance_summary": "On a clean tree the advertised hygiene command either prepares required artifacts or fails immediately with the exact prerequisite correction while check:all ordering remains valid",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/evidence/AAA-021/findings-a01.json",
+        ".agent/evidence/AAA-021/commands-a01.jsonl",
+        ".agent/gates/implementation-ready-AAA-021.json",
+        ".agent/verification.jsonl#VER-AAA-021-A01-001"
+      ],
       "next_action": {
-        "id": "AAA-021:A01",
-        "kind": "DESIGN",
-        "summary": "Choose whether hygiene owns its build dependency or a deterministic preflight diagnostic",
-        "target": "scripts/run-gates.ts hygiene entry point",
-        "completion_signal": "The standalone and aggregate command contracts have focused valid and invalid fixtures"
+        "id": "AAA-021:REOPEN",
+        "kind": "REOPEN",
+        "summary": "Reopen only if a hygiene leaf gains an undeclared artifact prerequisite or the fail-fast diagnostic regresses",
+        "target": "scripts/verify-hygiene-prerequisites.ts, scripts/run-gates.ts, fixtures, and contributor documentation",
+        "completion_signal": "A new standalone hygiene reproduction identifies the changed artifact consumer or diagnostic before correction"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-07"],
+      "quality_bar_refs": [
+        "AAA-QB-01",
+        "AAA-QB-07"
+      ],
       "risk": "MEDIUM"
     },
     {
       "id": "AAA-022",
       "title": "Reduce static contract debt in measured waves",
-      "stage": "EVOLUTION",
+      "stage": "BUILD",
       "priority": "HIGH",
-      "status": "TODO",
+      "status": "IN_PROGRESS",
       "origin": "Portuguese P5-P8 and count-based P13-P14 signals",
-      "dependencies": ["AAA-018"],
+      "dependencies": [
+        "AAA-018"
+      ],
       "owner": "Session, lint, type-system, and affected package owners",
       "acceptance_summary": "Canonical debt metrics do not grow, at least one owner-scoped deprecated-reader and suppression wave reduces its frozen count, retained exceptions have local reasons, and stricter lint/compiler probes have explicit dispositions",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-022-A01-SCOUT-001",
+        ".agent/verification.jsonl#VER-AAA-022-A01-REVALIDATE-001",
+        ".agent/evidence/AAA-022/scout-a01.json",
+        ".agent/verification.jsonl#VER-AAA-022-A01-SCOUT-002",
+        ".agent/evidence/AAA-022/scout-a02.json",
+        ".agent/verification.jsonl#VER-AAA-022-A01-WAVE-003",
+        ".agent/evidence/AAA-022/session-title-wave-a03.json",
+        ".agent/verification.jsonl#VER-AAA-022-A01-WAVE-004",
+        ".agent/verification.jsonl#VER-AAA-022-A01-SCOUT-003",
+        ".agent/verification.jsonl#VER-AAA-022-A01-SCOUT-004",
+        ".agent/verification.jsonl#VER-AAA-022-A01-REVALIDATE-002",
+        ".agent/verification.jsonl#VER-AAA-023-A37-CANDIDATE-TRACEABILITY-A73-001",
+        ".agent/evidence/AAA-023/candidate-traceability-a73.json",
+        ".agent/verification.jsonl#VER-AAA-022-A02-READER-MIGRATION-DESIGN-A74-001",
+        ".agent/evidence/AAA-022/reader-migration-plan-a74.json",
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/verification.jsonl#VER-AAA-022-A03-AUTHORITY-A75-001",
+        ".agent/verification.jsonl#VER-AAA-022-A04-READER-INVENTORY-A75-001",
+        ".agent/evidence/AAA-022/reader-inventory-a75.json",
+        ".agent/verification.jsonl#VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001",
+        ".agent/evidence/AAA-022/w1-canonical-event-seam-a76.json",
+        ".agent/verification.jsonl#VER-AAA-022-A06-SESSION-LOG-READER-DESIGN-A77-001",
+        ".agent/evidence/AAA-022/session-log-reader-design-a77.json",
+        ".agent/gates/implementation-ready-AAA-022-A07.json",
+        ".agent/verification.jsonl#VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001",
+        ".agent/evidence/AAA-022/session-log-reader-implementation-a78.json",
+        ".agent/verification.jsonl#VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001",
+        ".agent/evidence/AAA-022/session-query-reader-design-a79.json",
+        ".agent/gates/implementation-ready-AAA-022-A09.json",
+        ".agent/verification.jsonl#VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001",
+        ".agent/evidence/AAA-022/session-query-reader-implementation-a80.json",
+        ".agent/verification.jsonl#VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001",
+        ".agent/evidence/AAA-022/session-projection-owner-design-a81.json",
+        ".agent/verification.jsonl#VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001",
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-design-a82.json",
+        ".agent/gates/implementation-ready-AAA-022-A12.json",
+        ".agent/verification.jsonl#VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001",
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-implementation-a83.json",
+        ".agent/verification.jsonl#VER-AAA-022-A12-CORRECTION-A83-002",
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-correction-a83.json",
+        ".agent/verification.jsonl#VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001",
+        ".agent/evidence/AAA-022/session-remaining-w1-disposition-design-a84.json",
+        ".agent/gates/implementation-ready-AAA-022-A14.json",
+        ".agent/verification.jsonl#VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001",
+        ".agent/evidence/AAA-022/session-invariant-baseline-implementation-a85.json",
+        ".agent/verification.jsonl#VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001",
+        ".agent/evidence/AAA-022/session-core-fork-own-events-design-a86.json",
+        ".agent/verification.jsonl#VER-AAA-022-A16-W1-SESSION-TELEMETRY-TITLE-DISPOSITION-A87-001",
+        ".agent/evidence/AAA-022/session-telemetry-title-disposition-design-a87.json",
+        ".agent/gates/implementation-ready-AAA-022-A17.json",
+        ".agent/evidence/AAA-022/session-title-provider-scope-reconciliation-a90.json",
+        ".agent/evidence/AAA-022/session-title-history-citation-implementation-a91.json",
+        ".agent/verification.jsonl#VER-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001",
+        ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json#GATE-AAA-022-IMPLEMENTATION-READY-A17-003",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-decision-a94.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        ".agent/verification.jsonl#VER-AAA-022-A18-W2-READER-DESIGN-A96-001",
+        ".agent/gates/implementation-ready-AAA-022-A19.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+        ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-TASK-001",
+        ".agent/verification.jsonl#VER-AAA-022-A19-GATE-BINDING-RECOVERY-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-GATE-CANONICAL-001",
+        ".agent/gates/implementation-ready-AAA-022-A19-canonical.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001",
+        ".agent/verification.jsonl#VER-AAA-022-A19-CANONICAL-GATE-001",
+        ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+        ".agent/verification.jsonl#VER-AAA-022-A19-CATALOG-DOCS-SCOPE-001",
+        ".agent/verification.jsonl#VER-AAA-022-A19-STATE-CHECK-002",
+        ".agent/verification.jsonl#VER-AAA-022-A19-DOC-SYNC-20260923-001",
+        ".agent/evidence/AAA-022/a19-closeout-20260923.json",
+        ".agent/evidence/AAA-022/a19-doc-quick-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-DOC-QUICK-20260923-002",
+        ".agent/verification.jsonl#VER-AAA-022-A19-IMPLEMENTATION-20260923-001",
+        ".agent/verification.jsonl#VER-AAA-022-A20-GATE-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A20-PREPUBLICATION-001",
+        ".agent/gates/implementation-ready-AAA-022-A20-prepared-pages.json#GATE-AAA-022-IMPLEMENTATION-READY-A20-PREPARED-PAGES-001",
+        ".agent/verification.jsonl#VER-AAA-022-A20-STATE-CHECK-001",
+        ".agent/verification.jsonl#VER-AAA-022-A20-IMPLEMENTATION-20260923-001",
+        ".agent/evidence/AAA-022/a20-closeout-20260923.json",
+        ".agent/evidence/AAA-022/a20-critic-review-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A20-STATE-CHECK-002",
+        ".agent/evidence/AAA-022/a20-state-check-post-closeout-20260923.txt",
+        ".agent/evidence/AAA-022/a20-a21-control-revalidation-20260923.json",
+        ".agent/evidence/AAA-022/context-reader-design-a21.json",
+        ".agent/evidence/AAA-022/context-reader-design-review-a21-round2.json",
+        ".agent/verification.jsonl#VER-AAA-022-A21-DESIGN-REVIEW-001",
+        ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-GATE-REVALIDATION-20260923-001",
+        ".agent/gates/audit-resolved-AAA-022-A19-scope-31.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-001",
+        ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-A22-CONTEXT-READERS-001",
+        ".agent/evidence/AAA-022/a22-closeout-20260923.json",
+        ".agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001",
+        ".agent/verification.jsonl#VER-AAA-022-A22-IMPLEMENTATION-20260923-001",
+        ".agent/evidence/AAA-022/a22-post-checkpoint-verification-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A22-POST-CHECKPOINT-20260923-001",
+        ".agent/evidence/AAA-022/a23-w2-owner-order-disposition-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A23-W2-OWNER-ORDER-DISPOSITION-20260923-001",
+        ".agent/evidence/AAA-022/interaction-reader-design-a24.json",
+        ".agent/evidence/AAA-022/interaction-reader-design-review-a24-final.json#REVIEW-AAA-022-A24-FINAL-001",
+        ".agent/verification.jsonl#VER-AAA-022-A24-DESIGN-REVIEW-001",
+        ".agent/verification.jsonl#VER-AAA-022-A24-STATE-CHECK-PRECHECKPOINT-001",
+        ".agent/evidence/AAA-022/a24-state-check-precheckpoint-20260923.txt",
+        ".agent/evidence/AAA-022/a24-state-check-postcheckpoint-20260923.txt",
+        ".agent/verification.jsonl#VER-AAA-022-A24-STATE-CHECK-POSTCHECKPOINT-001",
+        ".agent/verification.jsonl#VER-AAA-022-A25-PHASE-CLASSIFICATION-001",
+        ".agent/evidence/AAA-022/a24-state-check-postphase-correction-20260923.txt",
+        ".agent/verification.jsonl#VER-AAA-022-A24-STATE-CHECK-PHASE-REF-REPAIR-001",
+        ".agent/evidence/AAA-022/a24-state-check-poststate-refresh-20260923.txt",
+        ".agent/verification.jsonl#VER-AAA-022-A24-STATE-CHECK-FINAL-001",
+        ".agent/evidence/AAA-022/a19-scope-31-current-revalidation-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-31-CURRENT-REVALIDATION-002",
+        ".agent/verification.jsonl#VER-AAA-022-DOC-SYNC-CURRENT-20260923-002",
+        ".agent/gates/audit-resolved-AAA-022-A19-scope-31-current.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-003",
+        ".agent/verification.jsonl#VER-AAA-022-A19-STATE-CHECK-CURRENT-20260923-001",
+        ".agent/evidence/AAA-022/a19-scope-31-current-state-check-final-20260923.txt",
+        ".agent/evidence/AAA-022/a19-scope-31-current-state-check-postcheckpoint-20260923.txt",
+        ".agent/evidence/AAA-022/a19-scope-34-current-revalidation-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-CURRENT-REVALIDATION-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-001",
+        ".agent/gates/audit-resolved-AAA-022-A19-scope-34-current.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-002",
+        ".agent/execution-log.jsonl#EVT-AAA-022-GATE-A19-SCOPE-34-CURRENT-002-110",
+        ".agent/evidence/AAA-022/a19-scope-34-gate-draft-correction-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-STATE-CHECK-SCOPE-34-20260923-001",
+        ".agent/evidence/AAA-022/a19-scope-34-current-state-check-postcheckpoint-20260923.txt",
+        ".agent/evidence/AAA-022/a19-scope-34-current-state-check-poststate-checkpoint-20260923.txt",
+        ".agent/execution-log.jsonl#EVT-AAA-022-CHECKPOINT-A19-STATE-CHECK-SCOPE-34-001-113",
+        ".agent/evidence/AAA-022/a19-scope-34-fingerprint-refresh-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-FINGERPRINT-REFRESH-20260923-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-REFRESH-002",
+        ".agent/gates/audit-resolved-AAA-022-A19-scope-34-fingerprint-refresh.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-REFRESH-002",
+        ".agent/execution-log.jsonl#EVT-AAA-022-GATE-A19-SCOPE-34-REFRESH-002-114",
+        ".agent/verification.jsonl#VER-AAA-022-A19-STATE-CHECK-SCOPE-34-REFRESH-20260923-001",
+        ".agent/evidence/AAA-022/a19-scope-34-refresh-state-check-postcheckpoint-20260923.txt",
+        ".agent/evidence/AAA-022/a19-scope-34-refresh-state-check-poststate-checkpoint-20260923.txt",
+        ".agent/execution-log.jsonl#EVT-AAA-022-CHECKPOINT-A19-STATE-CHECK-34-REFRESH-001-116",
+        ".agent/evidence/AAA-022/interaction-reader-design-review-a24-current-20260923.json#REVIEW-AAA-022-A24-CURRENT-002",
+        ".agent/verification.jsonl#VER-AAA-022-A24-DESIGN-REVIEW-CURRENT-002",
+        ".agent/evidence/AAA-022/a25-gate-draft-correction-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A25-GATE-ROLLBACK-STATE-CHECK-001",
+        ".agent/execution-log.jsonl#EVT-AAA-022-CHECKPOINT-A25-GATE-ROLLBACK-STATE-CHECK-001-117",
+        ".agent/execution-log.jsonl#EVT-AAA-022-CHECKPOINT-A25-AUTHORITY-ORDER-001-118",
+        ".agent/authority.jsonl#AUTH-AAA-022-A25-INTERACTION-READERS-002",
+        ".agent/evidence/AAA-022/interaction-reader-design-review-a24-postcheckpoint-20260923.json#REVIEW-AAA-022-A24-POSTCHECKPOINT-003",
+        ".agent/evidence/AAA-022/a25-implementation-gate-fingerprint-20260923.json",
+        ".agent/gates/implementation-ready-AAA-022-A25-interaction-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-A25-INTERACTION-READERS-002",
+        ".agent/execution-log.jsonl#EVT-AAA-022-GATE-A25-INTERACTION-INVARIANTS-002-119",
+        ".agent/execution-log.jsonl#EVT-AAA-022-CHECKPOINT-A25-GATE-PASS-001-120",
+        ".agent/evidence/AAA-022/a26-interaction-reader-implementation-20260923.json",
+        ".agent/evidence/AAA-022/a26-interaction-reader-review-20260923.json#REVIEW-AAA-022-A26-INTERACTION-READERS-001",
+        ".agent/verification.jsonl#VER-AAA-022-A26-IMPLEMENTATION-20260923-001",
+        ".agent/gates/implementation-ready-AAA-022-A26-consumer-tests.json#GATE-AAA-022-IMPLEMENTATION-READY-A26-CONSUMER-TESTS-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A26-CONSUMER-TESTS-001",
+        ".agent/evidence/AAA-022/a26-consumer-test-scope-authorization-20260923.json",
+        ".agent/evidence/AAA-022/a26-consumer-test-gate-fingerprint-20260923.json",
+        ".agent/evidence/AAA-022/a26-consumer-test-verification-20260923.json",
+        ".agent/evidence/AAA-022/a26-consumer-preclose-state-check-20260923.txt",
+        ".agent/evidence/AAA-022/a26-consumer-final-state-check-20260923.txt",
+        ".agent/verification.jsonl#VER-AAA-022-A26-AGGREGATE-BLOCKED-20260923-001",
+        ".agent/evidence/AAA-022/a27-aggregate-scope-inventory-20260924.json",
+        ".agent/evidence/AAA-022/a27-aaa023-wait-pointer-reconciliation-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-A27-AAA023-WAIT-POINTER-RECONCILIATION-001",
+        ".agent/evidence/AAA-022/a27-state-tail-binding-reconciliation-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-A27-TAIL-BINDING-RECONCILIATION-001",
+        ".agent/evidence/AAA-022/a27-aggregate-scope-design-004-20260924.json",
+        ".agent/evidence/AAA-022/a27-customization-policy-candidate-004-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-A27-SCOPE-REVIEW-20260924-001",
+        ".agent/evidence/AAA-022/a27-aggregate-remediation-gate-fingerprint-20260924.json",
+        ".agent/gates/implementation-ready-AAA-022-A27-aggregate-remediation.json#GATE-AAA-022-IMPLEMENTATION-READY-A27-AGGREGATE-REMEDIATION-001",
+        ".agent/evidence/AAA-022/a27-aggregate-remediation-verification-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-A27-AGGREGATE-REMEDIATION-20260924-001",
+        ".agent/evidence/AAA-022/a27-state-baseline-disposition-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-A27-STATE-BASELINE-DISPOSITION-20260924-001",
+        ".agent/evidence/AAA-022/a27-state-baseline-retention-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-A27-STATE-BASELINE-RETENTION-20260924-001",
+        ".agent/evidence/AAA-022/a27-state-check-retention-pretransition-20260924.txt",
+        ".agent/verification.jsonl#VER-AAA-022-A27-STATE-BASELINE-POST-TRANSITION-20260924-001",
+        ".agent/evidence/AAA-022/a27-state-check-post-retention-20260924.txt",
+        ".agent/evidence/AAA-022/schedule-reader-design-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-fingerprint-revalidation-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-design-review-w2-20260924.json#REVIEW-AAA-022-W2-SCHEDULE-INITIAL-20260924-001",
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-review-w2-20260924.json#REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-20260924-001",
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-2-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-2-review-w2-20260924.json#REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-2-20260924-001",
+        ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-2-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-review-w2-20260924.json#REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-3-20260924-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-INITIAL-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-2-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-3-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-READERS-001",
+        ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json",
+        ".agent/gates/implementation-ready-AAA-022-W2-schedule-readers.json",
+        ".agent/evidence/AAA-022/schedule-reader-implementation-gate-validation-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-20260924-001",
+        ".agent/evidence/AAA-022/w2-projection-spec-predecessor-failure-20260924.txt",
+        ".agent/evidence/AAA-022/schedule-reader-preparation-successor-design-review-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-preparation-successor-policy-validation-20260924.json",
+        ".agent/evidence/AAA-022/schedule-reader-preparation-successor-fingerprint-20260924.json",
+        ".agent/gates/implementation-ready-AAA-022-W2-schedule-preparation-successor.json",
+        ".agent/evidence/AAA-022/schedule-reader-preparation-successor-gate-validation-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-PROJECTION-SPEC-BASELINE-20260924-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-DESIGN-REVIEW-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-POLICY-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-GATE-20260924-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-POSTGATE-POLICY-20260924-001",
+        ".agent/evidence/AAA-022/w2-successor-policy-postgate-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-STATE-BASELINE-20260924-001",
+        ".agent/evidence/AAA-022/w2-successor-state-baseline-20260924.txt",
+        ".agent/evidence/AAA-022/w2-schedule-preparation-final-review-20260924.json",
+        ".agent/evidence/AAA-022/w2-schedule-preparation-final-verification-20260924.json",
+        ".agent/evidence/AAA-022/w2-schedule-preparation-scope-integrity-20260924.json",
+        ".agent/evidence/AAA-022/w2-schedule-preparation-doc-sync-20260924.txt",
+        ".agent/evidence/AAA-022/w2-schedule-preparation-final-state-check-20260924.txt",
+        ".agent/evidence/AAA-022/w2-schedule-preparation-policy-final-20260924.txt",
+        ".agent/evidence/AAA-022/w2-schedule-preparation-policy-post-control-20260924.txt",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-IMPLEMENTATION-20260924-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-DOC-SYNC-20260924-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-FINAL-POLICY-20260924-001",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-REVIEW-20260924-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-W2-CORE-TOOLS-001",
+        ".agent/gates/implementation-ready-AAA-022-W2-core-tools.json#GATE-AAA-022-IMPLEMENTATION-READY-W2-CORE-TOOLS-001",
+        ".agent/evidence/AAA-022/core-tools-invariant-design-w2-20260924.json",
+        ".agent/evidence/AAA-022/core-tools-invariant-design-review-w2-20260924.json",
+        ".agent/evidence/AAA-022/core-tools-gate-fingerprint-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-CORE-TOOLS-GATE-20260924-001",
+        ".agent/execution-log.jsonl#EVT-AAA-022-GATE-W2-CORE-TOOLS-IMPLEMENTATION-READY-001-149",
+        ".agent/evidence/AAA-022/core-tools-gate-policy-postbind-20260924.txt",
+        ".agent/evidence/AAA-022/core-tools-gate-state-check-20260924.txt",
+        ".agent/evidence/AAA-022/core-tools-gate-binding-correction-20260924.json",
+        ".agent/evidence/AAA-022/core-tools-implementation-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-CORE-TOOLS-IMPLEMENTATION-20260924-001",
+        ".agent/execution-log.jsonl#EVT-AAA-022-CHECKPOINT-W2-CORE-TOOLS-IMPLEMENTATION-COMPLETE-001-150",
+        ".agent/evidence/AAA-022/core-tools-post-checkpoint-state-check-20260924.txt",
+        ".agent/verification.jsonl#VER-AAA-022-W2-CORE-TOOLS-POST-CHECKPOINT-STATE-20260924-001",
+        ".agent/execution-log.jsonl#EVT-AAA-022-TEST-W2-CORE-TOOLS-POST-CHECKPOINT-STATE-001-151"
+      ],
       "next_action": {
-        "id": "AAA-022:A01",
-        "kind": "INSPECT",
-        "summary": "Create owner-grouped inventories for deprecated readers, suppressions, correctness rules, and compiler relaxations",
-        "target": "canonical metrics output and affected package owners",
-        "completion_signal": "Each migration wave has a bounded owner, behavior risk, dependencies, and focused checks"
+        "id": "AAA-022:A24",
+        "kind": "DESIGN",
+        "summary": "Design the next W2 interaction-owned current-event and synchronous-invariant migrations",
+        "target": "REM-028-S041 through REM-028-S046 in packages/interaction/commands, permission-presets, and user-approval",
+        "completion_signal": "Each site has an owner projection or delivered-event decision, exact lifecycle and pre-commit behavior, restore/fork/cancellation/teardown expectations, owned falsifiers, and an exact implementation path set before any implementation gate."
       },
+      "last_gate_record": ".agent/gates/implementation-ready-AAA-022-W2-core-tools.json",
       "solutionType": "upstream-package-change",
-      "quality_bar_refs": ["AAA-QB-08"],
+      "quality_bar_refs": [
+        "AAA-QB-08"
+      ],
       "risk": "MEDIUM",
-      "humanDecision": "Approve rule adoption and compiler-default changes after probes expose their compatibility cost"
+      "humanDecision": "Confirmed for REM-028 W0-W4: use the reconciled 81-call/56-file production corpus, execute W1-W4 in owner order, and authorize bounded async reader, projection, and pre-commit seams. Broad lint/compiler defaults remain pending separate probes. User decision 2026-09-24: retain FAIL-358; do not edit historical state records. User-authorized W2 successor: implement the exact 29-path preparation and Schedule fixture/docs scope under GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-PREPARATION-SUCCESSOR-001; preserve 6 verification-only paths, 3 protected exclusions, FAIL-358, A28, and all external-action exclusions."
     },
     {
       "id": "AAA-023",
       "title": "Qualify one immutable release candidate",
-      "stage": "AUDIT",
+      "stage": "BUILD",
       "priority": "CRITICAL",
-      "status": "TODO",
+      "status": "BLOCKED",
       "origin": "User AAA objective; both audits' missing release evidence",
-      "dependencies": ["AAA-002", "AAA-003", "AAA-004", "AAA-005", "AAA-006", "AAA-007", "AAA-008", "AAA-010", "AAA-011", "AAA-012", "AAA-013", "AAA-014", "AAA-015", "AAA-016", "AAA-017", "AAA-018", "AAA-019", "AAA-020", "AAA-021", "AAA-022"],
+      "dependencies": [
+        "AAA-002",
+        "AAA-003",
+        "AAA-004",
+        "AAA-005",
+        "AAA-006",
+        "AAA-007",
+        "AAA-008",
+        "AAA-010",
+        "AAA-011",
+        "AAA-012",
+        "AAA-013",
+        "AAA-014",
+        "AAA-015",
+        "AAA-016",
+        "AAA-017",
+        "AAA-018",
+        "AAA-019",
+        "AAA-020",
+        "AAA-021",
+        "AAA-022"
+      ],
       "owner": "Release qualification integrator",
       "acceptance_summary": "One immutable candidate has current evidence for AAA-QB-01 through AAA-QB-13, including aggregate gates, coverage, snapshots, Web, benchmarks, packed install, real-provider behavior, required platforms, documentation, and upstream update rehearsal",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-023-A01-SCOUT-001",
+        ".agent/evidence/AAA-023/scout-a01.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-CHECK-ALL-001",
+        ".agent/evidence/AAA-023/check-all-a01.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-CHECK-ALL-002",
+        ".agent/evidence/AAA-023/check-all-a02.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A05",
+        ".agent/evidence/AAA-023/qualification-a05.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A06",
+        ".agent/evidence/AAA-023/qualification-a06.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A07",
+        ".agent/evidence/AAA-023/qualification-a07.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A08",
+        ".agent/evidence/AAA-023/qualification-a08.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A09",
+        ".agent/evidence/AAA-023/qualification-a09.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A10",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A11",
+        ".agent/evidence/AAA-023/qualification-a11.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-DECISION-PACKAGE-A12",
+        ".agent/evidence/AAA-023/decision-package-a12.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+        ".agent/verification.jsonl#VER-AAA-023-A01-SECURITY-ASSURANCE-A13",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A15",
+        ".agent/evidence/AAA-023/qualification-a15.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-QUALIFICATION-A16-RESTORED-A18",
+        ".agent/evidence/AAA-023/qualification-a16.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-PREFLIGHT-A24-001",
+        ".agent/evidence/AAA-023/preflight-a24.json",
+        ".agent/verification.jsonl#VER-AAA-023-A01-CHECK-ALL-A25-001",
+        ".agent/evidence/AAA-023/check-all-a25.json",
+        ".agent/verification.jsonl#VER-AAA-023-A02-DIAGNOSIS-A26-001",
+        ".agent/evidence/AAA-023/diagnosis-a26.json",
+        ".agent/gates/implementation-ready-AAA-023.json",
+        ".agent/verification.jsonl#VER-AAA-023-A03-IMPLEMENTATION-A27-001",
+        ".agent/evidence/AAA-023/implementation-a27.json",
+        ".agent/verification.jsonl#VER-AAA-023-A04-CHECK-ALL-A28-001",
+        ".agent/evidence/AAA-023/check-all-a28.json",
+        ".agent/evidence/AAA-023/diagnosis-a29.json",
+        ".agent/verification.jsonl#VER-AAA-023-A05-DIAGNOSIS-A29-001",
+        ".agent/gates/implementation-ready-AAA-023-A06.json",
+        ".agent/evidence/AAA-023/implementation-a30.json",
+        ".agent/verification.jsonl#VER-AAA-023-A06-IMPLEMENTATION-A30-001",
+        ".agent/evidence/AAA-023/diagnosis-a31.json",
+        ".agent/gates/implementation-ready-AAA-023-A07.json",
+        ".agent/evidence/AAA-023/implementation-a32.json",
+        ".agent/verification.jsonl#VER-AAA-023-A07-IMPLEMENTATION-A32-001",
+        ".agent/evidence/AAA-023/check-all-a33.json",
+        ".agent/verification.jsonl#VER-AAA-023-A08-CHECK-ALL-A33-001",
+        ".agent/evidence/AAA-023/diagnosis-a34.json",
+        ".agent/verification.jsonl#VER-AAA-023-A09-DIAGNOSIS-A34-001",
+        ".agent/gates/implementation-ready-AAA-023-A10.json",
+        ".agent/evidence/AAA-023/implementation-a35.json",
+        ".agent/verification.jsonl#VER-AAA-023-A10-IMPLEMENTATION-A35-001",
+        ".agent/evidence/AAA-023/diagnosis-a36.json",
+        ".agent/verification.jsonl#VER-AAA-023-A11-DIAGNOSIS-A36-001",
+        ".agent/gates/implementation-ready-AAA-023-A12.json",
+        ".agent/evidence/AAA-023/implementation-a37.json",
+        ".agent/verification.jsonl#VER-AAA-023-A12-IMPLEMENTATION-A37-001",
+        ".agent/evidence/AAA-023/check-all-a38.json",
+        ".agent/verification.jsonl#VER-AAA-023-A13-CHECK-ALL-A38-001",
+        ".agent/evidence/AAA-023/test-serial-a39.json",
+        ".agent/verification.jsonl#VER-AAA-023-A14-SERIAL-TEST-A39-001",
+        ".agent/verification.jsonl#VER-AAA-023-A15-CANDIDATE-QUALIFICATION-A45-001",
+        ".agent/evidence/AAA-023/candidate-qualification-a45.json",
+        ".agent/verification.jsonl#VER-AAA-023-A16-COVERAGE-A46-001",
+        ".agent/evidence/AAA-023/coverage-a46.json",
+        ".agent/verification.jsonl#VER-AAA-023-A16-COVERAGE-A47-001",
+        ".agent/evidence/AAA-023/coverage-a47.json",
+        ".agent/verification.jsonl#VER-AAA-023-A17-CHECK-ALL-A48-001",
+        ".agent/evidence/AAA-023/check-all-a48.json",
+        ".agent/verification.jsonl#VER-AAA-023-A17-CHECK-ALL-A49-001",
+        ".agent/evidence/AAA-023/check-all-a49.json",
+        ".agent/verification.jsonl#VER-AAA-023-A18-COVERAGE-A50-001",
+        ".agent/evidence/AAA-023/coverage-a50.json",
+        ".agent/verification.jsonl#VER-AAA-023-A18-COVERAGE-A51-001",
+        ".agent/evidence/AAA-023/coverage-a51.json",
+        ".agent/verification.jsonl#VER-AAA-023-A19-CHECK-ALL-A52-001",
+        ".agent/evidence/AAA-023/check-all-a52.json",
+        ".agent/verification.jsonl#VER-AAA-023-A20-BENCHMARK-A53-001",
+        ".agent/evidence/AAA-023/benchmark-a53.json",
+        ".agent/verification.jsonl#VER-AAA-023-A21-BENCHMARK-A54-001",
+        ".agent/evidence/AAA-023/benchmark-a54.json",
+        ".agent/verification.jsonl#VER-AAA-023-A22-PACKED-INSTALL-A55-001",
+        ".agent/evidence/AAA-023/packed-install-a55.json",
+        ".agent/verification.jsonl#VER-AAA-023-A23-REQUALIFICATION-A56-001",
+        ".agent/evidence/AAA-023/qualification-a56.json",
+        ".agent/verification.jsonl#VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+        ".agent/evidence/AAA-023/upstream-rehearsal-a57.json",
+        ".agent/verification.jsonl#VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001",
+        ".agent/evidence/AAA-023/upstream-diagnosis-a58.json",
+        ".agent/verification.jsonl#VER-AAA-023-A26-UPSTREAM-DISPOSITION-A59-001",
+        ".agent/evidence/AAA-023/upstream-disposition-a59.json",
+        ".agent/verification.jsonl#VER-AAA-023-A27-CANDIDATE-EXCLUSION-PREFLIGHT-A60-001",
+        ".agent/evidence/AAA-023/successor-preflight-a60.json",
+        ".agent/verification.jsonl#VER-AAA-023-A27-POLICY-SUCCESSOR-PREFLIGHT-A61-001",
+        ".agent/evidence/AAA-023/policy-successor-preflight-a61.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-A27-POLICY-DISPOSITION-A62-001",
+        ".agent/gates/implementation-ready-AAA-023-A27.json",
+        ".agent/verification.jsonl#VER-AAA-023-A27-AUTHORIZATION-A62-001",
+        ".agent/verification.jsonl#VER-AAA-023-A28-LOCAL-MATRIX-A63-001",
+        ".agent/evidence/AAA-023/qualification-a28.json",
+        ".agent/verification.jsonl#VER-AAA-023-A29-UPSTREAM-REHEARSAL-A64-001",
+        ".agent/evidence/AAA-023/upstream-rehearsal-a64.json",
+        ".agent/verification.jsonl#VER-AAA-023-A30-UPSTREAM-CONFLICT-DISPOSITION-A65-001",
+        ".agent/evidence/AAA-023/upstream-conflict-disposition-a65.json",
+        ".agent/verification.jsonl#VER-AAA-023-A31-UPSTREAM-UPDATEABILITY-DISPOSITION-A66-001",
+        ".agent/evidence/AAA-023/upstream-updateability-a66.json",
+        ".agent/verification.jsonl#VER-AAA-023-A32-ACCEPTANCE-GAP-RECONCILIATION-A67-001",
+        ".agent/evidence/AAA-023/acceptance-gap-reconciliation-a67.json",
+        ".agent/verification.jsonl#VER-AAA-023-A33-CANDIDATE-IDENTITY-A68-001",
+        ".agent/evidence/AAA-023/candidate-identity-a68.json",
+        ".agent/verification.jsonl#VER-AAA-023-A34-LOCAL-READINESS-A69-001",
+        ".agent/evidence/AAA-023/local-readiness-a69.json",
+        ".agent/verification.jsonl#VER-AAA-023-A35-EXTERNAL-LANE-ROUTING-A70-001",
+        ".agent/evidence/AAA-023/external-lane-routing-a70.json",
+        ".agent/verification.jsonl#VER-AAA-023-A36-CONTROL-PLANE-RESIDUE-A71-001",
+        ".agent/evidence/AAA-023/control-plane-residue-a71.json",
+        ".agent/verification.jsonl#VER-AAA-023-A36-EXTERNAL-LANE-STATUS-A72-001",
+        ".agent/evidence/AAA-023/external-lane-status-a72.json",
+        ".agent/verification.jsonl#VER-AAA-023-A37-CANDIDATE-TRACEABILITY-A73-001",
+        ".agent/evidence/AAA-023/candidate-traceability-a73.json",
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/verification.jsonl#VER-AAA-022-A04-READER-INVENTORY-A75-001",
+        ".agent/evidence/AAA-022/reader-inventory-a75.json",
+        ".agent/verification.jsonl#VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001",
+        ".agent/evidence/AAA-022/w1-canonical-event-seam-a76.json",
+        ".agent/verification.jsonl#VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001",
+        ".agent/evidence/AAA-022/session-log-reader-implementation-a78.json",
+        ".agent/verification.jsonl#VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001",
+        ".agent/evidence/AAA-022/session-query-reader-design-a79.json",
+        ".agent/gates/implementation-ready-AAA-022-A09.json",
+        ".agent/verification.jsonl#VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001",
+        ".agent/evidence/AAA-022/session-query-reader-implementation-a80.json",
+        ".agent/verification.jsonl#VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001",
+        ".agent/evidence/AAA-022/session-projection-owner-design-a81.json",
+        ".agent/verification.jsonl#VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001",
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-design-a82.json",
+        ".agent/gates/implementation-ready-AAA-022-A12.json",
+        ".agent/verification.jsonl#VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001",
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-implementation-a83.json",
+        ".agent/verification.jsonl#VER-AAA-022-A12-CORRECTION-A83-002",
+        ".agent/evidence/AAA-022/session-projection-baseline-handoff-correction-a83.json",
+        ".agent/verification.jsonl#VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001",
+        ".agent/evidence/AAA-022/session-remaining-w1-disposition-design-a84.json",
+        ".agent/gates/implementation-ready-AAA-022-A14.json",
+        ".agent/verification.jsonl#VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001",
+        ".agent/evidence/AAA-022/session-invariant-baseline-implementation-a85.json",
+        ".agent/verification.jsonl#VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001",
+        ".agent/evidence/AAA-022/session-core-fork-own-events-design-a86.json",
+        ".agent/evidence/AAA-022/a27-aaa023-wait-pointer-reconciliation-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-A27-AAA023-WAIT-POINTER-RECONCILIATION-001",
+        ".agent/gates/implementation-ready-AAA-022-W2-schedule-readers.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-20260924-001",
+        ".agent/evidence/AAA-023/m01-broker-isolation-human-decision-20260924.json",
+        ".agent/execution-log.jsonl#EVT-AAA-022-CHECKPOINT-W2-SCHEDULE-PREPARATION-CLOSEOUT-001-148"
+      ],
       "next_action": {
-        "id": "AAA-023:A01",
-        "kind": "RUN",
-        "summary": "Execute the release matrix on the sealed candidate and record every executed, skipped, blocked, and failed lane",
-        "target": "AAA-QB-v1.4 criteria AAA-QB-01 through AAA-QB-13 and required CI jobs",
-        "completion_signal": "Every required criterion has current same-SHA evidence and no subject silently skips"
+        "id": "AAA-023:A38",
+        "kind": "WAIT",
+        "summary": "Wait for AAA-022 to complete aggregate remediation and record current qualification evidence",
+        "target": "AAA-022:W2-CORE-TOOLS-DESIGN; AAA-022 must complete aggregate remediation and record current qualification evidence, or a separately authorized qualification action must bind a current immutable candidate.",
+        "completion_signal": "AAA-022 is DONE with current aggregate evidence, or a successor-candidate qualification action is explicitly authorized against a current immutable candidate."
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-01", "AAA-QB-02", "AAA-QB-03", "AAA-QB-04", "AAA-QB-05", "AAA-QB-06", "AAA-QB-07", "AAA-QB-08", "AAA-QB-09", "AAA-QB-10", "AAA-QB-11", "AAA-QB-12", "AAA-QB-13"],
-      "risk": "HIGH"
+      "quality_bar_refs": [
+        "AAA-QB-01",
+        "AAA-QB-02",
+        "AAA-QB-03",
+        "AAA-QB-04",
+        "AAA-QB-05",
+        "AAA-QB-06",
+        "AAA-QB-07",
+        "AAA-QB-08",
+        "AAA-QB-09",
+        "AAA-QB-10",
+        "AAA-QB-11",
+        "AAA-QB-12",
+        "AAA-QB-13"
+      ],
+      "risk": "HIGH",
+      "last_gate_record": ".agent/gates/implementation-ready-AAA-023-A27.json"
     },
     {
       "id": "AAA-024",
@@ -541,10 +1314,17 @@
       "priority": "CRITICAL",
       "status": "TODO",
       "origin": "User AAA objective and Gauntlet final-critic requirement",
-      "dependencies": ["AAA-023"],
+      "dependencies": [
+        "AAA-023"
+      ],
       "owner": "Fresh-context critic and quality program integrator",
       "acceptance_summary": "A sealed read-only critic reproduces decisive evidence, the candidate mutation sentinel remains unchanged, a dated documentation-only attestation binds PASS to the candidate commit and evidence-index digest, and no material gap or accepted HIGH risk remains",
-      "evidence_refs": [],
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-024-A01-PREFLIGHT-001",
+        ".agent/evidence/AAA-024/preflight-a01.json",
+        ".agent/verification.jsonl#VER-AAA-024-A01-PROVISIONAL-REAUDIT-A14",
+        ".agent/evidence/AAA-024/provisional-reaudit-a14.json"
+      ],
       "next_action": {
         "id": "AAA-024:A01",
         "kind": "REVIEW",
@@ -553,8 +1333,277 @@
         "completion_signal": "The critic returns PASS with an unchanged candidate fingerprint, and the documentation-only attestation records that candidate commit, evidence-index digest, and unconditional verdict"
       },
       "solutionType": "repository-automation",
-      "quality_bar_refs": ["AAA-QB-14"],
+      "quality_bar_refs": [
+        "AAA-QB-14"
+      ],
       "risk": "HIGH"
     }
-  ]
+  ],
+  "remediation_index": {
+    "authority": "REM status is read only from the referenced canonical AAA item(s) in items; this crosswalk contains no independent status inventory.",
+    "source": "docs/audits/backlog-remediacao-2026-09-21.md",
+    "entries": [
+      {
+        "id": "REM-001",
+        "audit": "AUD-001",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-002",
+        "audit": "AUD-002",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-003",
+        "audit": "AUD-003",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-004",
+        "audit": "AUD-004",
+        "canonical_tasks": [
+          "AAA-004"
+        ]
+      },
+      {
+        "id": "REM-005",
+        "audit": "AUD-005",
+        "canonical_tasks": [
+          "AAA-021",
+          "AAA-022",
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-006",
+        "audit": "AUD-006",
+        "canonical_tasks": [
+          "AAA-015"
+        ]
+      },
+      {
+        "id": "REM-007",
+        "audit": "AUD-007",
+        "canonical_tasks": [
+          "AAA-014"
+        ]
+      },
+      {
+        "id": "REM-008",
+        "audit": "AUD-008",
+        "canonical_tasks": [
+          "AAA-012"
+        ]
+      },
+      {
+        "id": "REM-009",
+        "audit": "AUD-009",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-010",
+        "audit": "AUD-010",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-011",
+        "audit": "AUD-011",
+        "canonical_tasks": [
+          "AAA-009"
+        ]
+      },
+      {
+        "id": "REM-012",
+        "audit": "AUD-012",
+        "canonical_tasks": [
+          "AAA-019"
+        ]
+      },
+      {
+        "id": "REM-013",
+        "audit": "AUD-013",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-014",
+        "audit": "AUD-014",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-015",
+        "audit": "AUD-015",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-016",
+        "audit": "AUD-016",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-017",
+        "audit": "AUD-017",
+        "canonical_tasks": [
+          "AAA-020"
+        ]
+      },
+      {
+        "id": "REM-018",
+        "audit": "AUD-018",
+        "canonical_tasks": [
+          "AAA-010"
+        ]
+      },
+      {
+        "id": "REM-019",
+        "audit": "AUD-019",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-020",
+        "audit": "AUD-020",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-021",
+        "audit": "AUD-021",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-022",
+        "audit": "AUD-022",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-023",
+        "audit": "AUD-023",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-024",
+        "audit": "AUD-024",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-025",
+        "audit": "AUD-025",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-026",
+        "audit": "AUD-026",
+        "canonical_tasks": [
+          "AAA-023"
+        ]
+      },
+      {
+        "id": "REM-027",
+        "audit": "AUD-027",
+        "canonical_tasks": [
+          "AAA-001"
+        ]
+      },
+      {
+        "id": "REM-028",
+        "audit": "AUD-028",
+        "canonical_tasks": [
+          "AAA-022"
+        ]
+      },
+      {
+        "id": "REM-029",
+        "audit": "AUD-029",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-030",
+        "audit": "AUD-030",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-031",
+        "audit": "AUD-031",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-032",
+        "audit": "AUD-032",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-033",
+        "audit": "AUD-033",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-034",
+        "audit": "AUD-034",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-035",
+        "audit": "AUD-035",
+        "canonical_tasks": [
+          "AAA-022"
+        ]
+      },
+      {
+        "id": "REM-036",
+        "audit": "AUD-036",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      },
+      {
+        "id": "REM-037",
+        "audit": "AUD-037",
+        "canonical_tasks": [
+          "AAA-018"
+        ]
+      }
+    ]
+  }
 }

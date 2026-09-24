@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-017",
+  "action_id": "AAA-017:A02",
+  "candidate_ref": "current custom/main worktree",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T22:24:27-03:00",
+  "source_documents": [
+    {
+      "id": "mirror-audit",
+      "location": "docs/customization/repository-audit-2026-09-20.md:110",
+      "role": "The audit identifies that official-mirror equality is required but unenforced."
+    },
+    {
+      "id": "mirror-workflow",
+      "location": ".github/workflows/customization-policy.yml:16-22",
+      "role": "The workflow now invokes the verifier with official-mirror enforcement."
+    },
+    {
+      "id": "mirror-standard",
+      "location": "docs/customization/upstream-safe-customization.md:7,76",
+      "role": "The written fork topology and workflow command require exact official equality before attribution."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-017-OFFICIAL-MIRROR-UNENFORCED",
+      "source_refs": ["mirror-audit", "mirror-workflow", "mirror-standard"],
+      "source_location": ".github/workflows/customization-policy.yml:22",
+      "observed_status": "RESOLVED",
+      "classification": "OFFICIAL_MIRROR_EXACT_EQUALITY_ENFORCED",
+      "owner": "AAA-017",
+      "severity": "CRITICAL",
+      "summary": "The verifier now fetches the configured official branch and rejects missing or divergent mirror commits before custom-delta attribution.",
+      "limitations": "The workflow-equivalent command passed against the current public remote; GitHub Actions dispatch and a deliberately divergent remote were not executed. Offline fixtures cover the pure mismatch rule."
+    }
+  ],
+  "implementation": {
+    "changes": [
+      "Export validateMirrorIdentity with matching, mismatched, and missing-ref diagnostics.",
+      "Add --require-official-mirror to verify-customization-policy.mjs; it validates the configured official URL, fetches the configured mirror branch, and compares exact commit IDs.",
+      "Invoke official-mirror enforcement in the customization-policy workflow before attribution.",
+      "Update paired upstream-topology documentation and add a bilingual implemented Agent Note."
+    ],
+    "policy_owner": ".agents/customization-policy.json:upstream-safe-customization-governance",
+    "runtime_change": false,
+    "durable_session_change": false
+  },
+  "validation": {
+    "commands": [
+      "pnpm exec vitest run scripts/verify-customization-policy.spec.ts",
+      "node --input-type=module -e import validateMirrorIdentity and exercise matching, mismatched, and missing fixtures",
+      "node scripts/verify-customization-policy.mjs --base origin/master --require-official-mirror",
+      "pnpm run verify-translation-pairing docs/customization/upstream-safe-customization.md docs/customization/repository-configuration-report.md .agents/notes/implemented/bug-fix/2026-09-20-upstream-mirror-workflow-equality.md",
+      "pnpm run verify-agent-note-format",
+      "git diff --check"
+    ],
+    "raw_output_files": [
+      ".artifacts/aaa-017/aaa-017-a02-2026-09-20/focused-policy.log",
+      ".artifacts/aaa-017/aaa-017-a02-2026-09-20/mirror-fixtures.log",
+      ".artifacts/aaa-017/aaa-017-a02-2026-09-20/workflow-equivalent.log",
+      ".artifacts/aaa-017/aaa-017-a02-2026-09-20/docs-note-pairing.log",
+      ".artifacts/aaa-017/aaa-017-a02-2026-09-20/note-format.log",
+      ".artifacts/aaa-017/aaa-017-a02-2026-09-20/diff-check.log"
+    ],
+    "raw_output_sha256": {
+      "focused-policy.log": "3dccddf5c251ca470ba8043f3f746d9c76928c0e53620060911b62ee4290efc3",
+      "mirror-fixtures.log": "879f0c715fb3fabb01b258c1ff64b0453756b8f860a78fa65f3a1b87453f193b",
+      "workflow-equivalent.log": "c579a6656ecde52a5792ef25eff96a3cccd02772f8f8192359ad83a84f1a52e5",
+      "docs-note-pairing.log": "a39795463576147e1def06f8a2fdc40d80dc6cff1382aaf8aac4c81defd78df9",
+      "note-format.log": "958632a29c7dd853f3d8d7b8503774be3e62d99c29bef64b07bd2c32dcf887b4",
+      "diff-check.log": "f15e272db1df9395716cc6c9451d6ec887a90f7264f91b639e60886b3df17b56"
+    },
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T22:24:27-03:00"
+  },
+  "decision": {
+    "result": "AAA-017:A02 PASS — official-mirror equality is enforced before custom-delta attribution",
+    "product_change": true,
+    "diagnosis": "The workflow now derives the official remote from the policy record, fetches its mirror branch, compares exact commit IDs, and retains the existing attribution verifier as the following check.",
+    "next_action": "Complete AAA-017 after the state transition and retain the platform limitation that GitHub Actions itself was not dispatched locally."
+  }
+}

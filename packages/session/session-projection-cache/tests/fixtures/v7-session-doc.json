@@ -1,0 +1,24 @@
+{
+  "version": 7,
+  "record": {
+    "identity": {
+      "formatVersion": 3,
+      "createdAt": 1788286864454,
+      "cwd": "/tmp",
+      "isSeeded": false,
+      "inheritedEventCount": 0
+    },
+    "rows": {
+      "title": {
+        "ver": 1,
+        "seq": 1,
+        "val": "v7标题"
+      },
+      "fixtures-test/env-fold": {
+        "ver": 1,
+        "seq": 1,
+        "val": 88
+      }
+    }
+  }
+}

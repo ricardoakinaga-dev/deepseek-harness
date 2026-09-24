@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "files": {
+    "AGENTS.md": 1918,
+    "docs/AGENTS.md": 1313,
+    "docs/architecture.md": 2402,
+    "docs/cordis-primer.md": 600,
+    "docs/defensive-patterns.md": 518,
+    "docs/testing.md": 1349,
+    "packages/AGENTS.md": 717,
+    "packages/README.md": 971
+  }
+}

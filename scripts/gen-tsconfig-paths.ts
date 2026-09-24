@@ -99,15 +99,30 @@ function workspacePackages(): WorkspacePackage[] {
  * wildcards resolved by group order and an explicit map cannot express.
  */
 export function collectPackageAliases(): PackageAlias[] {
+  return collectAliases(
+    ({ directory, name }) => name === `${PREFIX}${directory}`,
+    (name, previousDirectory, currentDirectory) => `gen-tsconfig-paths: ${name} is claimed by packages/${previousDirectory} and packages/${currentDirectory}; `
+      + 'an explicit alias cannot express the group-order tiebreak the wildcard used.',
+  )
+}
+
+/**
+ * Collect aliases from the selected workspace packages.
+ * @param include - Selects the package names this alias family covers.
+ * @param duplicateMessage - Describes the duplicate-name failure for the alias family.
+ * @returns Aliases sorted by specifier.
+ * @throws When two selected package directories claim one specifier.
+ */
+function collectAliases(
+  include: (workspacePackage: WorkspacePackage) => boolean,
+  duplicateMessage: (name: string, previousDirectory: string, currentDirectory: string) => string,
+): PackageAlias[] {
   const bySpecifier = new Map<string, PackageAlias & { directory: string }>()
   for (const { group, directory, packageDir, name } of workspacePackages()) {
-    if (name !== `${PREFIX}${directory}`) continue
+    if (!include({ group, directory, packageDir, name })) continue
     const previous = bySpecifier.get(name)
     if (previous !== undefined) {
-      throw new Error(
-        `gen-tsconfig-paths: ${name} is claimed by packages/${previous.directory} and packages/${group}/${directory}; `
-        + 'an explicit alias cannot express the group-order tiebreak the wildcard used.',
-      )
+      throw new Error(duplicateMessage(name, previous.directory, `${group}/${directory}`))
     }
     bySpecifier.set(name, {
       specifier: name,
@@ -135,6 +150,25 @@ export function collectPackageNames(): string[] {
   return workspacePackages()
     .map(({ name }) => name)
     .sort((left, right) => left.localeCompare(right))
+}
+
+/**
+ * Collect source aliases for every workspace package, including packages whose
+ * declared name does not match its directory.
+ *
+ * These aliases belong to the repository's source-plane compiler facade. They
+ * keep tests and source-mode tooling on `src/` after package manifests stop
+ * publishing the unsupported `./src/*` export; they do not add package exports.
+ *
+ * @returns Source aliases sorted by package specifier.
+ * @throws When two package directories declare the same package name.
+ */
+export function collectSourceAliases(): PackageAlias[] {
+  return collectAliases(
+    () => true,
+    (name, previousDirectory, currentDirectory) => `gen-tsconfig-paths: ${name} is claimed by packages/${previousDirectory} and packages/${currentDirectory}; `
+      + 'source aliases cannot express duplicate package names.',
+  )
 }
 
 /**
@@ -192,6 +226,28 @@ export function renderAliases(aliases: readonly PackageAlias[], handWritten: Rea
 }
 
 /**
+ * Render source-plane aliases without changing package publication metadata.
+ * @param aliases - every workspace package source directory.
+ * @param handWritten - specifiers already mapped outside the generated region.
+ * @returns Exact and wildcard source-subpath aliases.
+ */
+export function renderSourceAliases(aliases: readonly PackageAlias[], handWritten: ReadonlySet<string>): string {
+  const lines: string[] = []
+  for (const alias of aliases) {
+    const exact = `${alias.specifier}/src`
+    if (!handWritten.has(exact)) {
+      lines.push(`      ${JSON.stringify(exact)}: [${JSON.stringify(alias.source)}]`)
+    }
+    const wildcard = `${exact}/*`
+    if (!handWritten.has(wildcard)) {
+      lines.push(`      ${JSON.stringify(wildcard)}: [${JSON.stringify(`${alias.source}/*`)}]`)
+    }
+  }
+  // The region closes `paths`, so the last member carries no trailing comma.
+  return lines.join(',\n')
+}
+
+/**
  * Replace the generated region of a config's text.
  * @param text - current `tsconfig.base.json` contents.
  * @param body - rendered alias lines.
@@ -227,7 +283,12 @@ function handWrittenSpecifiers(text: string): Set<string> {
 if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
   const check = process.argv.includes('--check')
   const current = readFileSync(CONFIG, 'utf8')
-  const next = writeRegion(current, renderAliases(collectPackageAliases(), handWrittenSpecifiers(current)))
+  const handWritten = handWrittenSpecifiers(current)
+  const body = [
+    renderAliases(collectPackageAliases(), handWritten),
+    renderSourceAliases(collectSourceAliases(), handWritten),
+  ].filter(section => section.length > 0).join(',\n')
+  const next = writeRegion(current, body)
   const uncovered = uncoveredPackages(collectPackageNames(), mappedSpecifiers(next))
   if (uncovered.length > 0) {
     console.error(

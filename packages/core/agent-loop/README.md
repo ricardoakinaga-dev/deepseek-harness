@@ -35,6 +35,7 @@ Agents declared in the config start automatically when the plugin loads. Each en
 - name: '@deepseek-ai/dsh-agent-loop'
   config:
     maxParallelToolCalls: 10
+    prepublicationAppendBatchSize: 128
     agents:
       - id: 'main'
         provider: deepseek
@@ -46,6 +47,7 @@ Agents declared in the config start automatically when the plugin loads. Each en
 | Field | Default | Meaning |
 |---|---|---|
 | `maxParallelToolCalls` | `10` | Parallel-safe tool calls in flight per step; `1` is serial |
+| `prepublicationAppendBatchSize` | `128` | Maximum Session events per append while preparing an agent; at most `4096` |
 | `agents[].id` | required | Stable label; a fresh session mints `${id}-session-<uuid>` unless `sessionId` is set |
 | `agents[].provider` / `agents[].model` | — | Model route; both required before dispatch |
 | `agents[].reasoningEffort` | — | Non-empty initial reasoning effort; `agent/request` may override it |
@@ -54,7 +56,7 @@ Agents declared in the config start automatically when the plugin loads. Each en
 | `agents[].sessionId` | — | Exact identity: first use creates, a remount resumes materialized history |
 | `agents[].resumeSessionId` | — | Load this persisted session instead of creating one; mutually exclusive with `sessionId` |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-agent-loop) is the exhaustive source for every accepted field. The adapter validates the effective reasoning effort and the loop records it in the request header. `maxParallelToolCalls` is also the whole `agent-loop` settings section, so a user layer over this entry caps the next tool group without a restart.
+The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-agent-loop) is the exhaustive source for every accepted field. `prepublicationAppendBatchSize` limits event count per append call; it does not cap bytes or claim an optimal throughput point. The adapter validates the effective reasoning effort and the loop records it in the request header. `maxParallelToolCalls` is also the whole `agent-loop` settings section, so a user layer over this entry caps the next tool group without a restart.
 
 ### Create or resume agents programmatically
 
@@ -108,11 +110,11 @@ The loop deep-freezes each derived message identity on its first request and reu
 
 ### Creation and teardown
 
-Creation is one rollback-covered transaction: construct a private session, concrete agent, and scoped context; await optional setup; enter both registries; announce `session/created`; await serial `agent/created` listeners; then release queued input. A caller creating a runtime child sets `options.parentAgent`; the caller Context separately owns the transaction and live handle. Setup, commit, or listener failure and owner disposal roll back the prepared resources. Announcements already delivered remain observable and receive matching disposal notifications. Teardown stops and drains the driver, unwinds the scope, closes the session's write path, detaches the agent, then detaches the session. Every detach binds the exact entered object, so a stale disposer cannot remove a later same-id replacement.
+Creation is one rollback-covered transaction: construct a private session, concrete agent, and scoped context; await optional setup; enter both registries; announce `session/created`; await serial `agent/created` listeners; then release queued input. Before constructing the agent, the loop initializes registered projections from the exact constructor baseline and accepted preparation appends; each setup append advances those cells before it commits. `sessions.enter()` seals the feed, after which the live event route continues from the same seq. A caller creating a runtime child sets `options.parentAgent`; the caller Context separately owns the transaction and live handle. Setup, commit, or listener failure and owner disposal roll back the prepared resources. Announcements already delivered remain observable and receive matching disposal notifications. Teardown stops and drains the driver, unwinds the scope, closes the session's write path, detaches the agent, then detaches the session. Every detach binds the exact entered object, so a stale disposer cannot remove a later same-id replacement.
 
 ### Persistence integration
 
-The loop is the production acquisition point for session write handles. When `ctx.sessionPersistence` is mounted, `create`/`createAgent` call `persistence.create(header)` — storing the durable identity and taking write ownership before publication — and append the constructor seed through the handle; `resume` calls `persistence.open(id, 'write')` first (excluding a concurrent resume of the same id), reads the physically valid log through the handle, and appends `interruptedTurnClosers` for a log crashed mid-turn as an ordinary batch — semantic crash repair is the agent layer's job, not a storage entry point. Immediately before publication, `appendUnstoredSuffix` stores any events appended during the setup window (seed markers, delegation policy records), which never re-emit through `session/event`. Once published, the mounted backend routes the session's `session/event` batches, `session/flush` barriers, and `session/disposed` retirement into the active write handle by session id; the loop touches storage only through the handle it owns. The memoized teardown closes the handle — close drains any routed buffer — after the loop commits the session's closing events, provably releasing write ownership. Without a backend, sessions are memory-only and nothing else changes.
+The loop is the production acquisition point for session write handles. When `ctx.sessionPersistence` is mounted, `create`/`createAgent` call `persistence.create(header)` — storing the durable identity and taking write ownership before publication — and store the constructor baseline and setup appends through bounded pages; `resume` calls `persistence.open(id, 'write')` first (excluding a concurrent resume of the same id), reads the physically valid log through the handle, and stores any `interruptedTurnClosers` through the same page limit. `prepublicationAppendBatchSize` defaults to 128 events and cannot exceed 4096. The writer follows accepted preparation appends, advances its cursor only after an append resolves, and drains each fixed Session sequence cut before checking cancellation and publishing in the same stack. If a page rejects, its effect is ambiguous: the loop does not retry or publish, closes the handle, and leaves recovery to an explicit resume of the exact id from the backend's actual log. Once published, the mounted backend routes the session's `session/event` batches, `session/flush` barriers, and `session/disposed` retirement into the active write handle by session id; the loop touches storage only through the handle it owns. The memoized teardown closes the handle — close drains any routed buffer — after the loop commits the session's closing events, releasing write ownership. Without a backend, sessions are memory-only and nothing else changes.
 
 ### Turn and step flow
 

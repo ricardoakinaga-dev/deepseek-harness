@@ -1,0 +1,145 @@
+{
+  "record_id": "EVID-AAA-022-W2-CORE-TOOLS-GATE-FINGERPRINT-20260924-001",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-CORE-TOOLS-IMPLEMENTATION-GATE",
+  "observed_at": "2026-09-24T12:26:22Z",
+  "candidate_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "design_artifact": ".agent/evidence/AAA-022/core-tools-invariant-design-w2-20260924.json",
+  "design_artifact_sha256": "a6bf707f9d7a63f6d76423f46e1a61b1d9b1106b1a7ae2f6e05fa5e2bbc89e74",
+  "independent_review": ".agent/evidence/AAA-022/core-tools-invariant-design-review-w2-20260924.json",
+  "independent_review_sha256": "3fb8efa792f64559bea1803256c0db65016c55f521987ef984311d3abab4d824",
+  "authority_record_id": "AUTH-AAA-022-W2-CORE-TOOLS-001",
+  "authority_line_sha256": "fa20b07304a4c260a17a5d1595ba1cebba68dacee711fb2d983841c82012a7b3",
+  "authority_ledger_sha256": "6c44789feec47145145120bad1b689d7b15f9b208d84260fb48c4f1c09049345",
+  "official_policy_validation": {
+    "command": "node scripts/verify-customization-policy.mjs --base master",
+    "result": "PASS",
+    "exit_status": 0,
+    "output": ".agent/evidence/AAA-022/core-tools-gate-policy-validation-20260924.txt",
+    "output_sha256": "6b80d493d7922cbc540f1e186686d7ce363b4f6d858663134ef84269dbd95447",
+    "summary": "1798 custom path(s) attributed across 23 improvement(s)."
+  },
+  "candidate_scope": {
+    "algorithm": "SHA-256 over UTF-8 canonical JSON of the sorted array of path and sha256 objects, with sorted keys and compact separators.",
+    "path_count": 15,
+    "entries": [
+      {
+        "path": ".agents/customization-policy.json",
+        "sha256": "6afc2d2d7bd9df353b9655fd942389bfda3f7299ff8bc3e28b433a327760c4ea",
+        "owner_id": "upstream-safe-customization-governance",
+        "reviewed_source_sha256": "f6d00b07afbb28f2ad7e8f55a0d204dc956453760020090ff4d9f1381fe79b5a"
+      },
+      {
+        "path": "docs/subsystems/tools.i18n.yaml",
+        "sha256": "71bc982396124f87dd7e63d3ccecb00e3e1ae33409cff8e1a34222c2df198f73",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "71bc982396124f87dd7e63d3ccecb00e3e1ae33409cff8e1a34222c2df198f73"
+      },
+      {
+        "path": "docs/subsystems/tools.md",
+        "sha256": "c23b2c2177c8a14f5e3dd566d4352a3ca2888721d1dc2f0ec01ad5ed73cc1f07",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "c23b2c2177c8a14f5e3dd566d4352a3ca2888721d1dc2f0ec01ad5ed73cc1f07"
+      },
+      {
+        "path": "docs/subsystems/tools.zh.md",
+        "sha256": "a14e82e12cd5e5000055ada928b9e11ca7aa4b1aece08142f9354d9c0680edad",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "a14e82e12cd5e5000055ada928b9e11ca7aa4b1aece08142f9354d9c0680edad"
+      },
+      {
+        "path": "packages/core/tools/README.i18n.yaml",
+        "sha256": "75eb40eb269cbf5ea257c43bb244004292204bfe0ce239faa21624ac9fbf8997",
+        "owner_id": "runtime-resolution-and-ci-fixtures",
+        "reviewed_source_sha256": "75eb40eb269cbf5ea257c43bb244004292204bfe0ce239faa21624ac9fbf8997"
+      },
+      {
+        "path": "packages/core/tools/README.md",
+        "sha256": "625a69e6c172b47cecd6b36ba66af4e0379b52b421651082f8517edb8618e240",
+        "owner_id": "runtime-resolution-and-ci-fixtures",
+        "reviewed_source_sha256": "625a69e6c172b47cecd6b36ba66af4e0379b52b421651082f8517edb8618e240"
+      },
+      {
+        "path": "packages/core/tools/README.zh.md",
+        "sha256": "658952fa9234fbe4171489d76eb5228f2f092221caf7a809e0299a4e83c7101b",
+        "owner_id": "runtime-resolution-and-ci-fixtures",
+        "reviewed_source_sha256": "658952fa9234fbe4171489d76eb5228f2f092221caf7a809e0299a4e83c7101b"
+      },
+      {
+        "path": "packages/core/tools/package.json",
+        "sha256": "686a1d9e9cac2f8c365af3f2a663528c9ce70cc9deb460e4caaed1d3d5107d9d",
+        "owner_id": "package-source-export-policy",
+        "reviewed_source_sha256": "686a1d9e9cac2f8c365af3f2a663528c9ce70cc9deb460e4caaed1d3d5107d9d"
+      },
+      {
+        "path": "packages/core/tools/src/invariant.ts",
+        "sha256": "919744eaa6c1e6489a68a4ea3be9831e1e6c576a4a2fce96801d0a3a33ac2a79",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "919744eaa6c1e6489a68a4ea3be9831e1e6c576a4a2fce96801d0a3a33ac2a79"
+      },
+      {
+        "path": "packages/core/tools/tests/invariant.spec.ts",
+        "sha256": "50378aec8db8d5166d02cfdd0422904776619bbe70dfc13abc10c687f7494a2b",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "50378aec8db8d5166d02cfdd0422904776619bbe70dfc13abc10c687f7494a2b"
+      },
+      {
+        "path": "packages/core/tools/tsconfig.json",
+        "sha256": "8d8b9eda0ef6cff70b36589d5692767fee68141752cd73b19272379c8b699433",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "8d8b9eda0ef6cff70b36589d5692767fee68141752cd73b19272379c8b699433"
+      },
+      {
+        "path": "packages/runtime-diagnostics/invariants/README.i18n.yaml",
+        "sha256": "52a3723521616d65adb539181a5a52a1ad23c1e629346913792b50dde661a347",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "52a3723521616d65adb539181a5a52a1ad23c1e629346913792b50dde661a347"
+      },
+      {
+        "path": "packages/runtime-diagnostics/invariants/README.md",
+        "sha256": "f0c461f814badf6aa612b23e3c107c52305d32f4df1ff112cdca26a434cfe2f4",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "f0c461f814badf6aa612b23e3c107c52305d32f4df1ff112cdca26a434cfe2f4"
+      },
+      {
+        "path": "packages/runtime-diagnostics/invariants/README.zh.md",
+        "sha256": "d84900cc0530541a36f1c9565b810e78ecc967cb41c6952fd46b6d7cc1eb47c7",
+        "owner_id": "schedule-session-projection-readers",
+        "reviewed_source_sha256": "d84900cc0530541a36f1c9565b810e78ecc967cb41c6952fd46b6d7cc1eb47c7"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "sha256": "4936255ceec1dd7a259078d0502e0bb5fec5c971d26051b30b4dae3f6e8bbca9",
+        "owner_id": "dependency-security-remediation",
+        "reviewed_source_sha256": "4936255ceec1dd7a259078d0502e0bb5fec5c971d26051b30b4dae3f6e8bbca9"
+      }
+    ],
+    "authorized_policy_delta": {
+      "path": ".agents/customization-policy.json",
+      "before_sha256": "f6d00b07afbb28f2ad7e8f55a0d204dc956453760020090ff4d9f1381fe79b5a",
+      "after_sha256": "6afc2d2d7bd9df353b9655fd942389bfda3f7299ff8bc3e28b433a327760c4ea",
+      "owner_id": "schedule-session-projection-readers",
+      "added_paths": [
+        "packages/core/tools/src/invariant.ts",
+        "packages/core/tools/tests/invariant.spec.ts",
+        "docs/subsystems/tools.md",
+        "docs/subsystems/tools.zh.md",
+        "docs/subsystems/tools.i18n.yaml",
+        "packages/runtime-diagnostics/invariants/README.md",
+        "packages/runtime-diagnostics/invariants/README.zh.md",
+        "packages/runtime-diagnostics/invariants/README.i18n.yaml",
+        "packages/core/tools/tsconfig.json"
+      ],
+      "added_path_count": 9,
+      "six_existing_owner_assignments_retained": true
+    },
+    "candidate_fingerprint": "a449a360a3af5b6759f073af7b90448d8f849f3f533b2c317cd6aa428a7ed752",
+    "excluded": [
+      "A28 sealed artifacts",
+      "Session and AgentLoop source",
+      "Session format and released persistence data",
+      "all worktree paths outside the exact 15-path gate"
+    ]
+  },
+  "scope_effect": "Gate-preparation evidence only; no implementation path other than the approved customization-policy owner row has changed."
+}

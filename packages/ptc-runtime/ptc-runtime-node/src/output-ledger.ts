@@ -52,7 +52,7 @@ export class OutputLedger {
       const prefix = truncateJsonStringBytes(text, availableBytes)
       if (prefix.length > 0) {
         const prefixBytes = jsonStringBytesUpTo(prefix, availableBytes)
-        /* v8 ignore next -- truncateJsonStringBytes guarantees its returned prefix fits the same budget. */
+        /*! v8 ignore next -- truncateJsonStringBytes guarantees its returned prefix fits the same budget. */
         if (prefixBytes === undefined) throw new Error('output ledger produced an oversized log prefix')
         retained.push(prefix)
         retainedBytes += prefixBytes + separatorBytes

@@ -58,7 +58,7 @@ kind: "package-reference"
 | 配套入口 | 检查 |
 |---|---|
 | `dsh-session`、`dsh-agent`、`dsh-scope`、`dsh-agent-loop` | 会话日志包含关系与调用/结果跟踪、agent 状态转换、经过作用域过滤的分发主体、loop 所构建请求的重建 |
-| `dsh-llm`、`dsh-llm-retry`、`dsh-tools`、`dsh-system-prompt` | LLM（大语言模型）流语法、重试失败形状、工具流水线阶段配对与冻结结果、提示词组装章节名 |
+| `dsh-llm`、`dsh-llm-retry`、`dsh-tools`、`dsh-system-prompt` | LLM（大语言模型）流语法、重试失败形状、工具流水线阶段配对与冻结结果、基于精确 Session 基线的 PTC 祖先关系、提示词组装章节名 |
 | `dsh-compaction`、`dsh-hook-protocol`、`dsh-sandbox-policy` | 压缩（compaction）流配对、钩子调用/结果配对、沙箱 mode 值 |
 | `dsh-fs`、`dsh-subagent`、`dsh-workflow`、`dsh-tool-workflow` | 文件系统事件身份、subagent 提供方与开始/结束配对、工作流生命周期身份、工作流记录形状 |
 | `dsh-goal`、`dsh-goal-round-driver` | 持久 goal 流折叠与重建的继续提示词 |
@@ -150,7 +150,7 @@ ctx.plugin(SessionInvariant)
 这些限制说明注册表何时不合适或需要特别运维。它们是当前包约束，不是任务积压。
 
 - **过滤器在服务生命周期内固定**——`enabled`、`package_allowlist` 与 `package_blocklist` 在启动时编译一次；更改它们需要执行 Cordis 插件重新加载。
-- **仅实时配套入口会遗漏重载前的操作**——只观察实时操作的配套入口无法重建自身重新加载前开始的操作；由会话支撑的配套入口从持久事件重建 baseline。
+- **仅实时配套入口会遗漏重载前的操作**——只观察实时操作的配套入口无法重建重载前的工作；`dsh-tools` 则折叠精确创建基线与 preparation feed，并在任一已存储 Session 已有事件时拒绝延迟启用。
 - **请求重建只覆盖 loop 构建的请求**——`dsh-agent-loop` 配套入口只重建 loop 显式构建的请求；直接一次性 LLM 调用即使由调用方冻结或附加会话 id，仍不在此约定内。
 - **没有配套入口就没有检查**——注册表自身不携带产品检查；只挂载服务的组合观察不到任何行为。
 

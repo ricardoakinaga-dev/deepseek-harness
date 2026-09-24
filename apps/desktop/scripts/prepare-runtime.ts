@@ -6,9 +6,9 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { downloadArtifact } from '@electron/get'
-import extractZip from 'extract-zip'
 import { resolveDesktopBuildTarget, resolveDesktopTargetBuildPaths } from './desktop-build-paths.mjs'
 import { preparePrimaryRuntime } from './prepare-primary-runtime.ts'
+import { safeExtractZip } from './safe-extract-zip.ts'
 
 const BUILD_PATHS = resolveDesktopTargetBuildPaths()
 const RUNTIME_ROOT = BUILD_PATHS.runtime
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   const { version } = require('electron/package.json') as { version: string }
   const archive = await downloadArtifact({ version, platform, arch, artifactName: 'electron', cacheRoot: BUILD_PATHS.downloads })
   rmSync(BUILD_PATHS.electron, { recursive: true, force: true })
-  await extractZip(archive, { dir: BUILD_PATHS.electron })
+  await safeExtractZip(archive, { dir: BUILD_PATHS.electron })
   const executable = join(BUILD_PATHS.electron, platform === 'win32' ? 'electron.exe' : 'Electron.app/Contents/MacOS/Electron')
   const nodeVersion = execFileSync(executable, ['-p', 'process.versions.node'], {
     encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },

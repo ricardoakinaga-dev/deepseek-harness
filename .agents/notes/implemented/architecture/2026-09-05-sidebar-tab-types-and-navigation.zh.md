@@ -88,7 +88,7 @@ interface SidebarRightTabParamsMap {}        // key: kind — a page type declar
 
 **运行时 hook 或每 tab 一个实例对象。** 纸面上试过多种形态——每 tab 一个 Cordis fiber、抽象基类、返回带 `dispose` 实例的 `initial`/`create` 对、一组 `useTab*` hook、框架托管的 `useTabResource(fetch)`、`useTabStream`。依次否决：每 tab 一个 fiber 太重；动态包无法共享基类或导出常量；实例层重复了 Slot store 与 inject 面已经是的东西；每 tab hook 复述 owner props；框架托管的 fetch 没有好的缓存键；tab 域上的流 hook 问错了主人——聊天数据必须来自聊天域，文件数据来自工作区文件服务。剩下的是 owner props 加一个全客户端的 `useResource`。`visible` 后来以 prop 而非 hook 加入也是同一理由：它是关于该次出现的又一个事实，而 props 已经承载了该次出现。 对实例读取钩子的否决由[标签信息决策](2026-09-07-sidebar-responsive-tab-info.zh.md)取代；对独立实例对象、fiber 与数据流所有权的理由仍适用。
 
-**每格一个工具区坑位放活跃 tab 的控件（`sidebar.right.pane.tab.tools`）。** 上线一轮评审后删除：它把类型私有按钮放到面板 tab 条上、与分栏和收起控件并列，读起来像面板 chrome。类型的控件属于自己的正文。
+**每格一个工具区坑位放活跃 tab 的控件（`sidebar.right.pane.tab.tools`）。** 类型私有按钮属于类型自己的正文，而不是面板 tab 条上与分栏和收起控件并列的位置，因为后者会被理解为面板 chrome。
 
 **类型级落位（`opensInto`）与隐藏的相邻格启发式。** 否决：tab 落在哪是开启方的事，正如 VS Code 的 Explorer 自己决定 `sideBySide`。
 

@@ -1,0 +1,233 @@
+{
+  "record_id": "A19-SCOPE-34-GATE-DRAFT-CORRECTION-20260923-001",
+  "timestamp": "2026-09-23T17:55:00-03:00",
+  "task": "AAA-022",
+  "reason": "The first gate draft used non-canonical AUDIT_RESOLVED criterion IDs and attempted to supersede a predecessor with a changed scope string. The state checker rejected the draft (367 findings, 8 above the preserved 359 baseline). Preserve the invalid draft and event, then rebuild the gate with canonical criteria and the predecessor’s stable lineage scope key before binding a corrected gate event.",
+  "preserved_draft": {
+    "gate_path": ".agent/gates/audit-resolved-AAA-022-A19-scope-34-current.json",
+    "gate_sha256": "a7c83dc48f482819751f7ce8962da8f5e52271824498e28a71234711ddf18d4f",
+    "gate": {
+      "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+      "timestamp": "2026-09-23T17:53:36-03:00",
+      "gate_id": "AUDIT_RESOLVED",
+      "scope": "AAA-022:A19 exact 34-path documentation, ownership, catalog, and authority binding",
+      "scope_ref": "AAA-022",
+      "version": 2,
+      "criteria": [
+        {
+          "id": "AR-001-APPROVED-34-PATH-SCOPE",
+          "description": "The prior exact 31-input scope is expanded by exactly the three owning Session subsystem documentation paths approved by the user, restoring the 34-path set in the preserved A19 documentation gate. The historical 24-path and 34-path implementation records remain unchanged.",
+          "required": true,
+          "status": "PASS",
+          "evidence_refs": [
+            ".agent/evidence/AAA-022/a19-scope-34-current-revalidation-20260923.json",
+            ".agent/gates/implementation-ready-AAA-022-A19.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-002",
+            ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+            ".agent/gates/audit-resolved-AAA-022-A19-scope-31-current.json#GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-003"
+          ],
+          "confidence": "HIGH",
+          "limitations": "This scope successor corrects current docs and ownership attribution; it does not change A19 runtime behavior or reopen storage work."
+        },
+        {
+          "id": "AR-002-OWNER-AND-CATALOG-ATTRIBUTION",
+          "description": "The prepared-session owner has exactly 32 unique paths including the three Session subsystem docs. The shared API catalog remains under session-reader-migration and dynamic-extension-trust.",
+          "required": true,
+          "status": "PASS",
+          "evidence_refs": [
+            ".agent/evidence/AAA-022/a19-scope-34-current-revalidation-20260923.json",
+            ".agents/customization-policy.json"
+          ],
+          "confidence": "HIGH",
+          "limitations": "No third owner is added to the shared generated catalog."
+        },
+        {
+          "id": "AR-003-AUTHORITY-BINDING",
+          "description": "A schema-valid confirmed authority record binds this exact gate and scope. The prior authorized correction of the malformed A19 authority row retains its before/after hashes.",
+          "required": true,
+          "status": "PASS",
+          "evidence_refs": [
+            ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-001",
+            ".agent/evidence/AAA-022/a19-scope-31-authority-repair-20260923.json"
+          ],
+          "confidence": "HIGH",
+          "limitations": "Authority remains local and path-bounded."
+        },
+        {
+          "id": "AR-004-FOCUSED-VERIFICATION",
+          "description": "Current type-equivalence, generated Cordis catalog, quick documentation, and exact-scope whitespace checks pass; the recorded repository-wide doc-sync remains partial and is not represented as passing.",
+          "required": true,
+          "status": "PASS",
+          "evidence_refs": [
+            ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-CURRENT-REVALIDATION-001",
+            ".agent/verification.jsonl#VER-AAA-022-DOC-SYNC-CURRENT-20260923-002"
+          ],
+          "confidence": "HIGH",
+          "limitations": "The broader doc-sync has six existing failures outside this focused revalidation result."
+        }
+      ],
+      "evidence": [
+        ".agent/evidence/AAA-022/a19-scope-34-current-revalidation-20260923.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-CURRENT-REVALIDATION-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-31-CURRENT-002",
+        ".agent/evidence/AAA-022/a19-scope-31-authority-repair-20260923.json",
+        ".agent/gates/implementation-ready-AAA-022-A19-catalog-docs.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+        ".agents/customization-policy.json"
+      ],
+      "candidate_fingerprint": "19c4a7ee6bf3486017885c46bece9eaf6c5c5f07acf9a7e05c4cd2a413f2dcaf",
+      "fingerprint_scope": {
+        "algorithm": "SHA-256",
+        "inputs": [
+          ".agents/customization-policy.json",
+          "docs/architecture.i18n.yaml",
+          "docs/architecture.md",
+          "docs/architecture.zh.md",
+          "docs/subsystems/persistence.i18n.yaml",
+          "docs/subsystems/persistence.md",
+          "docs/subsystems/persistence.zh.md",
+          "docs/subsystems/session-projection.i18n.yaml",
+          "docs/subsystems/session-projection.md",
+          "docs/subsystems/session-projection.zh.md",
+          "docs/subsystems/session.i18n.yaml",
+          "docs/subsystems/session.md",
+          "docs/subsystems/session.zh.md",
+          "packages/core/agent-loop/README.i18n.yaml",
+          "packages/core/agent-loop/README.md",
+          "packages/core/agent-loop/README.zh.md",
+          "packages/core/agent-loop/src/index.ts",
+          "packages/core/agent-loop/tests/invariant.spec.ts",
+          "packages/core/agent-loop/tests/resume.spec.ts",
+          "packages/core/agent-loop/tests/runtime-context.spec.ts",
+          "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+          "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+          "packages/core/session/README.i18n.yaml",
+          "packages/core/session/README.md",
+          "packages/core/session/README.zh.md",
+          "packages/core/session/src/index.ts",
+          "packages/core/session/src/preparation.ts",
+          "packages/core/session/tests/session.spec.ts",
+          "packages/extensions/tool-cordis/src/api-catalog.ts",
+          "packages/session/session-projection/README.i18n.yaml",
+          "packages/session/session-projection/README.md",
+          "packages/session/session-projection/README.zh.md",
+          "packages/session/session-projection/src/index.ts",
+          "packages/session/session-projection/tests/registry.spec.ts"
+        ],
+        "hash_rule": "For each listed relative path in sorted order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+        "file_count": 34,
+        "preexisting_dirty_worktree": true
+      },
+      "confidence": "HIGH",
+      "gaps": [],
+      "conditions": [],
+      "authority": {
+        "required": true,
+        "state": "CONFIRMED",
+        "actor": "Ricardo Akinaga",
+        "scope": "AAA-022:A19 exact 34-path documentation, ownership, catalog, and authority binding",
+        "decision": "The user explicitly approved retaining all 34 A19 paths, including docs/subsystems/session.md, its Chinese pair, and sidecar, so the owning documentation for the public Session.isCommittedEvent and session/created baseline APIs stays in the same change. Bind the exact 34-input scope, update the prepared-session owner to 32 paths, retain both existing API-catalog owners, and keep A19 runtime scope and A20/external exclusions unchanged.",
+        "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-SCOPE-34-CURRENT-001",
+        "expires_or_revalidates": "Revalidate if any of the exact 34 inputs or 32 prepared-session owner paths change, if either API-catalog owner changes, or if A19 runtime scope is proposed to change."
+      },
+      "residual_risk": "MEDIUM",
+      "decision": "PASS",
+      "next_action": "Continue AAA-022:A25 implementation-ready gate preparation; do not start interaction product implementation until its exact gate passes.",
+      "revalidation_triggers": [
+        "Any of the 34 A19 fingerprint inputs changes.",
+        "The prepared-session owner adds, removes, or changes one of its 32 paths.",
+        "Either existing API-catalog owner changes or a third owner is proposed.",
+        "A19 is proposed to change runtime behavior, Session data, model-visible input, SDK output, or A20 storage work."
+      ],
+      "supersedes": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-003",
+      "revalidation": {
+        "kind": "SCOPE_EXPANSION",
+        "previous_record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-31-CURRENT-003",
+        "previous_candidate_fingerprint": "24d0df2643fff5d1d54f3cdd03dc2b60bef301bd6da137376f2ce89dee16861e",
+        "reason": "The user approved retaining all 34 paths so the owning documentation for the changed public Session APIs remains inside the same A19 documentation scope. Add exactly docs/subsystems/session.md, its Chinese pair, and sidecar, and add those three files to the prepared-session owner.",
+        "authority_effect": "Adds only the three approved Session documentation paths to the exact A19 scope and owner. The existing A03 runtime authority, both API-catalog owners, and A20/external-action exclusions remain unchanged."
+      }
+    },
+    "event": {
+      "event_id": "EVT-AAA-022-GATE-A19-SCOPE-34-CURRENT-001-109",
+      "timestamp": "2026-09-23T17:53:37-03:00",
+      "type": "GATE_PASSED",
+      "task": "AAA-022",
+      "action": "Bind the current A19 exact 34-input scope revalidation",
+      "result": "PASS",
+      "verification": ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-CURRENT-REVALIDATION-001",
+      "decision": "The current A19 exact 34-input fingerprint is 19c4a7ee6bf3486017885c46bece9eaf6c5c5f07acf9a7e05c4cd2a413f2dcaf; the 32-path prepared-session owner includes the Session subsystem docs, and api-catalog.ts keeps its two existing owners. Focused type-equivalence, generated catalog, doc-quick, and diff checks pass; repository-wide doc-sync remains PARTIAL at 37/43. A19 runtime scope remains closed and AAA-022:A25 remains active.",
+      "next_state": "AAA-022 remains IN_PROGRESS in BUILD/DESIGN at AAA-022:A25; A19 docs/ownership scope revalidation only; the next gate remains TECHNICALLY_SPECIFIED.",
+      "active_action_id": "AAA-022:A25",
+      "gate_ref": ".agent/gates/audit-resolved-AAA-022-A19-scope-34-current.json",
+      "gate_record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+      "gate_decision": "PASS",
+      "gate_fingerprint": "b094e9a15992fa3660968db32fc036f085a4975e2f23b5926de505e7e1ff446e",
+      "candidate_fingerprint": "19c4a7ee6bf3486017885c46bece9eaf6c5c5f07acf9a7e05c4cd2a413f2dcaf",
+      "scope_ref": "AAA-022"
+    },
+    "precheck_output_path": ".agent/evidence/AAA-022/a19-scope-34-current-state-check-20260923.txt",
+    "precheck_failures": 367,
+    "new_diagnostics": 8
+  },
+  "correction": {
+    "gate_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+    "stable_scope_key": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+    "criterion_ids": [
+      "AR-001-BASELINE-GAPS",
+      "AR-002-RESOLUTION-EVIDENCE",
+      "AR-003-ACCEPTANCE-OR-ROUTING"
+    ],
+    "gate_event_removed_from_active_log": "EVT-AAA-022-GATE-A19-SCOPE-34-CURRENT-001-109",
+    "repaired_gate_event_id": "EVT-AAA-022-GATE-A19-SCOPE-34-CURRENT-002-110",
+    "new_authority_record_id": "AUTH-AAA-022-A19-SCOPE-34-CURRENT-002"
+  },
+  "limitations": [
+    "No product source, runtime behavior, Session data, or user-approved path set changed.",
+    "The 34-path user approval and the passing focused documentation checks remain valid.",
+    "The previously authorized malformed-row repair and its original/corrected hashes are unchanged."
+  ],
+  "preserved_state_checkpoint_attempt": {
+    "event": {
+      "event_id": "EVT-AAA-022-CHECKPOINT-A19-SCOPE-34-STATE-001-111",
+      "timestamp": "2026-09-23T18:03:17-03:00",
+      "type": "CHECKPOINT",
+      "task": "AAA-022",
+      "action": "Checkpoint the approved 34-path A19 documentation and owner attribution while keeping A25 active",
+      "result": "PASS",
+      "verification": ".agent/verification.jsonl#VER-AAA-022-A19-SCOPE-34-CURRENT-REVALIDATION-001",
+      "decision": "The user-approved 34-input A19 scope is bound to the prepared-session owner with all three Session subsystem docs; the shared API catalog remains under its two existing owners. Focused docs/API checks pass, the repository-wide doc-sync limitation remains PARTIAL, A19 runtime scope remains closed, and A25 is unchanged.",
+      "next_state": "AAA-022 remains IN_PROGRESS in BUILD/DESIGN at AAA-022:A25; scope revalidation only; next gate remains TECHNICALLY_SPECIFIED.",
+      "status_from": "IN_PROGRESS",
+      "status_to": "IN_PROGRESS",
+      "active_action_id": "AAA-022:A25"
+    },
+    "event_line_sha256": "95cc20095ae1bed0e48a195993f77e88c68cd7744e7a96d66a6a29b0abd82a56",
+    "state_check_output_path": ".agent/evidence/AAA-022/a19-scope-34-current-state-check-postcheckpoint-20260923.txt",
+    "state_check_failures": 360,
+    "new_diagnostic": "LOG_TRANSITION: invalid transition IN_PROGRESS -> IN_PROGRESS",
+    "disposition": "Removed this newly authored invalid checkpoint attempt after preserving it; the valid replacement omits status_from/status_to, which the checkpoint contract does not accept for an unchanged status."
+  },
+  "resolved_precheckpoint_ordering_attempt": {
+    "path": ".agent/evidence/AAA-022/a19-scope-34-current-state-check-precheckpoint-20260923.txt",
+    "failures": 364,
+    "new_diagnostics": [
+      "RECONCILE_AUTHORITY_ORDER: new A19 scope authority rows were later than the pre-checkpoint state timestamp.",
+      "RECONCILE_GATE_ORDER: the new A19 scope gate was later than the pre-checkpoint state timestamp.",
+      "RECONCILE_LAST_EVENT: the gate event followed the old state event pointer.",
+      "RECONCILE_STATE_ORDER: state timestamp had not yet advanced through the transaction.",
+      "RECONCILE_VERIFICATION_ORDER: the new A19 scope verification was later than the pre-checkpoint state timestamp."
+    ],
+    "disposition": "Resolved by the valid state-last checkpoint chain; the final checker again reports exactly the preserved 359-finding baseline."
+  },
+  "final_disposition": {
+    "gate_record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+    "gate_fingerprint": "bc89711060200e6be3cb6dd28059343c0f70ae17caa46b81d16b6ece29681819",
+    "final_state_check_path": ".agent/evidence/AAA-022/a19-scope-34-current-state-check-poststate-checkpoint-20260923.txt",
+    "final_state_check_failures": 359,
+    "baseline_delta": {
+      "new": 0,
+      "resolved": 0
+    },
+    "active_action": "AAA-022:A25"
+  }
+}

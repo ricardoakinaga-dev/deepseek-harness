@@ -1,5 +1,5 @@
 ---
-description: "Installable profile layer that bounds local-model compaction and rejects oversized loop requests before provider dispatch."
+description: "Private fork-only profile layer that bounds local-model compaction and rejects oversized loop requests before provider dispatch."
 kind: "package-bundle"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This opt-in bundle adds bounded compaction to any base-backed `dsh --profile` surface without replacing the official compaction backend or copying agent presets. It caps compaction output at 4,096 tokens, selects reasoning effort `off`, applies an eight-minute cooperative deadline, and enables logged-capacity request admission. No shipped profile includes it automatically. Install it when local or throughput-limited models make automatic compaction slow enough to stall a session.
+This opt-in, private fork-only bundle adds bounded compaction to a source-checkout `dsh --profile` surface without replacing the official compaction backend or copying agent presets. It caps compaction output at 4,096 tokens, selects reasoning effort `off`, applies an eight-minute cooperative deadline, and enables logged-capacity request admission. No shipped profile includes it automatically. It is not published under the upstream namespace; use the repository checkout or a separately authorized fork-owned package before installing it into a profile.
 
 ## Table of Contents
 
@@ -25,16 +25,15 @@ This opt-in bundle adds bounded compaction to any base-backed `dsh --profile` su
 <a id="use-this-package"></a>
 ## Use this package
 
-### Install into a profile
+### Use from the fork checkout
 
-Install or remove the bundle with the profile plugin command:
+The private package is not available from the public registry. Exercise it from this checkout by passing [`cordis.patch.yml`](cordis.patch.yml) through `--patch`, or by using a profile workspace that maps the package and its policy dependency to local build outputs:
 
 ```text
-dsh plugin --profile <name> add @deepseek-ai/dsh-resilient-compaction
-dsh plugin --profile <name> remove @deepseek-ai/dsh-resilient-compaction
+pnpm dsh web --patch packages/bundle/resilient-compaction/cordis.patch.yml
 ```
 
-Published installs resolve the package and its policy dependency through the profile's package manager. A source-checkout `file:` install is not valid before publication because its manifest still uses the workspace protocol. Exercise the checkout after a focused build by passing [`cordis.patch.yml`](cordis.patch.yml) through `--patch`; packed-install validation must make both unpublished tarballs available to the profile package manager. After a successful add, profile reconciliation reads `dsh.bundle.patch` and activates the layer; a missing patch declaration leaves an installed plain dependency and produces a warning.
+The package remains private until a separate decision establishes a fork-owned namespace, registry access, release authority, and a compatible migration for consumers. Packed-install validation may use explicit local tarballs, but it is not evidence of publication or registry availability.
 
 ### What you get
 

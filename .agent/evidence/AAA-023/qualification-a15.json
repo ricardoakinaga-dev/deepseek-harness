@@ -1,0 +1,44 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A15-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree after official build; not an immutable candidate",
+  "timestamp": "2026-09-21T21:23:54-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "pnpm run build:official",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The official build completes, including native host preparation, library builds, the Web frontend, and a record of 248 client artifacts."
+    },
+    {
+      "command": "pnpm run release:pack --family dsh --out /tmp/dsh-harness-pack-a15 --concurrency 8",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Payload validation and packing produce 295 DSH tarballs in the explicit temporary directory."
+    },
+    {
+      "command": "pnpm run release:pack --family vendor --out /tmp/dsh-harness-pack-vendor-a15 --concurrency 8",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Payload validation and packing produce 9 vendor tarballs in the explicit temporary directory."
+    },
+    {
+      "command": "pnpm run release:verify-packed-install --family dsh --from /tmp/dsh-harness-pack-a15 --from /tmp/dsh-harness-pack-vendor-a15",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The consumer installs 304 temporary tarballs, verifies 571 default-product packages exclude experimental packages, and the installed @deepseek-ai/dsh executable reports 0.1.6-alpha.2."
+    }
+  ],
+  "artifacts": [
+    "scripts/build.ts",
+    "scripts/release/pack.ts",
+    "scripts/release/verify-packed-install.ts",
+    "scripts/release/installed-product-isolation.ts"
+  ],
+  "summary": "The current worktree's official build, DSH/vendor tarball payloads, and packed consumer installation are operationally green in isolated temporary directories.",
+  "limitations": "This is not same-SHA release qualification: the worktree remains dirty, publication identity and source-export policy are unresolved, external platform/provider lanes and upstream rehearsal are absent, and no final critic has run. The temporary directories are diagnostic artifacts, not release outputs.",
+  "observed_at": "2026-09-21T21:23:54-03:00",
+  "freshness": "CURRENT"
+}

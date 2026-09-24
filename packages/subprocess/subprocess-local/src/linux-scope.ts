@@ -469,7 +469,7 @@ function directOutcome(
       try {
         resolveOutcome(startup.resolveOutcome({ exitCode, signal }))
       } catch (error) {
-        /* v8 ignore next -- Node filesystem operations throw Error instances. */
+        /*! v8 ignore next -- Node filesystem operations throw Error instances. */
         const failure = error instanceof Error ? error : new Error(String(error))
         rejectOutcome(failure)
       }

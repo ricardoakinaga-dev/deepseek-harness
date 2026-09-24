@@ -75,6 +75,8 @@ Host entry 为每条 Client 流独立注册一组 allowlist listener 和一个�
 - 只有仍在等待的作用域 waterfall 会在重连后回放；单向通知仍是相互隔离的 best-effort 投递，不会回放。需要可靠恢复的状态必须由拥有方提供查询、游标或初始基线。
 
 
+**运行时不变式：** 不发布伴生入口。被观察的关系由 Typert、agent 注册表和会话注册表负责。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -84,5 +86,3 @@ Host entry 为每条 Client 流独立注册一组 allowlist listener 和一个�
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。被观察的关系由 Typert、agent 注册表和会话注册表负责。

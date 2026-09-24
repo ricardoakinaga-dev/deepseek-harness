@@ -33,7 +33,9 @@ import type {
   SessionWireHeader,
   SessionWireEvent,
 } from './types.ts'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the assistant-stream module owns that behavior. */
 import { SessionAssistantStreamAccumulator } from './assistant-stream.ts'
+/*! v8 ignore stop */
 
 const DEFAULT_MAX_MESSAGES = 50
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
@@ -93,7 +95,7 @@ export class SessionHistoryController {
         {},
       )
     }
-    /* v8 ignore next -- Session and persistence validation guarantee a dense zero-based event prefix. */
+    /*! v8 ignore next -- Session and persistence validation guarantee a dense zero-based event prefix. */
     if (throughSeq >= 0 && sourceLog[throughSeq]?.seq !== throughSeq) {
       throw new RemoteError('gateway/internal', `session log does not contain through seq ${String(throughSeq)}`, {})
     }

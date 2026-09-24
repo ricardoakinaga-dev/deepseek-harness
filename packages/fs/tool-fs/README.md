@@ -246,6 +246,8 @@ These limits define when the tool suite is a poor fit or needs special operation
 - **No attachment-region tool** — an agent may crop an image through another available tool when it has a filesystem path; a pasted or dragged image without a path cannot be re-read at higher resolution.
 - **No timeout surface** — `read`/`write`/`edit` take no timeout argument and declare no timeout budget; cancellation rides `exec.signal` only ([provider rationale](../README.md)).
 
+**Runtime invariant:** No companion is published. This model-facing adapter has no independent lifecycle stream; execution relations are owned by the capability seam it calls.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -255,5 +257,3 @@ These limits define when the tool suite is a poor fit or needs special operation
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This model-facing adapter has no independent lifecycle stream; execution relations are owned by the capability seam it calls.

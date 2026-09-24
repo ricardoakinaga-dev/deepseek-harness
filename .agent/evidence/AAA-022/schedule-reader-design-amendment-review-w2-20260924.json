@@ -1,0 +1,57 @@
+{
+  "record_id": "REVIEW-AAA-022-W2-SCHEDULE-AMENDMENT-20260924-001",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-DESIGN",
+  "kind": "INDEPENDENT_T3_DESIGN_REVIEW",
+  "timestamp": "2026-09-24T03:40:17-03:00",
+  "reviewer": "/root/schedule_w2_design_critic",
+  "producer": "/root",
+  "independence_class": "INDEPENDENT",
+  "subject": ".agent/evidence/AAA-022/schedule-reader-design-amendment-w2-20260924.json",
+  "subject_sha256": "8949c91c27d3d8bbbf992c79345f83ef8b10eb1a912a0f7246510bdcbd074d0b",
+  "candidate_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "procedure_status": "EXECUTED_READ_ONLY_NO_TESTS",
+  "verdict": "FAIL",
+  "checks": [
+    {
+      "name": "input hashes and aggregate fingerprint",
+      "result": "PASS",
+      "evidence": "All 42 input path hashes and HEAD match; sorted-path fingerprint is a3282a316bfd5fe279a38527bebc63f8a1679f8812e826093dcfd480003a0849."
+    },
+    {
+      "name": "implementation and verification path set",
+      "result": "PASS",
+      "evidence": "19 implementation + 7 verification-only, 26 unique paths; jsonl-restart is the only category move from the prior design."
+    },
+    {
+      "name": "seeded baseline error ownership",
+      "result": "PASS",
+      "evidence": "A prepend global session/created preflight over the exact SessionCreationBaseline with the shared projection definition allows package fail() to preserve InvariantError before registry cell construction."
+    }
+  ],
+  "findings": [
+    {
+      "id": "W2-REVIEW-02-01",
+      "severity": "MEDIUM",
+      "confidence": "HIGH",
+      "criterion": "Exact owner attribution",
+      "location": ".agent/evidence/AAA-022/schedule-reader-design-amendment-w2-20260924.json:77-80,102",
+      "evidence": "The implementation scope includes packages/schedule/schedule/tests/jsonl-restart.spec.ts, but the customization_owner path list was copied from the original 18-path scope and omits that new implementation path.",
+      "required_change": "Bind an amended schedule-session-projection-readers owner declaration with every implementation path except the owner policy declaration itself; include jsonl-restart.spec.ts."
+    },
+    {
+      "id": "W2-REVIEW-02-02",
+      "severity": "LOW_MEDIUM",
+      "confidence": "HIGH",
+      "criterion": "Required provider/key failure acceptance",
+      "location": ".agent/evidence/AAA-022/schedule-reader-design-amendment-w2-20260924.json:20-32",
+      "evidence": "W2-AC-07 requires provider/key failures and distinct runtime diagnostics but lists no tests.",
+      "required_change": "Add explicit test coverage in the scoped plugin.spec.ts, tools.spec.ts, and runtime.spec.ts for missing registry, missing key error mapping, and distinct unavailable-state diagnostics."
+    }
+  ],
+  "largest_gap": "Owner path attribution and missing-provider/key test expectations are incomplete.",
+  "limitations": [
+    "No tests were run.",
+    "No product, documentation, policy, or generated files were changed by the reviewer."
+  ]
+}

@@ -152,7 +152,7 @@ function hiddenSides(box: HTMLElement): 'start' | 'end' | 'start end' | undefine
 function useStripScrollFades(box: RefObject<HTMLDivElement | null>, tabs: readonly TabId[]): void {
   useLayoutEffect(() => {
     const element = box.current
-    /* v8 ignore next -- the box is rendered unconditionally with the strip. */
+    /*! v8 ignore next -- the box is rendered unconditionally with the strip. */
     if (element === null) return undefined
     const apply = (): void => {
       const sides = hiddenSides(element)
@@ -187,7 +187,7 @@ function useActiveChipInView(
   useLayoutEffect(() => {
     const element = box.current
     const chip = activeTabId === undefined ? undefined : chips.get(activeTabId)
-    /* v8 ignore next -- the box and the active tab's chip are rendered with the strip. */
+    /*! v8 ignore next -- the box and the active tab's chip are rendered with the strip. */
     if (element === null || chip === undefined) return
     const bounds = element.getBoundingClientRect()
     const rect = chip.getBoundingClientRect()
@@ -235,7 +235,7 @@ export function TabPanel({ state, pane, callbacks }: TabPanelProps): ReactNode {
 
   const focusChip = (tabId: TabId): void => {
     const chip = chips.get(tabId)
-    /* v8 ignore next -- every tab in the strip has a mounted chip, registered by its ref. */
+    /*! v8 ignore next -- every tab in the strip has a mounted chip, registered by its ref. */
     if (chip === undefined) return
     chip.focus()
   }

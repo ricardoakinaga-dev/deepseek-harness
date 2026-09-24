@@ -33,17 +33,21 @@ Mount this plugin for the inspection registry or programmatic dynamic-package li
 - name: '@deepseek-ai/dsh-cordis-host-runner'
   config:
     vmTimeoutMs: 5000
+    deployment: host-only
+    browserDelivery: disabled
 ```
 
 | Field | Default | Meaning |
 |---|---|---|
 | `vmTimeoutMs` | `5000` | Milliseconds the synchronous portion of a host half may run in the vm before evaluation is aborted |
+| `deployment` | `disabled` | `disabled` rejects every dynamic run; `host-only` permits only Host halves; `browser` permits Client halves after Host approval |
+| `browserDelivery` | `disabled` | `unsafe-eval-inline-style` is an explicit exception for the browser source evaluator and its owned style tags |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-cordis-host-runner) is the exhaustive source for every accepted field.
 
 ### What a run does
 
-Programmatic callers use `define`, `run`, `stop`, and `undefine`; the browser panel operates existing definitions. Host-only packages activate in this process. A package with a browser half waits for approval or cancellation, then loads Host before Client. `mode: "run"` starts the current version; `mode: "update"` replaces it. Stop disposes the live effects and retains the definition; undefine also forgets it.
+Programmatic callers use `define`, `run`, `stop`, and `undefine`; the browser panel operates existing definitions. Dynamic runs are disabled until the deployment selects `host-only` or `browser`. A browser-half package requires the explicit browser delivery policy and a Host-minted approval request; a direct panel call without that request is refused. `mode: "run"` starts the current version; `mode: "update"` replaces it. Stop disposes the live effects and retains the definition; undefine also forgets it.
 
 ### What happens to definitions
 
@@ -51,7 +55,7 @@ Definitions are session-scoped and process-local: other sessions read them as ab
 
 ### Trust stance
 
-The sandbox isolates globals but is not a security boundary: Node globals are absent or redirect to Cordis services (`ctx.fs`, `ctx.web`, `ctx.bash`, the timer helpers), and a host half receives a façade without framework internals, yet the services it declares reach the live runtime. Treat a dynamic package like bash access — see the [self-referential toolset Agent Note](../../../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md).
+The sandbox isolates globals but is not a security boundary: Node globals are absent or redirect to Cordis services (`ctx.fs`, `ctx.web`, `ctx.bash`, the timer helpers), and a host half receives a façade without framework internals, yet the services it declares reach the live runtime. Treat a dynamic package like bash access — see the [self-referential toolset Agent Note](../../../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md). Browser delivery is disabled by default. This package does not emit a CSP header or configure Trusted Types; the deployment's Web host or reverse proxy must enforce those controls when it explicitly accepts the `unsafe-eval-inline-style` exception.
 
 -----
 
@@ -133,6 +137,8 @@ These limits define when the runner needs special care. They are current package
 - **The run announcement carries no service declarations** — a browser half's declared `inject` is read from the plugin it returns in the page, so `cordis/request-run` carries metadata only, never code or service lists.
 - **`zod` is a runtime dependency of the generated Typert faces, not of `src`** — `./typert` and `./remote` resolve to unbundled `lib` files with a bare `import { z } from 'zod'`, so the package declares it even though nothing in `src` imports zod.
 
+**Runtime invariant:** No companion is published. The definition registry is process memory with no event stream to observe, and its one owned relation (a running definition owns a settled host-half fiber and its handler table) is established and unwound inside single awaited verbs, so package tests assert it directly.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -142,5 +148,3 @@ These limits define when the runner needs special care. They are current package
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The definition registry is process memory with no event stream to observe, and its one owned relation (a running definition owns a settled host-half fiber and its handler table) is established and unwound inside single awaited verbs, so package tests assert it directly.

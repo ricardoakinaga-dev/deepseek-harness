@@ -107,13 +107,13 @@ function acceptIncrement(accept: WorkspaceFollowSink, frame: WorkspaceFollowIncr
     case 'archived':
       accept.replaceArchived(frame.archivedSessionIds)
       return
-    /* v8 ignore next -- the generated Remote codec validates this closed union */
+    /*! v8 ignore next -- the generated Remote codec validates this closed union */
     default:
       return assertNever(frame)
   }
 }
 
-/* v8 ignore next 3 -- closed-union backstop after generated Remote validation */
+/*! v8 ignore next 3 -- closed-union backstop after generated Remote validation */
 function assertNever(value: never): never {
   throw new Error(`unreachable Workspace increment: ${JSON.stringify(value)}`)
 }

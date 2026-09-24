@@ -25,11 +25,11 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin beside the title service when a session should be titled from its first eligible human message. It requires the full [shared LLM configuration](../session-title-llm/README.md#configuration) with no defaults.
+Mount this plugin with the title, LLM, session-store, and session-query services when automatic titles should use the first eligible human message. It requires the full [shared LLM configuration](../session-title-llm/README.md#configuration) with no defaults. The session-query service is used for explicit refreshes, which load the complete eligible history.
 
 ### When titles are generated
 
-Automatic generation runs only for a fresh session with no parent and no prior title: after its first eligible human message, the fallback is created and one auxiliary request summarizes that message. Later prompts, explicit user renames, and inherited fork history do not trigger another automatic call. An automatic failure keeps the fallback; `ctx.sessionTitle.refresh()` is the explicit retry. Forks keep their inherited title and never run this provider automatically, even when their seeded first message came from the parent.
+Automatic generation runs only for a fresh session with no parent and no prior title: after its first eligible human message, the fallback is created and one auxiliary request summarizes that message. Later prompts, explicit user renames, and inherited fork history do not trigger another automatic call. An automatic failure keeps the fallback; `ctx.sessionTitle.refresh()` is the explicit retry and summarizes all eligible messages through the refresh cut. Forks keep their inherited title and never run this provider automatically, even when their seeded first message came from the parent.
 
 ### Configuration
 
@@ -51,17 +51,17 @@ This section explains the plugin's shape; the observable behavior is fully cover
 
 ### Design concept
 
-A thin provider plugin: it registers the `first-prompt` cadence with a selector that takes the first eligible message, and delegates everything else to the [shared LLM policy](../session-title-llm/README.md).
+A thin provider plugin: it registers the `first-prompt` cadence and delegates generation to the [shared LLM policy](../session-title-llm/README.md). The title service supplies the first-message projection for automatic work; the shared helper loads all-history input through the session-query service for explicit refresh.
 
 ### Source map
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | Plugin entry: shared config schema, provider registration with the first-message selector |
+| [`src/index.ts`](src/index.ts) | Plugin entry: shared config schema and first-prompt provider registration |
 
 ### Scheduling
 
-The title service schedules automatic work: for the `first-prompt` cadence it starts a revision only when the session has no parent, holds exactly one eligible message, and has no title yet; the provider call begins after the exact main-request route is logged, and a newer revision supersedes older work.
+The title service schedules automatic work: for the `first-prompt` cadence it starts a revision only when the session has no parent, holds exactly one eligible message, and has no title yet. It supplies that first message from the `titleInput` projection. An explicit refresh loads all eligible history through the captured seq via the session-query service. Provider calls begin after the exact main-request route is logged, and a newer revision supersedes older work.
 
 </details>
 
@@ -86,7 +86,7 @@ Read these pages when the provider contract is not enough. They move from the sh
 
 #### What the model sees
 
-The title model receives the shared title instruction and a JSON array containing only the first eligible human message. Later prompts and inherited fork history do not trigger another automatic call.
+Automatic title generation sends only the first eligible human message. An explicit `refresh()` sends all eligible human messages through the refresh cut. Later prompts and inherited fork history do not trigger another automatic call.
 
 #### Token effect
 
@@ -106,6 +106,8 @@ These limits define when this provider stops representing the session. They are 
 - **First message may go stale** — the first message alone may cease to represent a long-running session; use the all-messages provider when later prompts should retitle it.
 - **Forks never retitle automatically** — a fork keeps its inherited title and never runs this provider automatically, even when its seeded first message came from the parent.
 
+**Runtime invariant:** No companion is published. This thin provider delegates request and result validation to the shared title service and LLM helper and retains no independent mutable state.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -115,5 +117,3 @@ These limits define when this provider stops representing the session. They are 
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This thin provider delegates request and result validation to the shared title service and LLM helper and retains no independent mutable state.

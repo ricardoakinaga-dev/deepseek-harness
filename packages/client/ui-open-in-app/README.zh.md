@@ -70,6 +70,8 @@ kind: "package-reference"
 - **词典把守菜单。** 主机目录的新条目若在两份词典中没有对应的 `app.<id>` 条目，将保持不可见而不是显示裸 id；扩展目录意味着同时扩展 [`dsh-host-open-in-app`](../../host/open-in-app/README.zh.md) 与本包的 locale。
 - **可用性每页只读一次。** 页面打开期间安装的应用要重新加载页面后才出现（主机侧还需主机重启）。
 
+**运行时不变式：** 不发布伴生入口。插件注册一个词典 effect 和一个 header slot 条目，HMR 安全性 spec 证明二者都会在资源释放时撤销；可用性与选择存储在控制器的快照存储中，不存在可能与之分歧的第二份副本。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -79,5 +81,3 @@ kind: "package-reference"
 功能层面的各项决定，包括拆分为主机包与本表面包，记录在[转正 Agent Note](../../../.agents/notes/implemented/feature/2026-08-25-promote-open-anywhere-plugin.zh.md)。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。插件注册一个词典 effect 和一个 header slot 条目，HMR 安全性 spec 证明二者都会在资源释放时撤销；可用性与选择存储在控制器的快照存储中，不存在可能与之分歧的第二份副本。

@@ -94,7 +94,7 @@ export function apply(ctx: ClientContext): void {
   const mainBlankSeat = (scope: ClientContext): AgentPresetSeatController | undefined => {
     const summary = Object.values(scope.sessions.list.getSnapshot().byId)
       .find((session) => {
-        /* v8 ignore next -- retained source counts omit zero-valued entries. */
+        /*! v8 ignore next -- retained source counts omit zero-valued entries. */
         return session.blank && (session.retainedBy.mainView ?? 0) > 0
       })
     const binding = summary === undefined ? undefined : scope.sessions.binding(summary.id)

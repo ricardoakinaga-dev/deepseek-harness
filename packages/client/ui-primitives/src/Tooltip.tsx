@@ -75,7 +75,7 @@ export function Tooltip({ label, side = 'right', delayMs = 0, disabled = false, 
     if (pos === null) return
     const fit = () => {
       const el = bubble.current
-      /* v8 ignore next -- pos is set only while the bubble is mounted. */
+      /*! v8 ignore next -- pos is set only while the bubble is mounted. */
       if (el === null) return
       el.style.left = `${pos.x}px`
       const r = el.getBoundingClientRect()
@@ -133,7 +133,7 @@ export function Tooltip({ label, side = 'right', delayMs = 0, disabled = false, 
   const show = () => {
     if (disabled) return
     const el = anchor.current
-    /* v8 ignore next -- the ref is attached by event time: events fire on the cloned anchor. */
+    /*! v8 ignore next -- the ref is attached by event time: events fire on the cloned anchor. */
     if (el === null) return
     const r = el.getBoundingClientRect()
     // Every show starts from the requested side; the fit pass flips it only

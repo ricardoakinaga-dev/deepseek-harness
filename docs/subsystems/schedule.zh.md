@@ -179,7 +179,7 @@ type ScheduleView = ScheduleRecord & {
 
 ## 只读 Web 目录
 
-可选 Session projection 注册表存在时，Schedule 会注册客户端可见的 `schedule` key，其值是完整的活动 `ScheduleRecord[]`。live、cache、history 与 detached 读取共用同一套 header-aware 严格 fold；畸形权威输入会使既有读取路径失败，而不会发布部分值。
+Schedule 要求 Session projection 注册表，并注册客户端可见的 `schedule` key，其值是完整的活动 `ScheduleRecord[]`。完成持久化 barrier 后，工具与 live runtime 会读取当前 host 状态；invariant 配套模块会在发布或追加前校验直接创建基线、准备中的构造基线、setup 追加与 live 候选事件。被拒绝的准备追加不会改变其序列或 projection 状态。live、cache、history 与 detached 读取使用同一套 header-aware 严格 transition；畸形权威输入会使既有读取路径失败，而不会发布部分值。
 
 shipped Web bundle 默认禁用 `ui-schedule`，显式 Schedule overlay 则把它与 Host 能力一同启用。[`dsh-client-ui-schedule`](../../packages/client/ui-schedule/README.zh.md)拥有 header 交互，[`dsh-client-ui-workspace`](../../packages/client/ui-workspace/README.zh.md)拥有列表行呈现，持久 Schedule Agent Note 拥有二者共享的活动状态边界。共享值只表示当前活动状态，绝不表示交付历史或回执；到期提醒仍通过下文所述的普通 Assistant 输出出现。
 
@@ -187,6 +187,6 @@ shipped Web bundle 默认禁用 `ui-schedule`，显式 Schedule overlay 则把�
 
 进程内 owner 根据持久 fold 派生最早的 timer，并在每次有界等待后重新读取墙钟。cold Session 不执行任何工作；重新打开后会重建 timer，并使已经过去的目标进入 overdue 状态。到期的一次性提醒享有优先级，每次只进入一个后续轮次。当没有一次性提醒到期时，所有 overdue 的 Every 记录会组成上述单个批次。
 
-到期工作会先等待 Agent 完全 idle 并认领 maintenance phase，再重新折叠状态、采样本次判断、将一个 `followup()` 排入队列，并追加对应的 dispatch 变更。它绝不会调用 `steer()`，也绝不会中断当前轮次。
+到期工作会先等待 Agent 完全 idle 并认领 maintenance phase，再读取 projection state、采样本次判断、将一个 `followup()` 排入队列，并追加对应的 dispatch 变更。它绝不会调用 `steer()`，也绝不会中断当前轮次。
 
 获得准入的一次性提醒或固定速率批次会启动一个普通的后续轮次，且只通过普通对话 transcript（文本记录）出现；Schedule 不提供独立的持久 Web 回执。上面的只读活动目录绝不表示交付成功。如果 framing 构造或同步队列准入失败，则不会记录 dispatch，提醒仍保持活动。队列准入后、持久 dispatch 前的狭窄崩溃窗口可能使提醒内容在恢复后重复，因此该边界提供的是尽力而为的至少一次交付，而非恰好一次交付。

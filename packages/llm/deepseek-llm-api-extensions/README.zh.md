@@ -48,6 +48,8 @@ Chat Completions 和 Messages 都会准备这些字段。每个提供方都会�
 - **不约定字段顺序**——JSON 对象成员顺序取决于注册准备顺序，但接收方按名称寻址字段。
 
 
+**运行时不变式：** 不发布伴生入口。重复所有权、detached output 与单次 acceptance settlement 都在拥有该决策的注册表操作中强制。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -57,5 +59,3 @@ Chat Completions 和 Messages 都会准备这些字段。每个提供方都会�
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。重复所有权、detached output 与单次 acceptance settlement 都在拥有该决策的注册表操作中强制。

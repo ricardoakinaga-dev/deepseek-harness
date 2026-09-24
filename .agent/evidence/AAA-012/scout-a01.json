@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-012",
+  "action_id": "AAA-012:A01",
+  "candidate_ref": "current custom/main worktree",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T23:15:16-03:00",
+  "scout": {
+    "agent_id": "01a0c1b4-25b9-7880-ab53-fcbf8296182a",
+    "independence": "I1",
+    "mechanism": "multi_agent_v1 with fork_context=false",
+    "authorization": "read-only"
+  },
+  "source_documents": [
+    "docs/customization/repository-audit-2026-09-20.md:96,138",
+    "packages/api/gateway/src/client/stream-client.ts",
+    "packages/api/gateway/src/client/index.ts",
+    "packages/api/gateway/README.md",
+    "packages/api/gateway/tests/gateway.client.spec.ts:229-284,2421-2488",
+    "packages/api/gateway/src/stream-server.ts",
+    "packages/api/gateway/tests/stream-server.host.spec.ts"
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-012-EARLY-CLOSE-RESOLUTION",
+      "observed_status": "GAP_REPRODUCED",
+      "classification": "CLOSE_PROMISE_CAN_PRECEDE_PHYSICAL_CLOSE",
+      "severity": "HIGH",
+      "source_refs": [
+        "packages/api/gateway/src/client/stream-client.ts",
+        "packages/api/gateway/tests/gateway.client.spec.ts:267-284,2468-2488"
+      ],
+      "summary": "RemoteStreamMuxClient.close() requests socket closure and awaits the connection loop, but the inspected implementation does not wait for the socket close event or CLOSED state. FakeWebSocket can remain CLOSING after close() resolves.",
+      "limitations": "The fixture is deterministic but not a real browser or network WebSocket; iterator-finalization quiescence still needs a dedicated barrier test."
+    }
+  ],
+  "current_contract": {
+    "public_lifecycle": "ClientRemoteService effect disposal invokes the internal RemoteStreamMuxClient close path; no public ctx.remote.close() method is exposed.",
+    "documented_gap": "The gateway README does not define close completion, timeout, error, already-closed, already-closing, repeated-close, or late-callback behavior.",
+    "server_control": "The server-side stream close path awaits socket/server closure and active stream completion, but that does not establish the client contract."
+  },
+  "decision": {
+    "status": "PENDING_HUMAN_DECISION",
+    "required": "Choose the caller-visible close postcondition before implementation.",
+    "options": [
+      "Physical closure: disposal completes only after the relevant WebSocket reaches CLOSED or emits close.",
+      "Logical disposal: disposal completes after retries, handlers, streams, and iterators are quiescent while physical closure may still be pending."
+    ],
+    "must_define": [
+      "success and timeout behavior",
+      "error-before-close and close-before-error ordering",
+      "already-closed, already-closing, and repeated-close behavior",
+      "late message, error, and close callbacks after disposal"
+    ]
+  },
+  "lead_validation": {
+    "procedure": "Inspect the cited source and fixture with line-numbered rg output after the independent scout returned; no files or generated artifacts were changed.",
+    "procedure_status": "EXECUTED",
+    "result": "PARTIAL",
+    "limitations": "No product regression test was added because the backlog action explicitly requires the maintainer close-policy decision first."
+  },
+  "proposed_commands": [
+    "pnpm exec vitest run packages/api/gateway/tests/gateway.client.spec.ts --no-file-parallelism",
+    "pnpm exec vitest run packages/api/gateway/tests/stream-server.host.spec.ts --no-file-parallelism",
+    "pnpm exec vitest run packages/api/gateway/tests/gateway.client.spec.ts packages/api/gateway/tests/stream-server.host.spec.ts packages/api/gateway/tests/gateway-stream.host.spec.ts --no-file-parallelism"
+  ]
+}

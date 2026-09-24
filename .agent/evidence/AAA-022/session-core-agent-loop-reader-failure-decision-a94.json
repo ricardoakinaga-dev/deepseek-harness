@@ -1,0 +1,190 @@
+{
+  "record_id": "EVID-AAA-022-W2-PREPARED-PAGE-FAILURE-DECISION-A94-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A18",
+  "kind": "BACKEND_FAILURE_AND_RECOVERY_DECISION",
+  "timestamp": "2026-09-23T04:02:00-03:00",
+  "status": "PROPOSED",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "design_refs": [
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json"
+  ],
+  "review_refs": [
+    "W2-CRITIC-A18-2026-09-23-2D7C",
+    "/root/a18_handoff_critic"
+  ],
+  "candidate": {
+    "branch": "custom/main",
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty work preserved",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false
+  },
+  "problem_and_outcome": "S020 must drain an unpublished Session through bounded storage batches before publication. The design must define what callers observe if one or more batches are acknowledged and a later append rejects.",
+  "current_facts": [
+    {
+      "status": "CURRENT",
+      "fact": "SessionHandle.append accepts one contiguous batch; a resolved append is visible and, in the shipped JSONL backend, durable. The handle contract does not promise that a rejected append had no effect.",
+      "evidence": [
+        "packages/session/session-persistence/src/handle.ts",
+        "packages/session/session-persistence/README.md"
+      ]
+    },
+    {
+      "status": "CURRENT",
+      "fact": "JSONL marks the session materialized and advances its cursor after a successful batch; close retains a materialized record. A later fresh create of that id collides.",
+      "evidence": [
+        "packages/session/session-persistence-jsonl/src/storage.ts",
+        "packages/session/session-persistence-jsonl/src/index.ts"
+      ]
+    },
+    {
+      "status": "CURRENT",
+      "fact": "AgentLoop.resume opens the existing id for write, reads the actual stored prefix, applies interrupted-turn repair, and initializes its stored cursor after the prefix and repair events. It does not receive or reconstruct the failed create seed or setup suffix.",
+      "evidence": [
+        "packages/core/agent-loop/src/index.ts",
+        "packages/core/agent-loop/tests/resume.spec.ts"
+      ]
+    },
+    {
+      "status": "CURRENT",
+      "fact": "The frozen Session data contract is append-only; committed events are not deleted, rewritten, or replayed over an acknowledged sequence.",
+      "evidence": [
+        "AGENTS.md",
+        "packages/session/session-persistence/src/handle.ts"
+      ]
+    }
+  ],
+  "invariant": {
+    "success": "Before publication, every accepted seed and setup event is stored once through the final fixed cut. The preparation feed then seals synchronously before the existing live event route can observe later appends.",
+    "failure": "A rejected create does not announce a Session or Agent. No acknowledged event is deleted, truncated, or blindly retried. The create error is returned to the caller, and any acknowledged contiguous prefix remains the authoritative stored prefix.",
+    "retry": "A failed create is not automatically retried with the same id. Explicit resume reads the actual stored prefix and continues from its current cursor. Resume does not claim to restore the unacknowledged seed/setup tail; callers decide whether to continue that prefix or start a fresh create from retained input under a new id."
+  },
+  "allowed_partial_state": {
+    "decision": "PROPOSED_ALLOWED",
+    "state": "A later page may reject after earlier pages resolved, leaving a valid, cold-visible Session prefix under the caller-supplied id while the failed create returns an error and no live lifecycle is announced.",
+    "recoverability": "The exact acknowledged prefix can be resumed with AgentLoop.resume(id); the unacknowledged in-memory suffix is discarded when preparation is released and is not reconstructed by resume.",
+    "user_impact": "This is a failed create, not a successful partial agent. A same-id create retry remains a collision. The caller already supplied the id and receives the original failure; retry/reconciliation is an explicit caller decision."
+  },
+  "forces_and_constraints": [
+    "Preserve append-only Session history and the monotonic persistence cursor.",
+    "Keep successful publication complete and ordered while bounding each prepublication append batch by an explicit validated owner setting.",
+    "Avoid retrying a batch after an ambiguous rejection because the persistence contract does not guarantee rejection means no commit.",
+    "Avoid adding a cross-provider staging transaction unless all-or-none create input recovery is a frozen requirement; no such transaction exists today.",
+    "Do not change SESSION_FORMAT_VERSION, released Session records, persistence schema, or model-visible event meaning."
+  ],
+  "candidates": [
+    {
+      "pattern": "Retain acknowledged pages and recover only through explicit resume",
+      "status": "PROPOSED_SELECTED",
+      "benefits": [
+        "Uses the existing append acknowledgment and resume contracts.",
+        "Never rewrites accepted events or blindly replays an uncertain batch.",
+        "Keeps failure local to one unpublished create and makes the surviving prefix readable and resumable."
+      ],
+      "costs_and_limits": [
+        "A failed create may leave a cold partial record and same-id fresh create remains a collision.",
+        "The failed invocation's unacknowledged setup tail is not preserved by resume.",
+        "Callers that require the original full setup must retain its input and explicitly start a fresh id or reconcile the resumed prefix."
+      ],
+      "evidence_required": [
+        "Inject a first-page success and later-page rejection; prove the failed create does not announce, the stored prefix remains contiguous and readable, no accepted page is replayed, and the handle/preparation are released.",
+        "Explicitly resume the same id; prove the reader starts from the stored prefix, crash repair is applied once, and the resulting event log contains no duplicate accepted sequence.",
+        "Assert that same-id create is not silently converted into resume and that no automatic retry runs after an ambiguous append rejection."
+      ]
+    },
+    {
+      "pattern": "Stage all pages and atomically expose them only at publication",
+      "status": "REJECTED_FOR_CURRENT_WAVE",
+      "reason": "This requires a new prepare/commit/abort persistence capability implemented by every SessionPersistence provider, plus durable staging cleanup and recovery. It is materially broader than replacing the existing core reader and is unsupported by a current all-or-none create requirement. Reopen if product requirements demand complete create-input recovery after storage failure."
+    },
+    {
+      "pattern": "Collect every bounded source page into one unbounded append batch",
+      "status": "REJECTED_FOR_CURRENT_WAVE",
+      "reason": "It retains the full suffix allocation, does not bound the storage batch, and the generic persistence contract still does not define a transaction spanning source capture and publication. It weakens the bounded-drain requirement without proving all-or-none semantics."
+    }
+  ],
+  "page_limit_owner": {
+    "status": "PROPOSED",
+    "package": "@deepseek-ai/dsh-agent-loop",
+    "config_field": "prepublicationAppendBatchSize",
+    "ownership": "Validated AgentLoop Config read by the prepublication SessionHandle writer; each handle.append receives no more than this number of events.",
+    "documentation": [
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "docs/config-catalog.md and its bilingual generated counterparts"
+    ],
+    "validation": "Positive safe integer with a finite maximum; not a test-only hook or hidden DEFAULT-only tunable.",
+    "default": "Set in the A20 implementation gate after checking representative setup/resume log sizes; any default is exposed in Config and documentation. No throughput optimum is claimed by this design."
+  },
+  "prepared_append_reentrancy": {
+    "status": "PROPOSED",
+    "decision": "The preparation capture step performs only internal ordered bookkeeping and invokes no caller-owned callback. Session.append holds one per-Session in-flight append guard for both attached and unattached Sessions while internal preparation/projection observers run; a nested append is rejected before receiving a sequence number.",
+    "falsifier": "Attempt a nested append from a prepared observer and assert the nested event is not accepted, the outer sequence remains contiguous, and later prepared projection state reaches the exact Session cursor."
+  },
+  "design_review_results": {
+    "A92_critic": {
+      "critic_id": "W2-CRITIC-A18-2026-09-23-2D7C",
+      "decision": "APPROVE",
+      "criteria": "W2-01 through W2-05 PASS for design readiness, with W2-01 final handoff ordering and W2-03 insertion/old-cache falsifiers requested."
+    },
+    "A93_critic": {
+      "critic_id": "/root/a18_handoff_critic",
+      "decision": "APPROVE_WITH_CONDITIONS",
+      "criteria": {
+        "W2-01": "FAIL until multi-page partial failure recovery and page-limit ownership are settled",
+        "W2-02": "PASS",
+        "W2-03": "PASS",
+        "W2-04": "PASS",
+        "W2-05": "PASS"
+      },
+      "other_condition": "Prepared append capture must remain callback-free or reject nested append before event acceptance."
+    }
+  },
+  "complexity_budget": {
+    "selected_prefix_recovery": {
+      "implementation": "1: bounded local loop and explicit resume test",
+      "operational": "1: caller uses the existing exact-id resume path; a failed create is surfaced",
+      "cognitive": "2: documentation must distinguish failed-create prefix recovery from full-input replay",
+      "runtime": "1: one bounded append/page setting and existing writer path",
+      "migration": "0: no durable format migration",
+      "testing": "2: fault-injected multi-page append failure plus durable read/resume oracle"
+    },
+    "staged_atomic_create": {
+      "implementation": "3: new cross-provider prepare/commit/abort persistence contract",
+      "operational": "2: staged orphan cleanup/recovery",
+      "cognitive": "3: new transaction and publication state machine",
+      "migration": "2: provider compatibility and API migration",
+      "testing": "3: crash/interruption, mixed-provider, and staged cleanup coverage"
+    }
+  },
+  "compatibility_and_scope": {
+    "session_format_version_change": false,
+    "released_session_record_change": false,
+    "persistence_schema_change": false,
+    "new_model_visible_event": false,
+    "production_changes": [],
+    "human_decision": "No new public identity, security, irreversible, or all-or-none create contract is currently recorded. This remains a proposed failure behavior pending independent design review; reopen for a user decision if the audit/source reveals an atomic-create requirement."
+  },
+  "review_requirements": [
+    "Confirm prefix-only recovery is consistent with the current public AgentLoop create/resume and SessionPersistence append contracts, including lost unacknowledged setup tail semantics.",
+    "Confirm the Config field is the smallest correct owner for the page count and that the gate names a concrete validated range/default without a hidden tunable.",
+    "Confirm prepared append reentrancy is contained without changing attached Session append behavior or silently swallowing a projection failure.",
+    "Confirm the proposed failure tests observe the durable prefix and explicit resume, not just mocked append calls."
+  ],
+  "next_action": {
+    "id": "AAA-022:A18",
+    "kind": "DESIGN_REVIEW",
+    "summary": "Independently review the failure, page-limit, and reentrancy decisions needed for W2-01",
+    "completion_signal": "A fresh read-only critic approves the A92-A94 design and W2-01 through W2-05. Then reconcile A18 and create the exact A19 prepared-projection implementation gate; the storage drain remains a later separately gated slice."
+  },
+  "limitations": [
+    "The A92 focused baseline remains 5 files with 2 failing and 3 passing: 48 tests fail and 29 pass because unpublished Agent construction reads an uninitialized turnBoundary projection. It has not been rerun.",
+    "No multi-page append failure, explicit prefix resume, callback reentrancy, old-cache missing-key, or handoff race fixture exists yet.",
+    "Canonical repository debt metrics remain unavailable on the incomplete pre-existing dirty worktree."
+  ],
+  "freshness": "CURRENT"
+}

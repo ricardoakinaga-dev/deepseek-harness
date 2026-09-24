@@ -819,7 +819,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 类型：[SessionTitleLlmRequestEventData](subsystems/session-title.zh.md)
 
-来源：[`packages/session/session-title-llm/src/index.ts:45`](../packages/session/session-title-llm/src/index.ts)
+来源：[`packages/session/session-title-llm/src/index.ts:47`](../packages/session/session-title-llm/src/index.ts)
 
 ### `session-log-deepseek/*`
 
@@ -4662,7 +4662,7 @@ SHA-256: `a5a8c15f08af1b0f26f40906e0797b6b0920fd01069e660becce35ab7fc48d77`
 
 SHA-256: `3cfc3a56502da1f8c6153c2c56657bab4b749056968634dd0991d325ec1c919f`
 
-来源：[`packages/core/tools/src/index.ts:682`](../packages/core/tools/src/index.ts)
+来源：[`packages/core/tools/src/index.ts:684`](../packages/core/tools/src/index.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -5639,7 +5639,7 @@ SHA-256: `18ee62b8900a4c3d046700f05d7a4d49d6cab2a660a020c87481d1603dd8bd4f`
 
 SHA-256: `9fe0e77a7816b7fdb4b953ec0e2f0cd7bbd22c5de5c3567e612d1b20eb0992e6`
 
-来源：[`packages/session/session-title-llm/src/index.ts:27`](../packages/session/session-title-llm/src/index.ts)
+来源：[`packages/session/session-title-llm/src/index.ts:29`](../packages/session/session-title-llm/src/index.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|

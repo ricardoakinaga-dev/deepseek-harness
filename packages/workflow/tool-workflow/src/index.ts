@@ -184,10 +184,10 @@ function stopReasonError(result: WorkflowResult): string | undefined {
       return `workflow run was cancelled${result.error !== undefined ? ` (${result.error})` : ''}`
     case 'error':
       return `workflow run failed: ${result.error ?? 'unknown error'}`
-    /* v8 ignore start -- defensive: WorkflowStopReason is a closed union, exhaustive by construction; a future variant fails here loudly */
+    /*! v8 ignore start -- defensive: WorkflowStopReason is exhaustive; an unknown variant fails here */
     default:
       return `workflow run ended abnormally (${String(result.stopReason satisfies never)})`
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
 }
 
@@ -318,7 +318,7 @@ export function apply(ctx: Context, config: Config): void {
           // synthesize cancelled member endings while reaching quiescence.
           await run.dispose()
           if (recordsRun) {
-            /* v8 ignore next -- WorkflowRun.result never rejects by contract, so result is assigned before finally. */
+            /*! v8 ignore next -- WorkflowRun.result never rejects by contract, so result is assigned before finally. */
             if (result === undefined) throw new Error('workflow run settled without a result')
             recorder.finish(run.id, result.stopReason)
           }

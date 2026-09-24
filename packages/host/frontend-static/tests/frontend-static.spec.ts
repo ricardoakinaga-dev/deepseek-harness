@@ -6,7 +6,7 @@
  * GET/HEAD, and seat release on fiber disposal (HMR safety).
  */
 
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -40,6 +40,15 @@ async function loadComposition(): Promise<Context> {
   await writeFile(join(dist, 'blob.bin'), 'BLOB')
   await writeFile(join(dist, 'manifest.webmanifest'), '{}')
   await mkdir(join(dist, 'empty'))
+  const realAssets = join(dist, 'real-assets')
+  await mkdir(realAssets)
+  await writeFile(join(realAssets, 'inside.txt'), 'INSIDE')
+  await symlink(realAssets, join(dist, 'asset-alias'), process.platform === 'win32' ? 'junction' : 'dir')
+  const outside = join(root, 'outside')
+  await mkdir(outside)
+  await writeFile(join(outside, 'secret.txt'), 'OUTSIDE')
+  await symlink(outside, join(dist, 'escape-alias'), process.platform === 'win32' ? 'junction' : 'dir')
+  await symlink(root, join(dist, 'parent-alias'), process.platform === 'win32' ? 'junction' : 'dir')
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
     "- name: '@deepseek-ai/dsh-credentials-local'",
@@ -136,6 +145,13 @@ describe('real Loader composition', () => {
     await writeFile(join(root!, 'dist', 'app.js'), 'export const rebuilt = true')
     expect(await request(port, '/app.js')).toMatchObject({ status: 200, body: 'export const rebuilt = true' })
 
+    // Resolved aliases that remain inside the dist are served; aliases that
+    // resolve outside it are rejected before external bytes are read.
+    expect(await request(port, '/asset-alias/inside.txt')).toMatchObject({ status: 200, body: 'INSIDE' })
+    expect(await request(port, '/escape-alias/secret.txt')).toEqual({ status: 403, type: null, body: '' })
+    expect(await request(port, '/escape-alias/missing.txt')).toEqual({ status: 403, type: null, body: '' })
+    expect(await request(port, '/parent-alias')).toEqual({ status: 403, type: null, body: '' })
+
     // Unknown extension ships as octet-stream.
     expect(await request(port, '/blob.bin')).toMatchObject({ status: 200, type: 'application/octet-stream', body: 'BLOB' })
 
@@ -158,7 +174,7 @@ describe('real Loader composition', () => {
 
     // A missing configured index follows the same empty-404 contract for both
     // of its public entry paths and for both supported methods.
-    await rm(join(root!, 'dist', 'index.html'))
+    await rm(join(root!, 'dist', 'index.html'), { force: true })
     for (const path of ['/', '/index.html']) {
       const get = await request(port, path, authenticated())
       const head = await request(port, path, authenticated({ method: 'HEAD' }))
@@ -194,6 +210,14 @@ describe('real Loader composition', () => {
     expect((await request(port, '/..%2f..%2fetc%2fpasswd')).status).toBe(403)
     expect((await request(port, '/app.js', { method: 'POST' })).status).toBe(405)
     expect((await request(port, '/bad%00path')).status).toBe(400)
+
+    // The configured index is checked independently because the root request
+    // reads it even though its request target is the dist directory itself.
+    await rm(join(root!, 'dist', 'index.html'), { force: true })
+    await symlink(join(root!, 'outside', 'secret.txt'), join(root!, 'dist', 'index.html'))
+    expect(await request(port, '/', authenticated())).toEqual({ status: 403, type: null, body: '' })
+    expect(await request(port, '/index.html', authenticated())).toEqual({ status: 403, type: null, body: '' })
+    await rm(join(root!, 'dist', 'index.html'))
 
     // HMR safety: disposing the frontend row releases the fallback seat (the
     // unclaimed webserver answers 404) and the seat is claimable again.

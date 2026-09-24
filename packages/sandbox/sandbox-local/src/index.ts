@@ -22,9 +22,10 @@
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
   LAUNCHER_BIN,
   LAUNCHER_FAILURE_EXIT,
@@ -39,6 +40,18 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import { AclWriteGrant, assertTempRootOutsideWorkspace, tempWriteSid, workspaceWriteSid } from '@deepseek-ai/dsh-sandbox-windows-acl'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { bwrapProfileArgs, landlockProfileArgs, seatbeltProfileArgs } from './profiles.ts'
+
+const require = createRequire(import.meta.url)
+
+/** Resolve a package entry without relying on Vite's incomplete import.meta.resolve shim. */
+function resolveModulePath(specifier: string): string {
+  return require.resolve(specifier)
+}
+
+/** Resolve a package entry as a URL for a generated import expression. */
+function resolveModuleUrl(specifier: string): string {
+  return pathToFileURL(resolveModulePath(specifier)).href
+}
 
 /** Plugin config. All optional — `static Config` supplies the defaults. */
 export interface Config {
@@ -562,11 +575,11 @@ export class LocalSandboxProvider extends SandboxProvider {
   private windowsAclRunnerInvocation(): string[] {
     const override = this.internals.windowsAclRunnerArgs
     if (override !== undefined) return override
-    const builtEntry = this.internals.windowsAclRunnerEntry ?? fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-sandbox-windows-acl/runner'))
+    const builtEntry = this.internals.windowsAclRunnerEntry ?? resolveModulePath('@deepseek-ai/dsh-sandbox-windows-acl/runner')
     if (existsSync(builtEntry)) return [process.execPath, builtEntry]
-    const sourceEntry = fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-sandbox-windows-acl/src/runner.ts'))
+    const sourceEntry = fileURLToPath(new URL('../../sandbox-windows-acl/src/runner.ts', import.meta.url))
     const sourceConfig = fileURLToPath(new URL('../../../../tsconfig.base.json', import.meta.url))
-    const registration = `import { register } from ${JSON.stringify(import.meta.resolve('tsx/esm/api'))}; register({ tsconfig: ${JSON.stringify(sourceConfig)} });`
+    const registration = `import { register } from ${JSON.stringify(resolveModuleUrl('tsx/esm/api'))}; register({ tsconfig: ${JSON.stringify(sourceConfig)} });`
     return [process.execPath, '--import', `data:text/javascript,${encodeURIComponent(registration)}`, sourceEntry]
   }
 }

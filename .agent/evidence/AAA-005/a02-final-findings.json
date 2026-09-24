@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-005",
+  "action_id": "AAA-005:A02",
+  "candidate_ref": "current working tree after AAA-006 adapter restoration",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T20:38:51-03:00",
+  "source_documents": [
+    {
+      "id": "snapshot-policy",
+      "location": "snapshots/AGENTS.md; scripts/session-snapshot-corpus.corpus.ts",
+      "role": "Current-writer fixtures use adjacent versioned files and preserve committed predecessors."
+    },
+    {
+      "id": "adapter-restoration",
+      "location": ".agent/evidence/AAA-006/a02-findings.json; package.json; pnpm-lock.yaml",
+      "role": "The authored adapter is resolvable in the CI-representative lib path after the root test-consumer dependency is declared."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-005-FINAL-GENERATION",
+      "source_refs": ["AAA-QB-03", "AAA-QB-12"],
+      "source_location": "snapshots/session/resilient-compaction-timeout/session.jsonl; snapshots/session/resilient-compaction-timeout/session.v3.jsonl",
+      "command_ids": ["CMD-AAA-005-010", "CMD-AAA-005-012", "CMD-AAA-005-013"],
+      "observed_status": "PASS",
+      "classification": "CURRENT_WRITER_V3_REPLAY_FIXTURE_WITH_IMMUTABLE_V0",
+      "owner": "AAA-005",
+      "severity": "CLOSED",
+      "summary": "The writer refresh produces a filename/header-consistent v3 fixture, the focused corpus passes, and the committed v0 bytes remain unchanged.",
+      "limitations": "Retained historical generation policy remains scoped to this scenario; the full snapshot matrix is not represented here."
+    },
+    {
+      "id": "F-AAA-005-FINAL-REPLAY",
+      "source_refs": ["AAA-QB-03", "AAA-QB-06", "AAA-QB-12"],
+      "source_location": "snapshots/session/headless.snapshot.ts; snapshots/session/resilient-compaction-timeout/cordis.yml",
+      "command_ids": ["CMD-AAA-005-011"],
+      "observed_status": "PASS",
+      "classification": "CI_REPRESENTATIVE_CUSTOM_LIB_REPLAY_PASS",
+      "owner": "AAA-005",
+      "severity": "CLOSED",
+      "summary": "The focused resilient-compaction timeout scenario passes through the shipped lib-mode headless path after AAA-006 restores the authored adapter import.",
+      "limitations": "The source launch still exposes a separate module-identity mismatch under local tsx mode; CI's lib path is green and this source observation remains outside AAA-005 acceptance."
+    }
+  ],
+  "decision": {
+    "result": "AAA-005:A02 PASS",
+    "fixture_change": true,
+    "product_change": false,
+    "diagnosis": "The adjacent v3 current-writer fixture is now current, the focused corpus and CI-representative replay pass, and session.jsonl remains byte-preserved.",
+    "next_action": "Bind the final PASS verification to AAA-005, complete the task, and retain the source-mode identity mismatch as a separately tracked observation rather than a lib-mode regression."
+  },
+  "validation": {
+    "command_record_count": 4,
+    "raw_output_files": 4,
+    "validation_method": "Parse a02-final-commands.jsonl and this findings file; verify four raw-output files and digests; require refresh, focused lib replay, focused corpus, and v0/v3 integrity evidence; run git diff --check.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T20:38:51-03:00"
+  }
+}

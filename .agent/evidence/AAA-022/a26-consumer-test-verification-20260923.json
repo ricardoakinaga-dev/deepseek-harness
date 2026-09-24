@@ -1,0 +1,96 @@
+{
+  "record_kind": "A26_CONSUMER_TEST_VERIFICATION",
+  "record_id": "EVD-AAA-022-A26-CONSUMER-TESTS-001",
+  "observed_at": "2026-09-23T23:02:04-03:00",
+  "task": "AAA-022",
+  "environment": "Linux 7.0.0-31-generic x86_64; Node v24.20.0; pnpm 11.11.0.",
+  "gate_ref": ".agent/gates/implementation-ready-AAA-022-A26-consumer-tests.json#GATE-AAA-022-IMPLEMENTATION-READY-A26-CONSUMER-TESTS-001",
+  "candidate_fingerprint": "ddca7cb79b25d1eeff80ce5cdb8291e01108ec1cc77d45e3800567e3ade406fb",
+  "authorized_paths": [
+    "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+    "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+    "packages/shell/tool-bash/tests/tools.spec.ts"
+  ],
+  "path_hashes": [
+    {
+      "path": "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+      "start_sha256": "7cddc9be8c99862efa1c5c331dfb40ed2f37095e3daaf706dda4fadcf7c24c6b",
+      "current_sha256": "4b792fc75705cdcc8c38b7107c68a8f48dd79a90914b03c8a5f42c11ac8888a9"
+    },
+    {
+      "path": "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+      "start_sha256": "5ce071e8cf72e9e4454657618c0cc849c65a741291b3c19e23748027a322a46e",
+      "current_sha256": "c6c713972c438d5ad766a73154e17d72c95db67fe13682afcc234dbc97316781"
+    },
+    {
+      "path": "packages/shell/tool-bash/tests/tools.spec.ts",
+      "start_sha256": "a24c7f5aed53e62ab09a17a4377f66250fb4fad42b616c4673274ae25ece02ef",
+      "current_sha256": "fdcea4b89447563e1d306ea3aabade40015e1458b50e3cb2b42ed10e3ed8ee39"
+    }
+  ],
+  "verification_only_paths_unchanged": [
+    "packages/interaction/commands/tests/commands.spec.ts",
+    "packages/interaction/permission-presets/tests/projection.spec.ts",
+    "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+    "packages/core/tools/tests/invariant.spec.ts",
+    "packages/acp/acp/tests/approval.spec.ts"
+  ],
+  "checks": [
+    {
+      "id": "A26-TESTS",
+      "command": "pnpm exec vitest run packages/interaction/commands/tests/invariant.spec.ts packages/interaction/permission-presets/tests/invariant.spec.ts packages/interaction/user-approval/tests/approval.spec.ts packages/interaction/user-approval/tests/invariant.spec.ts packages/interaction/commands/tests/commands.spec.ts packages/interaction/permission-presets/tests/projection.spec.ts packages/interaction/permission-presets/tests/permission-presets.spec.ts packages/plan/plan-mode/tests/plan-mode.spec.ts packages/feedback/command-feedback/tests/command-feedback.spec.ts packages/core/tools/tests/invariant.spec.ts packages/shell/tool-bash/tests/tools.spec.ts packages/acp/acp/tests/approval.spec.ts --reporter=dot",
+      "exit_status": 0,
+      "observation": "12 test files passed; 341 tests passed.",
+      "warnings": [
+        "Vitest emitted Node MaxListenersExceededWarning for process exit listeners; the run completed successfully."
+      ]
+    },
+    {
+      "id": "A26-TYPES",
+      "command": "pnpm exec tsc -b packages/interaction/commands/tsconfig.json packages/interaction/permission-presets/tsconfig.json packages/interaction/user-approval/tsconfig.json packages/plan/plan-mode/tsconfig.json packages/feedback/command-feedback/tsconfig.json packages/core/tools/tsconfig.json packages/shell/tool-bash/tsconfig.json packages/acp/acp/tsconfig.json --pretty false",
+      "exit_status": 0,
+      "observation": "Scoped TypeScript project build passed with no diagnostics."
+    },
+    {
+      "id": "A26-OXLINT",
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/interaction/commands/src packages/interaction/commands/tests packages/interaction/permission-presets/src packages/interaction/permission-presets/tests packages/interaction/user-approval/src packages/interaction/user-approval/tests packages/plan/plan-mode/tests packages/feedback/command-feedback/tests packages/core/tools/tests packages/shell/tool-bash/tests packages/acp/acp/tests",
+      "exit_status": 0,
+      "observation": "Scoped Oxlint passed with no diagnostics."
+    },
+    {
+      "id": "A26-CUSTOMIZATION-POLICY",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 1,
+      "finding_count": 302,
+      "authorized_path_finding_count": 0,
+      "owner_finding_count": 0,
+      "observation": "Repository-wide policy validation remains failed on broad dirty-worktree ownership diagnostics; no diagnostic names an approved A26 test path or the interaction-session-reader-invariants owner."
+    },
+    {
+      "id": "A26-DIFF-CHECK",
+      "gate_ref": ".agent/gates/implementation-ready-AAA-022-A26-consumer-tests.json#GATE-AAA-022-IMPLEMENTATION-READY-A26-CONSUMER-TESTS-001",
+      "exit_status": 0,
+      "observation": "Full gate implementation and consumer-verification scope passed git diff --check."
+    }
+  ],
+  "state_check_before_closeout": {
+    "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+    "exit_status": 1,
+    "baseline_findings": 359,
+    "current_findings": 359,
+    "added_findings": 0,
+    "resolved_findings": 0,
+    "baseline_artifact": ".agent/evidence/AAA-022/a25-gate-state-check-poststate-20260923.txt",
+    "current_artifact": ".agent/evidence/AAA-022/a26-consumer-preclose-state-check-20260923.txt"
+  },
+  "post_closeout_state_check": {
+    "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+    "compare_against": ".agent/evidence/AAA-022/a25-gate-state-check-poststate-20260923.txt",
+    "artifact": ".agent/evidence/AAA-022/a26-consumer-final-state-check-20260923.txt"
+  },
+  "inherited_blockers": [
+    "Full doc-typecheck previously stopped on 10 unrelated host TypeScript diagnostics in context/agent-instructions, context/time-context, core/agent-loop, and session/session-projection-cache tests.",
+    "Repository-wide customization-policy validation still reports 302 broad dirty-worktree ownership diagnostics; none name the approved A26 paths or their owner."
+  ],
+  "limitations": "This evidence covers only the approved three test fixtures and current scoped checks. It does not claim global state, documentation, or customization-policy PASS. The other five consumer tests and all production and documentation paths remain unchanged by A26."
+}

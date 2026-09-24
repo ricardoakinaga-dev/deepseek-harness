@@ -100,6 +100,8 @@ These limits define when the native interaction is unavailable or fragile. They 
 - **Windows has no mechanism fallback** — the child-process picker through packaged koffi is the only native tier, so a COM refusal or dialog crash surfaces the failure; the browse backend remains the fallback at the composition level.
 - **Windows foreground grant relies on injected input** — the child synthesizes an Alt press before `Show` so the dialog can take the foreground from a background host; where synthesized input is suppressed (secure desktops, restricted remote sessions, an elevated foreground window), the dialog may still open behind other windows. The technique is validated on Windows 11 only.
 
+**Runtime invariant:** No companion is published. Each pick is one stateless subprocess round trip; the chooser outcome is only the returned path.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -109,5 +111,3 @@ These limits define when the native interaction is unavailable or fragile. They 
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Each pick is one stateless subprocess round trip; the chooser outcome is only the returned path.

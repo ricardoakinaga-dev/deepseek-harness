@@ -1,0 +1,30 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A34",
+  "kind": "LOCAL_READINESS_REVIEW",
+  "observed_at": "2026-09-22T18:33:15-03:00",
+  "identity_packet": {
+    "path": ".agent/evidence/AAA-023/candidate-identity-a68.json",
+    "sha256": "db878ee8622f2615b268d93199c2d01a6c90e6786dccc4d001044d58ebff592c"
+  },
+  "reproduced_checks": {
+    "candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "parent": "beaa2a8567525289ca20639d5d93015be13326a8",
+    "candidate_worktree_clean": true,
+    "tracked_opencode_paths": 0,
+    "candidate_policy_sha256_matches_packet": true,
+    "indexed_evidence_count": 6,
+    "indexed_evidence_digests_match": true,
+    "git_diff_check": "PASS"
+  },
+  "readiness": "READY_FOR_EXTERNAL_PREREQUISITES",
+  "handoff_routes": [
+    "Run the required Windows/Wine carrier on a host with Wine or the hosted Windows job.",
+    "Run macOS x64, macOS arm64, Linux arm64, and the supported Node workflow matrix on their hosted carriers.",
+    "Run credentialed provider E2E lanes with authorized credentials; do not expose or persist secrets in the evidence ledger.",
+    "After AAA-023 acceptance, send the frozen bar, identity packet, and evidence index to AAA-024's fresh-context critic."
+  ],
+  "result": "PASS",
+  "limitations": "The local readiness review proves packet integrity only. It does not satisfy external platform/provider lanes, clean upstream integration, publication, release, or the independent final verdict. No candidate or permanent worktree mutation occurred."
+}

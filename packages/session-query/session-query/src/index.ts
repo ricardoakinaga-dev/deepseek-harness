@@ -127,8 +127,8 @@ export abstract class SessionQueryEngine extends Service {
         'SESSION_QUERY_INVALID_CONFIG',
       )
     }
-    this._corpus = new SessionCorpus(ctx, persistedReadConcurrency)
     this._observations = new SessionObservationReader(ctx, preparedSessionCacheSize)
+    this._corpus = new SessionCorpus(ctx, persistedReadConcurrency, this._observations)
   }
 
   /**

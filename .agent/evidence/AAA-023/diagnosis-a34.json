@@ -1,0 +1,71 @@
+{
+  "record_id": "EVID-AAA-023-DIAGNOSIS-A34-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A09",
+  "timestamp": "2026-09-22T04:45:05-03:00",
+  "result": "PASS",
+  "scope": "Inspection of the ui-conversation source move, related candidate-tree moves, and path-gate readers",
+  "findings": [
+    {
+      "subject": "ContextMeter references",
+      "classification": "CANDIDATE_TREE_PREREQUISITE",
+      "evidence": "No active source or test import uses the old skeleton/ContextMeter path; the old ContextMeter files are tracked as deleted and the input replacements are untracked. The current audit and rescope commands both fail while opening packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx.",
+      "owner": "The release-qualification candidate tree",
+      "safe_action": "Represent the complete source move in one candidate tree. Do not ignore tracked deletions, change vendor-rescope semantics, or stage the user's files as part of this diagnostic action."
+    },
+    {
+      "subject": "Related UI source moves",
+      "classification": "SHARED_CANDIDATE_TREE_PREREQUISITE",
+      "evidence": "The worktree has 16 tracked source/style paths absent from disk and 16 replacement paths under ui-conversation/input, ui-sidebar-browser/browser, and ui-sidebar-documentpreview's flattened document/text layout. A temporary index containing all 16 replacements has no missing tracked paths and lets vendor rescope complete successfully.",
+      "owner": "The release-qualification candidate tree and client-domain implementation owner",
+      "safe_action": "Carry all three complete moves together when the candidate is represented; fixing only ContextMeter would leave the next deleted path exposed by vendor rescope."
+    },
+    {
+      "subject": "Canonical audit baseline reader",
+      "classification": "BOUNDED_SCRIPT_REPAIR",
+      "evidence": "scripts/audit-metrics.ts resolves changed files with git diff --name-only. Git rename detection reports only the new name, so a baseline path removed by a rename falls through to readFileSync in the current worktree. With a temporary index containing all 16 moves and diff.renames=false, the audit passes the path read and reaches its ratchet result.",
+      "owner": "scripts/audit-metrics.ts",
+      "safe_action": "Add --no-renames to the private baseline changed-file query only. Preserve the canonical baseline corpus, metric definitions, and ratchet policy; do not make the reader hide a missing source or alter vendor-rescope."
+    },
+    {
+      "subject": "Next revealed audit result",
+      "classification": "INDEPENDENT_RATCHET_VIOLATION",
+      "evidence": "The temporary all-moves candidate reaches the audit ratchet and reports packages/extensions / @deepseek-ai/dsh-cordis-client-runner explicit_any at 59 against budget 58. This is the next bounded debt finding after the path-reader failure, not evidence to waive the ratchet.",
+      "owner": "The owner of packages/extensions/cordis-client-runner and the static-debt qualification lane",
+      "safe_action": "Handle the one-line ratchet increase in a successor action after the rename-safe reader repair; do not bundle an unrelated debt reduction into the reader fix."
+    }
+  ],
+  "commands": [
+    {
+      "command": "rg -n '(?:src/client/)?skeleton/ContextMeter|client/skeleton/ContextMeter' packages/client/ui-conversation scripts apps .agents docs .agent",
+      "result": "PASS",
+      "observed": "No active source consumer remains; matches are limited to evidence records plus the replacement import under src/client/input."
+    },
+    {
+      "command": "git ls-files --deleted; git ls-files --others --exclude-standard -- packages/client/ui-conversation packages/client/ui-sidebar-browser packages/client/ui-sidebar-documentpreview",
+      "result": "PASS",
+      "observed": "16 deleted tracked paths and 16 untracked replacements were identified across the three UI packages."
+    },
+    {
+      "command": "pnpm run audit:metrics; pnpm run rescope-vendor:check",
+      "result": "FAIL_EXPECTED",
+      "observed": "Both current-worktree commands fail first on the absent tracked ContextMeter path."
+    },
+    {
+      "command": "Temporary GIT_INDEX_FILE with all 16 moves; pnpm run rescope-vendor:check",
+      "result": "PASS",
+      "observed": "Vendor rescope verifies 7,356 tracked candidate paths with no residue and no missing-path error. The repository index was not changed."
+    },
+    {
+      "command": "Temporary GIT_INDEX_FILE with all 16 moves and diff.renames=false; pnpm run audit:metrics",
+      "result": "EXPECTED_RATCHET_FAIL",
+      "observed": "The path reader completes and reports only the independent @deepseek-ai/dsh-cordis-client-runner explicit_any increase, 59 versus budget 58."
+    }
+  ],
+  "next_action": "Create a successor implementation gate for the bounded --no-renames audit reader repair, then validate it against the temporary complete candidate tree.",
+  "limitations": [
+    "The actual worktree remains dirty; the 16-path move is not represented by one immutable candidate and no staging, commit, publication, push, merge, release, or final verdict was performed.",
+    "The temporary index is diagnostic only and does not qualify the current candidate.",
+    "The one explicit_any ratchet increase remains unresolved and is intentionally outside the reader repair."
+  ]
+}

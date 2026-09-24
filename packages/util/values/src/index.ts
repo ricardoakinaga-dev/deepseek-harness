@@ -156,7 +156,7 @@ function walkJsonValue(value: unknown, detach: boolean): JsonValue | true | unde
     tasks.push({ kind: 'leave', source: current })
     for (let index = keys.length - 1; index >= 0; index--) {
       const key = keys[index]
-      /* v8 ignore next -- the loop is bounded by the captured key count. */
+      /*! v8 ignore next -- the loop is bounded by the captured key count. */
       if (key === undefined) return undefined
       tasks.push({ kind: 'object-property', source: current as Record<string, unknown>, key, ...(target === undefined ? {} : { target }) })
     }
@@ -215,7 +215,7 @@ export function deepFreeze<T>(value: T): T {
   )[] = [{ kind: 'visit', node: value }]
   while (pending.length > 0) {
     const task = pending.pop()
-    /* v8 ignore next -- the loop condition guarantees one pending task. */
+    /*! v8 ignore next -- the loop condition guarantees one pending task. */
     if (task === undefined) continue
     if (task.kind === 'property') {
       pending.push({ kind: 'visit', node: task.source[task.key] })
@@ -230,7 +230,7 @@ export function deepFreeze<T>(value: T): T {
     const keys = Object.keys(node)
     for (let index = keys.length - 1; index >= 0; index--) {
       const key = keys[index]
-      /* v8 ignore next -- the loop is bounded by the captured key count. */
+      /*! v8 ignore next -- the loop is bounded by the captured key count. */
       if (key === undefined) continue
       pending.push({ kind: 'property', source: node as Record<string, unknown>, key })
     }

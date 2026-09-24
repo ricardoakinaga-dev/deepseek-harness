@@ -162,6 +162,8 @@ These limits define when this backend is a poor fit or needs special operational
 - **Only committed `agent_message_chunk` text is collected** — the automation server keeps reasoning, tool activity, plans, and other trace data in the child session log rather than emitting them on ACP.
 - **Permission prompts are auto-answered** (`permission: allow | reject`) — no human is surfaced a child's `session/request_permission`.
 
+**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond contracts enforced at its owning seam.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -175,5 +177,3 @@ This Dev Note is working context for maintainers: open questions and undecided d
 - **Continuable ACP children** — would require persisting the remote session id and a per-child continuation advertisement.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond contracts enforced at its owning seam.

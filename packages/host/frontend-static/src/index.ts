@@ -13,8 +13,8 @@
  */
 
 import type { ServerResponse } from 'node:http'
-import { readFile } from 'node:fs/promises'
-import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
+import { readFile, realpath } from 'node:fs/promises'
+import { basename, dirname, extname, join, normalize, relative, resolve, sep } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-client-connection'
@@ -58,6 +58,51 @@ const STATIC_MISS_CODES: ReadonlySet<string | undefined> = new Set([
   'ENOTDIR',
 ])
 
+const STATIC_PATH_MISS_CODES: ReadonlySet<string | undefined> = new Set([
+  'ENOENT',
+  'ENOTDIR',
+])
+
+function isContained(target: string, root: string): boolean {
+  const relativeTarget = relative(root, target)
+  return relativeTarget === '' || (
+    relativeTarget !== '..' && !relativeTarget.startsWith(`..${sep}`)
+  )
+}
+
+/**
+ * Resolve a static target through existing filesystem entries and preserve a
+ * missing suffix after the deepest existing ancestor. The returned path is
+ * safe to pass to the subsequent read because existing symlink components are
+ * already replaced by their physical targets.
+ * @param target - absolute lexical target assembled from the request path.
+ * @returns the canonical existing target or its canonical missing path.
+ */
+async function resolveStaticTarget(target: string): Promise<string> {
+  try {
+    return await realpath(target)
+  } catch (error) {
+    if (!STATIC_PATH_MISS_CODES.has((error as NodeJS.ErrnoException).code)) throw error
+  }
+
+  const missing = [basename(target)]
+  let ancestor = dirname(target)
+  while (true) {
+    try {
+      return join(await realpath(ancestor), ...missing)
+    } catch (error) {
+      /*! v8 ignore next -- a non-missing ancestor failure is propagated;
+       * supported filesystems report missing path components as ENOENT or ENOTDIR. */
+      if (!STATIC_PATH_MISS_CODES.has((error as NodeJS.ErrnoException).code)) throw error
+      const parent = dirname(ancestor)
+      /*! v8 ignore next -- a filesystem root always resolves before this point. */
+      if (parent === ancestor) return target
+      missing.unshift(basename(ancestor))
+      ancestor = parent
+    }
+  }
+}
+
 /**
  * Serve one GET/HEAD static request from the dist root.
  * @param pathname - decoded URL pathname of the request.
@@ -66,12 +111,12 @@ const STATIC_MISS_CODES: ReadonlySet<string | undefined> = new Set([
  * @param distIndex - absolute path of index.html inside distRoot.
  * @param authorizeIndex - authenticates an index response before its bytes are read.
  * @param renderIndex - produces the index.html body (structured injection
- * rendering) for the dist root and configured index path.
+ * rendering) for the dist root and configured index path from a canonical file.
  */
 export async function serveStatic(
   pathname: string, res: ServerResponse, distRoot: string, distIndex: string,
   authorizeIndex: () => boolean,
-  renderIndex: () => Promise<string>,
+  renderIndex: (canonicalIndex: string) => Promise<string>,
 ): Promise<void> {
   const target = resolve(normalize(join(distRoot, pathname)))
   // Traversal rejection: the target must be distRoot itself (`/`) or stay under
@@ -85,12 +130,25 @@ export async function serveStatic(
   let body: string | Buffer
   let type: string
   try {
+    const canonicalRoot = await resolveStaticTarget(distRoot)
+    const canonicalTarget = await resolveStaticTarget(target)
+    if (!isContained(canonicalTarget, canonicalRoot)) {
+      res.writeHead(403)
+      res.end()
+      return
+    }
     if (target === distRoot || target === distIndex) {
       if (!authorizeIndex()) return
-      body = await renderIndex()
+      const canonicalIndex = await resolveStaticTarget(distIndex)
+      if (!isContained(canonicalIndex, canonicalRoot)) {
+        res.writeHead(403)
+        res.end()
+        return
+      }
+      body = await renderIndex(canonicalIndex)
       type = HTML_MIME
     } else {
-      body = await readFile(target)
+      body = await readFile(canonicalTarget)
       type = MIME[extname(target)] ?? 'application/octet-stream'
     }
   } catch (error) {
@@ -111,14 +169,14 @@ export async function serveStatic(
  * @param config - validated {@link Config}.
  */
 export function apply(ctx: Context, config: Config): void {
-  const distIndex = config.distIndex
+  const distIndex = resolve(config.distIndex)
   const distRoot = dirname(distIndex)
   // The dist is built with a relative base so the same files mount under any
   // static directory; served pages also answer deep SPA-fallback paths, where
   // relative asset URLs would resolve under the request directory, so the
   // served form anchors them at the site root ahead of every URL-bearing tag.
-  const renderIndex = async (): Promise<string> => {
-    const body = ctx.webServer.renderIndex(await readFile(distIndex, 'utf8'))
+  const renderIndex = async (canonicalIndex: string): Promise<string> => {
+    const body = ctx.webServer.renderIndex(await readFile(canonicalIndex, 'utf8'))
     return body.replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="/">`)
   }
   ctx.effect(() => ctx.webServer.registerFallback(async (req, res) => {
@@ -129,7 +187,7 @@ export function apply(ctx: Context, config: Config): void {
       res.end()
       return
     }
-    /* v8 ignore next -- node:http always sets url on server requests */
+    /*! v8 ignore next -- node:http always sets url on server requests */
     const rawPath = new URL(req.url ?? '/', 'http://x').pathname
     await serveStatic(
       decodeURIComponent(rawPath),

@@ -153,14 +153,14 @@ function win32Types(): Win32Types {
   const PROCESS_INFORMATION = koffi.struct('DSH_PROCESS_INFORMATION', {
     hProcess: PVOID, hThread: PVOID, dwProcessId: 'uint32', dwThreadId: 'uint32',
   })
-  /* v8 ignore start -- ABI guards are pinned by native header probes. */
+  /*! v8 ignore start -- ABI guards are pinned by native header probes. */
   if (STARTUPINFOW.size !== abi.STARTUPINFOW_SIZE) {
     throw new Error(`STARTUPINFOW layout mismatch: koffi computed ${STARTUPINFOW.size}, expected ${abi.STARTUPINFOW_SIZE}`)
   }
   if (PROCESS_INFORMATION.size !== abi.PROCESS_INFORMATION_SIZE) {
     throw new Error(`PROCESS_INFORMATION layout mismatch: koffi computed ${PROCESS_INFORMATION.size}, expected ${abi.PROCESS_INFORMATION_SIZE}`)
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
   return cachedTypes = { PVOID, PPVOID, STARTUPINFOW, PROCESS_INFORMATION }
 }
 
@@ -253,7 +253,7 @@ export function decodeProcessInfo(processInfo: NativePtr): ProcessInfoOutput {
 let cachedContext: Win32BindingContext | undefined
 let cached: CurrentTokenProcessBindings | undefined
 
-/* v8 ignore start -- exercised by native Windows ABI and sandbox jobs. */
+/*! v8 ignore start -- exercised by native Windows ABI and sandbox jobs. */
 function bindingContext(): Win32BindingContext {
   if (cachedContext !== undefined) return cachedContext
   const koffi = requireKoffi()
@@ -331,7 +331,7 @@ export function extendWin32ProcessBindings<Extension extends object>(
 export function loadWin32ProcessBindings(): CurrentTokenProcessBindings {
   return bindings()
 }
-/* v8 ignore stop */
+/*! v8 ignore stop */
 
 /**
  * Format a Win32 error code through FormatMessageW.

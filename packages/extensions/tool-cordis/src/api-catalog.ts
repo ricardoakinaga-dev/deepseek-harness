@@ -439,7 +439,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'approval',
     summary: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session.',
-    description: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices.',
+    description: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices. Open-turn and latest-policy reads require an exact package-owned Session fold.',
     methods: [
       {
         signature: 'setPolicy(agent: Agent, policy: ApprovalPolicy): void',
@@ -450,14 +450,15 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'async request(req: ApprovalRequest): Promise<ApprovalOutcome>',
         description: 'Ask the composed answerers to decide one readonly same-process request. The service borrows the request, agent, session, and live signal directly. The request requires an open turn because the audit pair must be enclosed by the durable log\'s commit/replay boundary; an idle ask rejects before appending anything. The answerer phase always produces an outcome: an aborted signal yields `\'cancelled\'`, a missing or throwing answerer yields `\'unavailable\'` (fail closed), and a rogue non-vocabulary return value is normalized to `\'unavailable\'`. A failure that prevents either audit append from committing still rejects because returning an unlogged decision would violate the pair. Session contains post-commit observer failures, so an authoritative append cannot reject the request or suppress its matching audit event.',
         parameters: [{ name: 'req', description: 'the pending decision (agent, tool identity, reason, signal).' }],
-        returns: 'the closed outcome; `\'allowed-once\'` is the only grant.',
-        throws: ['when no turn is open or either audit event fails before the session append commit point.'],
+        returns: 'the closed outcome; `\'allowed-once\'` is the only grant. A Session without an exact owner fold returns `\'unavailable\'` before either audit event is appended.',
+        throws: ['when no turn is open or either audit event fails before the append commit point.'],
       },
       {
         signature: 'overrideOf(session: Session): ApprovalPolicy | undefined',
-        description: 'Read the session override without applying the configured default.',
+        description: 'Read the latest policy override from the exact Session fold without applying the configured default.',
         parameters: [{ name: 'session', description: 'session whose log supplies the override.' }],
         returns: 'the last logged policy, or `undefined` without one.',
+        throws: ['when this provider has no exact fold for the current Session prefix.'],
       },
     ],
   },
@@ -1543,7 +1544,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: '@Remote installBundle(spec: string, options?: InstallBundleOptions): Promise<ChangeResult>',
         description: 'Install a package using the same pnpm implementation as dsh plugin. A run that fails, is cancelled, or adds a package without a bundle patch restores `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.',
-        parameters: [{ name: 'spec', description: 'One package spec, including local paths relative to the invocation directory.' }, { name: 'options', description: 'Whether to activate the installed bundle (defaults to true), the request id a cancellation names, and the pending build scripts to allow for this profile before pnpm runs.' }],
+        parameters: [{ name: 'spec', description: 'One package spec, including local paths relative to the invocation directory.' }, { name: 'options', description: 'Whether to activate the installed bundle (defaults to false), the request id a cancellation names, and the pending build scripts to allow for this profile before pnpm runs.' }],
         returns: 'Package-manager diagnostics and observed activation outcome.',
       },
       {
@@ -1860,7 +1861,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'cachedPredecessorTitle( meta: SessionHeader, inheritedEventCount: SessionLogOffset, ): ProjectionSnapshot | undefined',
-        description: 'Read only a predecessor checkpoint\'s title as a zero-I/O listing hint.\n\nThe authoritative Session header supplies the lifecycle identity. A cache checkpoint can lag that log but cannot lead it because writes flush the log first, so a matching predecessor title is a genuine (possibly stale) fact from this Session. The registry still requires the current title projection\'s row version and schema. No other predecessor projection is exposed: format normalization can change their current meaning, and the strict cachedSnapshot / hydration paths continue to reject them.',
+        description: 'Read only a predecessor checkpoint\'s title as a zero-I/O listing hint.\n\nThe authoritative Session header supplies the lifecycle identity. A cache checkpoint can lag that log but cannot lead it because writes flush the log first, so a matching predecessor title is a genuine (possibly stale) fact from this Session. The registry still requires the current title projection\'s row version, exact optional fingerprint, and schema. No other predecessor projection is exposed: format normalization can change their current meaning, and the strict cachedSnapshot / hydration paths continue to reject them.',
         parameters: [{ name: 'meta', description: 'authoritative listed Session header.' }, { name: 'inheritedEventCount', description: 'exact inherited cut completing the lifecycle identity.' }],
         returns: 'a title-only checkpoint view with `asOfSeq: -1`, or `undefined` when the record is current, newer, unrelated, missing, or incompatible with the title unit. The sentinel avoids reusing a sequence that a cardinality-changing Session migration may have remapped.',
       },
@@ -1887,19 +1888,31 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'sessionProjections',
     summary: '`ctx.sessionProjections`: the projection unit table and its drive.',
-    description: '`ctx.sessionProjections`: the projection unit table and its drive. The service subscribes to `session/event` once; every committed event passes every registered unit\'s `apply` (eager drive). A changed state reference computes the next client view; the change feed is notified only when its raw result changes by `Object.is`. Cells build lazily — a unit registered after events flowed, or a session older than the registry, folds `init` over the in-memory log on first touch (event or read). Registration is an effect (disposer rides the calling fiber): an unloaded domain plugin\'s key disappears from snapshots and clients read it as capability absence. A host reader either declares `sessionProjections` in its plugin `inject` or fails explicitly when the registry or required key is absent. Contributors may preserve optional registration through `ctx.inject([\'sessionProjections\'], ...)`. Registrants sharing a key share one unit and are counted: the same tool package mounted in N agent presets registers N times, and the key survives until the last one unloads.',
+    description: '`ctx.sessionProjections`: the projection unit table and its drive. The service subscribes to `session/event` once; every committed event passes every registered unit\'s `apply` (eager drive). A changed state reference computes the next client view; the change feed is notified only when its raw result changes by `Object.is`. Session cells are initialized from the creation baseline or an explicit restore/hydrate cut; a live cell is never reconstructed by reading Session history. Registration is an effect (disposer rides the calling fiber): an unloaded domain plugin\'s key disappears from snapshots and clients read it as capability absence. A host reader either declares `sessionProjections` in its plugin `inject` or fails explicitly when the registry or required key is absent. Contributors may preserve optional registration through `ctx.inject([\'sessionProjections\'], ...)`. Registrants sharing a key share one unit only when both `stateVersion` and optional `cacheFingerprint` match exactly; absent and defined fingerprints are incompatible. Such registrants are counted: the same tool package mounted in N agent presets registers N times, and the key survives until the last one unloads.',
     methods: [
       {
         signature: 'register< K extends keyof SessionProjectionMap, S extends SessionProjectionStateMap[K], >( definition: Omit<ProjectionDefinition<K, S>, \'wire\'> & { wire: NonNullable<ProjectionDefinition<K, S>[\'wire\']> }, ): () => void',
-        description: 'Register one domain\'s unit. The registration is an effect on the calling context\'s fiber: disposing the fiber (or calling the returned disposer) removes the key — and the unit\'s cached cells — from subsequent drives and snapshots.',
-        parameters: [{ name: 'definition', description: 'key, state schema, pure unit functions, and stateVersion.' }],
+        description: 'Register one domain\'s unit. Registrants with the same key share one fold only when both `stateVersion` and optional `cacheFingerprint` match exactly; absent and defined fingerprints are incompatible. The registration is an effect on the calling context\'s fiber: disposing the fiber (or calling the returned disposer) removes the key — and its cached cells — from subsequent drives and snapshots.',
+        parameters: [{ name: 'definition', description: 'key, state schema, pure unit functions, and cache identity.' }],
         returns: 'the exact disposer that unregisters this unit.',
       },
       {
         signature: 'register< K extends Exclude<keyof SessionProjectionStateMap, keyof SessionProjectionMap>, S extends SessionProjectionStateMap[K], >( definition: Omit<ProjectionDefinition<K, S>, \'wire\'>, ): () => void',
-        description: 'Register one host-only unit. Its state is omitted from client snapshots and always checkpointed like every other unit.',
-        parameters: [{ name: 'definition', description: 'key, state schema, pure unit functions, and stateVersion.' }],
+        description: 'Register one host-only unit. Its state is omitted from client snapshots and always checkpointed like every other unit. Registrants with the same key share one fold only when both `stateVersion` and optional `cacheFingerprint` match exactly; absent and defined fingerprints are incompatible.',
+        parameters: [{ name: 'definition', description: 'key, state schema, pure unit functions, and cache identity.' }],
         returns: 'the exact disposer that unregisters this unit.',
+      },
+      {
+        signature: 'prepareSession(preparation: SessionPreparation): void',
+        description: 'Initialize every registered unit from the constructor cut and attach its synchronous append consumer before Agent construction. The preparation replays accepted suffix events first, then advances cells before each new append is accepted; publication seals that feed and the live event route continues from the same watermark.',
+        parameters: [{ name: 'preparation', description: 'exact unpublished Session and its constructor baseline.' }],
+        throws: ['when the baseline or any projection transition is invalid.'],
+      },
+      {
+        signature: 'onBeforePrepareSession(listener: (preparation: SessionPreparation) => void): () => void',
+        description: 'Register synchronous validation for an unpublished Session\'s constructor baseline and setup appends. The registry calls listeners after checking baseline structure and before folding projection cells or attaching its own append consumer. A listener may attach a `SessionPreparation` append consumer; that consumer stays attached until preparation is sealed or disposed, even if this registration is later removed. The listener registration is an effect on its owning context\'s fiber.',
+        parameters: [{ name: 'listener', description: 'synchronous validator for the exact preparation.' }],
+        returns: 'the exact disposer that removes this listener from future preparations.',
       },
       {
         signature: 'onChanged(listener: ProjectionChangeListener): () => void',
@@ -1915,7 +1928,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'snapshot( session: Session, keys?: readonly Extract<keyof SessionProjectionMap, string>[], ): ProjectionSnapshot',
-        description: 'One consistent cut over every registered client-visible unit for one session, read from the watermark cache (missing cells fold lazily over the in-memory log). Fully synchronous — every value and `asOfSeq` reflect the same log position. Each value passes its unit\'s `viewSchema` before leaving.',
+        description: 'One consistent cut over every registered client-visible unit for one session, read from the watermark cache initialized by creation or an explicit restore/hydrate cut. Fully synchronous — every value and `asOfSeq` reflect the same log position. Each value passes its unit\'s `viewSchema` before leaving.',
         parameters: [{ name: 'session', description: 'the session whose projection values are read.' }, { name: 'keys', description: 'optional client-visible outputs; state materialization remains complete.' }],
         returns: 'the snapshot; `values` is empty when no selected client-visible unit is registered.',
       },
@@ -1927,25 +1940,25 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'checkpoint(session: Session): ProjectionCheckpoint',
-        description: 'State-level checkpoint of every persisted unit for one session, read from the watermark cache (missing cells fold lazily over the in-memory log). This is the write side of the persisted projection cache: the returned rows are the `(key → {ver, seq, val})` part of the durable `(sessionId, key, ver, seq, val)` rows. Every `val` is a DETACHED structured clone — never the live cell reference: the watermark cache is this registry\'s authoritative mutable state, and a caller reaching the live reference could corrupt every subsequent snapshot and frame through it (plain JSON by the unit contract, so the clone is total).',
+        description: 'State-level checkpoint of every persisted unit for one session, read from the watermark cache initialized by creation or an explicit restore/hydrate cut. This is the write side of the persisted projection cache: the returned rows are the `(key → {ver, seq, val})` part of the durable `(sessionId, key, ver, seq, val)` rows. Every `val` is a DETACHED structured clone — never the live cell reference: the watermark cache is this registry\'s authoritative mutable state, and a caller reaching the live reference could corrupt every subsequent snapshot and frame through it (plain JSON by the unit contract, so the clone is total).',
         parameters: [{ name: 'session', description: 'the session whose unit states are checkpointed.' }],
         returns: 'one row per registered key.',
       },
       {
         signature: 'restoreFloor(checkpoint: ProjectionCheckpoint): SessionLogOffset | undefined',
-        description: 'The stored seq a restore tail read over `checkpoint` must start at: one event BELOW the lowest usable watermark (a row is usable when its `ver` matches the live unit\'s `stateVersion`; an absent or mismatched row pulls the floor to `0` — that key must refold the full log). The one-below anchor is load-bearing: the tail then proves how far the stored log still extends, so restore can detect a log that shrank below a row\'s watermark (crash-repair truncation) instead of serving the stale row as current — an empty tail read from the anchor yields an end below every watermark and the restore rejects for a full re-read.',
+        description: 'The stored seq a restore tail read over `checkpoint` must start at: one event BELOW the lowest usable watermark (a row is usable when its `ver` matches the live unit\'s `stateVersion` and its optional `cacheFingerprint` matches exactly, including absence; an absent or mismatched row pulls the floor to `0` — that key must refold the full log). The one-below anchor is load-bearing: the tail then proves how far the stored log still extends, so restore can detect a log that shrank below a row\'s watermark (crash-repair truncation) instead of serving the stale row as current — an empty tail read from the anchor yields an end below every watermark and the restore rejects for a full re-read.',
         parameters: [{ name: 'checkpoint', description: 'persisted rows for one session (possibly stale or empty).' }],
         returns: 'the offset for the stored-log suffix read (`SessionHandle.read`), or `undefined` when no unit is registered (no read needed — {@link restore} would serve empty values regardless).',
       },
       {
         signature: 'viewCheckpoint( checkpoint: ProjectionCheckpoint, keys?: readonly Extract<keyof SessionProjectionMap, string>[], ): Partial<SessionProjectionMap>',
-        description: 'View a checkpoint\'s rows without any log read: for every registered client-visible unit whose row\'s `ver` matches, serve the schema-validated `view` of the schema-validated stored state; mismatched, malformed, or absent rows leave their key absent (a cold or listing consumer treats it as not-yet-available and a fuller read path refolds it). The zero-I/O rung of the read ladder — values are as stale as their rows, never wrong.',
+        description: 'View a checkpoint\'s rows without any log read: for every registered client-visible unit whose `ver` matches the live `stateVersion` and whose optional `cacheFingerprint` matches exactly, including absence, serve the schema-validated `view` of the schema-validated stored state; mismatched, malformed, or absent rows leave their key absent (a cold or listing consumer treats it as not-yet-available and a fuller read path refolds it). The zero-I/O rung of the read ladder — values are as stale as their rows, never wrong.',
         parameters: [{ name: 'checkpoint', description: 'persisted rows for one session (possibly stale or empty).' }, { name: 'keys', description: 'optional wire keys to view.' }],
         returns: 'whole values per key with a usable row; empty when none.',
       },
       {
         signature: 'restore( checkpoint: ProjectionCheckpoint, events: readonly SessionEvent[], baseSeq: SessionLogOffset, header: SessionHeader, inheritedEventCount: SessionLogOffset, ): { snapshot: ProjectionSnapshot; checkpoint: ProjectionCheckpoint }',
-        description: 'Cold read: fold every persisted unit over a stored log suffix, seeding each from its checkpoint row when usable — the one read recipe (cached state + forward tail replay + `view`) applied without a live `Session`. Call with the stored events at or past `restoreFloor(checkpoint)` (a `SessionHandle.read` slice) and that same floor as `baseSeq`; the floor\'s one-below anchor makes the supplied end honest, so a shrunk log is detected here. A row is usable iff its `ver` matches the live unit\'s `stateVersion`, it does not predate `baseSeq` (`seq >= baseSeq - 1`), and it does not claim events past the supplied end (`seq <= endSeq`); an unusable row is discarded and its key refolds from `init` — which is only sound over the full log, so a discarded row with `baseSeq > 0` throws (the caller re-reads from seq 0, e.g. after a crash-repair truncation shrank the log below a row\'s watermark).',
+        description: 'Cold read: fold every persisted unit over a stored log suffix, seeding each from its checkpoint row when usable — the one read recipe (cached state + forward tail replay + `view`) applied without a live `Session`. Call with the stored events at or past `restoreFloor(checkpoint)` (a `SessionHandle.read` slice) and that same floor as `baseSeq`; the floor\'s one-below anchor makes the supplied end honest, so a shrunk log is detected here. A row is usable iff its `ver` matches the live unit\'s `stateVersion` and its optional `cacheFingerprint` matches exactly, including absence, it does not predate `baseSeq` (`seq >= baseSeq - 1`), and it does not claim events past the supplied end (`seq <= endSeq`); an unusable row is discarded and its key refolds from `init` — which is only sound over the full log, so a discarded row with `baseSeq > 0` throws (the caller re-reads from seq 0, e.g. after a crash-repair truncation shrank the log below a row\'s watermark).',
         parameters: [{ name: 'checkpoint', description: 'persisted rows for one session (possibly stale or empty).' }, { name: 'events', description: 'the stored events with `seq >= baseSeq`, in seq order.' }, { name: 'baseSeq', description: 'the seq `events` starts at (its first event\'s seq when non-empty).' }, { name: 'header', description: 'immutable metadata for the Session being restored.' }, { name: 'inheritedEventCount', description: 'exact fork-inherited prefix length supplied to unit initialization.' }],
         returns: 'the snapshot cut at the supplied log end (`asOfSeq` is the last supplied event\'s seq, `baseSeq - 1` for an empty tail) plus the refreshed checkpoint rows at that cut, ready for a durable write-back.',
       },
@@ -2105,13 +2118,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'prepare(id?: SessionId, options?: PrepareSessionOptions): Session',
         description: 'Build a session WITHOUT entering it into the store — validate the id/cwd and construct the Session (with its immutable SessionHeader). Pairs with enter + announce: a caller that owns a composite `ctx.effect` (the agent factory) folds the session lifecycle into that ONE effect so a fiber unload tears the session + agent down as a single ORDERED chain rather than as racing sibling effects — which would remove the publication hooks before the driver\'s closing events commit, dropping them.',
-        parameters: [{ name: 'id', description: 'the session id; omitted, the store mints `session-<n>`.' }, { name: 'options', description: 'seed events and/or creation metadata for the header. With `eventState`, every seed event is either independently owned or any shared value is deeply frozen; {@link Session.fromRestore} validates and adopts those values without copying or freezing them.' }],
+        parameters: [{ name: 'id', description: 'the session id; omitted, the store mints `session-<n>`.' }, { name: 'options', description: 'seed events and/or creation metadata for the header. With `eventState`, every seed event is either independently owned or any shared value is deeply frozen; {@link Session.fromRestore} validates and adopts those values without copying or freezing them. Callers that need synchronous consumers to preflight detached appends must create a {@link SessionPreparation} before the first append. Without one, committed pre-entry events still appear in the creation baseline.' }],
         returns: 'the constructed session, NOT yet in the store.',
         throws: ['if a session with `id` already exists, metadata is not a plain lossless-JSON record with valid scalar fields, or `meta.cwd` is a non-absolute path.'],
       },
       {
         signature: 'enter(session: Session): () => void',
-        description: 'Enter a prepared session into the store: install the module-private append publication hooks and add it to the store. Returns the DETACH disposer (hooks + store removal). Does NOT emit `session/created` — the caller yields this disposer inside its effect and THEN calls announce, so a throwing `session/created` listener rolls the attach back instead of leaking it.\n\nRe-checks the id for a duplicate: `prepare` and `enter` are public cross-package primitives and a caller may interleave arbitrary work (or another create) between them, so a stale prepared session must NOT overwrite a live store entry of the same id — its detach disposer would later delete the REAL session. The create convenience and the agent factory call the two back-to-back so they never trip this, but the public API cannot assume that.',
+        description: 'Enter a prepared session into the store: install the module-private append publication hooks and add it to the store. Returns the DETACH disposer (hooks + store removal). Does NOT emit `session/created` — the caller yields this disposer inside its effect and THEN calls announce, so a throwing `session/created` listener rolls the attach back instead of leaking it. The creation baseline includes every event committed before announcement.\n\nRe-checks the id for a duplicate: `prepare` and `enter` are public cross-package primitives and a caller may interleave arbitrary work (or another create) between them, so a stale prepared session must NOT overwrite a live store entry of the same id — its detach disposer would later delete the REAL session. The create convenience and the agent factory call the two back-to-back so they never trip this, but the public API cannot assume that.',
         parameters: [{ name: 'session', description: 'a {@link prepare}d session not yet in the store.' }],
         returns: 'the detach disposer (publication hooks + store removal). When called from a synchronous `session/created` listener, removal and disposal wait until that creation dispatch unwinds.',
         throws: ['if a session with this id is already in the store.'],
@@ -3771,10 +3784,10 @@ export const EVENT_API: readonly EventApiEntry[] = [
   {
     name: 'session/created',
     mode: 'emit',
-    signature: '\'session/created\'(this: Scoped<Session>, session: Session): void',
+    signature: '\'session/created\'(this: Scoped<Session>, session: Session, baseline: SessionCreationBaseline): void',
     summary: 'Creation announcement during session publication.',
     description: 'Creation announcement during session publication. A synchronous throw vetoes and rolls back with a paired disposal; detach requested during dispatch is deferred. A returned-promise rejection is logged but cannot retroactively veto this synchronous boundary. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only sessions entered through that agent\'s context.',
-    parameters: [{ name: 'session', description: 'the session just entered and announced.' }],
+    parameters: [{ name: 'session', description: 'the session just entered and announced.' }, { name: 'baseline', description: 'borrowed constructor-owned events and live append boundary; consume it synchronously during this callback.' }],
   },
   {
     name: 'session/disposed',
@@ -5382,11 +5395,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ProjectionCheckpointRow',
-    declaration: 'export interface ProjectionCheckpointRow {\n    ver: number;\n    seq: SessionSeqCursor;\n    val: unknown;\n}',
+    declaration: 'export interface ProjectionCheckpointRow {\n    ver: number;\n    seq: SessionSeqCursor;\n    val: unknown;\n    cacheFingerprint?: string;\n}',
   },
   {
     name: 'ProjectionDefinition',
-    declaration: 'export interface ProjectionDefinition<K extends keyof SessionProjectionStateMap, S extends SessionProjectionStateMap[K] = SessionProjectionStateMap[K]> {\n    key: K;\n    stateSchema: ZodType<S>;\n    init(header: SessionHeader, inheritedEventCount: SessionLogOffset): NoInfer<S>;\n    apply(state: NoInfer<S>, event: SessionEvent): NoInfer<S>;\n    wire?: K extends keyof SessionProjectionMap ? {\n        viewSchema: ZodType<SessionProjectionMap[K]>;\n        view(state: NoInfer<S>): SessionProjectionMap[K];\n    } : never;\n    stateVersion: number;\n}',
+    declaration: 'export interface ProjectionDefinition<K extends keyof SessionProjectionStateMap, S extends SessionProjectionStateMap[K] = SessionProjectionStateMap[K]> {\n    key: K;\n    stateSchema: ZodType<S>;\n    init(header: SessionHeader, inheritedEventCount: SessionLogOffset): NoInfer<S>;\n    apply(state: NoInfer<S>, event: SessionEvent): NoInfer<S>;\n    wire?: K extends keyof SessionProjectionMap ? {\n        viewSchema: ZodType<SessionProjectionMap[K]>;\n        view(state: NoInfer<S>): SessionProjectionMap[K];\n    } : never;\n    stateVersion: number;\n    cacheFingerprint?: string;\n}',
   },
   {
     name: 'ProjectionSnapshot',
@@ -5670,7 +5683,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'Session',
-    declaration: 'export class Session {\n    get surface(): SessionSurface;\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    get id(): SessionId;\n    readonly firstLiveSeq: SessionLogOffset;\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset, projections?: readonly SessionMessageProjection[]): Session;\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState, projections?: readonly SessionMessageProjection[]): Session;\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\n    ownEvents(): readonly SessionEvent[];\n    isOwnSeq(seq: SessionSeq): boolean;\n    get seq(): SessionLogOffset;\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\n        opts: SurfaceIntent<T>\n    ] : [\n    ]): SessionEvent<T>;\n    requestHeader(): EpochHeader | undefined;\n    requestContext(): RequestContext | undefined;\n    deriveMessages(): Message[];\n    deriveEventMessage(event: SessionEvent): Message | null;\n}',
+    declaration: 'export class Session {\n    get surface(): SessionSurface;\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    get id(): SessionId;\n    readonly firstLiveSeq: SessionLogOffset;\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset, projections?: readonly SessionMessageProjection[]): Session;\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState, projections?: readonly SessionMessageProjection[]): Session;\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\n    ownEvents(): readonly SessionEvent[];\n    isOwnSeq(seq: SessionSeq): boolean;\n    isCommittedEvent(event: SessionEvent): boolean;\n    get seq(): SessionLogOffset;\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\n        opts: SurfaceIntent<T>\n    ] : [\n    ]): SessionEvent<T>;\n    requestHeader(): EpochHeader | undefined;\n    requestContext(): RequestContext | undefined;\n    deriveMessages(): Message[];\n    deriveEventMessage(event: SessionEvent): Message | null;\n}',
   },
   {
     name: 'SessionAccess',
@@ -5727,6 +5740,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionCreateValue',
     declaration: 'export interface SessionCreateValue {\n    readonly sessionId: SessionId;\n    readonly agentPreset?: string;\n}',
+  },
+  {
+    name: 'SessionCreationBaseline',
+    declaration: 'export interface SessionCreationBaseline {\n    readonly events: readonly SessionEvent[];\n    readonly firstLiveSeq: SessionLogOffset;\n}',
   },
   {
     name: 'SessionEvent',
@@ -5953,6 +5970,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionPersistenceStatOptions {\n    readonly signal?: AbortSignal;\n}',
   },
   {
+    name: 'SessionPreparation',
+    declaration: 'export class SessionPreparation implements Disposable {\n    readonly session: Session;\n    readonly baseline: SessionCreationBaseline;\n    static create(session: Session, options?: SessionPreparationOptions): SessionPreparation;\n    subscribeAppends(prepare: (event: SessionEvent) => () => void): () => void;\n    [Symbol.dispose](): void;\n}',
+  },
+  {
+    name: 'SessionPreparationOptions',
+    declaration: 'export interface SessionPreparationOptions {\n    readonly release?: () => void;\n}',
+  },
+  {
     name: 'SessionProjectionBaseline',
     declaration: 'export interface SessionProjectionBaseline {\n    readonly asOfSeq: number;\n    readonly values: SessionProjectionValues;\n}',
   },
@@ -6122,7 +6147,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionTitleProvider',
-    declaration: 'export interface SessionTitleProvider {\n    readonly id: SessionTitleProviderId;\n    readonly automatic: SessionTitleAutomaticMode;\n    generate(request: SessionTitleProviderRequest): Promise<SessionTitleProviderResult>;\n}',
+    declaration: 'export interface SessionTitleProvider {\n    readonly id: SessionTitleProviderId;\n    readonly automatic: SessionTitleAutomaticMode;\n    loadMessages(request: SessionTitleProviderMessageRequest): Promise<readonly SessionTitleUserMessage[]>;\n    generate(request: SessionTitleProviderRequest): Promise<SessionTitleProviderResult>;\n}',
+  },
+  {
+    name: 'SessionTitleProviderMessageRequest',
+    declaration: 'export interface SessionTitleProviderMessageRequest {\n    readonly session: Session;\n    readonly throughSeq: SessionSeq;\n    readonly signal: AbortSignal;\n}',
   },
   {
     name: 'SessionTitleProviderRequest',
@@ -6942,7 +6971,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WebBootEntry',
-    declaration: 'export interface WebBootEntry {\n    id: string;\n    url: string;\n    rev: string;\n    inject?: string[];\n    immediately?: boolean;\n    external?: string[];\n}',
+    declaration: 'export interface WebBootEntry {\n    id: string;\n    url: string;\n    rev: string;\n    inject?: string[];\n    immediately?: boolean;\n    external?: string[];\n    dynamic?: boolean;\n}',
   },
   {
     name: 'WebBootGraph',

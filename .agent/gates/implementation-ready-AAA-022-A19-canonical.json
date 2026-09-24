@@ -1,0 +1,127 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001",
+  "timestamp": "2026-09-23T05:13:36.784042-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: A19 prepared Session append feed and synchronous projection readiness before Agent construction; exact upstream ownership, package tests and documentation",
+  "scope_ref": "AAA-022",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The confirmed A03 authority and fresh A18 review cover the exact 24-path A19 prepared-session feed and preconstruction projection readiness scope.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-GATE-CANONICAL-001",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        ".agent/verification.jsonl#VER-AAA-022-A19-GATE-BINDING-RECOVERY-001",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Authority remains limited to local implementation and verification of A19; no A20 storage drain or external publication action is included."
+    },
+    {
+      "id": "IR-002",
+      "description": "The A19 design defines exact preparation event capture, projection initialization before Agent construction, critical pre-acceptance failure handling, and attached or unattached append reentrancy protection.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        "packages/core/session/src/preparation.ts",
+        "packages/session/session-projection/src/index.ts",
+        "packages/core/agent-loop/src/index.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The existing post-commit observer containment remains; persistence page draining and new projection keys are separate gates."
+    },
+    {
+      "id": "IR-003",
+      "description": "The acceptance plan covers ordered feed capture, projection parity, failure atomicity, append guards, publication, lifecycle behavior, the recorded baseline files, scoped package checks, and affected documentation.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md",
+        "packages/core/session/tests/session.spec.ts",
+        "packages/session/session-projection/tests/registry.spec.ts",
+        "packages/core/agent-loop/tests/resume.spec.ts",
+        "docs/architecture.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The recorded 48-failure/29-pass preimplementation baseline is retained; A19 acceptance must repair its unpublished turnBoundary failure."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-A19-GATE-CANONICAL-001",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+    ".agent/verification.jsonl#VER-AAA-022-A19-GATE-BINDING-RECOVERY-001",
+    ".agents/customization-policy.json",
+    "packages/core/session/src/preparation.ts",
+    "packages/session/session-projection/src/index.ts",
+    "packages/core/agent-loop/src/index.ts",
+    "docs/architecture.md",
+    ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-TASK-001"
+  ],
+  "candidate_fingerprint": "c75f66f6d5c77bf22ca0676d28416c434e0f7bf9f93c6045dcc05c94cccd1dc7",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/architecture.i18n.yaml",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/README.i18n.yaml",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml"
+    ],
+    "hash_rule": "Sort relative paths; for each existing input hash path, NUL, working-tree bytes, NUL.",
+    "file_count": 24,
+    "preexisting_dirty_worktree": true
+  },
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: A19 prepared Session append feed and synchronous projection readiness before Agent construction; exact upstream ownership, package tests and documentation",
+    "decision": "Apply the explicit A03 authorization to A19’s preparation-owned event feed and preconstruction projection readiness; exclude A20 storage page drains, new projection keys, and external publication actions.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-GATE-CANONICAL-001",
+    "expires_or_revalidates": "Revalidate if A19 changes durable Session data, model-visible input, package dependencies, the approved path scope, or requires external repository action."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Continue AAA-022:A19 implementation within the exact approved 24-path scope; do not add A20 storage draining or new projection keys.",
+  "revalidation_triggers": [
+    "A prepared event is missed, duplicated, reordered, mutable, or assigned a noncontiguous seq across construction, setup, publication, or first live append.",
+    "An unpublished Agent reads missing or stale turnBoundary/inbox state, or a projection cell differs from a full fold of the accepted Session log.",
+    "Critical projection failure mutates the Session log or seq, or a nested append is accepted for an attached or unattached Session.",
+    "A post-commit session/event observer failure changes append success or prevents critical projection state from matching the committed event.",
+    "A19 changes storage pagination, persistence failure semantics, Session format/data, wire output, model-visible input, SDK projections, or any path outside the exact A19 scope."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-A19-TASK-001"
+}

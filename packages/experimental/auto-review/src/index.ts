@@ -126,7 +126,7 @@ export const inject = ['llm', 'permissionPresets', 'sessions', 'tools']
 /** Return JSON text for one immutable logged value. */
 function json(value: unknown): string {
   const rendered = JSON.stringify(value, null, 2) as string | undefined
-  /* v8 ignore next -- accepted Session facts and frozen review snapshots are lossless JSON by contract. */
+  /*! v8 ignore next -- accepted Session facts and frozen review snapshots are lossless JSON by contract. */
   if (rendered === undefined) throw new Error('auto-review: a required value is not JSON-serializable')
   return rendered
 }

@@ -130,6 +130,7 @@ Windows 应用替换遵循[目录安装决策](2026-09-11-windows-directory-inst
 
 - 没有系统 Node.js 或 pnpm 的干净离线机器能够启动内置 dsh，无需安装核心依赖。
 - 签名应用记录最终运行时文件清单；每个 macOS 原生文件都具有发布 Developer ID、安全时间戳和 hardened runtime，每个 Windows 产物都具有配置的硬件 EV 签名。
+- 插件生命周期脚本会执行第三方代码。profile 的 `allowBuilds` 配置决定哪些构建获准执行。
 - `.dsh/profiles/desktop/node_modules` 保存由共享 Web 插件管理器管理的外部插件。
 - Desktop 包操作使用启动器提供的内置 pnpm，以及共享管理器的子进程环境与 profile 配置。
 - 主应用的“插件”页面向共享 Host 服务发送结构化包操作与激活请求。
@@ -156,9 +157,6 @@ Windows 应用替换遵循[目录安装决策](2026-09-11-windows-directory-inst
 | 初始平台 | macOS arm64/x64 与 Windows x64；Linux 尚无受支持的发布目标 |
 | 更新行为 | 后台检查，差分下载与重启前显式确认，启动时校准 dsh |
 
-## 风险
-
-插件生命周期脚本会执行第三方代码。profile 的 `allowBuilds` 配置决定哪些构建获准执行。
 
 更新绑定的 dsh 可能使插件 peer 依赖或原生模块不兼容。原生恢复可以禁用第三方 bundle 并重启应用，之后可通过共享“插件”页面修复。
 

@@ -19,6 +19,7 @@ import type {} from '@deepseek-ai/dsh-api-gateway/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import * as NodeHalf from '../src/index.ts'
 import * as ClientHalf from '../src/client/index.ts'
+import type { DynamicCordisBrowserDelivery } from '../src/client/evaluator.ts'
 
 const PLUGIN = 'dyn-1' as CordisDynamicPluginId
 const PACKAGE = 'pkg-1' as CordisDynamicPackageId
@@ -37,6 +38,7 @@ interface Bench {
     pluginId: CordisDynamicPluginId
     packageId: CordisDynamicPackageId
     pluginRunId: CordisDynamicPluginRunId
+    browserDelivery?: DynamicCordisBrowserDelivery
   } }
   /** Resolutions the host received. */
   resolved: { requestId: string; resolution: unknown }[]
@@ -68,7 +70,9 @@ interface Bench {
 }
 
 /** Mount the browser half over a module table and a loader standing on real fibers. */
-async function boot(): Promise<Bench> {
+async function boot(options: { browserDelivery?: DynamicCordisBrowserDelivery } = {
+  browserDelivery: 'unsafe-eval-inline-style',
+}): Promise<Bench> {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry)
   const factories = new Map<string, () => unknown>()
@@ -104,6 +108,7 @@ async function boot(): Promise<Bench> {
     pluginId: PLUGIN,
     packageId: PACKAGE,
     pluginRunId: RUN,
+    ...(options.browserDelivery === undefined ? {} : { browserDelivery: options.browserDelivery }),
   } }
   const resolved: { requestId: string; resolution: unknown }[] = []
   const renderFailures: Bench['renderFailures'] = []
@@ -194,6 +199,18 @@ async function boot(): Promise<Bench> {
 }
 
 describe('browser half', () => {
+  it('denies browser evaluation when the host omits its delivery policy', async () => {
+    const bench = await boot({})
+    await bench.ctx.dynamicCordisRunner.startUserRun(USER_RUN)
+    expect(bench.ctx.dynamicCordisRunner.isLoaded(PLUGIN)).toBe(false)
+    expect(bench.ctx.dynamicCordisRunner.lastRunError.getSnapshot().get(PLUGIN)).toEqual(expect.objectContaining({
+      packageId: PACKAGE,
+      reason: 'client-half-failed',
+      message: expect.stringContaining('dynamic browser evaluation is disabled'),
+      stack: expect.stringMatching(/./u),
+    }))
+  })
+
   it('provides the load engine as the page run-state face', async () => {
     const bench = await boot()
     expect(bench.ctx.dynamicCordisRunner.getSnapshot()).toEqual([])

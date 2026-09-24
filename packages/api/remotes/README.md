@@ -75,6 +75,8 @@ No direct effect; mounted Host capabilities own any model-visible behavior they 
 - Only scoped waterfalls that are still pending are replayed after reconnection; ordinary one-way notifications remain isolated best-effort deliveries and are not replayed. State that requires reliable recovery needs an owner-provided query, cursor, or opening baseline.
 
 
+**Runtime invariant:** No companion is published. Typert and the Agent/Session registries own the observed relationships.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -84,5 +86,3 @@ No direct effect; mounted Host capabilities own any model-visible behavior they 
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Typert and the Agent/Session registries own the observed relationships.

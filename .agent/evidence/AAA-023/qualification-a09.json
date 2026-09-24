@@ -1,0 +1,39 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A09-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree after A08 control-plane append",
+  "timestamp": "2026-09-21T20:48:53-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The ownership gate attributes 699 custom paths across 12 improvements after the A08 evidence append."
+    },
+    {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "All 11 control-plane checks pass after the A08 evidence and ledger append."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "implementation_refs": [
+    ".agent/state.json",
+    ".agent/backlog.json",
+    ".agent/verification.jsonl",
+    ".agent/execution-log.jsonl",
+    ".agent/evidence/AAA-023/qualification-a08.json",
+    ".agents/customization-policy.json"
+  ],
+  "summary": "The post-append control plane remains internally consistent; the ownership count increased only because the newly recorded evidence file is itself within the governed .agent tree.",
+  "limitations": "This is control-plane revalidation only. It does not change the A08 partial release result or resolve AAA-009, AAA-010, or the pending maintainer decisions.",
+  "observed_at": "2026-09-21T20:48:53-03:00",
+  "freshness": "CURRENT"
+}

@@ -728,6 +728,11 @@
     },
     {
       "doc": "docs/subsystems/session-title.md",
+      "symbol": "SessionTitleProviderMessageRequest",
+      "source": "packages/session/session-title/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/session-title.md",
       "symbol": "SessionTitleProviderRequest",
       "source": "packages/session/session-title/src/index.ts"
     },

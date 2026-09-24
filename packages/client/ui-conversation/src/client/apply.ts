@@ -32,7 +32,7 @@ import { ConversationRoot } from './skeleton/ConversationRoot.tsx'
 import { ConversationContent } from './skeleton/ConversationContent.tsx'
 import { ConversationPanel } from './skeleton/ConversationPanel.tsx'
 import { ConversationSession, ConversationSessionHeader } from './skeleton/ConversationSession.tsx'
-import { InputBar } from './skeleton/InputBar.tsx'
+import { InputBar } from './input/InputBar.tsx'
 import { todoDockEntry } from './skeleton/TodoPanel.tsx'
 import { resolveActiveView } from './view-selection.ts'
 import { en, NS, zh, type ConversationKey } from './locales.ts'
@@ -156,7 +156,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
   const viewTabs = (): ViewTab[] => {
     const tabs: ViewTab[] = []
     for (const entry of slots.entries('conversation.view')) {
-      /* v8 ignore next -- list registration validates id at load. */
+      /*! v8 ignore next -- list registration validates id at load. */
       if (entry.options.id === undefined) continue
       tabs.push({
         id: entry.options.id,

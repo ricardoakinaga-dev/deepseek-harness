@@ -7,9 +7,13 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
 import { SessionSeq } from '@deepseek-ai/dsh-session'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
+import type { Session, SessionCreationBaseline, SessionEvent } from '@deepseek-ai/dsh-session'
 
 const PACKAGE_NAME = '@deepseek-ai/dsh-session-title'
+
+type HumanMessageSeqs = Set<ReturnType<typeof SessionSeq>>
+
+const humanMessageSeqs = new WeakMap<Session, HumanMessageSeqs>()
 
 /** Cordis companion plugin name. */
 export const name = 'session-title-invariant'
@@ -25,8 +29,8 @@ export const inject = ['invariants']
  * writer produced it.
  */
 function validate(
-  session: Session,
   event: SessionEvent<'session/title'>,
+  committedSeqs: HumanMessageSeqs,
   fail: InvariantFailure,
 ): void {
   const { source, messageSeqs } = event.data
@@ -46,29 +50,56 @@ function validate(
       fail(`session/title event ${String(event.seq)} repeats message seq ${checked}`)
     }
     seen.add(checked)
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    const cited = checked < event.seq ? session.eventAt(checked) : undefined
-    if (cited?.type !== 'user/message' || cited.data.source.kind !== 'user') {
+    if (checked >= event.seq || !committedSeqs.has(checked)) {
       fail(`session/title event ${String(event.seq)} message seq ${checked} must name an earlier human user/message`)
     }
   }
 }
 
+/** Keep every human message seq, including messages without eligible title text. */
+function isHumanMessage(event: SessionEvent): event is SessionEvent<'user/message'> {
+  return event.type === 'user/message' && event.data.source.kind === 'user'
+}
+
+/** Seed one Session's citation index and validate its earlier title events in log order. */
+function indexEvents(events: readonly SessionEvent[], fail: InvariantFailure): HumanMessageSeqs {
+  const seqs: HumanMessageSeqs = new Set()
+  for (const event of events) {
+    if (event.type === 'session/title') validate(event, seqs, fail)
+    if (isHumanMessage(event)) seqs.add(event.seq)
+  }
+  return seqs
+}
+
 const install: InvariantInstaller = Object.assign((ctx: Context, fail: InvariantFailure) => {
   const validateExisting = (session: Session): void => {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    for (const event of session.snapshotEvents()) {
-      if (event.type === 'session/title') validate(session, event, fail)
-    }
+    // oxlint-disable-next-line typescript/no-deprecated -- Existing live-session bootstrap precedes this companion's registration.
+    humanMessageSeqs.set(session, indexEvents(session.snapshotEvents(), fail))
   }
   ctx.sessions.list().forEach(validateExisting)
-  ctx.on('session/created', validateExisting, { global: true })
+  ctx.on('session/created', (session, baseline: SessionCreationBaseline) => {
+    humanMessageSeqs.set(session, indexEvents(baseline.events, fail))
+  }, { global: true })
+  ctx.on('session/event', (session, event) => {
+    if (!isHumanMessage(event) || !session.isCommittedEvent(event)) return
+    let seqs = humanMessageSeqs.get(session)
+    if (seqs === undefined) {
+      seqs = new Set()
+      humanMessageSeqs.set(session, seqs)
+    }
+    seqs.add(event.seq)
+  }, { global: true })
   // internal/dispatch interception rejects the append before publication
   // (the session/event listener would only observe the already-committed log).
   ctx.on('internal/dispatch', (_mode, eventName, args) => {
     if (eventName !== 'session/event') return
     const [session, event] = args as [Session, SessionEvent]
-    if (event.type === 'session/title') validate(session, event, fail)
+    if (event.type !== 'session/title') return
+    const seqs = humanMessageSeqs.get(session)
+    if (seqs === undefined) {
+      fail(`session "${session.id}" has no committed-human-message citation index`)
+    }
+    validate(event, seqs, fail)
   }, { global: true })
 }, { inject: ['sessions'] })
 

@@ -1,0 +1,26 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A27",
+  "kind": "SUCCESSOR_CANDIDATE_PREFLIGHT",
+  "source_candidate_tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "disposable_successor": {
+    "worktree": "/tmp/dsh-a27-successor-preflight.KPk0pt/repo",
+    "temporary_commit": "beaa2a8567525289ca20639d5d93015be13326a8",
+    "tree": "ae41759e1b27d5412b3ff87cded7ae85c571e9b4",
+    "removed_paths": ".opencode/goals/**",
+    "removed_path_count": 11,
+    "status_entries_after_commit": 0
+  },
+  "policy_probe": {
+    "command": "node scripts/verify-customization-policy.mjs --base origin/master",
+    "source_candidate_unowned_diagnostics": 293,
+    "successor_unowned_diagnostics": 282,
+    "successor_exit_status": 1,
+    "log": "/tmp/dsh-a27-successor-preflight.KPk0pt/policy-committed.log",
+    "interpretation": "The ignored local state accounts for exactly 11 diagnostics, but the successor still fails attribution for 282 paths; exclusion is necessary but not sufficient."
+  },
+  "result": "PARTIAL",
+  "decision": "Retain the current candidate unchanged. The successor-tree mechanism is reproducible, but policy-owner authority and the remaining 282-path disposition are still required before qualification.",
+  "limitations": "The disposable successor was not used for product gates, no policy entries were changed, and no merge, push, publication, release, or final verdict was performed.",
+  "observed_at": "2026-09-22T17:12:41-03:00"
+}

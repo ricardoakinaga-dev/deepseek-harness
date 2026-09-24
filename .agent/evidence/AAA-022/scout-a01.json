@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-022",
+  "action_id": "AAA-022:A01",
+  "candidate_ref": "current custom/main worktree",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T23:50:56-03:00",
+  "source_documents": [
+    ".agent/plans/deepseek-harness-aaa-quality-bar.json",
+    ".agent/evidence/AAA-018/findings-a01.json",
+    ".oxlintrc.json",
+    "tsconfig.base.json",
+    ".agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md",
+    "packages/*/*/src"
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-022-METRICS-NONCANONICAL",
+      "observed_status": "GAP_REPRODUCED",
+      "classification": "STATIC_DEBT_CORPUS_AND_SEMANTICS_UNSET",
+      "severity": "HIGH",
+      "summary": "The current checkout reproduces exploratory debt counts, but no canonical metrics command or retained corpus definition exists. Package-root TypeScript discovery finds 1,988 tracked files while recursive source discovery finds 1,997 files because nine nested fixture source trees are included.",
+      "limitations": "The counts cannot be compared with the frozen 85/205/81/66/8 values until AAA-018 defines paths, extensions, exclusions, AST or token semantics, and revision evidence."
+    },
+    {
+      "id": "F-AAA-022-CONFIGURATION-DEBT",
+      "observed_status": "GAP_REPRODUCED",
+      "classification": "CORRECTNESS_AND_COMPILER_DEFAULTS_REMAIN_RELAXED",
+      "severity": "HIGH",
+      "summary": "The lint configuration keeps the correctness category off; the shared TypeScript configuration keeps skipLibCheck true and verbatimModuleSyntax false. Individual no-deprecated and no-explicit-any rules remain enabled as errors, with a narrow test-only allowance for three Session reader names.",
+      "limitations": "No broad rule or compiler-default change is authorized. Additional skipLibCheck settings in native/system and Typert fixtures require separate ownership classification."
+    }
+  ],
+  "current_inventory": {
+    "tracked_package_root_typescript_files": 1988,
+    "recursive_source_typescript_files": 1997,
+    "nested_fixture_source_trees": 9,
+    "metrics": {
+      "typescript_no_deprecated_mentions": 87,
+      "active_no_deprecated_directives": 86,
+      "session_reader_waiver_calls": 82,
+      "session_reader_waiver_package_paths": 44,
+      "historical_no_deprecated_baseline": 85,
+      "oxlint_disable_lines": 211,
+      "oxlint_disable_package_paths": 71,
+      "historical_suppression_baseline": 205,
+      "todo_fixme_xxx_lines_all_source": 57,
+      "todo_fixme_xxx_lines_typescript": 54,
+      "historical_marker_baseline": 81,
+      "any_token_lines_all_source": 866,
+      "any_token_lines_typescript": 861,
+      "historical_any_token_baseline": 66
+    },
+    "suppression_distribution": {
+      "typescript_no_deprecated": 86,
+      "typescript_no_non_null_assertion": 41,
+      "typescript_no_unnecessary_condition": 24,
+      "typescript_unbound_method": 14,
+      "typescript_no_misused_promises": 11,
+      "typescript_require_await": 9,
+      "typescript_no_explicit_any": 6
+    },
+    "effective_compiler_programs": {
+      "tsconfig.host.json": { "files": 1599, "references": 249 },
+      "tsconfig.client.json": { "files": 551, "references": 74 }
+    }
+  },
+  "configuration": {
+    "correctness_category": "off",
+    "enabled_error_rules": ["typescript/no-deprecated", "typescript/no-explicit-any"],
+    "test_deprecation_allowance": ["snapshotEvents", "eventAt", "ownEvents"],
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": false
+  },
+  "owner_groups": {
+    "largest_no_deprecated_groups": [
+      "packages/schedule/schedule:6",
+      "packages/core/session:5",
+      "packages/api/session-controller:4",
+      "packages/core/agent-loop:4",
+      "packages/session/session-log-deepseek:4",
+      "packages/session/session-title:4"
+    ],
+    "separate_compatibility_cases": [
+      "packages/client/ui-conversation",
+      "packages/client/ui-sidebar-terminal",
+      "packages/client/ui-user-questions",
+      "packages/client/ui-primitives"
+    ],
+    "largest_suppression_groups": [
+      "packages/compaction/compaction-basic:14",
+      "packages/core/agent-loop:11",
+      "packages/core/tools:10",
+      "packages/subprocess/subprocess-local:9",
+      "packages/core/session:8",
+      "packages/session-query/session-query:7"
+    ]
+  },
+  "proposed_waves": [
+    "AAA-018 metrics control plane and retained canonical JSON",
+    "Session projection and history consumers",
+    "Core, scheduler, fork, runtime, compaction, and context consumers",
+    "Domain consumers with model-visible snapshot coverage",
+    "UI and platform compatibility exceptions",
+    "Separate lint and compiler compatibility probes"
+  ],
+  "decision": {
+    "status": "PENDING_CANONICAL_METRICS_AND_HUMAN_DECISION",
+    "required": "AAA-018 must define the canonical metrics corpus before AAA-022 compares or reduces debt; the maintainer must approve the owner-scoped migration order and any correctness or compiler-default probe.",
+    "options": [
+      "Establish the canonical command and retain historical values as a versioned comparison, then execute one owner-scoped migration wave.",
+      "Establish the canonical command but defer product debt reduction until each owner supplies a compatibility plan.",
+      "Authorize a bounded rule or compiler probe only for a named owner and package set, with rollback and focused replay evidence."
+    ],
+    "must_define": [
+      "package-root corpus, extensions, exclusions, and nested-fixture treatment",
+      "AST versus token semantics for each metric",
+      "owner, first wave, rollback condition, and required model-visible coverage",
+      "whether correctness, skipLibCheck, or verbatimModuleSyntax probes are authorized"
+    ]
+  },
+  "validation": {
+    "commands": [
+      "read-only package-root and rule inventory probe",
+      "pnpm exec tsx scripts/run-oxlint.ts --format unix packages/core/session packages/session-projection packages/schedule/schedule",
+      "pnpm exec tsc -p tsconfig.host.json --showConfig",
+      "pnpm exec tsc -p tsconfig.client.json --showConfig"
+    ],
+    "observed_status": "PASS_WITH_DECISION_GAP",
+    "summary": "Focused Oxlint returned exit 0 with no diagnostics for the selected owner paths; effective host and client programs were enumerated. These probes establish current observations but not canonical metrics or Quality Bar PASS."
+  },
+  "limitations": "No source, lint configuration, compiler option, generated file, or test was changed. No migration wave was implemented, and the packet does not authorize a repository-wide rule or compiler-default change."
+}

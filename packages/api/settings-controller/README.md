@@ -59,6 +59,8 @@ No direct effect; reading or writing these configuration values does not alter m
 
 - The batch bound is fixed at 64 references and is not a deployment-configurable field.
 
+**Runtime invariant:** No companion is published. The settings and credential seams own storage and update events, while this package only projects their methods onto the wire.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -68,5 +70,3 @@ No direct effect; reading or writing these configuration values does not alter m
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The settings and credential seams own storage and update events, while this package only projects their methods onto the wire.

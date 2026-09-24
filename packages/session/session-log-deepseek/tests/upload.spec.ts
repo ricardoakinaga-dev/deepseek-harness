@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, {
   SESSION_FORMAT_VERSION,
@@ -11,12 +11,27 @@ import SessionStore, {
 } from '@deepseek-ai/dsh-session'
 import DeepSeekLlmApiExtensionRegistry from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
 import { createAssistantMessage, createSystemMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import SessionQueryEngine, {
+  type SessionEventSearchPage,
+  type SessionSearchHit,
+  type SessionSearchPage,
+} from '@deepseek-ai/dsh-session-query'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import * as SessionLogDeepSeek from '../src/index.ts'
 import type { DeepSeekSessionLogExtension, DeepSeekSessionLogWireEvent, DeepSeekSessionLogWireSurfaceOp } from '../src/types.ts'
 
 const contexts: Context[] = []
 const SIGNAL = new AbortController().signal
+
+class TestSessionQueryEngine extends SessionQueryEngine {
+  override searchSessions(): Promise<SessionSearchPage<SessionSearchHit>> {
+    return Promise.resolve({ items: [] })
+  }
+
+  override searchEvents(): Promise<SessionEventSearchPage> {
+    return Promise.reject(new Error('session-log-deepseek test query does not search'))
+  }
+}
 
 afterEach(async () => {
   await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
@@ -26,6 +41,7 @@ async function harness(
   id: string,
   seed?: readonly SessionEvent[],
   creation?: Omit<CreateSessionOptions, 'seed'>,
+  query = false,
 ): Promise<{
   ctx: Context
   session: Session
@@ -34,6 +50,7 @@ async function harness(
   const ctx = new Context()
   contexts.push(ctx)
   await ctx.plugin(SessionStore)
+  if (query) await ctx.plugin(TestSessionQueryEngine)
   await ctx.plugin(DeepSeekLlmApiExtensionRegistry)
   const upload = ctx.plugin(SessionLogDeepSeek, { enabled: true })
   await upload
@@ -193,13 +210,13 @@ describe('incremental DeepSeek session-log upload', () => {
   })
 
   it('reconstructs a persisted cursor and ignores an inherited parent watermark in a fork', async () => {
-    const first = await harness('parent')
+    const first = await harness('parent', undefined, undefined, true)
     first.session.append('turn/start', { turn: 1 })
     const prepared = await first.ctx.deepseekLlmApiExtensions.prepare({ body: body(), signal: SIGNAL, sessionId: first.session.id })
     await prepared.accept()
     const seed = first.session.snapshotEvents()
 
-    const resumed = await harness('parent', seed)
+    const resumed = await harness('parent', seed, undefined, true)
     expect(SessionLogDeepSeek.acceptedThrough(resumed.session)).toBe(0)
     const resumedPayload = await resumed.ctx.deepseekLlmApiExtensions.prepare({
       body: body(), signal: SIGNAL, sessionId: resumed.session.id,
@@ -209,7 +226,7 @@ describe('incremental DeepSeek session-log upload', () => {
     const fork = await harness('child', seed, {
       inheritedEventCount: SessionLogOffset(seed.length),
       meta: { parentSession: first.session.id, isSeeded: true },
-    })
+    }, true)
     expect(SessionLogDeepSeek.acceptedThrough(fork.session)).toBe(-1)
     const forkPayload = await fork.ctx.deepseekLlmApiExtensions.prepare({ body: body(), signal: SIGNAL, sessionId: fork.session.id })
     expect(forkPayload.fields.dsh_session_log).toMatchObject({ afterSeq: -1, throughSeq: fork.session.seq - 1 })
@@ -274,6 +291,91 @@ describe('incremental DeepSeek session-log upload', () => {
     )
     expect(SessionLogDeepSeek.acceptedThrough(session)).toBe(2)
     expect(reads).toBe(2)
+  })
+
+  it('uses one fixed live observation and releases its lease after wire conversion', async () => {
+    const { ctx, session } = await harness('query-cut', undefined, undefined, true)
+    session.append('turn/start', { turn: 1 })
+    const query = ctx.sessionQuery
+    const observe = query.observeSession.bind(query)
+    const captured = await observe(session.id, { projectionMode: 'none' })
+    void captured.events
+    let disposed = false
+    const wrapped = {
+      ...captured,
+      [Symbol.dispose]: () => {
+        disposed = true
+        captured[Symbol.dispose]()
+      },
+    }
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    vi.spyOn(query, 'observeSession').mockImplementation(async () => {
+      await gate
+      return wrapped
+    })
+
+    const preparing = ctx.deepseekLlmApiExtensions.prepare({
+      body: body(), signal: SIGNAL, sessionId: session.id,
+    })
+    session.append('step/start', { turn: 1, step: 1 })
+    release()
+    const prepared = await preparing
+
+    expect(prepared.fields.dsh_session_log).toMatchObject({
+      afterSeq: -1,
+      throughSeq: 0,
+      events: [{ type: 'turn/start', seq: 0 }],
+    })
+    expect(disposed).toBe(true)
+  })
+
+  it('passes request cancellation to Session-query observation', async () => {
+    const { ctx, session } = await harness('query-cancel', undefined, undefined, true)
+    session.append('turn/start', { turn: 1 })
+    const controller = new AbortController()
+    const reason = new Error('cancelled by test')
+    let receivedSignal: AbortSignal | undefined
+    vi.spyOn(ctx.sessionQuery, 'observeSession').mockImplementation((_id, options) => {
+      const signal = options?.signal
+      receivedSignal = signal
+      if (signal === undefined) return Promise.reject(new Error('test expected a request signal'))
+      return new Promise<never>((_resolve, reject) => {
+        signal.addEventListener('abort', () => {
+          reject(reason)
+        }, { once: true })
+      })
+    })
+
+    const preparing = ctx.deepseekLlmApiExtensions.prepare({
+      body: body(), signal: controller.signal, sessionId: session.id,
+    })
+    expect(receivedSignal).toBe(controller.signal)
+    controller.abort(reason)
+    await expect(preparing).rejects.toBe(reason)
+  })
+
+  it('omits a prepared observation when a live request loses its Session', async () => {
+    const { ctx, session } = await harness('query-prepared', undefined, undefined, true)
+    session.append('turn/start', { turn: 1 })
+    const query = ctx.sessionQuery
+    const observe = query.observeSession.bind(query)
+    const captured = await observe(session.id, { projectionMode: 'none' })
+    let disposed = false
+    const prepared = {
+      ...captured,
+      source: 'prepared' as const,
+      [Symbol.dispose]: () => {
+        disposed = true
+        captured[Symbol.dispose]()
+      },
+    }
+    vi.spyOn(query, 'observeSession').mockResolvedValue(prepared)
+
+    await expect(ctx.deepseekLlmApiExtensions.prepare({
+      body: body(), signal: SIGNAL, sessionId: session.id,
+    })).resolves.toMatchObject({ fields: {} })
+    expect(disposed).toBe(true)
   })
 
   it('rejects a missing event below the captured Session length', () => {

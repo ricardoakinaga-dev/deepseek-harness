@@ -11,8 +11,9 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type ToolCallId } from '@deepseek-ai/dsh-llm'
 import { scopeTarget } from '@deepseek-ai/dsh-scope'
 import type { Session } from '@deepseek-ai/dsh-session'
-import { SessionSeq } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
+import { installApprovalSessionLease } from './session-state.ts'
+import type { ApprovalSessionLease } from './session-state.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -67,22 +68,7 @@ const NEVER_SENTENCE = 'Approval prompts are disabled in this session: actions t
 /** Model-facing statement for an interactive policy that may still fail closed. */
 const ASK_SENTENCE = 'Approval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
 
-/**
- * Whether the log currently sits inside an open turn (a `turn/start` not yet
- * closed by a `turn/end`) — the {@link ApprovalService.request} precondition.
- * The audit pair must be turn-enclosed: the turn is the durable log's
- * commit/replay boundary, so a bare event appended between turns is
- * indistinguishable from a crash tail and silently dropped on reload.
- */
-function hasOpenTurn(session: Session): boolean {
-  for (let seq = session.seq - 1; seq >= 0; seq -= 1) {
-    // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    const type = session.eventAt(SessionSeq(seq))?.type
-    if (type === 'turn/start') return true
-    if (type === 'turn/end') return false
-  }
-  return false
-}
+class ApprovalStateUnavailableError extends Error {}
 
 /**
  * Append the sole durable representation of a session policy override. Invalid
@@ -139,14 +125,22 @@ export interface Config {
  * Approval service that applies session policy before answerers and logs every
  * ask/outcome pair to the requesting session. It exposes deterministic policy
  * changes to the model through the runtime-context snapshot and switch notices.
+ * Open-turn and latest-policy reads require an exact package-owned Session fold.
  */
 export class ApprovalService extends Service {
+  static inject = ['sessions']
+
   static Config: z<Config> = z.object({
     policy: z.union(['ask', 'never'] as const).default('ask'),
   })
 
+  private readonly sessionState: ApprovalSessionLease
+
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'approval')
+    this.sessionState = installApprovalSessionLease(ctx, (message) => {
+      throw new ApprovalStateUnavailableError(`approval session state: ${message}`)
+    })
 
     const effective = (agent: Agent): ApprovalPolicy => this.effectivePolicy(agent.session)
 
@@ -201,13 +195,22 @@ export class ApprovalService extends Service {
    * authoritative append cannot reject the request or suppress its matching
    * audit event.
    * @param req - the pending decision (agent, tool identity, reason, signal).
-   * @returns the closed outcome; `'allowed-once'` is the only grant.
-   * @throws when no turn is open or either audit event fails before the session
-   *   append commit point.
+   * @returns the closed outcome; `'allowed-once'` is the only grant. A Session
+   *   without an exact owner fold returns `'unavailable'` before either audit
+   *   event is appended.
+   * @throws when no turn is open or either audit event fails before the append
+   *   commit point.
    */
   async request(req: ApprovalRequest): Promise<ApprovalOutcome> {
     const session = req.agent.session
-    if (!hasOpenTurn(session)) {
+    let state: ReturnType<ApprovalSessionLease['readCurrent']>
+    try {
+      state = this.sessionState.readCurrent(session)
+    } catch (error: unknown) {
+      if (error instanceof ApprovalStateUnavailableError) return 'unavailable'
+      throw error
+    }
+    if (state.openTurn === null) {
       throw new Error(
         'approval.request() outside an open turn: the approval/asked + approval/decided audit pair '
         + 'must be turn-enclosed (a bare event between turns is crash-tail garbage on reload). '
@@ -238,17 +241,14 @@ export class ApprovalService extends Service {
   }
 
   /**
-   * Read the session override without applying the configured default.
+   * Read the latest policy override from the exact Session fold without
+   * applying the configured default.
    * @param session - session whose log supplies the override.
    * @returns the last logged policy, or `undefined` without one.
+   * @throws when this provider has no exact fold for the current Session prefix.
    */
   overrideOf(session: Session): ApprovalPolicy | undefined {
-    for (let seq = session.seq - 1; seq >= 0; seq -= 1) {
-      // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-      const event = session.eventAt(SessionSeq(seq))
-      if (event?.type === 'approval/policy') return event.data.policy
-    }
-    return undefined
+    return this.sessionState.readCurrent(session).latestPolicy
   }
 
   /**

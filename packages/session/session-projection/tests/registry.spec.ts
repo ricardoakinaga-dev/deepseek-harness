@@ -1,6 +1,6 @@
 /**
  * SessionProjectionRegistry unit drive: eager apply on committed events with
- * lazy cell build (registration after events, session after registration),
+ * creation-baseline cell initialization,
  * the Object.is no-change gates (same state or raw view reference ⇒ zero
  * change-feed work), snapshot consistency (asOfSeq = last event seq; values
  * from the watermark cache), duplicate-key rejection, stateVersion validation,
@@ -15,6 +15,7 @@ import SessionStore, {
   Session,
   SessionId,
   SessionLogOffset,
+  SessionPreparation,
   SessionSeq,
 } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
@@ -27,6 +28,7 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
     'test/count': number
     'test/stable-view': StableViewState
     'test/cut': number
+    'test/prepared-count': number
   }
 
   interface SessionProjectionMap {
@@ -161,6 +163,22 @@ function sequenceName(sequence: readonly number[], prefix: string): string {
 }
 
 describe('SessionProjectionRegistry drive', () => {
+  it('initializes projections from accepted appends before a prepared Session enters the store', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    ctx.sessionProjections.register(marksUnit())
+    const prepared = ctx.sessions.prepare(SessionId('pre-entry-append'))
+    const accepted = mark(prepared, ['before-entry'])
+
+    const detach = ctx.sessions.enter(prepared)
+    ctx.sessions.announce(prepared)
+
+    expect(ctx.sessionProjections.stateOf(prepared, 'test/marks')).toEqual({ marks: ['before-entry'] })
+    expect(ctx.sessionProjections.snapshot(prepared).asOfSeq).toBe(accepted.seq)
+    detach()
+  })
+
   it('supplies the exact inherited cut to live, restored, and hydrated projection initialization', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
@@ -200,6 +218,157 @@ describe('SessionProjectionRegistry drive', () => {
     expect(ctx.sessionProjections.stateOf(prepared, 'test/cut')).toBe(inherited.length)
   })
 
+  it('prepares registered cells from the constructor cut and append feed before publication', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    const prepared = ctx.sessions.prepare(SessionId('prepared-projection'))
+    let reject = false
+    let reenter = false
+    const applied: number[] = []
+    ctx.sessionProjections.register({
+      key: 'test/prepared-count',
+      stateSchema: z.number().int().nonnegative(),
+      init: () => 0,
+      apply: (state, event) => {
+        applied.push(event.seq)
+        if (reenter) {
+          reenter = false
+          prepared.append('turn/end', { turn: 9, reason: { kind: 'completed' } })
+        }
+        return reject && event.type === 'turn/start' ? -1 : state + 1
+      },
+      stateVersion: 1,
+    })
+
+    const preparation = SessionPreparation.create(prepared)
+    const first = prepared.append('turn/start', { turn: 1 })
+    ctx.sessionProjections.prepareSession(preparation)
+    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(1)
+
+    reject = true
+    expect(() => prepared.append('turn/start', { turn: 2 })).toThrow()
+    expect(prepared.seq).toBe(1)
+    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(1)
+
+    reenter = true
+    expect(() => prepared.append('turn/end', { turn: 1, reason: { kind: 'completed' } }))
+      .toThrow('session append cannot reenter while another append is being published')
+    expect(prepared.seq).toBe(1)
+    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(1)
+
+    reject = false
+    const accepted = prepared.append('turn/start', { turn: 2 })
+    expect(accepted.seq).toBe(1)
+    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(2)
+    const callsBeforePublication = applied.length
+    const detach = ctx.sessions.enter(prepared)
+    ctx.on('session/created', (created, baseline) => {
+      expect(created).toBe(prepared)
+      expect(baseline.events).toEqual([first, accepted])
+      expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(2)
+    })
+    ctx.sessions.announce(prepared)
+    expect(applied).toHaveLength(callsBeforePublication)
+
+    const warnings: string[] = []
+    ctx.logger.warn = ((message: unknown) => { warnings.push(String(message)) }) as typeof ctx.logger.warn
+    ctx.on('session/event', () => { throw new Error('observer failure') })
+    expect(() => prepared.append('turn/end', { turn: 2, reason: { kind: 'completed' } })).not.toThrow()
+    expect(prepared.seq).toBe(3)
+    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(3)
+    expect(warnings).toEqual([
+      'session "prepared-projection": session/event listener threw: Error: observer failure',
+    ])
+    detach()
+    preparation[Symbol.dispose]()
+  })
+
+  it('runs pre-prepare listeners before folding and retains accepted feed consumers until preparation ends', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    const applied: number[] = []
+    ctx.sessionProjections.register({
+      key: 'test/prepared-count',
+      stateSchema: z.number().int().nonnegative(),
+      init: () => 0,
+      apply: (state, event) => {
+        applied.push(event.seq)
+        return state + 1
+      },
+      stateVersion: 1,
+    })
+
+    const prepared = ctx.sessions.prepare(SessionId('prepared-before-hook'))
+    const preparation = SessionPreparation.create(prepared)
+    prepared.append('turn/start', { turn: 1 })
+    const observed: SessionPreparation[] = []
+    const feedSeqs: number[] = []
+    const fiber = await ctx.plugin(Object.assign((inner: Context) => {
+      inner.effect(() => inner.sessionProjections.onBeforePrepareSession((candidate) => {
+        observed.push(candidate)
+        expect(applied).toEqual([])
+        candidate.subscribeAppends(event => () => {
+          feedSeqs.push(event.seq)
+        })
+      }))
+    }, { inject: ['sessionProjections'] }))
+
+    ctx.sessionProjections.prepareSession(preparation)
+    expect(observed).toEqual([preparation])
+    expect(feedSeqs).toEqual([0])
+    expect(applied).toEqual([0])
+    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(1)
+
+    prepared.append('turn/start', { turn: 2 })
+    expect(feedSeqs).toEqual([0, 1])
+    await fiber.dispose()
+    prepared.append('turn/start', { turn: 3 })
+    expect(feedSeqs).toEqual([0, 1, 2])
+
+    preparation[Symbol.dispose]()
+    prepared.append('turn/start', { turn: 4 })
+    expect(feedSeqs).toEqual([0, 1, 2])
+
+    const later = SessionPreparation.create(ctx.sessions.prepare(SessionId('prepared-after-hook-dispose')))
+    ctx.sessionProjections.prepareSession(later)
+    expect(observed).toEqual([preparation])
+    later[Symbol.dispose]()
+    await ctx.fiber.dispose()
+  })
+
+  it('releases an earlier listener feed when a later pre-prepare listener fails', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    const prepared = ctx.sessions.prepare(SessionId('prepared-hook-failure'))
+    const preparation = SessionPreparation.create(prepared)
+    const observed: number[] = []
+    const failure = new Error('later pre-prepare listener failed')
+    const fiber = await ctx.plugin(Object.assign((inner: Context) => {
+      inner.effect(() => inner.sessionProjections.onBeforePrepareSession((candidate) => {
+        candidate.subscribeAppends(event => () => {
+          observed.push(event.seq)
+        })
+      }))
+      inner.effect(() => inner.sessionProjections.onBeforePrepareSession(() => {
+        throw failure
+      }))
+    }, { inject: ['sessionProjections'] }))
+
+    expect(() => { ctx.sessionProjections.prepareSession(preparation) }).toThrow(failure)
+    prepared.append('turn/start', { turn: 1 })
+    expect(observed).toEqual([0])
+
+    preparation[Symbol.dispose]()
+    prepared.append('turn/start', { turn: 2 })
+    expect(observed).toEqual([0])
+
+    await fiber.dispose()
+    await ctx.fiber.dispose()
+  })
+
   it('drives a registered unit over committed events and snapshots the current value', async () => {
     const { ctx, session } = await harness()
     ctx.sessionProjections.register(marksUnit())
@@ -210,14 +379,27 @@ describe('SessionProjectionRegistry drive', () => {
     expect(snapshot.asOfSeq).toBe(session.seq - 1)
   })
 
-  it('builds the cell lazily from the full log for a unit registered after events flowed', async () => {
+  it('rejects a delivered event that skips the cell watermark before applying it', async () => {
+    const { ctx, session } = await harness()
+    ctx.sessionProjections.register(marksUnit())
+    const gap: SessionEvent = {
+      type: 'test/mark',
+      seq: SessionSeq(1),
+      time: 1,
+      data: { marks: ['gap'] },
+    }
+
+    expect(() => { ctx.emit('session/event', session, gap) })
+      .toThrow(/requires an exact baseline/)
+    expect(ctx.sessionProjections.stateOf(session, 'test/marks')).toBeNull()
+  })
+
+  it('rejects registration after events flowed without an explicit baseline', async () => {
     const { ctx, session } = await harness()
     mark(session, ['pre-registration'])
-    ctx.sessionProjections.register(marksUnit())
-    expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['pre-registration'] })
-    // The lazily-built cell then continues on the live drive path.
-    mark(session, ['after'])
-    expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['after'] })
+    expect(() => ctx.sessionProjections.register(marksUnit()))
+      .toThrow(/requires an exact baseline/)
+    expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
   })
 
   it('serves init-derived state and asOfSeq -1 for an empty log', async () => {
@@ -488,7 +670,20 @@ describe('SessionProjectionRegistry drive', () => {
     // contract says the cached state shape differs, so the two cannot share
     // cells. Everything else about a definition is functions.
     expect(() => ctx.sessionProjections.register({ ...marksUnit(), stateVersion: 9 }))
-      .toThrow(/already registered at stateVersion 1; refusing to share it with stateVersion 9/)
+      .toThrow(/already registered with stateVersion 1 .*refusing to share it with stateVersion 9/)
+  })
+
+  it('shares a key only when optional cache fingerprints match exactly', async () => {
+    const { ctx } = await harness()
+    const definition = { ...marksUnit(), cacheFingerprint: 'intl-a' }
+    const dispose = ctx.sessionProjections.register(definition)
+    const matching = ctx.sessionProjections.register({ ...marksUnit(), cacheFingerprint: 'intl-a' })
+    expect(() => ctx.sessionProjections.register({ ...marksUnit(), cacheFingerprint: 'intl-b' }))
+      .toThrow(/cacheFingerprint/)
+    expect(() => ctx.sessionProjections.register(marksUnit()))
+      .toThrow(/cacheFingerprint/)
+    dispose()
+    matching()
   })
 
   it('rejects a non-integer or negative stateVersion at register time', async () => {
@@ -497,15 +692,14 @@ describe('SessionProjectionRegistry drive', () => {
     expect(() => ctx.sessionProjections.register({ ...marksUnit(), stateVersion: 1.5 })).toThrow(/stateVersion/)
   })
 
-  it('register() disposer removes the key (with its cells) and frees it for re-registration', async () => {
+  it('register() disposer removes the key and requires a fresh baseline for re-registration', async () => {
     const { ctx, session } = await harness()
     const dispose = ctx.sessionProjections.register(marksUnit())
     mark(session, ['cached'])
     dispose()
     expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
-    ctx.sessionProjections.register(marksUnit())
-    // Fresh registration rebuilds from the log, not from a stale cell.
-    expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['cached'] })
+    expect(() => ctx.sessionProjections.register(marksUnit()))
+      .toThrow(/requires an exact baseline/)
   })
 
   it('removes registrations and change listeners when their owning fiber unloads (HMR safety)', async () => {
@@ -585,6 +779,69 @@ describe('SessionProjectionRegistry drive', () => {
       'test/marks': { ver: 1, seq: -1, val: null },
       'test/count': { ver: 1, seq: -1, val: 0 },
     })).toBe(0)
+  })
+
+  it('invalidates rows when a fingerprint is added, removed, or changed', async () => {
+    const { ctx } = await harness()
+    const apply = vi.fn((state: MarksState, event: SessionEvent) => (
+      event.type === 'test/mark' ? event.data : state
+    ))
+    ctx.sessionProjections.register({
+      ...marksUnit(),
+      apply,
+      cacheFingerprint: 'current',
+    })
+    const events: SessionEvent[] = [
+      { type: 'test/mark', seq: SessionSeq(0), time: 0, data: { marks: ['fresh'] } },
+      { type: 'turn/end', seq: SessionSeq(1), time: 1, data: { turn: 1, reason: { kind: 'completed' } } },
+    ]
+    const mismatched = {
+      'test/marks': { ver: 1, seq: SessionSeq(1), val: { marks: ['stale'] }, cacheFingerprint: 'old' },
+    }
+
+    expect(ctx.sessionProjections.restoreFloor(mismatched)).toBe(0)
+    expect(() => ctx.sessionProjections.restore(
+      mismatched,
+      events.slice(1),
+      SessionLogOffset(1),
+      RESTORE_HEADER,
+      SessionLogOffset(0),
+    ))
+      .toThrow(/re-read from seq 0/)
+    expect(ctx.sessionProjections.viewCheckpoint(mismatched)).toEqual({})
+    expect(ctx.sessionProjections.restoreFloor({
+      'test/marks': { ver: 1, seq: SessionSeq(1), val: { marks: ['same'] }, cacheFingerprint: 'current' },
+    })).toBe(1)
+    const missingFingerprint = {
+      'test/marks': { ver: 1, seq: SessionSeq(1), val: { marks: ['old'] } },
+    }
+    expect(ctx.sessionProjections.restoreFloor(missingFingerprint)).toBe(0)
+    expect(ctx.sessionProjections.viewCheckpoint(missingFingerprint)).toEqual({})
+    apply.mockClear()
+    const rebuilt = ctx.sessionProjections.restore(mismatched, events, SessionLogOffset(0), RESTORE_HEADER, SessionLogOffset(0))
+    expect(apply).toHaveBeenCalledTimes(2)
+    expect(rebuilt.snapshot.values['test/marks']).toEqual({ marks: ['fresh'] })
+    expect(rebuilt.checkpoint['test/marks']).toEqual({
+      ver: 1,
+      seq: 1,
+      val: { marks: ['fresh'] },
+      cacheFingerprint: 'current',
+    })
+
+    const { ctx: other } = await harness()
+    other.sessionProjections.register(marksUnit())
+    const removed = {
+      'test/marks': { ver: 1, seq: SessionSeq(1), val: { marks: ['old'] }, cacheFingerprint: 'old' },
+    }
+    expect(other.sessionProjections.restoreFloor(removed)).toBe(0)
+    expect(other.sessionProjections.viewCheckpoint(removed)).toEqual({})
+    expect(() => other.sessionProjections.restore(
+      removed,
+      events.slice(1),
+      SessionLogOffset(1),
+      RESTORE_HEADER,
+      SessionLogOffset(0),
+    )).toThrow(/re-read from seq 0/)
   })
 
   it('restore folds the tail past each usable row and refolds from init on version mismatch', async () => {

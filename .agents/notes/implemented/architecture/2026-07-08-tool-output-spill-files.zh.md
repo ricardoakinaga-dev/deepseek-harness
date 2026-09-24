@@ -184,7 +184,7 @@ ctx.tools.register(defineTool({
 
 本地后端的价值取决于现有 `read`／`grep` 工具能否检查返回的本地路径，即使 spill 目录位于会话 cwd 之外。这一条件成立，因为文件系统策略会记录观察结果并设置写保护，但不会把读取限制在工作区内。未来的工作区限制策略必须显式允许本地 spill 路径，或改用检索提示指向受支持读取器的非文件 spill 后端。
 
-**快照缺口。** 目前没有 ACP 快照场景覆盖 transcript（文本记录）可见的 `web_fetch` spill 提示。ACP 快照 harness 在无密钥环境中回放，无法访问实时 web，而 `web_fetch` spill 需要一个真实的超上限 HTTP 正文；确定性场景需要一个预置的 loopback fetch 目标，但当前回放树尚未接线（示例根本没有加载 `tool-web`）。该行为改由 `dsh-tool-web` 针对 loopback server 的集成测试覆盖。弥补该缺口属于后续工作：把 `tool-web` 和预置 fetch 目标接入 ACP 示例，然后录制 `web-fetch-spill` 场景。
+**快照缺口。** 目前没有 ACP 快照场景覆盖 transcript（文本记录）可见的 `web_fetch` spill 提示。ACP 快照 harness 在无密钥环境中回放，无法访问实时 web；该行为由 `dsh-tool-web` 针对 loopback server 的集成测试覆盖。
 
 如果策略开始负责工具专用语义，就会膨胀得过大。它的范围保持狭窄：只处理纯文本最终结果。由工具负责的提前 spill 仍留作未来工作。
 

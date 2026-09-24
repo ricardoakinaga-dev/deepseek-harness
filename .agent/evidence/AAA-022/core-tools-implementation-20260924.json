@@ -1,0 +1,182 @@
+{
+  "record_id": "EVID-AAA-022-W2-CORE-TOOLS-IMPLEMENTATION-2026-09-24",
+  "record_kind": "SCOPED_IMPLEMENTATION_VERIFICATION",
+  "observed_at": "2026-09-24T09:58:58-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-CORE-TOOLS-IMPLEMENT",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm workspace at custom/main HEAD 60b5295027f6fb7652a1a350a68c6275715b5dbd.",
+  "gate_ref": ".agent/gates/implementation-ready-AAA-022-W2-core-tools.json#GATE-AAA-022-IMPLEMENTATION-READY-W2-CORE-TOOLS-001",
+  "gate_candidate_fingerprint": "a449a360a3af5b6759f073af7b90448d8f849f3f533b2c317cd6aa428a7ed752",
+  "final_scope_fingerprint": "e81d7c318911cb22420d56674c3e227fecd11c1ce8d79c9003574e2726d8ab8e",
+  "scope": {
+    "implementation_paths": 15,
+    "verification_only_paths": 0,
+    "protected_exclusions": [
+      "A28 sealed artifacts",
+      "Session and AgentLoop source",
+      "Session format and released persistence data",
+      "all worktree paths outside the exact 15-path gate"
+    ]
+  },
+  "result": "PASS_WITH_RETAINED_REPOSITORY_LIMITATIONS",
+  "checks": [
+    {
+      "id": "focused-tests",
+      "command": "pnpm exec vitest run packages/core/tools/tests/invariant.spec.ts",
+      "exit_status": 0,
+      "observation": "17 tests passed, covering exact restored/fork baselines, pre-commit rejection, preparation replay and rollback, synthetic delivery, late activation, containment, and disposal."
+    },
+    {
+      "id": "tools-typecheck",
+      "command": "pnpm exec tsc -b packages/core/tools/tsconfig.json --pretty false",
+      "exit_status": 0,
+      "observation": "The tools project and its session-projection reference build."
+    },
+    {
+      "id": "tools-oxlint",
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/core/tools/src packages/core/tools/tests",
+      "exit_status": 0
+    },
+    {
+      "id": "documentation-quick",
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "observation": "22 quick documentation gates passed on the final bilingual files."
+    },
+    {
+      "id": "documentation-typecheck",
+      "command": "pnpm run doc-typecheck",
+      "exit_status": 0,
+      "observation": "84 blocks compiled; 79 ignored; 842 type-equiv/catalog and 1,005 paired derivative blocks checked."
+    },
+    {
+      "id": "type-equivalence",
+      "command": "pnpm run verify-type-equiv",
+      "exit_status": 0,
+      "observation": "437 type-equiv blocks match source structure and JSDoc."
+    },
+    {
+      "id": "export-jsdoc",
+      "command": "pnpm run verify-export-jsdoc",
+      "exit_status": 0,
+      "observation": "Every exported name in each package API is documented."
+    },
+    {
+      "id": "translation-pairing-gate-command",
+      "command": "pnpm run verify-translation-pairing -- packages/core/tools/README.md docs/subsystems/tools.md packages/runtime-diagnostics/invariants/README.md",
+      "exit_status": 2,
+      "result": "FAIL",
+      "observation": "The script treats the literal -- as an unknown flag."
+    },
+    {
+      "id": "translation-pairing-equivalent",
+      "command": "pnpm run verify-translation-pairing packages/core/tools/README.md docs/subsystems/tools.md packages/runtime-diagnostics/invariants/README.md",
+      "exit_status": 0,
+      "observation": "All three named English/Chinese pairs and sidecars are consistent."
+    },
+    {
+      "id": "doc-budgets",
+      "command": "pnpm run verify-doc-budgets",
+      "exit_status": 0,
+      "observation": "Eight budgeted documents are within ceiling and baseline."
+    },
+    {
+      "id": "customization-policy",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 0,
+      "observation": "1,814 custom paths attributed across 23 improvements."
+    },
+    {
+      "id": "diff-check",
+      "command": "git diff --check -- .agents/customization-policy.json docs/subsystems/tools.md docs/subsystems/tools.zh.md docs/subsystems/tools.i18n.yaml packages/core/tools/src/invariant.ts packages/core/tools/tests/invariant.spec.ts packages/core/tools/tsconfig.json packages/core/tools/package.json packages/core/tools/README.md packages/core/tools/README.zh.md packages/core/tools/README.i18n.yaml packages/runtime-diagnostics/invariants/README.md packages/runtime-diagnostics/invariants/README.zh.md packages/runtime-diagnostics/invariants/README.i18n.yaml pnpm-lock.yaml",
+      "exit_status": 0
+    },
+    {
+      "id": "state-baseline",
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness --contracts-root /home/ricardo/.agents/skills/engineering-framework",
+      "exit_status": 1,
+      "result": "BASELINE_MATCH",
+      "observation": "Output is byte-identical to the retained check: RESULT FAIL (pass=6 warn=0 fail=358); zero findings were added, removed, or changed.",
+      "artifact": ".agent/evidence/AAA-022/core-tools-implementation-state-check-20260924.txt"
+    }
+  ],
+  "corrected_attempts": [
+    "An early focused run exposed a preparation-baseline cursor check that rejected replayed accepted events; the fold now permits a shorter exact constructor prefix and the final focused suite passes.",
+    "An early disposal test did not wait for Cordis async teardown; the test now awaits the returned runtime promise and confirms its preparation consumer is detached.",
+    "The first doc-typecheck run found that restore fixtures must use SessionStore.prepare() for eventState; the fixture now uses prepare/enter/announce and doc-typecheck passes.",
+    "An intermediate doc-quick run found a Chinese target-fragment mismatch; both subsystem pages now share an explicit fragment and final doc-quick passes 22/22."
+  ],
+  "scope_paths": [
+    {
+      "path": ".agents/customization-policy.json",
+      "sha256": "6afc2d2d7bd9df353b9655fd942389bfda3f7299ff8bc3e28b433a327760c4ea"
+    },
+    {
+      "path": "docs/subsystems/tools.i18n.yaml",
+      "sha256": "c92b2fd0b844a9b208b2ef805f3d164968c369949698945d0c5a7dbb60d11125"
+    },
+    {
+      "path": "docs/subsystems/tools.md",
+      "sha256": "55ae5bb013d8320b9012a5a86011fe3b9351bc3360c2c749d68e470865c6b78b"
+    },
+    {
+      "path": "docs/subsystems/tools.zh.md",
+      "sha256": "be8d14582f4c0e6698af3175e9f3385da95dad1f3d30d48c6cc531546f06f2e6"
+    },
+    {
+      "path": "packages/core/tools/README.i18n.yaml",
+      "sha256": "a3e48b0b8b76bd862fcf4b868663d95e4b89f3b81b3185a92b100d7e5d6d7af9"
+    },
+    {
+      "path": "packages/core/tools/README.md",
+      "sha256": "3c2db5bf2d4e61f38a063fd537f2ad2e35d96f184d6b9d648169ea95e435bb7a"
+    },
+    {
+      "path": "packages/core/tools/README.zh.md",
+      "sha256": "512750add943d43d84bafba8dd66a06fd0460e1c2a543e8e0eddabe5248c927f"
+    },
+    {
+      "path": "packages/core/tools/package.json",
+      "sha256": "7bd1e146638e568ee9372406c9f2c3620b8f0d5d8bea80f1ec5e62e14055ff2b"
+    },
+    {
+      "path": "packages/core/tools/src/invariant.ts",
+      "sha256": "69bde42660ef6abaea37115a674bc9957ccbedc0b4b69c1bb5b5814ce7031a4b"
+    },
+    {
+      "path": "packages/core/tools/tests/invariant.spec.ts",
+      "sha256": "968766283db687aae9c8720f5b13d66577f9430d0f9c313976051b48fb049cf6"
+    },
+    {
+      "path": "packages/core/tools/tsconfig.json",
+      "sha256": "524adef7e0f333649e866574915cc109d34052c3bc704ed8a23e03155437690f"
+    },
+    {
+      "path": "packages/runtime-diagnostics/invariants/README.i18n.yaml",
+      "sha256": "e4fd62415c7e4a3edde6899cf23b99351fff3d95f54221b6e703b671f232c76c"
+    },
+    {
+      "path": "packages/runtime-diagnostics/invariants/README.md",
+      "sha256": "49f5dac3e1a094cb00877ed5664567548835aa8d1fe558702a170374af125542"
+    },
+    {
+      "path": "packages/runtime-diagnostics/invariants/README.zh.md",
+      "sha256": "4c86d82f1d0c2a445836864c89b5a475e3c258c2219b36c1dda380f07318364e"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "4936255ceec1dd7a259078d0502e0bb5fec5c971d26051b30b4dae3f6e8bbca9"
+    }
+  ],
+  "limitations": [
+    "The gate-provided pairing command has an extra -- unsupported by this script; the equivalent command without -- passes, and final doc-quick pairing passes.",
+    "The accepted repository state remains FAIL-358 across 23 historical finding classes, exactly matching the retained baseline; the known M09 audit:metrics limitation remains.",
+    "This records only the W2 core/tools implementation result. No overall AAA-022 or release verdict is issued."
+  ],
+  "exclusions": [
+    "Session and AgentLoop source",
+    "Session formats and released persistence data",
+    "A28 sealed artifacts",
+    "all worktree paths outside the exact 15-path gate"
+  ]
+}

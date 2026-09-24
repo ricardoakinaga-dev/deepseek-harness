@@ -1,0 +1,333 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-PREPARATION-SUCCESSOR-001",
+  "timestamp": "2026-09-24T05:40:00-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+  "scope_ref": "AAA-022",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The user-authorized local W2 successor has a fresh independent PASS for the exact 29 implementation paths, 6 verification-only paths, and 3 protected exclusions. The design validates Schedule preparation baselines and future setup appends with package-owned invariant errors without changing Session or AgentLoop source or persisted formats.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/schedule-reader-preparation-successor-design-review-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-DESIGN-REVIEW-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This is an implementation-readiness decision only. Registry/Schedule code, tests, documentation, catalog, and behavioral verification remain to be completed."
+    },
+    {
+      "id": "IR-002",
+      "description": "All 29 implementation paths have exactly one current customization-policy owner: 19 Schedule reader paths, 9 prepared-Session projection paths, and the policy declaration path. The repository policy validator exits 0 with no ownership errors.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/schedule-reader-preparation-successor-policy-validation-20260924.json",
+        ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-POLICY-001",
+        ".agent/evidence/AAA-022/schedule-reader-preparation-successor-fingerprint-20260924.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The recorded official policy run predates the successor control artifacts; rerun it after gate binding and after all implementation changes."
+    },
+    {
+      "id": "IR-003",
+      "description": "The acceptance matrix covers invalid create/resume baselines, inherited fork cuts, direct SessionStore preflight, AgentSetup invalid append rejection before commit, unchanged sequence/state after rejection, valid same-sequence retry, accepted-suffix replay, effect and preparation-feed cleanup, projection test fixtures, bilingual owning docs, generated Cordis catalog, and all explicit exclusions. The three current projection.spec failures and the third failure cause are reproduced and diagnosed.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/schedule-reader-preparation-successor-design-review-20260924.json",
+        ".agent/evidence/AAA-022/w2-projection-spec-predecessor-failure-20260924.txt",
+        ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json",
+        "scripts/test-invariants.ts",
+        "packages/core/session/src/preparation.ts",
+        "packages/core/agent-loop/src/index.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The reproduced projection.spec run failed 3 of 5 tests before successor implementation. No cause is inferred from the two missing-service errors; their fixture setup is included. The plugin-fiber expectation is corrected only because the package invariant test host independently owns the same Schedule projection. Resume crash-repair events may already be persisted before baseline validation and are not promised to roll back."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-022/schedule-reader-preparation-successor-design-review-20260924.json",
+    ".agent/evidence/AAA-022/schedule-reader-preparation-successor-policy-validation-20260924.json",
+    ".agent/evidence/AAA-022/schedule-reader-preparation-successor-fingerprint-20260924.json",
+    ".agent/evidence/AAA-022/w2-projection-spec-predecessor-failure-20260924.txt",
+    ".agent/verification.jsonl#VER-AAA-022-W2-PROJECTION-SPEC-BASELINE-20260924-001",
+    ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-DESIGN-REVIEW-001",
+    ".agent/verification.jsonl#VER-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-POLICY-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-001"
+  ],
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+    "decision": "Apply the user-authorized local M01-M50 program to the exact 29-path W2 Schedule preparation successor gate, including the effect-owned SessionProjectionRegistry before-prepare hook, Schedule baseline and preparation-append validation, fixture coverage, owning bilingual documentation and generated Cordis catalog. Run the listed local verification. Preserve the six named verification-only paths, three protected Schedule exclusions, all historical ledgers and FAIL-358 baseline, and sealed A28. Do not change Session/AgentLoop source or persisted formats; do not push, merge, publish, write a registry, release, or issue the final verdict.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-W2-SCHEDULE-PREPARATION-SUCCESSOR-001",
+    "expires_or_revalidates": "Revalidate if any exact implementation, verification-only, protected path, owner attribution, accepted error/lifetime behavior, persisted-format exclusion, FAIL-358 baseline, or external-action boundary changes."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Implement only the exact 29 implementation paths in this gate; keep the 6 verification-only paths and 3 protected Schedule exclusions byte-identical, preserve the FAIL-358 baseline and sealed A28, then run every listed local check.",
+  "revalidation_triggers": [
+    "A change outside the exact 29 implementation paths is required.",
+    "Any of the 6 verification-only or 3 protected Schedule paths changes before implementation closeout.",
+    "The exact 29 paths no longer have the verified one-owner attribution recorded in the policy evidence.",
+    "The SessionPreparation feed cannot support validation before commit, accepted-event replay, or cleanup without a core Session/AgentLoop change.",
+    "A Session event, SESSION_FORMAT_VERSION, Schedule event version, checkpoint schema/stateVersion, or durable Session format change becomes necessary.",
+    "The diagnosed automatic Schedule invariant owner differs from observed test setup or the setup-append error policy changes.",
+    "The global checker differs from the retained FAIL-358/23-class baseline or the M09 metrics limitation changes.",
+    "A push, merge, publication, registry write, release, or final-verdict action is proposed."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-READERS-001",
+  "candidate_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "candidate_fingerprint": "82b301bbe6ed757904e7c253cab1476de3b453b56dff2c9925b098230b00013e",
+  "candidate_fingerprint_record_sha256": "bf3fe2f774d4310077eb478ec0e44b7a2c062cd669fecd0709432e526df73c8c",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agent/authority.jsonl",
+      ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-review-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-design-amendment-3-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-implementation-gate-fingerprint-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-policy-candidate-validation-3-w2-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-preparation-successor-design-review-20260924.json",
+      ".agent/evidence/AAA-022/schedule-reader-preparation-successor-policy-validation-20260924.json",
+      ".agent/evidence/AAA-022/w2-projection-spec-predecessor-failure-20260924.txt",
+      ".agent/gates/implementation-ready-AAA-022-W2-schedule-readers.json",
+      ".agents/customization-policy.json",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "AGENTS.md",
+      "apps/web/tests/schedule-after.e2e.ts",
+      "docs/AGENTS.md",
+      "docs/subsystems/schedule.i18n.yaml",
+      "docs/subsystems/schedule.md",
+      "docs/subsystems/schedule.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/AGENTS.md",
+      "packages/bundle/base/cordis.patch.yml",
+      "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/schedule/schedule/README.i18n.yaml",
+      "packages/schedule/schedule/README.md",
+      "packages/schedule/schedule/README.zh.md",
+      "packages/schedule/schedule/package.json",
+      "packages/schedule/schedule/src/domain.ts",
+      "packages/schedule/schedule/src/index.ts",
+      "packages/schedule/schedule/src/invariant.ts",
+      "packages/schedule/schedule/src/projection.ts",
+      "packages/schedule/schedule/src/runtime.ts",
+      "packages/schedule/schedule/src/tools.ts",
+      "packages/schedule/schedule/tests/invariant.spec.ts",
+      "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "packages/schedule/schedule/tests/plugin.spec.ts",
+      "packages/schedule/schedule/tests/projection.spec.ts",
+      "packages/schedule/schedule/tests/runtime.spec.ts",
+      "packages/schedule/schedule/tests/tools.spec.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/package.json",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/subagent/subagent/tests/continuation.spec.ts",
+      "packages/test-support/agent-loop-testkit/src/index.ts",
+      "scripts/gen-cordis-catalog.ts",
+      "scripts/test-invariants.ts"
+    ],
+    "excluded": [
+      ".agent/evidence/AAA-022/schedule-reader-preparation-successor-fingerprint-20260924.json",
+      ".agent/gates/implementation-ready-AAA-022-W2-schedule-preparation-successor.json"
+    ],
+    "implementation_paths": [
+      ".agents/customization-policy.json",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+      "docs/subsystems/schedule.i18n.yaml",
+      "docs/subsystems/schedule.md",
+      "docs/subsystems/schedule.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/schedule/schedule/README.i18n.yaml",
+      "packages/schedule/schedule/README.md",
+      "packages/schedule/schedule/README.zh.md",
+      "packages/schedule/schedule/src/index.ts",
+      "packages/schedule/schedule/src/invariant.ts",
+      "packages/schedule/schedule/src/runtime.ts",
+      "packages/schedule/schedule/src/tools.ts",
+      "packages/schedule/schedule/tests/invariant.spec.ts",
+      "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+      "packages/schedule/schedule/tests/plugin.spec.ts",
+      "packages/schedule/schedule/tests/projection.spec.ts",
+      "packages/schedule/schedule/tests/runtime.spec.ts",
+      "packages/schedule/schedule/tests/tools.spec.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "verification_only_paths": [
+      "apps/web/tests/schedule-after.e2e.ts",
+      "packages/bundle/base/cordis.patch.yml",
+      "packages/bundle/sdk-minimal/cordis.patch.yml",
+      "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+      "packages/subagent/subagent/tests/continuation.spec.ts",
+      "packages/test-support/agent-loop-testkit/src/index.ts"
+    ],
+    "protected_exclusion_paths": [
+      "packages/schedule/schedule/package.json",
+      "packages/schedule/schedule/src/domain.ts",
+      "packages/schedule/schedule/src/projection.ts"
+    ]
+  },
+  "verification_commands": [
+    {
+      "id": "W2-SCHEDULE-PREPARATION-TESTS",
+      "command": "pnpm exec vitest run packages/session/session-projection/tests/registry.spec.ts packages/schedule/schedule/tests/projection.spec.ts packages/schedule/schedule/tests/invariant.spec.ts packages/schedule/schedule/tests/plugin.spec.ts packages/schedule/schedule/tests/jsonl-restart.spec.ts packages/schedule/schedule/tests/runtime.spec.ts packages/schedule/schedule/tests/tools.spec.ts",
+      "purpose": "Verify hook ordering/disposal, Schedule baseline attribution, AgentSetup append rejection, same-sequence retry, accepted preparation replay, create/resume/fork behavior, and the corrected projection fixtures."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-TSC",
+      "command": "pnpm exec tsc -b packages/session/session-projection/tsconfig.json packages/schedule/schedule/tsconfig.json --pretty false",
+      "purpose": "Typecheck the registry API, Schedule integration, and package references."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-OXLINT",
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/session/session-projection/src packages/session/session-projection/tests packages/schedule/schedule/src packages/schedule/schedule/tests",
+      "purpose": "Lint all modified registry and Schedule source and tests."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-POLICY",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "purpose": "Validate final current custom delta and exact owner attribution."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-DOC-QUICK",
+      "command": "pnpm run test:docs",
+      "purpose": "Run repository documentation quick gates after updating package and subsystem docs and pairing sidecars."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-DOC-TYPECHECK",
+      "command": "pnpm run doc-typecheck",
+      "purpose": "Typecheck public API documentation examples after the registry method update."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-TYPE-EQUIV",
+      "command": "pnpm run verify-type-equiv",
+      "purpose": "Verify public API type examples remain equivalent to the declarations."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-CORDIS-CATALOG",
+      "command": "pnpm run verify-cordis-catalog",
+      "purpose": "Verify generated Cordis API catalog matches the new SessionProjectionRegistry method."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-DOC-SYNC",
+      "command": "pnpm run doc-sync",
+      "purpose": "Run documentation aggregate after generated catalog and owning pages update; retain unrelated baseline gate failures honestly."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-PAIRING",
+      "command": "pnpm exec tsx scripts/verify-translation-pairing.ts packages/session/session-projection/README.md docs/subsystems/session-projection.md packages/schedule/schedule/README.md docs/subsystems/schedule.md .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+      "purpose": "Verify exact English/Chinese alignment and pairing sidecars for all changed owning docs."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-EXPORT-JSDOC",
+      "command": "pnpm run verify-export-jsdoc",
+      "purpose": "Verify JSDoc for the new public service method and Schedule exports."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-DOC-BUDGETS",
+      "command": "pnpm run verify-doc-budgets",
+      "purpose": "Check budgets for the updated package and subsystem pages."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-STATE-BASELINE",
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness --contracts-root /home/ricardo/.agents/skills/engineering-framework",
+      "purpose": "Compare the complete diagnostic set with the retained FAIL-358/23-class baseline; do not claim an overall PASS."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-READONLY-PATHS",
+      "command": "Recompute SHA-256 for all six verification-only paths and three protected Schedule exclusions and compare byte-for-byte with the gate fingerprint artifact.",
+      "purpose": "Prove existing consumers and protected Schedule package/domain/projection files remain unchanged."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-COVERAGE-MARKERS",
+      "command": "Assert all three V8 marker lines recorded by the predecessor gate remain byte-identical in invariant.ts and runtime.ts.",
+      "purpose": "Preserve the existing coverage annotation work."
+    },
+    {
+      "id": "W2-SCHEDULE-PREPARATION-DIFF-CHECK",
+      "command": "git diff --check -- .agents/customization-policy.json .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md .agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md docs/subsystems/schedule.i18n.yaml docs/subsystems/schedule.md docs/subsystems/schedule.zh.md packages/schedule/schedule/README.i18n.yaml packages/schedule/schedule/README.md packages/schedule/schedule/README.zh.md packages/schedule/schedule/src/index.ts packages/schedule/schedule/src/invariant.ts packages/schedule/schedule/src/runtime.ts packages/schedule/schedule/src/tools.ts packages/schedule/schedule/tests/invariant.spec.ts packages/schedule/schedule/tests/plugin.spec.ts packages/schedule/schedule/tests/projection.spec.ts packages/schedule/schedule/tests/jsonl-restart.spec.ts packages/schedule/schedule/tests/runtime.spec.ts packages/schedule/schedule/tests/tools.spec.ts packages/session/session-projection/src/index.ts packages/session/session-projection/tests/registry.spec.ts packages/session/session-projection/README.md packages/session/session-projection/README.zh.md packages/session/session-projection/README.i18n.yaml docs/subsystems/session-projection.md docs/subsystems/session-projection.zh.md docs/subsystems/session-projection.i18n.yaml packages/extensions/tool-cordis/src/api-catalog.ts",
+      "purpose": "Check whitespace across every authorized implementation path."
+    }
+  ],
+  "implementation_paths": [
+    ".agents/customization-policy.json",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.i18n.yaml",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.md",
+    ".agents/notes/implemented/feature/2026-08-05-durable-web-schedule.zh.md",
+    "docs/subsystems/schedule.i18n.yaml",
+    "docs/subsystems/schedule.md",
+    "docs/subsystems/schedule.zh.md",
+    "docs/subsystems/session-projection.i18n.yaml",
+    "docs/subsystems/session-projection.md",
+    "docs/subsystems/session-projection.zh.md",
+    "packages/extensions/tool-cordis/src/api-catalog.ts",
+    "packages/schedule/schedule/README.i18n.yaml",
+    "packages/schedule/schedule/README.md",
+    "packages/schedule/schedule/README.zh.md",
+    "packages/schedule/schedule/src/index.ts",
+    "packages/schedule/schedule/src/invariant.ts",
+    "packages/schedule/schedule/src/runtime.ts",
+    "packages/schedule/schedule/src/tools.ts",
+    "packages/schedule/schedule/tests/invariant.spec.ts",
+    "packages/schedule/schedule/tests/jsonl-restart.spec.ts",
+    "packages/schedule/schedule/tests/plugin.spec.ts",
+    "packages/schedule/schedule/tests/projection.spec.ts",
+    "packages/schedule/schedule/tests/runtime.spec.ts",
+    "packages/schedule/schedule/tests/tools.spec.ts",
+    "packages/session/session-projection/README.i18n.yaml",
+    "packages/session/session-projection/README.md",
+    "packages/session/session-projection/README.zh.md",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session/session-projection/tests/registry.spec.ts"
+  ],
+  "verification_only_paths": [
+    "apps/web/tests/schedule-after.e2e.ts",
+    "packages/bundle/base/cordis.patch.yml",
+    "packages/bundle/sdk-minimal/cordis.patch.yml",
+    "packages/core/agent-loop/tests/serial-listener-review.spec.ts",
+    "packages/subagent/subagent/tests/continuation.spec.ts",
+    "packages/test-support/agent-loop-testkit/src/index.ts"
+  ],
+  "protected_exclusion_paths": [
+    "packages/schedule/schedule/package.json",
+    "packages/schedule/schedule/src/domain.ts",
+    "packages/schedule/schedule/src/projection.ts"
+  ],
+  "nonchanges": [
+    "No changes were made to the 10 added product, documentation, catalog, and test paths while preparing this successor scope; their candidate bytes are fingerprinted.",
+    "Prior gate, authority, event, and verification history is preserved; this record supersedes rather than rewrites its predecessor.",
+    "The user-selected FAIL-358/23-class baseline and sealed A28 candidate remain unchanged.",
+    "No Session or AgentLoop source, event schema, checkpoint schema, or persisted format change is authorized."
+  ]
+}

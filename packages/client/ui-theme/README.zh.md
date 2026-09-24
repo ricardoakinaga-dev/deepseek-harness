@@ -101,6 +101,8 @@ kind: "package-reference"
 - **第三方主题是扩展点，不是产品**：注册主题意味着覆盖同名别名变量；目前不会验证一组覆盖是否完整。
 - **token 样式表是颜色值的唯一权威来源**：设计系统中缺失的值会有意不补入；一律采用最接近的语义 token，设计负责人批准的新增值须在同一变更中以一个静态尺度层级与一个语义别名的形式进入。
 
+**运行时不变式：** 不发布伴生入口。settings scope 校验并发布持久 theme section，注册表与自身变更同步发出 `theme/change`；存储与注册表的一致性由本包针对 Host、scope 与服务行为的测试直接覆盖。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -110,5 +112,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。settings scope 校验并发布持久 theme section，注册表与自身变更同步发出 `theme/change`；存储与注册表的一致性由本包针对 Host、scope 与服务行为的测试直接覆盖。

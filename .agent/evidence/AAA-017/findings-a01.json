@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-017",
+  "action_id": "AAA-017:A01",
+  "candidate_ref": "current customization-policy workflow and mirror refs",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T22:12:11-03:00",
+  "source_documents": [
+    {
+      "id": "mirror-audit",
+      "location": "docs/customization/repository-audit-2026-09-20.md:110",
+      "role": "The audit identifies that the workflow compares origin/master without enforcing equality with deepseek-official/master."
+    },
+    {
+      "id": "mirror-workflow",
+      "location": ".github/workflows/customization-policy.yml:16-22",
+      "role": "The current workflow checks the custom delta against origin/master but does not fetch or compare the official remote."
+    },
+    {
+      "id": "mirror-standard",
+      "location": "docs/customization/upstream-safe-customization.md:20-24,57-67",
+      "role": "The written fork topology requires local and fork master to mirror deepseek-official/master exactly."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-017-OFFICIAL-MIRROR-UNENFORCED",
+      "source_refs": ["mirror-audit", "mirror-workflow", "mirror-standard"],
+      "source_location": ".github/workflows/customization-policy.yml:22",
+      "observed_status": "GAP_REPRODUCED",
+      "classification": "WORKFLOW_CHECKS_FORK_REF_ONLY",
+      "owner": "AAA-017",
+      "severity": "CRITICAL",
+      "summary": "The workflow invokes the policy verifier against origin/master but never fetches or proves equality between the fork mirror and deepseek-official/master.",
+      "limitations": "The current refs are equal, so the missing enforcement requires a mismatched-mirror fixture or isolated workflow probe to demonstrate rejection."
+    }
+  ],
+  "design": {
+    "solution_type": "repository-automation",
+    "implementation_scope": [
+      "Fetch the configured official remote in the workflow with full history before comparison.",
+      "Add an executable equality check that rejects origin/master or local master when it diverges from deepseek-official/master.",
+      "Keep the custom-delta attribution check against the mirror ref after equality succeeds.",
+      "Add positive matching and negative mismatched-mirror fixtures without requiring a network credential."
+    ],
+    "compatibility_obligations": [
+      "Preserve the existing policy verifier as the owner of custom path attribution.",
+      "Avoid changing production package behavior or released Session data.",
+      "Make diagnostics identify the compared refs and the corrective fetch or merge action.",
+      "Keep fork and official remote URLs sourced from the policy record or workflow configuration rather than silently changing repository identity."
+    ]
+  },
+  "decision": {
+    "result": "AAA-017:A01 PASS — official-mirror equality gap reproduced and workflow-level correction specified",
+    "product_change": false,
+    "diagnosis": "The current clone happens to have equal mirror refs, but the workflow's only base argument is origin/master; a fork can therefore pass attribution while diverging from the official source. The next action needs workflow and verifier fixtures, not a product runtime change.",
+    "next_action": "Implement the official-remote fetch/equality check and matching/mismatched fixtures under the repository-automation owner."
+  },
+  "validation": {
+    "commands": [
+      "sed -n 1,80p .github/workflows/customization-policy.yml",
+      "git show-ref --verify refs/heads/master refs/remotes/origin/master refs/remotes/deepseek-official/master",
+      "git diff --quiet master...origin/master; git diff --quiet origin/master...deepseek-official/master",
+      "rg -n -i official mirror/equality requirements across workflow, policy, and guide",
+      "git diff --check"
+    ],
+    "raw_output_files": [
+      ".artifacts/aaa-017/aaa-017-a01-2026-09-20/workflow-inspection.log",
+      ".artifacts/aaa-017/aaa-017-a01-2026-09-20/ref-equality.log",
+      ".artifacts/aaa-017/aaa-017-a01-2026-09-20/contract-scan.log",
+      ".artifacts/aaa-017/aaa-017-a01-2026-09-20/diff-check.log"
+    ],
+    "raw_output_sha256": {
+      "workflow-inspection.log": "cf3473ff31f07535c4b3daa01973042125fda015ccd9899c2814ec080b19900d",
+      "ref-equality.log": "3eb8de009aaf99391268dd9de7c434bec4b745f99d86de7e23ea4ea0619e8580",
+      "contract-scan.log": "b58286fbc4ee7c15cb9f2191389b04810ab8720a835dc3874475af4db9f6f86a",
+      "diff-check.log": "f6a7d2113895ff7c42d5ce1b8ed901898e65102abf499b98eebd4c7ba5a0c7a2"
+    },
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T22:12:11-03:00"
+  }
+}

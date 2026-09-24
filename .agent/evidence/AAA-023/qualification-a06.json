@@ -1,0 +1,49 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A06-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree after test-infrastructure corrections",
+  "timestamp": "2026-09-21T18:34:22-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "pnpm run typecheck",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Host artifacts rebuilt and the contract-ready typecheck passed."
+    },
+    {
+      "command": "pnpm run lint",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Host artifacts rebuilt and the contract-ready oxlint gate passed."
+    },
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The current ownership gate attributes 695 custom paths across 12 improvements."
+    },
+    {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "All 11 control-plane checks passed before recording this checkpoint."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "implementation_refs": [
+    "vitest.config.ts",
+    "packages/client/ui-sidebar-documentpreview/tests/pdf-smoke.client.spec.ts",
+    "scripts/browser-bundled-externals.spec.ts",
+    "packages/deliverables/workspace-changes/tests/plugin.spec.ts"
+  ],
+  "summary": "The changed test transform, resolver fixture, browser fixture, and process-bound Git test configuration pass the local type, lint, ownership, control-plane, and whitespace gates. This is scoped implementation evidence; it does not qualify the release candidate.",
+  "limitations": "The candidate remains a dirty worktree. Decision-dependent product/publication/security contracts, platform and credentialed-provider lanes, packed-install evidence, upstream rehearsal, and the final independent critic remain outstanding.",
+  "observed_at": "2026-09-21T18:34:22-03:00",
+  "freshness": "CURRENT"
+}

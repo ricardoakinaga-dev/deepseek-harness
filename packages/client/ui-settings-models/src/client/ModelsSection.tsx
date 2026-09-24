@@ -246,7 +246,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
   }
 
   const confirmDelete = (): void => {
-    /* v8 ignore next -- the action only renders with a target and is disabled while a deletion is pending */
+    /*! v8 ignore next -- the action only renders with a target and is disabled while a deletion is pending */
     if (deleteTarget === undefined || deleting) return
     setDeleting(true)
     setDeleteFailure(undefined)
@@ -263,7 +263,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
 
   if (state.status === 'idle') void controller.load()
   if (state.status === 'error') {
-    /* v8 ignore next -- an error status always carries text; the fallback satisfies the nullable type */
+    /*! v8 ignore next -- an error status always carries text; the fallback satisfies the nullable type */
     const errorText = state.error ?? ''
     return (
       <div className={styles['section']}>
@@ -321,7 +321,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
         {configured.map((row) => {
           const target = targetOf(row)
           const namespace = state.namespaces.get(target.settingsNs)
-          /* v8 ignore next -- the join marks a row configured only when its namespace resolved */
+          /*! v8 ignore next -- the join marks a row configured only when its namespace resolved */
           if (namespace === undefined) return null
           const error = row.entry.error === undefined
             ? null
@@ -454,7 +454,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   aria-label={t('provider')}
                   onChange={(event) => {
                     const row = addable.find(candidate => candidate.entry.provider === event.target.value)
-                    /* v8 ignore next -- the select only lists addable rows */
+                    /*! v8 ignore next -- the select only lists addable rows */
                     if (row === undefined) return
                     setEditing(targetOf(row))
                   }}
@@ -492,8 +492,9 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                 <CustomProviderCard
                   taken={state.rows.map(row => row.entry.provider)}
                   protocols={protocols}
-                  /* v8 ignore next -- the card only opens from a button disabled without this namespace */
+                  /*! v8 ignore start -- the add card is only opened after the namespace-backed action is enabled. */
                   revision={state.namespaces.get('llm-pi-ai')?.revision ?? 0}
+                  /*! v8 ignore stop */
                   operations={operations}
                   t={t}
                   readOnly={!state.writable}
@@ -517,7 +518,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                     disabled={addable.length === 0 || !state.writable}
                     onClick={() => {
                       const first = addable[0]
-                      /* v8 ignore next -- the button is disabled while nothing is addable */
+                      /*! v8 ignore next -- the button is disabled while nothing is addable */
                       if (first === undefined) return
                       setSavedTarget(undefined)
                       setDeclaring(false)

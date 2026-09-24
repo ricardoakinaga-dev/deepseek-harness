@@ -1,0 +1,49 @@
+{
+  "record_id": "EVID-AAA-023-QUALIFICATION-A11-2026-09-21",
+  "task": "AAA-023",
+  "action": "AAA-023:A01",
+  "candidate_ref": "current custom/main worktree after A10 control-plane revalidation",
+  "timestamp": "2026-09-21T21:01:59-03:00",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; current custom/main worktree",
+  "commands": [
+    {
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The doc-quick scheduler passes 22 of 22 documentation gates in 64.53 seconds."
+    },
+    {
+      "command": "pnpm run doc-sync",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The documentation synchronization scheduler passes 43 of 43 gates in 135.48 seconds."
+    },
+    {
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The ownership gate attributes 701 custom paths across 12 improvements after this evidence file is counted."
+    },
+    {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "All 11 control-plane checks pass before the A11 ledger append."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "implementation_refs": [
+    "scripts/run-gates.ts",
+    "scripts/run-gates.spec.ts",
+    "docs/AGENTS.md",
+    "docs/audits/prompt-codex-remediacao-2026-09-21.md"
+  ],
+  "summary": "The explicit documentation gates named by the remediation prompt pass independently of the aggregate check-all result; the pre-append control checks also pass.",
+  "limitations": "This checkpoint does not resolve the 38 AAA-009 client-domain violations or the sequenced AAA-010 stale module-graph artifacts, and it does not qualify an immutable release candidate or final independent critic.",
+  "observed_at": "2026-09-21T21:01:59-03:00",
+  "freshness": "CURRENT"
+}

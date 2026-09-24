@@ -138,6 +138,8 @@ These limits define where SDK behavior governs and where export guarantees end. 
 
 - **Backend availability** — feedback submitted while this plugin is disabled or unloaded is recorded locally but not automatically replayed when it returns. Capture requires the subscriber to remain mounted until it observes the submission; unloading during a pending cold write can miss its post-flush notification.
 
+**Runtime invariant:** No companion is published. Mode selection changes capture handoff, SDK setup, and local diagnostics without mutating session or service state an independent companion can compare. Export remains inside the SDK past the backend boundary.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -147,5 +149,3 @@ These limits define where SDK behavior governs and where export guarantees end. 
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Mode selection changes capture handoff, SDK setup, and local diagnostics without mutating session or service state an independent companion can compare. Export remains inside the SDK past the backend boundary.

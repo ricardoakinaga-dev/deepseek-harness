@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "record_id": "EVID-AAA-019-A02-IMPLEMENTATION-A19-001",
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-019",
+  "action_id": "AAA-019:A02",
+  "candidate_ref": "custom/main working tree at 60b5295027f6fb7652a1a350a68c6275715bdbd",
+  "captured_at": "2026-09-21T23:49:53-03:00",
+  "decision_status": "CONFIRMED",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+  "scope": "Approved fork-owned publication identity for independently publishable fork packages and private/unpublished disposition for unapproved fork-only packages.",
+  "implementation": "Fork-only resilient-compaction packages carry private fork metadata and no publication configuration; workspace package manifests retain the approved namespace policy and the constraints verifier enforces fork repository identity and private/unpublished rules.",
+  "commands": [
+    {"command":"pnpm exec vitest run scripts/check-workspace-constraints.spec.ts --maxWorkers=1","exit_status":0,"result":"PASS","observation":"One file and 23 tests passed."},
+    {"command":"pnpm run constraints","exit_status":0,"result":"PASS","observation":"Workspace identity and package constraints passed."},
+    {"command":"pnpm run publint","exit_status":0,"result":"PASS","observation":"All 293 packages passed publint without warnings."},
+    {"command":"node scripts/verify-customization-policy.mjs --base master","exit_status":0,"result":"PASS","observation":"1115 custom paths are attributed across 17 improvements."}
+  ],
+  "acceptance": {"status":"PASS","summary":"Fork-only package metadata and mechanical workspace constraints agree with the approved private/unpublished and fork-owned identity policy."},
+  "limitations": ["No registry publication, external namespace reservation, push, merge, or release action was authorized.","The evidence is from an uncommitted working tree and is not immutable release evidence."],
+  "freshness": "CURRENT"
+}

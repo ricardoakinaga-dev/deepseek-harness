@@ -1,0 +1,69 @@
+{
+  "record_id": "EVID-AAA-022-W2-READER-DESIGN-REVIEW-A96-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A18",
+  "kind": "DESIGN_REVIEW",
+  "timestamp": "2026-09-23T04:28:00-03:00",
+  "result": "PASS_WITH_RETAINED_BASELINE_LIMITATION",
+  "design_refs": [
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-decision-a94.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-amendment-a95.json"
+  ],
+  "critic": {
+    "id": "/root/a18_failure_amendment_critic",
+    "decision": "APPROVE",
+    "scope": "Fresh-context, read-only review of the A92-A95 design and relevant AgentLoop, Session, SessionHandle, and JSONL contracts.",
+    "fingerprint": {
+      "scope": "repository+state",
+      "pre": "b61806933c46c5222f2c20f1ac65ba4ca4885e03b8def9ea404a27c683853cea",
+      "post": "b61806933c46c5222f2c20f1ac65ba4ca4885e03b8def9ea404a27c683853cea",
+      "entry_count": 96885,
+      "equal": true
+    }
+  },
+  "criteria": {
+    "W2-01": {
+      "result": "PASS_FOR_DESIGN_READINESS",
+      "evidence": "A93 fixes the synchronous fixed-cut seal and live-route ordering. A95 defines ambiguous append rejection, actual-log reconciliation, and the configured/generated identity cases. A20 retains the implementation work for storage drain, concrete page setting, and partial-failure tests."
+    },
+    "W2-02": {
+      "result": "PASS_FOR_DESIGN_READINESS",
+      "evidence": "The request invariant remains synchronous and fail-closed over maintained state. The uninitialized turnBoundary baseline failure is an explicit A19 implementation obligation."
+    },
+    "W2-03": {
+      "result": "PASS_FOR_DESIGN_READINESS",
+      "evidence": "A92/A93 specify active surface-order and runtime-context projections and include insertion and replacement falsifiers."
+    },
+    "W2-04": {
+      "result": "PASS_FOR_DESIGN_READINESS",
+      "evidence": "Projection state remains recomputable cache data without a released Session format or persistence schema change; old-checkpoint missing-key coverage remains required during implementation."
+    },
+    "W2-05": {
+      "result": "PASS_FOR_DESIGN_READINESS",
+      "evidence": "A19 initializes and advances prepared projections before ReactLoopAgent construction. Its tests must distinguish critical pre-acceptance projection failures from contained post-commit session/event observers, and cover append reentrancy for attached and unattached Sessions."
+    }
+  },
+  "clarification": "A failed create does not automatically retry or switch to resume within the same failed invocation. A later remount with a fixed configured sessionId follows the existing resume-first restore path. A generated config identity is reported on startup failure, but a later remount generates a new id and requires explicit recovery using the reported id.",
+  "baseline": {
+    "procedure": "Previously recorded A92 focused baseline; not rerun for this design review.",
+    "command": "pnpm exec vitest run --no-cache --reporter=dot packages/core/agent-loop/tests/resume.spec.ts packages/core/agent-loop/tests/invariant.spec.ts packages/core/agent-loop/tests/runtime-context.spec.ts packages/core/agent-loop/tests/system-prompt-projection.spec.ts packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+    "result": "2 failed and 3 passed files; 48 failed and 29 passed tests. Failures are the unpublished Agent construction reading uninitialized turnBoundary state; three unhandled rejections arise from the same missing cell.",
+    "current": true,
+    "rerun": false
+  },
+  "limits": [
+    "This review approves design readiness only; it does not approve implementation or the overall Triple-A quality claim.",
+    "A19 is limited to the prepared Session append source and preconstruction projection readiness. Bounded storage drains, exact page Config, final persistence handoff, and multi-page failure recovery belong to A20.",
+    "The failed A92 baseline remains a product behavior blocker for A19 until fixed and verified.",
+    "No production code or tests changed, and the sealed candidate remains unchanged."
+  ],
+  "next_action": {
+    "id": "AAA-022:A19",
+    "kind": "IMPLEMENT",
+    "summary": "Implement the preparation-owned append feed and initialize/advance registered projections before Agent construction",
+    "completion_signal": "A task-bound implementation-ready gate scopes the exact files, behavioral falsifiers, tests, documentation, compatibility checks, and reviewer-required critical projection and reentrancy cases; no storage page writer behavior is implemented in A19."
+  },
+  "freshness": "CURRENT"
+}

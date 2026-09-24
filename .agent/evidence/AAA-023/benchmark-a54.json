@@ -1,0 +1,23 @@
+{
+  "record_id": "EVID-AAA-023-BENCHMARK-A54-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A21",
+  "result": "PASS",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; sealed candidate tree 023906dd82be40ed0ef187acd59fd7b5fb56eaae; /home/ricardo/dsh-aaa023-candidate.eSCkTH",
+  "command": "pnpm run check:ci:bench",
+  "exit_status": 0,
+  "duration_seconds": 119.21,
+  "summary": {
+    "gates": { "passed": 1, "failed": 0, "skipped": 0 },
+    "benchmark_lane": "performance benchmarks",
+    "candidate_tree_unchanged": true,
+    "reconciliation": "The complete rerun passes after the A20 complete-lane failure and focused recut pass; no timing budget or source change was made."
+  },
+  "decision": "AAA-023:A21 passes the local complete benchmark lane on the unchanged sealed candidate. Retain A20 as a variance diagnostic; do not widen budgets or infer a product regression from the isolated failed run.",
+  "limitations": "This is same-candidate local benchmark evidence, not proof from the designated hosted Linux runner or its Chromium provisioning. Required-platform, credentialed-provider, packed-install, upstream-rehearsal, release-identity, publication, and final-critic evidence remain outstanding; no commit, publication, push, merge, release, or final verdict is claimed.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/benchmark-a54.json",
+    "/tmp/dsh-a21-candidate-benchmark.log"
+  ],
+  "observed_at": "2026-09-22T15:45:48-03:00"
+}

@@ -179,6 +179,8 @@ These limits define when this provider is a poor fit or needs special operationa
 - **No optional shared capabilities** — `agentOptions`, output schemas, child personas, tool filtering, and harness depth enforcement are rejected by the shared service for this provider.
 - **No wall-clock timeout or side-effect rollback** — the caller cancels long work, and files or external systems changed before cancellation are not restored.
 
+**Runtime invariant:** No companion is published. Lifecycle pairing belongs to the shared subagent service, and managed-range ownership belongs to the subprocess service.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -191,5 +193,3 @@ This Dev Note is working context for maintainers: open questions and undecided d
 - **Version-pinned protocol** — the runtime dependency is pinned to `@openai/codex@0.153.4`; upgrading requires regenerating the upstream schema evidence and rerunning the credentialed nonce tests.
 
 </details>
-
-**Runtime invariant:** No companion is published. Lifecycle pairing belongs to the shared subagent service, and managed-range ownership belongs to the subprocess service.

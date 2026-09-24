@@ -441,7 +441,7 @@ async function decodeStreamingMigration(
   try {
     const decoded = decoder.decode(bytes, frames)
     const first = decoded.next()
-    /* v8 ignore next -- a non-empty structural frame list yields once or throws. */
+    /*! v8 ignore next -- a non-empty structural frame list yields once or throws. */
     if (first.done) throw new Error('empty or header-less Zstandard session log')
     assertIndependentHeaderFrame(first.value)
     const stream = await startMigrationStream(
@@ -458,7 +458,7 @@ async function decodeStreamingMigration(
       try {
         recovered = await decompressZstdPrefix(bytes.subarray(tornStart))
       } catch {
-        /* v8 ignore next -- decoder failure plus concurrent abort is timing-dependent. */
+        /*! v8 ignore next -- decoder failure plus concurrent abort is timing-dependent. */
         if (signal?.aborted) signal.throwIfAborted()
       }
       signal?.throwIfAborted()
@@ -591,7 +591,7 @@ function decodeCurrentGeneration(
   try {
     const plaintext = decoder.decode(bytes, frames)
     const header = plaintext.next()
-    /* v8 ignore next -- a non-empty structural frame list yields once or throws. */
+    /*! v8 ignore next -- a non-empty structural frame list yields once or throws. */
     if (header.done) throw new Error('empty or header-less Zstandard session log')
     assertIndependentHeaderFrame(header.value)
     const scanner = new SessionLogScanner(header.value, 'strict')
@@ -650,7 +650,7 @@ function assertGenerationPaths(
 }
 
 async function syncDirectory(path: string, internals: JsonlGenerationInternals): Promise<void> {
-  /* v8 ignore next -- Windows namespace operations request write-through directly. */
+  /*! v8 ignore next -- Windows namespace operations request write-through directly. */
   if (internals.platform === 'win32') return
   const handle = await internals.fs.open(path, 'r')
   try {
@@ -821,18 +821,18 @@ async function publishCurrentExclusive(
       await internals.publishNewWin32(staged, currentPath)
       return true
     } catch (error) {
-      /* v8 ignore else -- native helper tests own non-collision Win32 failures. */
+      /*! v8 ignore else -- native helper tests own non-collision Win32 failures. */
       if (isEEXIST(error)) return false
-      /* v8 ignore next -- the filesystem error is already complete. */
+      /*! v8 ignore next -- the filesystem error is already complete. */
       throw error
     }
   }
   try {
     await internals.fs.link(staged, currentPath)
   } catch (error) {
-    /* v8 ignore else -- a non-collision filesystem error propagates unchanged. */
+    /*! v8 ignore else -- a non-collision filesystem error propagates unchanged. */
     if (isEEXIST(error)) return false
-    /* v8 ignore next -- the filesystem error is already complete. */
+    /*! v8 ignore next -- the filesystem error is already complete. */
     throw error
   }
   await syncDirectory(dirname(currentPath), internals)

@@ -6,7 +6,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-office-to-pdf/remote'
 import { makeTranslate, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
-import { DocumentPreviewRegistry } from '../src/client/document/registry.ts'
+import { DocumentPreviewRegistry } from '../src/client/document-registry.ts'
 import { apply } from '../src/client/office/index.ts'
 import { Config } from '../src/config.ts'
 import { OfficeBody, type OfficeBodyInjected } from '../src/client/office/OfficeBody.tsx'
@@ -99,7 +99,7 @@ it.each(['remote', 'render', 'files'] as const)('keeps Office registration and g
   expect(h.register).toHaveBeenCalledWith(expect.objectContaining({
     name: 'sidebar.right.tab.document', key: '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/office', locale: 'sidebarOffice',
   }), OfficeBody)
-  expect(h.removeNotice).toHaveBeenCalledTimes(2)
+  expect(h.removeNotice).toHaveBeenCalledOnce()
 })
 
 it('requests a Host PDF with source identity and borrows the same binary cache result', async () => {

@@ -1,0 +1,2441 @@
+{
+  "record_kind": "AAA_022_A27_STATE_BASELINE_DISPOSITION",
+  "record_id": "EVD-AAA-022-A27-STATE-BASELINE-DISPOSITION-001",
+  "observed_at": "2026-09-24T02:43:07-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:A27-STATE-BASELINE-DISPOSITION",
+  "baseline_ref": ".agent/evidence/AAA-022/a27-state-check-postreconciliation-20260924.json",
+  "baseline": {
+    "result": "FAIL",
+    "findings": 358,
+    "classes": 23,
+    "class_counts": {
+      "BACKLOG_EVIDENCE_REF": 1,
+      "GATE_AUTHORITY": 1,
+      "GATE_AUTHORITY_EVIDENCE": 54,
+      "GATE_AUTHORITY_SCOPE": 14,
+      "GATE_CONDITION": 65,
+      "GATE_CRITERIA_COVERAGE": 5,
+      "GATE_CRITERION_EVIDENCE": 12,
+      "GATE_FIELDS": 1,
+      "GATE_GAPS": 5,
+      "GATE_HISTORY_REOPEN": 6,
+      "GATE_HISTORY_SCOPE": 7,
+      "GATE_HISTORY_SUPERSEDES": 6,
+      "LOG_CORRECTION": 1,
+      "LOG_GATE_BINDING": 16,
+      "LOG_TRANSITION": 49,
+      "LOG_TRANSITION_CONTINUITY": 7,
+      "RECONCILE_GATE_EVENT": 23,
+      "RECONCILE_GATE_EVENT_RESULT": 1,
+      "RECONCILE_GATE_REOPENED": 1,
+      "VERIFY_ARTIFACT_REF": 38,
+      "VERIFY_ENUM": 23,
+      "VERIFY_PASS_EVIDENCE_KIND": 11,
+      "VERIFY_RESULT": 11
+    },
+    "diagnostic_set_sha256": "fec2180148206d6322e74842625533b861e34dea9c4b235324481f890a4e66e4"
+  },
+  "affected_file_count": 21,
+  "affected_files": [
+    {
+      "path": ".agent/backlog.json",
+      "current_sha256": "06cb1311f954879eb1cab09a14690c46cc22c0ff34ba9f1e3d4d459e3962d112",
+      "finding_count": 1,
+      "classes": {
+        "BACKLOG_EVIDENCE_REF": 1
+      },
+      "record_refs": [
+        "AAA-022.evidence_refs[91] fragment does not resolve inside evidence target: .agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001"
+      ],
+      "findings": [
+        {
+          "class": "BACKLOG_EVIDENCE_REF",
+          "record_ref": "AAA-022.evidence_refs[91] fragment does not resolve inside evidence target: .agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001",
+          "detail": "AAA-022.evidence_refs[91] fragment does not resolve inside evidence target: .agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001"
+        }
+      ]
+    },
+    {
+      "path": ".agent/execution-log.jsonl",
+      "current_sha256": "6afbbe8a34e9b7bc73d8d42fc73d6b4dd8e17e43b397a22c9942f6f1eb6b9d01",
+      "finding_count": 97,
+      "classes": {
+        "LOG_CORRECTION": 1,
+        "LOG_TRANSITION": 49,
+        "LOG_TRANSITION_CONTINUITY": 7,
+        "LOG_GATE_BINDING": 16,
+        "RECONCILE_GATE_EVENT_RESULT": 1,
+        "RECONCILE_GATE_EVENT": 23
+      },
+      "record_refs": [
+        "EVT-AAA-022-CHECKPOINT-A06-053",
+        "EVT-AAA-022-CHECKPOINT-A07-055",
+        "EVT-AAA-022-CHECKPOINT-A08-058",
+        "EVT-AAA-022-CHECKPOINT-A09-060",
+        "EVT-AAA-022-CHECKPOINT-A10-062",
+        "EVT-AAA-022-CHECKPOINT-A11-065",
+        "EVT-AAA-022-CHECKPOINT-A12-067",
+        "EVT-AAA-022-CHECKPOINT-A13-071",
+        "EVT-AAA-022-CHECKPOINT-A14-073",
+        "EVT-AAA-022-CHECKPOINT-A15-075",
+        "EVT-AAA-022-CHECKPOINT-A16-078",
+        "EVT-AAA-022-CHECKPOINT-A17-080",
+        "EVT-AAA-022-CHECKPOINT-A18-082",
+        "EVT-AAA-022-CHECKPOINT-A22-A23-001-102",
+        "EVT-AAA-022-CHECKPOINT-A23-A24-001-104",
+        "EVT-AAA-022-CORRECTION-A12-069",
+        "EVT-AAA-022-GATE-A07-052",
+        "EVT-AAA-022-GATE-A09-057",
+        "EVT-AAA-022-GATE-A12-064",
+        "EVT-AAA-022-GATE-A14-070",
+        "EVT-AAA-022-GATE-A17-077",
+        "EVT-AAA-022-GATE-A19-081",
+        "EVT-AAA-022-START-A04-047",
+        "EVT-AAA-022-START-A05-049",
+        "EVT-AAA-022-START-A06-051",
+        "EVT-AAA-022-START-A07-054",
+        "EVT-AAA-022-START-A08-056",
+        "EVT-AAA-022-START-A09-059",
+        "EVT-AAA-022-START-A10-061",
+        "EVT-AAA-022-START-A11-063",
+        "EVT-AAA-022-START-A12-066",
+        "EVT-AAA-022-START-A13-068",
+        "EVT-AAA-022-START-A14-072",
+        "EVT-AAA-022-START-A15-074",
+        "EVT-AAA-022-START-A16-076",
+        "EVT-AAA-022-START-A17-079",
+        "EVT-AAA-022-START-A21-096",
+        "EVT-AAA-023-CHECKPOINT-A32-005",
+        "EVT-AAA-023-CHECKPOINT-A33-002",
+        "EVT-AAA-023-CHECKPOINT-A34-004",
+        "EVT-AAA-023-CHECKPOINT-A35-005",
+        "EVT-AAA-023-CHECKPOINT-A36-007",
+        "EVT-AAA-023-CHECKPOINT-A37-008",
+        "EVT-AAA-023-CHECKPOINT-A38-009",
+        "EVT-AAA-023-CHECKPOINT-A39-010",
+        "EVT-AAA-023-CHECKPOINT-A42-013",
+        "EVT-AAA-023-CHECKPOINT-A45-016",
+        "EVT-AAA-023-CHECKPOINT-A46-017",
+        "EVT-AAA-023-CHECKPOINT-A47-018",
+        "EVT-AAA-023-CHECKPOINT-A48-019",
+        "EVT-AAA-023-CHECKPOINT-A49-020",
+        "EVT-AAA-023-CHECKPOINT-A50-021",
+        "EVT-AAA-023-CHECKPOINT-A51-022",
+        "EVT-AAA-023-CHECKPOINT-A52-023",
+        "EVT-AAA-023-CHECKPOINT-A53-024",
+        "EVT-AAA-023-CHECKPOINT-A54-025",
+        "EVT-AAA-023-CHECKPOINT-A55-026",
+        "EVT-AAA-023-CHECKPOINT-A56-027",
+        "EVT-AAA-023-CHECKPOINT-A57-028",
+        "EVT-AAA-023-CHECKPOINT-A58-029",
+        "EVT-AAA-023-CHECKPOINT-A59-030",
+        "EVT-AAA-023-CHECKPOINT-A60-031",
+        "EVT-AAA-023-CHECKPOINT-A61-032",
+        "EVT-AAA-023-GATE-A62-033",
+        "EVT-AAA-023-RECONCILE-A43-014",
+        "EVT-AAA-023-RECOVERY-A40-011",
+        "EVT-AAA-023-RECOVERY-A44-015",
+        "EVT-AAA-023-VALIDATION-A41-012"
+      ],
+      "findings": [
+        {
+          "class": "LOG_CORRECTION",
+          "record_ref": "EVT-AAA-022-CORRECTION-A12-069",
+          "detail": "EVT-AAA-022-CORRECTION-A12-069: correction missing corrects_event_id, corrected_event_type, correction_reason"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A32-005",
+          "detail": "EVT-AAA-023-CHECKPOINT-A32-005: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A33-002",
+          "detail": "EVT-AAA-023-CHECKPOINT-A33-002: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A34-004",
+          "detail": "EVT-AAA-023-CHECKPOINT-A34-004: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A35-005",
+          "detail": "EVT-AAA-023-CHECKPOINT-A35-005: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A36-007",
+          "detail": "EVT-AAA-023-CHECKPOINT-A36-007: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A37-008",
+          "detail": "EVT-AAA-023-CHECKPOINT-A37-008: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A38-009",
+          "detail": "EVT-AAA-023-CHECKPOINT-A38-009: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A39-010",
+          "detail": "EVT-AAA-023-CHECKPOINT-A39-010: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-RECOVERY-A40-011",
+          "detail": "EVT-AAA-023-RECOVERY-A40-011: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-VALIDATION-A41-012",
+          "detail": "EVT-AAA-023-VALIDATION-A41-012: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A42-013",
+          "detail": "EVT-AAA-023-CHECKPOINT-A42-013: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-RECONCILE-A43-014",
+          "detail": "EVT-AAA-023-RECONCILE-A43-014: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-RECOVERY-A44-015",
+          "detail": "EVT-AAA-023-RECOVERY-A44-015: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A45-016",
+          "detail": "EVT-AAA-023-CHECKPOINT-A45-016: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A46-017",
+          "detail": "EVT-AAA-023-CHECKPOINT-A46-017: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A47-018",
+          "detail": "EVT-AAA-023-CHECKPOINT-A47-018: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A48-019",
+          "detail": "EVT-AAA-023-CHECKPOINT-A48-019: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A49-020",
+          "detail": "EVT-AAA-023-CHECKPOINT-A49-020: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A50-021",
+          "detail": "EVT-AAA-023-CHECKPOINT-A50-021: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A51-022",
+          "detail": "EVT-AAA-023-CHECKPOINT-A51-022: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A52-023",
+          "detail": "EVT-AAA-023-CHECKPOINT-A52-023: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A53-024",
+          "detail": "EVT-AAA-023-CHECKPOINT-A53-024: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A54-025",
+          "detail": "EVT-AAA-023-CHECKPOINT-A54-025: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A55-026",
+          "detail": "EVT-AAA-023-CHECKPOINT-A55-026: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A56-027",
+          "detail": "EVT-AAA-023-CHECKPOINT-A56-027: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A57-028",
+          "detail": "EVT-AAA-023-CHECKPOINT-A57-028: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A58-029",
+          "detail": "EVT-AAA-023-CHECKPOINT-A58-029: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A59-030",
+          "detail": "EVT-AAA-023-CHECKPOINT-A59-030: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A60-031",
+          "detail": "EVT-AAA-023-CHECKPOINT-A60-031: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-CHECKPOINT-A61-032",
+          "detail": "EVT-AAA-023-CHECKPOINT-A61-032: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-023-GATE-A62-033",
+          "detail": "EVT-AAA-023-GATE-A62-033: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A04-047",
+          "detail": "EVT-AAA-022-START-A04-047: invalid transition DECIDE -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION_CONTINUITY",
+          "record_ref": "EVT-AAA-022-START-A04-047",
+          "detail": "EVT-AAA-022-START-A04-047: AAA-022 transition starts at DECIDE, but the prior declared transition ended at IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A05-049",
+          "detail": "EVT-AAA-022-START-A05-049: invalid transition TODO -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION_CONTINUITY",
+          "record_ref": "EVT-AAA-022-START-A05-049",
+          "detail": "EVT-AAA-022-START-A05-049: AAA-022 transition starts at TODO, but the prior declared transition ended at IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A06-051",
+          "detail": "EVT-AAA-022-START-A06-051: invalid transition TODO -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION_CONTINUITY",
+          "record_ref": "EVT-AAA-022-START-A06-051",
+          "detail": "EVT-AAA-022-START-A06-051: AAA-022 transition starts at TODO, but the prior declared transition ended at IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A06-053",
+          "detail": "EVT-AAA-022-CHECKPOINT-A06-053: gate lifecycle binding missing gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-START-A07-054",
+          "detail": "EVT-AAA-022-START-A07-054: gate lifecycle binding missing gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A07-055",
+          "detail": "EVT-AAA-022-CHECKPOINT-A07-055: gate lifecycle binding missing gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A07-055",
+          "detail": "EVT-AAA-022-CHECKPOINT-A07-055: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A08-056",
+          "detail": "EVT-AAA-022-START-A08-056: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A08-058",
+          "detail": "EVT-AAA-022-CHECKPOINT-A08-058: gate lifecycle binding missing gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-START-A09-059",
+          "detail": "EVT-AAA-022-START-A09-059: gate lifecycle binding missing gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A09-060",
+          "detail": "EVT-AAA-022-CHECKPOINT-A09-060: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A10-061",
+          "detail": "EVT-AAA-022-START-A10-061: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A10-062",
+          "detail": "EVT-AAA-022-CHECKPOINT-A10-062: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A11-063",
+          "detail": "EVT-AAA-022-START-A11-063: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A11-065",
+          "detail": "EVT-AAA-022-CHECKPOINT-A11-065: gate lifecycle binding missing gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION_CONTINUITY",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A11-065",
+          "detail": "EVT-AAA-022-CHECKPOINT-A11-065: AAA-022 transition starts at IN_PROGRESS, but the prior declared transition ended at READY"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-START-A12-066",
+          "detail": "EVT-AAA-022-START-A12-066: gate lifecycle binding missing gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A12-067",
+          "detail": "EVT-AAA-022-CHECKPOINT-A12-067: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-START-A13-068",
+          "detail": "EVT-AAA-022-START-A13-068: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A13-068",
+          "detail": "EVT-AAA-022-START-A13-068: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-CORRECTION-A12-069",
+          "detail": "EVT-AAA-022-CORRECTION-A12-069: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A13-071",
+          "detail": "EVT-AAA-022-CHECKPOINT-A13-071: gate lifecycle binding missing gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION_CONTINUITY",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A13-071",
+          "detail": "EVT-AAA-022-CHECKPOINT-A13-071: AAA-022 transition starts at IN_PROGRESS, but the prior declared transition ended at READY"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-START-A14-072",
+          "detail": "EVT-AAA-022-START-A14-072: gate lifecycle binding missing gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A14-073",
+          "detail": "EVT-AAA-022-CHECKPOINT-A14-073: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-START-A15-074",
+          "detail": "EVT-AAA-022-START-A15-074: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A15-074",
+          "detail": "EVT-AAA-022-START-A15-074: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A15-075",
+          "detail": "EVT-AAA-022-CHECKPOINT-A15-075: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-START-A16-076",
+          "detail": "EVT-AAA-022-START-A16-076: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-START-A16-076",
+          "detail": "EVT-AAA-022-START-A16-076: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A16-078",
+          "detail": "EVT-AAA-022-CHECKPOINT-A16-078: gate lifecycle binding missing gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION_CONTINUITY",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A16-078",
+          "detail": "EVT-AAA-022-CHECKPOINT-A16-078: AAA-022 transition starts at IN_PROGRESS, but the prior declared transition ended at READY"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A17-080",
+          "detail": "EVT-AAA-022-CHECKPOINT-A17-080: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A18-082",
+          "detail": "EVT-AAA-022-CHECKPOINT-A18-082: gate lifecycle binding missing gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION_CONTINUITY",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A18-082",
+          "detail": "EVT-AAA-022-CHECKPOINT-A18-082: AAA-022 transition starts at IN_PROGRESS, but the prior declared transition ended at READY"
+        },
+        {
+          "class": "LOG_GATE_BINDING",
+          "record_ref": "EVT-AAA-022-START-A21-096",
+          "detail": "EVT-AAA-022-START-A21-096: gate lifecycle binding missing gate_ref, gate_record_id, gate_decision, gate_fingerprint"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A22-A23-001-102",
+          "detail": "EVT-AAA-022-CHECKPOINT-A22-A23-001-102: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "LOG_TRANSITION",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A23-A24-001-104",
+          "detail": "EVT-AAA-022-CHECKPOINT-A23-A24-001-104: invalid transition IN_PROGRESS -> IN_PROGRESS"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT_RESULT",
+          "record_ref": "EVT-AAA-023-RECOVERY-A44-015",
+          "detail": "EVT-AAA-023-RECOVERY-A44-015: result 'PARTIAL' contradicts gate decision 'PASS'"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-GATE-A07-052",
+          "detail": "EVT-AAA-022-GATE-A07-052: gate binding does not match exact record, decision, fingerprint, and scope_ref"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A06-053",
+          "detail": "EVT-AAA-022-CHECKPOINT-A06-053: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A07-054",
+          "detail": "EVT-AAA-022-START-A07-054: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A07-055",
+          "detail": "EVT-AAA-022-CHECKPOINT-A07-055: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-GATE-A09-057",
+          "detail": "EVT-AAA-022-GATE-A09-057: gate binding does not match exact record, decision, fingerprint, and scope_ref"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A08-058",
+          "detail": "EVT-AAA-022-CHECKPOINT-A08-058: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A09-059",
+          "detail": "EVT-AAA-022-START-A09-059: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-GATE-A12-064",
+          "detail": "EVT-AAA-022-GATE-A12-064: gate binding does not match exact record, decision, fingerprint, and scope_ref"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A11-065",
+          "detail": "EVT-AAA-022-CHECKPOINT-A11-065: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A12-066",
+          "detail": "EVT-AAA-022-START-A12-066: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A13-068",
+          "detail": "EVT-AAA-022-START-A13-068: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-CORRECTION-A12-069",
+          "detail": "EVT-AAA-022-CORRECTION-A12-069: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-GATE-A14-070",
+          "detail": "EVT-AAA-022-GATE-A14-070: gate binding does not match exact record, decision, fingerprint, and scope_ref"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A13-071",
+          "detail": "EVT-AAA-022-CHECKPOINT-A13-071: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A14-072",
+          "detail": "EVT-AAA-022-START-A14-072: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A15-074",
+          "detail": "EVT-AAA-022-START-A15-074: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A16-076",
+          "detail": "EVT-AAA-022-START-A16-076: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-GATE-A17-077",
+          "detail": "EVT-AAA-022-GATE-A17-077: gate binding does not match exact record, decision, fingerprint, and scope_ref"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A16-078",
+          "detail": "EVT-AAA-022-CHECKPOINT-A16-078: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A17-079",
+          "detail": "EVT-AAA-022-START-A17-079: gate binding does not match exact record, decision, fingerprint, and scope_ref"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-GATE-A19-081",
+          "detail": "EVT-AAA-022-GATE-A19-081: gate binding does not match exact record, decision, fingerprint, and scope_ref"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-CHECKPOINT-A18-082",
+          "detail": "EVT-AAA-022-CHECKPOINT-A18-082: gate lifecycle events require a complete typed binding"
+        },
+        {
+          "class": "RECONCILE_GATE_EVENT",
+          "record_ref": "EVT-AAA-022-START-A21-096",
+          "detail": "EVT-AAA-022-START-A21-096: gate lifecycle events require a complete typed binding"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A07.json",
+      "current_sha256": "6cc65bf5a32af0271729722dc79dbef91f47e5c154031dcb2d36edbb4f0a5ee1",
+      "finding_count": 8,
+      "classes": {
+        "GATE_CONDITION": 3,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 4
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A07.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A07.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A07.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A07.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A07.json.authority.scope must exactly match the governed scope 'AAA-022 W1 optional observation-based session-log-deepseek reader migration'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A07.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A07.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A07.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A07.json.authority: authority evidence decision does not match the governed record"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A09.json",
+      "current_sha256": "b3b295580f995f05f129781f6127d34e254f47d761e195d23abcce6b74181125",
+      "finding_count": 12,
+      "classes": {
+        "GATE_CONDITION": 5,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 4,
+        "GATE_HISTORY_SUPERSEDES": 1,
+        "GATE_HISTORY_REOPEN": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A09.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.conditions[3] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.conditions[4] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.authority.scope must exactly match the governed scope 'AAA-022 W1 SessionObservationReader-owned live capture for SessionCorpus and SQLite derived-index reconciliation'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SUPERSEDES",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json: supersedes does not resolve to an existing record ID"
+        },
+        {
+          "class": "GATE_HISTORY_REOPEN",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A09.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A09.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A07-001'"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A12.json",
+      "current_sha256": "bd4ae64680acc5994e7bec3c33d8c892de954ceb53e0d3f566a6d3705a83def0",
+      "finding_count": 12,
+      "classes": {
+        "GATE_CONDITION": 5,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 4,
+        "GATE_HISTORY_SUPERSEDES": 1,
+        "GATE_HISTORY_REOPEN": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A12.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.conditions[3] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.conditions[4] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.authority.scope must exactly match the governed scope 'AAA-022 W1 transient SessionCreationBaseline handoff and strict SessionProjectionRegistry baseline ownership'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SUPERSEDES",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json: supersedes does not resolve to an existing record ID"
+        },
+        {
+          "class": "GATE_HISTORY_REOPEN",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A12.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A09-001'"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A14.json",
+      "current_sha256": "20b08b43f2c0d074dd80564c9de6bbc3f96aa7f4cb0d54075c15713763b35e3e",
+      "finding_count": 12,
+      "classes": {
+        "GATE_CONDITION": 5,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 4,
+        "GATE_HISTORY_SUPERSEDES": 1,
+        "GATE_HISTORY_REOPEN": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A14.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.conditions[3] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.conditions[4] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.authority.scope must exactly match the governed scope 'AAA-022 W1 SessionCreationBaseline adoption in core/session and session-title invariant creation paths'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SUPERSEDES",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json: supersedes does not resolve to an existing record ID"
+        },
+        {
+          "class": "GATE_HISTORY_REOPEN",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A14.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A14.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A12-001'"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+      "current_sha256": "f0a3ae3630f4f777a6ab6dca7015891a8527f8718aaf16f0b2b61925adfaf7bc",
+      "finding_count": 20,
+      "classes": {
+        "GATE_CRITERION_EVIDENCE": 4,
+        "GATE_CRITERIA_COVERAGE": 1,
+        "GATE_CONDITION": 8,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 4,
+        "GATE_HISTORY_SUPERSEDES": 1,
+        "GATE_HISTORY_REOPEN": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.criteria[4].evidence_refs[2] does not resolve to an existing file: packages/session/session-title/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.criteria[4].evidence_refs[3] does not resolve to an existing file: packages/session/session-title-llm/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.criteria[4].evidence_refs[4] does not resolve to an existing file: packages/session/session-title-all-prompts-llm/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.criteria[4].evidence_refs[5] does not resolve to an existing file: packages/session/session-title-first-prompt-llm/"
+        },
+        {
+          "class": "GATE_CRITERIA_COVERAGE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json: IMPLEMENTATION_READY has non-canonical criteria ['IR-004', 'IR-005', 'IR-006']"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[3] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[4] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[5] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[6] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.conditions[7] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority.scope must exactly match the governed scope 'AAA-022 W1 session-title asynchronous provider history loading, synchronous citation-index migration, and exact app-boot startup enforcement for both shipped title providers'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SUPERSEDES",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json: supersedes does not resolve to an existing record ID"
+        },
+        {
+          "class": "GATE_HISTORY_REOPEN",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022:A17' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A17-002'"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+      "current_sha256": "0798de612978c245456f3cc877003c16d247a7bbf87dd23b7c6865295ebba951",
+      "finding_count": 19,
+      "classes": {
+        "GATE_CRITERION_EVIDENCE": 4,
+        "GATE_CRITERIA_COVERAGE": 1,
+        "GATE_CONDITION": 8,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 4,
+        "GATE_HISTORY_SUPERSEDES": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.criteria[4].evidence_refs[2] does not resolve to an existing file: packages/session/session-title/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.criteria[4].evidence_refs[3] does not resolve to an existing file: packages/session/session-title-llm/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.criteria[4].evidence_refs[4] does not resolve to an existing file: packages/session/session-title-all-prompts-llm/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.criteria[4].evidence_refs[5] does not resolve to an existing file: packages/session/session-title-first-prompt-llm/"
+        },
+        {
+          "class": "GATE_CRITERIA_COVERAGE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json: IMPLEMENTATION_READY has non-canonical criteria ['IR-004', 'IR-005', 'IR-006']"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[3] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[4] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[5] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[6] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.conditions[7] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority.scope must exactly match the governed scope 'AAA-022 W1 session-title asynchronous provider history loading, synchronous citation-index migration, and exact app-boot startup enforcement for both shipped title providers'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SUPERSEDES",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json: supersedes does not resolve to an existing record ID"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A17.json",
+      "current_sha256": "275484cd1b2fb46363d93a58cadfae43d37e93fc42c4af408bb04722e59945f5",
+      "finding_count": 20,
+      "classes": {
+        "GATE_CRITERION_EVIDENCE": 4,
+        "GATE_CRITERIA_COVERAGE": 1,
+        "GATE_CONDITION": 8,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 4,
+        "GATE_HISTORY_SUPERSEDES": 1,
+        "GATE_HISTORY_REOPEN": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A17.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.criteria[4].evidence_refs[2] does not resolve to an existing file: packages/session/session-title/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.criteria[4].evidence_refs[3] does not resolve to an existing file: packages/session/session-title-llm/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.criteria[4].evidence_refs[4] does not resolve to an existing file: packages/session/session-title-all-prompts-llm/"
+        },
+        {
+          "class": "GATE_CRITERION_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.criteria[4].evidence_refs[5] does not resolve to an existing file: packages/session/session-title-first-prompt-llm/"
+        },
+        {
+          "class": "GATE_CRITERIA_COVERAGE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json: IMPLEMENTATION_READY has non-canonical criteria ['IR-004', 'IR-005', 'IR-006']"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.conditions[3] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.conditions[4] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.conditions[5] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.conditions[6] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.conditions[7] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.authority.scope must exactly match the governed scope 'AAA-022 W1 session-title asynchronous provider history loading and synchronous citation-index migration for REM-028-S072/S073'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SUPERSEDES",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json: supersedes does not resolve to an existing record ID"
+        },
+        {
+          "class": "GATE_HISTORY_REOPEN",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A17.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A17.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A14-001'"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A19-canonical.json",
+      "current_sha256": "5fd817d199ccf3e4c3f3c0741e91c06e419802d1d837d5aa81c90862fb5a5313",
+      "finding_count": 1,
+      "classes": {
+        "RECONCILE_GATE_REOPENED": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A19-canonical.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001"
+      ],
+      "findings": [
+        {
+          "class": "RECONCILE_GATE_REOPENED",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-canonical.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-canonical.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001: governing gate was reopened by EVT-AAA-022-GATE-A19-CANONICAL-REOPEN-001-086 and needs a later superseding decision"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+      "current_sha256": "e0c4541f56a60c9e83dcb7348f74f8a19ec2d070a291b7cdf792b693e1632870",
+      "finding_count": 15,
+      "classes": {
+        "GATE_CRITERIA_COVERAGE": 2,
+        "GATE_CONDITION": 7,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 4,
+        "GATE_HISTORY_REOPEN": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_CRITERIA_COVERAGE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json: IMPLEMENTATION_READY is missing canonical criteria ['IR-001', 'IR-002', 'IR-003']"
+        },
+        {
+          "class": "GATE_CRITERIA_COVERAGE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json: IMPLEMENTATION_READY has non-canonical criteria ['IP-001', 'IP-002', 'IP-003', 'IP-004', 'IP-005', 'IP-006', 'IP-007']"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[3] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[4] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[5] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.conditions[6] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority.scope must exactly match the governed scope 'AAA-022 task scope: A19 prepared Session append feed and synchronous projection readiness before Agent construction; exact upstream ownership, package tests and documentation'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_REOPEN",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json: reopening 'IMPLEMENTATION_READY' for scope_ref 'AAA-022' must supersede 'GATE-AAA-022-IMPLEMENTATION-READY-A17-001'"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A19.json",
+      "current_sha256": "45fed73113fd6d0b9a716513c66a6ea664896b4de209d1051977b1fe8980b355",
+      "finding_count": 1,
+      "classes": {
+        "GATE_FIELDS": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A19.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_FIELDS",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A19.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A19.json missing fields: supersedes"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A20-prepared-pages.json",
+      "current_sha256": "16ddf306ec35e2d103cad8e764a04838eb4459337953831d2369d39993e936ee",
+      "finding_count": 1,
+      "classes": {
+        "GATE_HISTORY_SCOPE": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A20-prepared-pages.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_HISTORY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A20-prepared-pages.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A20-prepared-pages.json: superseded record must match gate_id and scope"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json",
+      "current_sha256": "4f4e867edceaa2d7a8290bbc4f6fd9c606c8ad64b9680490335dfb9a72cb9976",
+      "finding_count": 1,
+      "classes": {
+        "GATE_HISTORY_SCOPE": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_HISTORY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json",
+          "detail": ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json: superseded record must match gate_id and scope"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-023-A06.json",
+      "current_sha256": "2c34ec4c3e0e35a08f67215d18adecf4073571acf13a52257de720fcad61fa32",
+      "finding_count": 12,
+      "classes": {
+        "GATE_GAPS": 1,
+        "GATE_CONDITION": 4,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 5,
+        "GATE_HISTORY_SCOPE": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-023-A06.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_GAPS",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.conditions[3] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.authority.scope must exactly match the governed scope 'AAA-023 bounded Web host-inspection compatibility repair under the disabled dynamic-extension policy'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence subject_type does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A06.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A06.json: superseded record must match gate_id and scope"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-023-A07.json",
+      "current_sha256": "231f4aaf31eea7df5a6a505741563a2a8244c93ff0581cf0fa97f5155519d54a",
+      "finding_count": 7,
+      "classes": {
+        "GATE_GAPS": 1,
+        "GATE_CONDITION": 3,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY": 1,
+        "GATE_HISTORY_SCOPE": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-023-A07.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_GAPS",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A07.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A07.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A07.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A07.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A07.json.authority.scope must exactly match the governed scope 'AAA-023 bounded test-owned source-policy overlay for the Web plugin-manager expected lane'"
+        },
+        {
+          "class": "GATE_AUTHORITY",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A07.json.authority: required authority must be CONFIRMED for a passing decision"
+        },
+        {
+          "class": "GATE_HISTORY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A07.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A07.json: superseded record must match gate_id and scope"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-023-A10.json",
+      "current_sha256": "e424bbfd57271d5ec608b22fc79bd543b34061f9fa646faa466211c329a88bb7",
+      "finding_count": 8,
+      "classes": {
+        "GATE_GAPS": 1,
+        "GATE_CONDITION": 3,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 2,
+        "GATE_HISTORY_SCOPE": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-023-A10.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_GAPS",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A10.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A10.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A10.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A10.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A10.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A10.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A10.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A10.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A10.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A10.json.authority.scope must exactly match the governed scope 'AAA-023 bounded rename-safe baseline reading for canonical audit metrics'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A10.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A10.json.authority.evidence_ref fragment does not resolve inside evidence target: .agent/authority.jsonl#AUTH-AAA-018-CHANNEL-PARITY-001; .agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A10.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A10.json.authority: authority record 'AUTH-AAA-018-CHANNEL-PARITY-001; .agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001' must resolve exactly once"
+        },
+        {
+          "class": "GATE_HISTORY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A10.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A10.json: superseded record must match gate_id and scope"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-023-A12.json",
+      "current_sha256": "b0d33a1872f7b09ee012af9af4e901ff5a805fc7a06590265d0e04c4a3f46ced",
+      "finding_count": 11,
+      "classes": {
+        "GATE_GAPS": 1,
+        "GATE_CONDITION": 3,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 5,
+        "GATE_HISTORY_SCOPE": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-023-A12.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_GAPS",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.authority.scope must exactly match the governed scope 'AAA-023 bounded test-only removal of the explicit_any matcher increase'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence subject_type does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A12.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A12.json: superseded record must match gate_id and scope"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-023-A27.json",
+      "current_sha256": "b4538b11e5cb52649f24ceab768dbc1837fc3d59c92fc16b38a18fc6a5ac761f",
+      "finding_count": 7,
+      "classes": {
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 5,
+        "GATE_HISTORY_SCOPE": 1
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-023-A27.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A27.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A27.json.authority.scope must exactly match the governed scope 'AAA-023 exact six-owner policy disposition and successor candidate excluding ignored local state'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A27.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A27.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A27.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence subject_type does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A27.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A27.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A27.json.authority: authority evidence decision does not match the governed record"
+        },
+        {
+          "class": "GATE_HISTORY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023-A27.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023-A27.json: superseded record must match gate_id and scope"
+        }
+      ]
+    },
+    {
+      "path": ".agent/gates/implementation-ready-AAA-023.json",
+      "current_sha256": "29d24e7377627192a83e544788e0da14b491f0bf166d4f9a1964c5dc6ed0d077",
+      "finding_count": 10,
+      "classes": {
+        "GATE_GAPS": 1,
+        "GATE_CONDITION": 3,
+        "GATE_AUTHORITY_SCOPE": 1,
+        "GATE_AUTHORITY_EVIDENCE": 5
+      },
+      "record_refs": [
+        ".agent/gates/implementation-ready-AAA-023.json"
+      ],
+      "findings": [
+        {
+          "class": "GATE_GAPS",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json: passing gates require gaps=[]; non-blocking follow-up belongs in typed conditions"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.conditions[0] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.conditions[1] must be an object"
+        },
+        {
+          "class": "GATE_CONDITION",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.conditions[2] must be an object"
+        },
+        {
+          "class": "GATE_AUTHORITY_SCOPE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.authority.scope must exactly match the governed scope 'AAA-023 bounded repair of the current check-all blockers'"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.authority: authority evidence scope does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.authority: authority evidence scope_ref does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.authority: authority evidence subject_type does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.authority: authority evidence subject_id does not match the governed record"
+        },
+        {
+          "class": "GATE_AUTHORITY_EVIDENCE",
+          "record_ref": ".agent/gates/implementation-ready-AAA-023.json",
+          "detail": ".agent/gates/implementation-ready-AAA-023.json.authority: authority evidence decision does not match the governed record"
+        }
+      ]
+    },
+    {
+      "path": ".agent/verification.jsonl",
+      "current_sha256": "d5bd531c60c79712a0634f82cf13eeefc546bed74d0bb15389037bb7bfbee53d",
+      "finding_count": 83,
+      "classes": {
+        "VERIFY_ENUM": 23,
+        "VERIFY_PASS_EVIDENCE_KIND": 11,
+        "VERIFY_ARTIFACT_REF": 38,
+        "VERIFY_RESULT": 11
+      },
+      "record_refs": [
+        "VER-AAA-022-A03-AUTHORITY-A75-001",
+        "VER-AAA-022-A04-READER-INVENTORY-A75-001",
+        "VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001",
+        "VER-AAA-022-A06-SESSION-LOG-READER-DESIGN-A77-001",
+        "VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001",
+        "VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001",
+        "VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001",
+        "VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001",
+        "VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001",
+        "VER-AAA-022-A12-CORRECTION-A83-002",
+        "VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001",
+        "VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001",
+        "VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001",
+        "VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001",
+        "VER-AAA-022-A16-W1-SESSION-TELEMETRY-TITLE-DISPOSITION-A87-001",
+        "VER-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001",
+        "VER-AAA-022-A18-W2-READER-DESIGN-A96-001",
+        "VER-AAA-022-A22-IMPLEMENTATION-20260923-001",
+        "VER-AAA-022-A22-POST-CHECKPOINT-20260923-001",
+        "VER-AAA-023-A02-DIAGNOSIS-A26-001",
+        "VER-AAA-023-A05-DIAGNOSIS-A29-001",
+        "VER-AAA-023-A09-DIAGNOSIS-A34-001",
+        "VER-AAA-023-A11-DIAGNOSIS-A36-001",
+        "VER-AAA-023-A13-CHECK-ALL-A38-001",
+        "VER-AAA-023-A14-SERIAL-TEST-A39-001",
+        "VER-AAA-023-A15-CANDIDATE-ISOLATION-A44-001",
+        "VER-AAA-023-A15-STATE-SUMMARY-A43-001",
+        "VER-AAA-023-A16-COVERAGE-A47-001",
+        "VER-AAA-023-A17-CHECK-ALL-A48-001",
+        "VER-AAA-023-A17-CHECK-ALL-A49-001",
+        "VER-AAA-023-A18-COVERAGE-A50-001",
+        "VER-AAA-023-A18-COVERAGE-A51-001",
+        "VER-AAA-023-A19-CHECK-ALL-A52-001",
+        "VER-AAA-023-A20-BENCHMARK-A53-001",
+        "VER-AAA-023-A21-BENCHMARK-A54-001",
+        "VER-AAA-023-A22-PACKED-INSTALL-A55-001",
+        "VER-AAA-023-A23-REQUALIFICATION-A56-001",
+        "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+        "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001",
+        "VER-AAA-023-A26-UPSTREAM-DISPOSITION-A59-001",
+        "VER-AAA-023-A27-CANDIDATE-EXCLUSION-PREFLIGHT-A60-001",
+        "VER-AAA-023-A27-POLICY-SUCCESSOR-PREFLIGHT-A61-001"
+      ],
+      "findings": [
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-023-A02-DIAGNOSIS-A26-001",
+          "detail": "VER-AAA-023-A02-DIAGNOSIS-A26-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-023-A02-DIAGNOSIS-A26-001",
+          "detail": "VER-AAA-023-A02-DIAGNOSIS-A26-001: evidence_kind 'REVIEW' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-023-A05-DIAGNOSIS-A29-001",
+          "detail": "VER-AAA-023-A05-DIAGNOSIS-A29-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-023-A05-DIAGNOSIS-A29-001",
+          "detail": "VER-AAA-023-A05-DIAGNOSIS-A29-001: evidence_kind 'REVIEW' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-023-A09-DIAGNOSIS-A34-001",
+          "detail": "VER-AAA-023-A09-DIAGNOSIS-A34-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-023-A09-DIAGNOSIS-A34-001",
+          "detail": "VER-AAA-023-A09-DIAGNOSIS-A34-001: evidence_kind 'REVIEW' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-023-A11-DIAGNOSIS-A36-001",
+          "detail": "VER-AAA-023-A11-DIAGNOSIS-A36-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-023-A11-DIAGNOSIS-A36-001",
+          "detail": "VER-AAA-023-A11-DIAGNOSIS-A36-001: evidence_kind 'REVIEW' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A13-CHECK-ALL-A38-001",
+          "detail": "VER-AAA-023-A13-CHECK-ALL-A38-001.artifacts[1] must be relative: /tmp/aaa023-a13-check-all-clean-index.out"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A14-SERIAL-TEST-A39-001",
+          "detail": "VER-AAA-023-A14-SERIAL-TEST-A39-001.artifacts[1] must be relative: /tmp/aaa023-a14-test-serial.out"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-023-A15-STATE-SUMMARY-A43-001",
+          "detail": "VER-AAA-023-A15-STATE-SUMMARY-A43-001.evidence_kind='REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-023-A15-STATE-SUMMARY-A43-001",
+          "detail": "VER-AAA-023-A15-STATE-SUMMARY-A43-001: evidence_kind 'REVIEW' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-023-A15-CANDIDATE-ISOLATION-A44-001",
+          "detail": "VER-AAA-023-A15-CANDIDATE-ISOLATION-A44-001.evidence_kind='RECOVERY' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A16-COVERAGE-A47-001",
+          "detail": "VER-AAA-023-A16-COVERAGE-A47-001.artifacts[1] must be relative: /tmp/dsh-a16-candidate-coverage-green.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A17-CHECK-ALL-A48-001",
+          "detail": "VER-AAA-023-A17-CHECK-ALL-A48-001.artifacts[1] must be relative: /tmp/dsh-a17-candidate-check-all.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A17-CHECK-ALL-A49-001",
+          "detail": "VER-AAA-023-A17-CHECK-ALL-A49-001.artifacts[1] must be relative: /tmp/dsh-a17-candidate-check-all-fixed.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A18-COVERAGE-A50-001",
+          "detail": "VER-AAA-023-A18-COVERAGE-A50-001.artifacts[1] must be relative: /tmp/dsh-a18-candidate-coverage-final.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A18-COVERAGE-A51-001",
+          "detail": "VER-AAA-023-A18-COVERAGE-A51-001.artifacts[1] must be relative: /tmp/dsh-a18-candidate-coverage-green.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A19-CHECK-ALL-A52-001",
+          "detail": "VER-AAA-023-A19-CHECK-ALL-A52-001.artifacts[1] must be relative: /tmp/dsh-a19-candidate-check-all.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A20-BENCHMARK-A53-001",
+          "detail": "VER-AAA-023-A20-BENCHMARK-A53-001.artifacts[1] must be relative: /tmp/dsh-a20-candidate-benchmark.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A20-BENCHMARK-A53-001",
+          "detail": "VER-AAA-023-A20-BENCHMARK-A53-001.artifacts[2] must be relative: /tmp/dsh-a20-focused-benchmark.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A21-BENCHMARK-A54-001",
+          "detail": "VER-AAA-023-A21-BENCHMARK-A54-001.artifacts[1] must be relative: /tmp/dsh-a21-candidate-benchmark.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A22-PACKED-INSTALL-A55-001",
+          "detail": "VER-AAA-023-A22-PACKED-INSTALL-A55-001.artifacts[1] must be relative: /tmp/dsh-a22-build-official.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A22-PACKED-INSTALL-A55-001",
+          "detail": "VER-AAA-023-A22-PACKED-INSTALL-A55-001.artifacts[2] must be relative: /tmp/dsh-a22-pack-dsh.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A22-PACKED-INSTALL-A55-001",
+          "detail": "VER-AAA-023-A22-PACKED-INSTALL-A55-001.artifacts[3] must be relative: /tmp/dsh-a22-pack-vendor.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A22-PACKED-INSTALL-A55-001",
+          "detail": "VER-AAA-023-A22-PACKED-INSTALL-A55-001.artifacts[4] must be relative: /tmp/dsh-a22-packed-install.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A23-REQUALIFICATION-A56-001",
+          "detail": "VER-AAA-023-A23-REQUALIFICATION-A56-001.artifacts[1] must be relative: /tmp/dsh-a23-dsh.xLzpG2"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A23-REQUALIFICATION-A56-001",
+          "detail": "VER-AAA-023-A23-REQUALIFICATION-A56-001.artifacts[2] must be relative: /tmp/dsh-a23-vendor.dTVKyh"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+          "detail": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[1] must be relative: /tmp/dsh-a24-upstream.W7fYpl/candidate-rehearsal"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+          "detail": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[2] must be relative: /tmp/dsh-a24-policy.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+          "detail": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[3] must be relative: /tmp/dsh-a24-candidate-vs-official.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+          "detail": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[4] must be relative: /tmp/dsh-a24-candidate-vs-fork.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+          "detail": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[5] must be relative: /tmp/dsh-a24-conflicts.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+          "detail": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[6] must be relative: /tmp/dsh-a24-unmerged-paths.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001",
+          "detail": "VER-AAA-023-A24-UPSTREAM-REHEARSAL-A57-001.artifacts[7] must be relative: /tmp/dsh-a24-merge-final.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001",
+          "detail": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[1] must be relative: /tmp/dsh-a24-policy.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001",
+          "detail": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[2] must be relative: /tmp/dsh-a24-unowned-paths.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001",
+          "detail": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[3] must be relative: /tmp/dsh-a24-unmerged-paths.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001",
+          "detail": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[4] must be relative: /tmp/dsh-a24-conflicts.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001",
+          "detail": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[5] must be relative: /tmp/dsh-a24-candidate-vs-official.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001",
+          "detail": "VER-AAA-023-A25-UPSTREAM-DIAGNOSIS-A58-001.artifacts[6] must be relative: /tmp/dsh-a24-candidate-vs-fork.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A26-UPSTREAM-DISPOSITION-A59-001",
+          "detail": "VER-AAA-023-A26-UPSTREAM-DISPOSITION-A59-001.artifacts[1] must be relative: /tmp/dsh-a24-unowned-paths.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A26-UPSTREAM-DISPOSITION-A59-001",
+          "detail": "VER-AAA-023-A26-UPSTREAM-DISPOSITION-A59-001.artifacts[2] must be relative: /tmp/dsh-a24-unmerged-paths.txt"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A27-CANDIDATE-EXCLUSION-PREFLIGHT-A60-001",
+          "detail": "VER-AAA-023-A27-CANDIDATE-EXCLUSION-PREFLIGHT-A60-001.artifacts[1] must be relative: /tmp/dsh-a27-successor-preflight.KPk0pt/repo"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A27-CANDIDATE-EXCLUSION-PREFLIGHT-A60-001",
+          "detail": "VER-AAA-023-A27-CANDIDATE-EXCLUSION-PREFLIGHT-A60-001.artifacts[2] must be relative: /tmp/dsh-a27-successor-preflight.KPk0pt/policy-committed.log"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A27-POLICY-SUCCESSOR-PREFLIGHT-A61-001",
+          "detail": "VER-AAA-023-A27-POLICY-SUCCESSOR-PREFLIGHT-A61-001.artifacts[1] must be relative: /tmp/dsh-a27-successor-preflight.KPk0pt/repo"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-023-A27-POLICY-SUCCESSOR-PREFLIGHT-A61-001",
+          "detail": "VER-AAA-023-A27-POLICY-SUCCESSOR-PREFLIGHT-A61-001.artifacts[2] must be relative: /tmp/dsh-a27-successor-preflight.KPk0pt/policy-final.log"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A03-AUTHORITY-A75-001",
+          "detail": "VER-AAA-022-A03-AUTHORITY-A75-001.evidence_kind='AUTHORITY' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-022-A03-AUTHORITY-A75-001",
+          "detail": "VER-AAA-022-A03-AUTHORITY-A75-001: evidence_kind 'AUTHORITY' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A04-READER-INVENTORY-A75-001",
+          "detail": "VER-AAA-022-A04-READER-INVENTORY-A75-001.evidence_kind='STATIC_INVENTORY' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-022-A04-READER-INVENTORY-A75-001",
+          "detail": "VER-AAA-022-A04-READER-INVENTORY-A75-001: evidence_kind 'STATIC_INVENTORY' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001",
+          "detail": "VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001",
+          "detail": "VER-AAA-022-A05-W1-CANONICAL-EVENT-SEAM-A76-001.evidence_kind='BOUNDED_IMPLEMENTATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A06-SESSION-LOG-READER-DESIGN-A77-001",
+          "detail": "VER-AAA-022-A06-SESSION-LOG-READER-DESIGN-A77-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-022-A06-SESSION-LOG-READER-DESIGN-A77-001",
+          "detail": "VER-AAA-022-A06-SESSION-LOG-READER-DESIGN-A77-001: evidence_kind 'SOURCE_GROUNDED_DESIGN' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001",
+          "detail": "VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001",
+          "detail": "VER-AAA-022-A07-W1-SESSION-LOG-READER-A78-001.evidence_kind='IMPLEMENTATION_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001",
+          "detail": "VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001",
+          "detail": "VER-AAA-022-A08-SESSION-QUERY-READER-DESIGN-A79-001: evidence_kind 'SOURCE_GROUNDED_DESIGN' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001",
+          "detail": "VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001",
+          "detail": "VER-AAA-022-A09-W1-SESSION-QUERY-READER-A80-001.evidence_kind='IMPLEMENTATION_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001",
+          "detail": "VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001.result='PASS_WITH_RETAINED_EXCEPTIONS' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001",
+          "detail": "VER-AAA-022-A10-W1-SESSION-PROJECTION-OWNER-DESIGN-A81-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001",
+          "detail": "VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001",
+          "detail": "VER-AAA-022-A11-W1-SESSION-PROJECTION-BASELINE-HANDOFF-DESIGN-A82-001: evidence_kind 'SOURCE_GROUNDED_DESIGN' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001",
+          "detail": "VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001",
+          "detail": "VER-AAA-022-A12-W1-SESSION-PROJECTION-BASELINE-HANDOFF-A83-001.evidence_kind='IMPLEMENTATION_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A12-CORRECTION-A83-002",
+          "detail": "VER-AAA-022-A12-CORRECTION-A83-002.evidence_kind='CONSUMER_TEST_CORRECTION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_PASS_EVIDENCE_KIND",
+          "record_ref": "VER-AAA-022-A12-CORRECTION-A83-002",
+          "detail": "VER-AAA-022-A12-CORRECTION-A83-002: evidence_kind 'CONSUMER_TEST_CORRECTION' cannot support PASS"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001",
+          "detail": "VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001.result='PASS_WITH_RETAINED_EXCEPTIONS' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001",
+          "detail": "VER-AAA-022-A13-W1-REMAINING-SESSION-READER-DISPOSITION-DESIGN-A84-001.evidence_kind='SOURCE_GROUNDED_DESIGN' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001",
+          "detail": "VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001",
+          "detail": "VER-AAA-022-A14-W1-SESSION-INVARIANT-BASELINE-A85-001.evidence_kind='IMPLEMENTATION_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001",
+          "detail": "VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001.result='PASS_WITH_RETAINED_EXCEPTIONS' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001",
+          "detail": "VER-AAA-022-A15-W1-CORE-FORK-OWN-EVENTS-DESIGN-A86-001.evidence_kind='SOURCE_GROUNDED_DESIGN_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A16-W1-SESSION-TELEMETRY-TITLE-DISPOSITION-A87-001",
+          "detail": "VER-AAA-022-A16-W1-SESSION-TELEMETRY-TITLE-DISPOSITION-A87-001.result='PASS_WITH_RETAINED_EXCEPTIONS' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A16-W1-SESSION-TELEMETRY-TITLE-DISPOSITION-A87-001",
+          "detail": "VER-AAA-022-A16-W1-SESSION-TELEMETRY-TITLE-DISPOSITION-A87-001.evidence_kind='SOURCE_GROUNDED_DESIGN_AND_FOCUSED_VERIFICATION' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001",
+          "detail": "VER-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001.result='PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001",
+          "detail": "VER-AAA-022-A17-W1-SESSION-TITLE-HISTORY-CITATION-A91-001.evidence_kind='IMPLEMENTATION_AND_INDEPENDENT_REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_RESULT",
+          "record_ref": "VER-AAA-022-A18-W2-READER-DESIGN-A96-001",
+          "detail": "VER-AAA-022-A18-W2-READER-DESIGN-A96-001.result='PASS_WITH_RETAINED_BASELINE_LIMITATION' is not in canonical verification_status: ['BLOCKED', 'FAIL', 'NOT_RUN', 'PARTIAL', 'PASS']"
+        },
+        {
+          "class": "VERIFY_ENUM",
+          "record_ref": "VER-AAA-022-A18-W2-READER-DESIGN-A96-001",
+          "detail": "VER-AAA-022-A18-W2-READER-DESIGN-A96-001.evidence_kind='DESIGN_AND_INDEPENDENT_REVIEW' is not in canonical evidence_kind: ['ARTIFACT_INSPECTION', 'COMMAND', 'EXPLANATION', 'EXTERNAL_RECORD', 'MANUAL_OBSERVATION', 'PREDICTION', 'RUNTIME_OBSERVATION', 'STATIC_INSPECTION']"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-022-A22-IMPLEMENTATION-20260923-001",
+          "detail": "VER-AAA-022-A22-IMPLEMENTATION-20260923-001.artifacts[1] fragment does not resolve inside evidence target: .agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001"
+        },
+        {
+          "class": "VERIFY_ARTIFACT_REF",
+          "record_ref": "VER-AAA-022-A22-POST-CHECKPOINT-20260923-001",
+          "detail": "VER-AAA-022-A22-POST-CHECKPOINT-20260923-001.artifacts[2] fragment does not resolve inside evidence target: .agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001"
+        }
+      ]
+    }
+  ],
+  "class_dispositions": [
+    {
+      "class": "BACKLOG_EVIDENCE_REF",
+      "finding_count": 1,
+      "proposed_treatment": "Correct the single stale review-fragment reference to a verified existing artifact or remove it only if the owning review evidence is preserved elsewhere."
+    },
+    {
+      "class": "LOG_CORRECTION",
+      "finding_count": 1,
+      "proposed_treatment": "Correct only the named historical event fields and all dependent typed gate bindings; preserve IDs, event order, and original bytes in the approved audit copy."
+    },
+    {
+      "class": "LOG_TRANSITION",
+      "finding_count": 49,
+      "proposed_treatment": "Correct only the named historical event fields and all dependent typed gate bindings; preserve IDs, event order, and original bytes in the approved audit copy."
+    },
+    {
+      "class": "LOG_TRANSITION_CONTINUITY",
+      "finding_count": 7,
+      "proposed_treatment": "Correct only the named historical event fields and all dependent typed gate bindings; preserve IDs, event order, and original bytes in the approved audit copy."
+    },
+    {
+      "class": "LOG_GATE_BINDING",
+      "finding_count": 16,
+      "proposed_treatment": "Correct only the named historical event fields and all dependent typed gate bindings; preserve IDs, event order, and original bytes in the approved audit copy."
+    },
+    {
+      "class": "VERIFY_ENUM",
+      "finding_count": 23,
+      "proposed_treatment": "Normalize the named historical verification enum/artifact references to existing evidence; downgrade a result only when retained evidence cannot support PASS."
+    },
+    {
+      "class": "VERIFY_PASS_EVIDENCE_KIND",
+      "finding_count": 11,
+      "proposed_treatment": "Normalize the named historical verification enum/artifact references to existing evidence; downgrade a result only when retained evidence cannot support PASS."
+    },
+    {
+      "class": "VERIFY_ARTIFACT_REF",
+      "finding_count": 38,
+      "proposed_treatment": "Normalize the named historical verification enum/artifact references to existing evidence; downgrade a result only when retained evidence cannot support PASS."
+    },
+    {
+      "class": "VERIFY_RESULT",
+      "finding_count": 11,
+      "proposed_treatment": "Normalize the named historical verification enum/artifact references to existing evidence; downgrade a result only when retained evidence cannot support PASS."
+    },
+    {
+      "class": "GATE_CONDITION",
+      "finding_count": 65,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_AUTHORITY_SCOPE",
+      "finding_count": 14,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_AUTHORITY_EVIDENCE",
+      "finding_count": 54,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_CRITERION_EVIDENCE",
+      "finding_count": 12,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_CRITERIA_COVERAGE",
+      "finding_count": 5,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_FIELDS",
+      "finding_count": 1,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_GAPS",
+      "finding_count": 5,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_AUTHORITY",
+      "finding_count": 1,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_HISTORY_SUPERSEDES",
+      "finding_count": 6,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_HISTORY_SCOPE",
+      "finding_count": 7,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "GATE_HISTORY_REOPEN",
+      "finding_count": 6,
+      "proposed_treatment": "Normalize the named historical gate fields, canonical criteria, typed conditions, authority binding, and supersession/event chain without asserting evidence that is absent."
+    },
+    {
+      "class": "RECONCILE_GATE_EVENT_RESULT",
+      "finding_count": 1,
+      "proposed_treatment": "Correct only the named historical event fields and all dependent typed gate bindings; preserve IDs, event order, and original bytes in the approved audit copy."
+    },
+    {
+      "class": "RECONCILE_GATE_EVENT",
+      "finding_count": 23,
+      "proposed_treatment": "Correct only the named historical event fields and all dependent typed gate bindings; preserve IDs, event order, and original bytes in the approved audit copy."
+    },
+    {
+      "class": "RECONCILE_GATE_REOPENED",
+      "finding_count": 1,
+      "proposed_treatment": "Correct only the named historical event fields and all dependent typed gate bindings; preserve IDs, event order, and original bytes in the approved audit copy."
+    }
+  ],
+  "append_only_assessment": {
+    "all_358_findings_cleared_by_appending_successors": false,
+    "reason": "The checker revalidates historical JSON/JSONL objects individually. Appending corrections can satisfy some latest obligations but leaves malformed older gate, event, verification, and backlog fields in the files it scans. At least the malformed per-record findings remain until the old records are normalized in place or the validator gains an explicit, separately reviewed legacy-migration rule.",
+    "preserve_history_rule": "The engineering-framework runtime-state reference requires append-only authority, gate, execution, and verification history; A27 design revision 004 also requires separate explicit authority for historical in-place edits."
+  },
+  "proposed_scope_if_authorized": {
+    "paths": [
+      ".agent/backlog.json",
+      ".agent/execution-log.jsonl",
+      ".agent/gates/implementation-ready-AAA-022-A07.json",
+      ".agent/gates/implementation-ready-AAA-022-A09.json",
+      ".agent/gates/implementation-ready-AAA-022-A12.json",
+      ".agent/gates/implementation-ready-AAA-022-A14.json",
+      ".agent/gates/implementation-ready-AAA-022-A17-revalidation-2.json",
+      ".agent/gates/implementation-ready-AAA-022-A17-revalidation.json",
+      ".agent/gates/implementation-ready-AAA-022-A17.json",
+      ".agent/gates/implementation-ready-AAA-022-A19-canonical.json",
+      ".agent/gates/implementation-ready-AAA-022-A19-task-scope.json",
+      ".agent/gates/implementation-ready-AAA-022-A19.json",
+      ".agent/gates/implementation-ready-AAA-022-A20-prepared-pages.json",
+      ".agent/gates/implementation-ready-AAA-022-A22-context-readers.json",
+      ".agent/gates/implementation-ready-AAA-023-A06.json",
+      ".agent/gates/implementation-ready-AAA-023-A07.json",
+      ".agent/gates/implementation-ready-AAA-023-A10.json",
+      ".agent/gates/implementation-ready-AAA-023-A12.json",
+      ".agent/gates/implementation-ready-AAA-023-A27.json",
+      ".agent/gates/implementation-ready-AAA-023.json",
+      ".agent/verification.jsonl"
+    ],
+    "file_count": 21,
+    "control_plane_only": true,
+    "not_in_scope": [
+      "product source",
+      "documentation",
+      "the 302 A27 verification-only policy-effect paths",
+      "sealed A28 candidate",
+      "authority.jsonl (no authority-ledger finding is in this baseline)",
+      "state.json (no direct state-file finding is in this baseline)"
+    ],
+    "method": "Prepare a disposable byte-for-byte candidate, preserve original and corrected hashes for each path, correct only named rows, compare the full state-check result, and apply only after explicit user authorization."
+  },
+  "recommendation": "Keep the known FAIL-358 baseline unless the user explicitly authorizes a one-time historical normalization. Do not treat the current baseline as PASS or alter the checker to suppress it.",
+  "limitations": [
+    "This is a read-only disposition; none of the 22 source files was changed by this analysis.",
+    "The correction values and corrected hashes are not proposed until the user chooses whether an in-place history repair is acceptable.",
+    "The result does not complete AAA-022 or release qualification."
+  ]
+}

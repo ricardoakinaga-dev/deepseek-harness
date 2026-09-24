@@ -130,16 +130,16 @@ export async function prepareImageFile(
  * reference is reported.
  */
 async function syncDirectory(path: string): Promise<void> {
-  /* v8 ignore next -- Windows cannot open directory handles; NTFS metadata journaling owns entry durability there. */
+  /*! v8 ignore next -- Windows cannot open directory handles; NTFS metadata journaling owns entry durability there. */
   if (process.platform === 'win32') return
-  /* v8 ignore start -- Windows cannot exercise directory fsync; POSIX behavior tests enforce this peer. */
+  /*! v8 ignore start -- Windows cannot exercise directory fsync; POSIX behavior tests enforce this peer. */
   const handle = await open(path, constants.O_RDONLY)
   try {
     await handle.sync()
   } finally {
     await handle.close()
   }
-  /* v8 ignore stop */
+  /*! v8 ignore stop */
 }
 
 /**
@@ -162,7 +162,7 @@ async function ensureDurableDirectory(path: string, boundary: string): Promise<v
   while (level !== stop) {
     const parent = dirname(level)
     await syncDirectory(parent)
-    /* v8 ignore next -- filesystem-root guard: callers pass a boundary that is an ancestor of path, so the walk reaches it first. */
+    /*! v8 ignore next -- filesystem-root guard: callers pass a boundary that is an ancestor of path, so the walk reaches it first. */
     if (parent === level) return
     level = parent
   }
@@ -253,10 +253,10 @@ export async function publishImmutableObjectStream(
   try {
     target = targetFor(staged.sha256, staged.bytes)
   } catch (error) {
-    /* v8 ignore start -- The local target callback constructs a validated reference from this function's digest. */
+    /*! v8 ignore start -- The local target callback constructs a validated reference from this function's digest. */
     await removeTemporary(staged.path)
     throw error
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
   }
   await publishStagedObject(root, target, staged)
   return { sha256: staged.sha256, bytes: staged.bytes }
@@ -282,7 +282,7 @@ export async function publishImmutableAlias(
     try {
       await link(source, target)
     } catch (error) {
-      /* v8 ignore next -- Private same-filesystem directories make EEXIST the only recoverable link race. */
+      /*! v8 ignore next -- Private same-filesystem directories make EEXIST the only recoverable link race. */
       if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) throw error
       if (await digestFile(target) !== sha256) {
         throw new AttachmentError('Stored attachment failed integrity verification.', 'ATTACHMENT_CORRUPT')
@@ -292,7 +292,7 @@ export async function publishImmutableAlias(
     const stop = resolve(root)
     for (let level = parent; level !== stop; level = dirname(level)) {
       await syncDirectory(level)
-      /* v8 ignore next -- filesystem-root guard: targets sit below root, so the walk reaches `stop` first. */
+      /*! v8 ignore next -- filesystem-root guard: targets sit below root, so the walk reaches `stop` first. */
       if (dirname(level) === level) break
     }
   } catch (error) {
@@ -336,9 +336,9 @@ async function stageImmutableObject(
     handle = undefined
     return { path: temporary, boundary, sha256: hash.digest('hex'), bytes }
   } catch (error) {
-    /* v8 ignore next -- A descriptor remains open only when write, sync, or close fails. */
+    /*! v8 ignore next -- A descriptor remains open only when write, sync, or close fails. */
     if (handle !== undefined) await handle.close().catch(
-      /* v8 ignore next -- Close failure is superseded by the storage operation that entered cleanup. */
+      /*! v8 ignore next -- Close failure is superseded by the storage operation that entered cleanup. */
       () => {},
     )
     await removeTemporary(temporary)
@@ -358,7 +358,7 @@ async function publishStagedObject(
     try {
       await link(staged.path, target)
     } catch (error) {
-      /* v8 ignore next -- Private same-filesystem directories make EEXIST the only recoverable link race. */
+      /*! v8 ignore next -- Private same-filesystem directories make EEXIST the only recoverable link race. */
       if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) throw error
       if (await digestFile(target) !== staged.sha256) {
         throw new AttachmentError('Stored attachment failed integrity verification.', 'ATTACHMENT_CORRUPT')
@@ -377,7 +377,7 @@ async function publishStagedObject(
     const stop = resolve(root)
     for (let level = parent; level !== stop; level = dirname(level)) {
       await syncDirectory(level)
-      /* v8 ignore next -- filesystem-root guard: targets sit below root, so the walk reaches `stop` first. */
+      /*! v8 ignore next -- filesystem-root guard: targets sit below root, so the walk reaches `stop` first. */
       if (dirname(level) === level) break
     }
   } catch (error) {
@@ -395,9 +395,9 @@ async function digestFile(path: string): Promise<string> {
 
 async function removeTemporary(path: string): Promise<void> {
   await unlink(path).catch(
-    /* v8 ignore next -- Cleanup can observe a staging name already removed after successful linking. */
+    /*! v8 ignore next -- Cleanup can observe a staging name already removed after successful linking. */
     (cleanupError: unknown) => {
-      /* v8 ignore next -- Any cleanup failure except an absent staging name must remain visible. */
+      /*! v8 ignore next -- Any cleanup failure except an absent staging name must remain visible. */
       if (!(cleanupError instanceof Error && 'code' in cleanupError && cleanupError.code === 'ENOENT')) throw cleanupError
     },
   )

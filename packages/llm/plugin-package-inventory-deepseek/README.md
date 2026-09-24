@@ -67,6 +67,8 @@ None; package lifecycle changes do not alter the model-visible prefix.
 - **In-place package replacement requires restart** — manifest identities are cached for the process lifetime. Loader enable, disable, mount, unmount, and ordinary source HMR still refresh the active entry set, but replacing a mounted package's manifest with another version in the same process is not a supported upgrade path.
 
 
+**Runtime invariant:** No companion is published. Each request reads authoritative Loader fiber state and package manifests directly; the plugin retains no independently mutable inventory.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -76,5 +78,3 @@ None; package lifecycle changes do not alter the model-visible prefix.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Each request reads authoritative Loader fiber state and package manifests directly; the plugin retains no independently mutable inventory.

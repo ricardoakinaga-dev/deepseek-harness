@@ -1,0 +1,34 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A33-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A08",
+  "timestamp": "2026-09-22T04:21:27-03:00",
+  "result": "PARTIAL",
+  "command": "pnpm run check:all",
+  "duration_seconds": 450.62,
+  "gate_counts": {
+    "passed": 75,
+    "failed": 2,
+    "skipped": 0,
+    "total": 77
+  },
+  "passed_regression": "test:expected passed after the A07 fixture overlay; the previous cordisInspect and plugin-manager source-policy failures no longer occur.",
+  "failures": [
+    {
+      "gate": "canonical audit metrics",
+      "command": "pnpm run audit:metrics",
+      "cause": "ENOENT while opening packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx"
+    },
+    {
+      "gate": "vendor rescope",
+      "command": "pnpm run rescope-vendor:check",
+      "cause": "ENOENT while opening packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx"
+    }
+  ],
+  "interpretation": "A07 is validated. The remaining failures are one shared candidate-tree path prerequisite for the existing ui-conversation source move, not a new Web or plugin-manager regression.",
+  "limitations": [
+    "The worktree remains dirty and the replacement UI files are not represented by one immutable candidate.",
+    "No staging, commit, push, merge, publication, release, or final verdict is claimed.",
+    "External-provider, coverage, required-platform, upstream-rehearsal, and final-critic evidence remain outstanding."
+  ]
+}

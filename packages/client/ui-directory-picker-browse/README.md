@@ -76,6 +76,8 @@ These limits define the current browse surface. They are current package constra
 - **No search, no multi-select, and no rename or delete** — the dialog lists and creates directories; a target is reached by navigating, editing the path, or filtering the last pane by prefix.
 - **Hidden-entry filtering is client-side** — the Host always lists hidden entries and flags them, so the toggle changes only what the dialog renders.
 
+**Runtime invariant:** No companion is published. The plugin registers one workspace directory-flow owner whose disposal the HMR-safety spec proves, and every listing it shows is re-read from the Host on demand rather than held here.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -85,5 +87,3 @@ These limits define the current browse surface. They are current package constra
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The plugin registers one workspace directory-flow owner whose disposal the HMR-safety spec proves, and every listing it shows is re-read from the Host on demand rather than held here.

@@ -19,7 +19,6 @@
       "default": "./lib/index.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
@@ -43,6 +42,6 @@
   "devDependencies": {
     "@deepseek-ai/cordis-plugin-include": "workspace:^",
     "@deepseek-ai/cordis": "workspace:^",
-    "js-yaml": "^4.2.0"
+    "js-yaml": "^4.3.2"
   }
 }

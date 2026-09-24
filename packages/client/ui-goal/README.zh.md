@@ -78,6 +78,8 @@ Web GUI 的 goal 界面同时显示持久 goal 状态及当前的进程本地激
 
 - **Host 状态与 preset 无关**——把活跃会话切换到 `minimal` 后，Host 拥有的 goal 仍会保留。`/goal` 与 goal 工具会消失，但该条带仍可编辑、暂停、恢复或清除 goal。
 
+**运行时不变式：** 不发布伴生入口。插件只注册一个 GoalBar dock，其释放已由 HMR（热模块替换）安全性用例证明；持久状态来自 goal projection，进程本地 activation 来自入口私有钩子源，且该源只在框架钩子观察期间订阅。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -87,5 +89,3 @@ Web GUI 的 goal 界面同时显示持久 goal 状态及当前的进程本地激
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。插件只注册一个 GoalBar dock，其释放已由 HMR（热模块替换）安全性用例证明；持久状态来自 goal projection，进程本地 activation 来自入口私有钩子源，且该源只在框架钩子观察期间订阅。

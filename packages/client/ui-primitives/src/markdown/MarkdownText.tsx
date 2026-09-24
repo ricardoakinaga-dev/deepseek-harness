@@ -48,7 +48,7 @@ function renderSettled(
   const blocks = wrapBlockChildren(
     renderBlocks(root.children.map((node, index) => ({
       node,
-      /* v8 ignore next -- parseFull uses parseGfm, which stamps every top-level node. */
+      /*! v8 ignore next -- parseFull uses parseGfm, which stamps every top-level node. */
       key: node.position?.start.offset ?? -(index + 1),
     })), context),
     false,

@@ -34,7 +34,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Entry } from '@deepseek-ai/cordis-plugin-loader'
 import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import { exactPackageSpecifier, parseDshClient, stripClientSuffix } from './client/manifest.ts'
-import type { WebBootBatch, WebBootBatchPhase, WebBootEntry, WebBootGraph } from './client/manifest.ts'
+import type { ClientDynamicDelivery, WebBootBatch, WebBootBatchPhase, WebBootEntry, WebBootGraph } from './client/manifest.ts'
 
 export { stripClientSuffix } from './client/manifest.ts'
 export type {
@@ -54,6 +54,8 @@ interface WebBootRowFields {
   /** Module specifiers the package requests from the module table. */
   external: string[]
   immediately: boolean
+  /** Whether the package needs the explicit dynamic browser delivery marker. */
+  dynamic: boolean
 }
 
 /** Filesystem baseline captured before a client artifact snapshot is read. */
@@ -444,6 +446,7 @@ function graphRow(id: string, rev: string, fields: WebBootRowFields): WebBootEnt
     ...(fields.inject !== undefined ? { inject: fields.inject } : {}),
     ...(fields.immediately ? { immediately: true } : {}),
     ...(fields.external.length > 0 ? { external: fields.external } : {}),
+    ...(fields.dynamic ? { dynamic: true } : {}),
   }
 }
 
@@ -541,6 +544,10 @@ window.__ModuleLoader__={
   for (const batch of bootstrap) {
     rows.push({ kind: 'script-src', placement: 'head', src: batch.url })
   }
+  const dynamicDelivery: ClientDynamicDelivery = graph.entries.some(entry => entry.dynamic === true)
+    ? 'unsafe-eval-inline-style'
+    : 'disabled'
+  rows.push({ kind: 'global', name: '__DSH_DYNAMIC_CORDIS_DELIVERY__', value: dynamicDelivery })
   rows.push({ kind: 'global', name: '__DSH_BOOT__', value: graph })
   return rows
 }
@@ -809,6 +816,7 @@ export class ClientModuleRegistry extends Service {
       ...(decl.inject !== undefined ? { inject: decl.inject } : {}),
       external: decl.external ?? [],
       immediately: decl.immediately === true,
+      dynamic: decl.dynamic === true,
     }
     const resolved = { packageName, meta }
     this.pkgMeta.set(sourceKey, resolved)
@@ -1112,7 +1120,7 @@ export class ClientModuleRegistry extends Service {
   }
 
   private readonly serveBundle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-    /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server requests. */
+    /*! v8 ignore next -- `?? '/'` arm: node:http always sets url on server requests. */
     const response = await this.bundleResource(req.method, req.url ?? '/')
     res.writeHead(response.status, response.headers)
     res.end(response.body)

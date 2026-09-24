@@ -212,7 +212,7 @@ function parseCurrentTeamEvent(event: TeamSessionEvent): TeamSessionEvent {
       return { ...event, data: parsePersisted(event.type, teamMessageQueuedEventSchema, event.data) }
     case 'team/message/delivered':
       return { ...event, data: parsePersisted(event.type, teamMessageDeliveredEventSchema, event.data) }
-    /* v8 ignore next 2 -- TeamEventType is closed and every member is handled above. */
+    /*! v8 ignore next 2 -- TeamEventType is closed and every member is handled above. */
     default:
       return event
   }
@@ -229,7 +229,7 @@ function applyProjectionEvent(state: TeamProjectionState, event: SessionEvent): 
     }
     applyCurrentTeamEvent(state, parseCurrentTeamEvent(event))
   } catch (error: unknown) {
-    /* v8 ignore next -- the owned Team transition throws Error instances. */
+    /*! v8 ignore next -- the owned Team transition throws Error instances. */
     state.failure = error instanceof Error ? error.message : String(error)
   }
 }
@@ -297,7 +297,7 @@ function applyCurrentTeamEvent(state: TeamState, event: TeamSessionEvent): void 
       state.delivered.push(event.data.messageId)
       break
     }
-    /* v8 ignore next 2 -- TeamEventType is closed and every member is handled above. */
+    /*! v8 ignore next 2 -- TeamEventType is closed and every member is handled above. */
     default:
       return
   }

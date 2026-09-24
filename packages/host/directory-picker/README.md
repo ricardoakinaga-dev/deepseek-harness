@@ -100,6 +100,8 @@ These limits define when the seam contract leaves a decision to a future consume
 
 - **No multi-root support** — the browse contract exposes one ancestry chain per listing; per-deployment root scoping (and Windows drive-root enumeration above a drive) waits for a consumer that needs it, per the DirectoryPicker Agent Note.
 
+**Runtime invariant:** No companion is published. This stateless Service Definition owns the capability vocabulary, while backends and the Remote controller own observations.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -109,5 +111,3 @@ These limits define when the seam contract leaves a decision to a future consume
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This stateless Service Definition owns the capability vocabulary, while backends and the Remote controller own observations.

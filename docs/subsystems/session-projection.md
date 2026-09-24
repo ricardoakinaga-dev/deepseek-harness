@@ -64,6 +64,12 @@ interface ProjectionDefinition<
    * into garbage. Non-negative integer.
    */
   stateVersion: number
+  /**
+   * Optional runtime identity for state whose fold depends on process data
+   * that can change without a code version, such as Intl databases. A row is
+   * usable only when this value exactly matches, including absence.
+   */
+  cacheFingerprint?: string
 }
 ```
 
@@ -103,7 +109,9 @@ type ProjectionChangeListener = (
 
 ## The registry: `ctx.sessionProjections`
 
-`SessionProjectionRegistry` ([signatures](#ctxsessionprojections--sessionprojectionregistry)) owns the drive: one `session/event` subscription, eager `apply` over every registered unit, and per-session per-unit watermark cells. Cells build lazily — a unit registered after events flowed, or a session older than the registry, folds `init` over the in-memory log on first touch (event or read). Registration is an effect whose disposer rides the calling fiber: an unloaded domain plugin's key (with its cached cells) disappears from subsequent drives and snapshots, and clients read that as capability absence; a duplicate key with a different `stateVersion` throws, while same-version registrants share one unit and are counted. Domain plugins register under `ctx.inject(['sessionProjections'], …)` so headless assemblies without the registry stay unaffected.
+`SessionProjectionRegistry` ([signatures](#ctxsessionprojections--sessionprojectionregistry)) owns the drive: one `session/event` subscription, eager `apply` over every registered unit, and per-session per-unit watermark cells. Cells start from an exact creation, restore, or hydration cut; a live cell is never rebuilt by folding the Session history on first touch. Registration is an effect whose disposer rides the calling fiber: an unloaded domain plugin's key (with its cached cells) disappears from subsequent drives and snapshots, and clients read that as capability absence; a duplicate key with a different `stateVersion` or optional `cacheFingerprint` throws, while matching registrants share one unit and are counted. Domain plugins register under `ctx.inject(['sessionProjections'], …)` so headless assemblies without the registry stay unaffected.
+
+`prepareSession(preparation)` lets synchronous domain checks run after structural baseline validation but before the registry folds cells or attaches its append consumer. A check can validate the constructor cut and subscribe to accepted setup appends; Session rejects a later invalid append before changing its log or sequence. Removing a check prevents callbacks for future preparations, while each active preparation owns consumers already attached to its feed until sealing or disposal.
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
@@ -144,7 +152,7 @@ cachedSnapshot( meta: SessionHeader, inheritedEventCount: SessionLogOffset, keys
  * checkpoint can lag that log but cannot lead it because writes flush the
  * log first, so a matching predecessor title is a genuine (possibly stale)
  * fact from this Session. The registry still requires the current title
- * projection's row version and schema. No other predecessor projection is
+ * projection's row version, exact optional fingerprint, and schema. No other predecessor projection is
  * exposed: format normalization can change their current meaning, and the
  * strict {@link cachedSnapshot} / hydration paths continue to reject them.
  * @param meta - authoritative listed Session header.
@@ -202,26 +210,55 @@ Source: [`packages/session/session-projection-cache/src/index.ts`](../../package
 
 ### `ctx.sessionProjections` — `SessionProjectionRegistry`
 
-`ctx.sessionProjections`: the projection unit table and its drive. The service subscribes to `session/event` once; every committed event passes every registered unit's `apply` (eager drive). A changed state reference computes the next client view; the change feed is notified only when its raw result changes by `Object.is`. Cells build lazily — a unit registered after events flowed, or a session older than the registry, folds `init` over the in-memory log on first touch (event or read). Registration is an effect (disposer rides the calling fiber): an unloaded domain plugin's key disappears from snapshots and clients read it as capability absence. A host reader either declares `sessionProjections` in its plugin `inject` or fails explicitly when the registry or required key is absent. Contributors may preserve optional registration through `ctx.inject(['sessionProjections'], ...)`. Registrants sharing a key share one unit and are counted: the same tool package mounted in N agent presets registers N times, and the key survives until the last one unloads.
+`ctx.sessionProjections`: the projection unit table and its drive. The service subscribes to `session/event` once; every committed event passes every registered unit's `apply` (eager drive). A changed state reference computes the next client view; the change feed is notified only when its raw result changes by `Object.is`. Session cells are initialized from the creation baseline or an explicit restore/hydrate cut; a live cell is never reconstructed by reading Session history. Registration is an effect (disposer rides the calling fiber): an unloaded domain plugin's key disappears from snapshots and clients read it as capability absence. A host reader either declares `sessionProjections` in its plugin `inject` or fails explicitly when the registry or required key is absent. Contributors may preserve optional registration through `ctx.inject(['sessionProjections'], ...)`. Registrants sharing a key share one unit only when both `stateVersion` and optional `cacheFingerprint` match exactly; absent and defined fingerprints are incompatible. Such registrants are counted: the same tool package mounted in N agent presets registers N times, and the key survives until the last one unloads.
 
 ```ts cordis-catalog
 /**
- * Register one domain's unit. The registration is an effect on the calling
- * context's fiber: disposing the fiber (or calling the returned disposer)
- * removes the key — and the unit's cached cells — from subsequent drives
- * and snapshots.
- * @param definition - key, state schema, pure unit functions, and stateVersion.
+ * Register one domain's unit. Registrants with the same key share one fold
+ * only when both `stateVersion` and optional `cacheFingerprint` match exactly;
+ * absent and defined fingerprints are incompatible. The registration is an
+ * effect on the calling context's fiber: disposing the fiber (or calling the
+ * returned disposer) removes the key — and its cached cells — from subsequent
+ * drives and snapshots.
+ * @param definition - key, state schema, pure unit functions, and cache identity.
  * @returns the exact disposer that unregisters this unit.
  */
 register< K extends keyof SessionProjectionMap, S extends SessionProjectionStateMap[K], >( definition: Omit<ProjectionDefinition<K, S>, 'wire'> & { wire: NonNullable<ProjectionDefinition<K, S>['wire']> }, ): () => void
 
 /**
  * Register one host-only unit. Its state is omitted from client snapshots
- * and always checkpointed like every other unit.
- * @param definition - key, state schema, pure unit functions, and stateVersion.
+ * and always checkpointed like every other unit. Registrants with the same
+ * key share one fold only when both `stateVersion` and optional
+ * `cacheFingerprint` match exactly; absent and defined fingerprints are
+ * incompatible.
+ * @param definition - key, state schema, pure unit functions, and cache identity.
  * @returns the exact disposer that unregisters this unit.
  */
 register< K extends Exclude<keyof SessionProjectionStateMap, keyof SessionProjectionMap>, S extends SessionProjectionStateMap[K], >( definition: Omit<ProjectionDefinition<K, S>, 'wire'>, ): () => void
+
+/**
+ * Initialize every registered unit from the constructor cut and attach its
+ * synchronous append consumer before Agent construction. The preparation
+ * replays accepted suffix events first, then advances cells before each new
+ * append is accepted; publication seals that feed and the live event route
+ * continues from the same watermark.
+ * @param preparation - exact unpublished Session and its constructor baseline.
+ * @throws when the baseline or any projection transition is invalid.
+ */
+prepareSession(preparation: SessionPreparation): void
+
+/**
+ * Register synchronous validation for an unpublished Session's constructor
+ * baseline and setup appends. The registry calls listeners after checking
+ * baseline structure and before folding projection cells or attaching its
+ * own append consumer. A listener may attach a `SessionPreparation` append
+ * consumer; that consumer stays attached until preparation is sealed or
+ * disposed, even if this registration is later removed.
+ * The listener registration is an effect on its owning context's fiber.
+ * @param listener - synchronous validator for the exact preparation.
+ * @returns the exact disposer that removes this listener from future preparations.
+ */
+onBeforePrepareSession(listener: (preparation: SessionPreparation) => void): () => void
 
 /**
  * Subscribe to the change feed. The registration is an effect on the
@@ -243,7 +280,7 @@ stateOf<K extends keyof SessionProjectionStateMap>( session: Session, key: K, ):
 
 /**
  * One consistent cut over every registered client-visible unit for one session, read from
- * the watermark cache (missing cells fold lazily over the in-memory log).
+ * the watermark cache initialized by creation or an explicit restore/hydrate cut.
  * Fully synchronous — every value and `asOfSeq` reflect the same log
  * position. Each value passes its unit's `viewSchema` before leaving.
  * @param session - the session whose projection values are read.
@@ -264,8 +301,8 @@ cachedSnapshot( session: Session, keys?: readonly Extract<keyof SessionProjectio
 
 /**
  * State-level checkpoint of every persisted unit for one session, read
- * from the watermark cache (missing cells fold lazily over the in-memory
- * log). This is the write side of the persisted projection cache: the
+ * from the watermark cache initialized by creation or an explicit
+ * restore/hydrate cut. This is the write side of the persisted projection cache: the
  * returned rows are the `(key → {ver, seq, val})` part of the durable
  * `(sessionId, key, ver, seq, val)`
  * rows. Every `val` is a DETACHED structured clone — never the live
@@ -281,7 +318,8 @@ checkpoint(session: Session): ProjectionCheckpoint
 /**
  * The stored seq a {@link restore} tail read over `checkpoint` must start
  * at: one event BELOW the lowest usable watermark (a row is usable when
- * its `ver` matches the live unit's `stateVersion`; an absent or mismatched row
+ * its `ver` matches the live unit's `stateVersion` and its optional
+ * `cacheFingerprint` matches exactly, including absence; an absent or mismatched row
  * pulls the floor to `0` — that key must refold the full log). The
  * one-below anchor is load-bearing: the tail then proves how far the
  * stored log still extends, so {@link restore} can detect a log that
@@ -298,7 +336,8 @@ restoreFloor(checkpoint: ProjectionCheckpoint): SessionLogOffset | undefined
 
 /**
  * View a checkpoint's rows without any log read: for every registered
- * client-visible unit whose row's `ver` matches, serve the schema-validated
+ * client-visible unit whose `ver` matches the live `stateVersion` and whose
+ * optional `cacheFingerprint` matches exactly, including absence, serve the schema-validated
  * `view` of the schema-validated stored state; mismatched, malformed, or absent rows leave their key
  * absent (a cold or listing consumer treats it as not-yet-available and a
  * fuller read path refolds it). The zero-I/O rung of the read ladder —
@@ -316,8 +355,9 @@ viewCheckpoint( checkpoint: ProjectionCheckpoint, keys?: readonly Extract<keyof 
  * Call with the stored events at or past `restoreFloor(checkpoint)` (a
  * `SessionHandle.read` slice) and that same floor as
  * `baseSeq`; the floor's one-below anchor makes the supplied end honest,
- * so a shrunk log is detected here. A row is usable iff its
- * `ver` matches the live unit's `stateVersion`, it does not predate `baseSeq`
+ * so a shrunk log is detected here. A row is usable iff its `ver` matches
+ * the live unit's `stateVersion` and its optional `cacheFingerprint` matches
+ * exactly, including absence, it does not predate `baseSeq`
  * (`seq >= baseSeq - 1`), and it does not claim events past the
  * supplied end (`seq <= endSeq`); an unusable row is discarded
  * and its key refolds from `init` — which is only sound over the full
@@ -348,7 +388,7 @@ restore( checkpoint: ProjectionCheckpoint, events: readonly SessionEvent[], base
 hydrate( session: Session, checkpoint: ProjectionCheckpoint, events: readonly SessionEvent[], baseSeq: SessionLogOffset, ): ProjectionSnapshot
 ```
 
-Types: [Session](session.md) · [SessionEvent](session.md) · [SessionHeader](persistence.md) · [SessionLogOffset](session.md)
+Types: [Session](session.md) · [SessionEvent](session.md) · [SessionHeader](persistence.md) · [SessionLogOffset](session.md) · [SessionPreparation](persistence.md)
 
 Source: [`packages/session/session-projection/src/index.ts`](../../packages/session/session-projection/src/index.ts)
 <!-- END GENERATED cordis-surface -->

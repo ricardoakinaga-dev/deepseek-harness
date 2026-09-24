@@ -109,6 +109,25 @@ function resolveFrom(
     : internal.resolveSync(parent, { specifier, attributes }).url
 }
 
+function resolveFromWithoutAttributes(specifier: string, parent: string | undefined): string {
+  const addon = createRequire(import.meta.url)('node-addon-require-builtin') as {
+    requireBuiltin(id: string): unknown
+  }
+  const loader = addon.requireBuiltin('internal/modules/esm/loader') as {
+    getOrInitializeCascadedLoader(): {
+      getOrCreateModuleJob?: unknown
+      resolveSync(
+        first: string | undefined,
+        second?: string | { specifier: string },
+        third?: boolean,
+      ): { url: string }
+    }
+  }
+  const internal = loader.getOrInitializeCascadedLoader()
+  if (!('getOrCreateModuleJob' in internal)) return internal.resolveSync(specifier, parent).url
+  return internal.resolveSync(parent, { specifier }).url
+}
+
 function thrownMessage(callback: () => unknown): string {
   try {
     callback()
@@ -279,10 +298,12 @@ describe('profile resolution generation', { concurrent: false }, () => {
     expect(require.resolve('resolution-lib')).toBe(join(f.installed, 'index.cjs'))
     const parent = pathToFileURL(join(f.profile.dir, 'entry.mjs')).href
     expect(resolveFrom('resolution-lib', parent)).toBe(pathToFileURL(join(f.installed, 'index.js')).href)
+    expect(resolveFromWithoutAttributes('resolution-lib', parent))
+      .toBe(pathToFileURL(join(f.installed, 'index.js')).href)
     expect(resolveFrom('resolution-lib', parent, { type: 'javascript' }))
       .toBe(pathToFileURL(join(f.installed, 'index.js')).href)
     expect(resolveFrom('resolution-lib', parent)).toBe(pathToFileURL(join(f.installed, 'index.js')).href)
-    expect(import.meta.resolve('resolution-lib', parent)).toBe(pathToFileURL(join(f.installed, 'index.js')).href)
+    expect(resolveFrom('resolution-lib', parent)).toBe(pathToFileURL(join(f.installed, 'index.js')).href)
     expect(await importFrom('resolution-lib', parent)).toMatchObject({ marker: 1 })
   })
 

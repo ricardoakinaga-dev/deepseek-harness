@@ -98,7 +98,10 @@ export async function setup(config?: Config): Promise<Harness> {
   for (const name of ['cordis/request-run-resolved', 'cordis/dynamic-package', 'cordis/dynamic-retract'] as const) {
     ctx.on(name, (payload: unknown) => { gateway.events.push([name, payload]) })
   }
-  await ctx.plugin(DynamicCordisRunnerService, config)
+  await ctx.plugin(DynamicCordisRunnerService, config ?? {
+    deployment: 'browser',
+    browserDelivery: 'unsafe-eval-inline-style',
+  })
   const runner = ctx.dynamicCordisRunner
   return { ctx, runner, gateway }
 }

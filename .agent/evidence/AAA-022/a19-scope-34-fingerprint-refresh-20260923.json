@@ -1,0 +1,243 @@
+{
+  "record_id": "A19-SCOPE-34-FINGERPRINT-REFRESH-20260923-001",
+  "timestamp": "2026-09-23T18:10:56-03:00",
+  "record_kind": "A19_SCOPE_FINGERPRINT_REFRESH",
+  "scope": "AAA-022:A19 exact 31-path approved scope, owner allowlist, and authority binding",
+  "previous_current_gate": {
+    "path": ".agent/gates/audit-resolved-AAA-022-A19-scope-34-current.json",
+    "record_id": "GATE-AAA-022-AUDIT-RESOLVED-A19-SCOPE-34-CURRENT-001",
+    "candidate_fingerprint": "19c4a7ee6bf3486017885c46bece9eaf6c5c5f07acf9a7e05c4cd2a413f2dcaf",
+    "disposition": "preserved unchanged; the new A25 owner entry changed the shared policy input"
+  },
+  "approval": "The user approved the exact 34-path A19 documentation scope; the A25 interaction owner entry was added from A24’s independently approved exact ownership proposal before source edits.",
+  "path_set": {
+    "count": 34,
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session.i18n.yaml",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "added_since_prior_34_scope": [],
+    "removed_since_prior_34_scope": []
+  },
+  "owners": {
+    "prepared_session": {
+      "id": "prepared-session-projection-baseline",
+      "path_count": 32,
+      "paths": [
+        "packages/core/session/src/index.ts",
+        "packages/core/session/src/preparation.ts",
+        "packages/core/session/tests/session.spec.ts",
+        "packages/core/session/README.md",
+        "packages/core/session/README.zh.md",
+        "packages/core/session/README.i18n.yaml",
+        "packages/session/session-projection/src/index.ts",
+        "packages/session/session-projection/tests/registry.spec.ts",
+        "packages/session/session-projection/README.md",
+        "packages/session/session-projection/README.zh.md",
+        "packages/session/session-projection/README.i18n.yaml",
+        "packages/core/agent-loop/src/index.ts",
+        "packages/core/agent-loop/tests/resume.spec.ts",
+        "packages/core/agent-loop/tests/invariant.spec.ts",
+        "packages/core/agent-loop/tests/runtime-context.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+        "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+        "packages/core/agent-loop/README.md",
+        "packages/core/agent-loop/README.zh.md",
+        "packages/core/agent-loop/README.i18n.yaml",
+        "docs/subsystems/session.md",
+        "docs/subsystems/session.zh.md",
+        "docs/subsystems/session.i18n.yaml",
+        "docs/subsystems/persistence.md",
+        "docs/subsystems/persistence.zh.md",
+        "docs/subsystems/persistence.i18n.yaml",
+        "docs/subsystems/session-projection.md",
+        "docs/subsystems/session-projection.zh.md",
+        "docs/subsystems/session-projection.i18n.yaml",
+        "docs/architecture.md",
+        "docs/architecture.zh.md",
+        "docs/architecture.i18n.yaml"
+      ],
+      "session_docs_included": true
+    },
+    "interaction": {
+      "id": "interaction-session-reader-invariants",
+      "path_count": 31,
+      "matches_approved_a24_paths": true,
+      "overlaps_a19_owner": false
+    },
+    "api_catalog": {
+      "path": "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "owners": [
+        "session-reader-migration",
+        "dynamic-extension-trust"
+      ]
+    },
+    "policy_file_owner": "upstream-safe-customization-governance"
+  },
+  "candidate_fingerprint": "9d0ff4573d47479fffff5deb958711b6c7124c91722344f305c72a1add243bcd",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session.i18n.yaml",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "hash_rule": "For each listed relative path in sorted order, update with UTF-8 path, NUL, raw SHA-256 digest of file bytes, NUL.",
+    "file_count": 34,
+    "file_sha256": {
+      ".agents/customization-policy.json": "282089277d44b5fe785c8bfcf13c0ee324d7fa80cd20bffb09fce34207604cd3",
+      "docs/architecture.i18n.yaml": "13adf22627b605e5102b21afba489eaa8e54dcebad5058d0eaeb2298466bbb22",
+      "docs/architecture.md": "196c453bd14b1486fad83f1cc7b7b2de4e81399e76c7e83a191622bff0de7438",
+      "docs/architecture.zh.md": "50c0ba09896eb0042ba1348c1c8e108f477984a1407d7903e1e4c19711f9a0d8",
+      "docs/subsystems/persistence.i18n.yaml": "dfb4afc298b72624345ec71b571314d781016c5356586a112d82c6ce9b985d37",
+      "docs/subsystems/persistence.md": "a97d5a521c76fdaac1e910778564d74fcf13546391caf2063850ad7a1b9e2640",
+      "docs/subsystems/persistence.zh.md": "bf32617f5bec0187b626b740c33c39e56faeffbb9ce864143002724ee16b06ad",
+      "docs/subsystems/session-projection.i18n.yaml": "3ee16458a103bd59d966151bb26089eaccfe3cc5c864aed240b43fef2a52aa4c",
+      "docs/subsystems/session-projection.md": "e923abf355abeba04224751344d304f48e20153440417b9bc8a0c23261369da0",
+      "docs/subsystems/session-projection.zh.md": "6f314c2b7392420de17d96f1dc2d98691f882942abe1e37d73579f0b23008951",
+      "docs/subsystems/session.i18n.yaml": "2d544170b8e36588917b2a54e33bdfcbb4d3b6f5954202b1a148a42d0228e476",
+      "docs/subsystems/session.md": "52f39d9a69fb3ee1adb4660f45e3822bfbcea499e4ff2cd36191d3b71aaaf9f9",
+      "docs/subsystems/session.zh.md": "b074c4b44ee6d87ba9a13cff6da235593266fd897185f4b7d222ea77176ee9e4",
+      "packages/core/agent-loop/README.i18n.yaml": "3e5bc5b664005f2aae65eeaa013ac32e33571f4df9eb7ff9ccf6a30a46b0678f",
+      "packages/core/agent-loop/README.md": "ccce148e349087c0beed2c6652215daa743b88466f5d87f3c48fdbdb434e368e",
+      "packages/core/agent-loop/README.zh.md": "e04a35de8347cd23a0ec00319ec3f0826afe3fcfffff18e15e04ac8d000fd708",
+      "packages/core/agent-loop/src/index.ts": "963798db801edaf2b83d17fc096128398bd9cc6d50ff64977573345975da2648",
+      "packages/core/agent-loop/tests/invariant.spec.ts": "aceaecfec38556bc876b4284dba17287b2dec2d888f7772f51604af5888fa8dd",
+      "packages/core/agent-loop/tests/resume.spec.ts": "558c57bc23e157ada7e780de9c4e40e9a67dc48add7d47c06d24c8eff26aba5b",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts": "e3e4cdddc2d7f73915afe79fa2bd19715c7f57b11c7ac662d4e31752734b2ba9",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts": "4a53d24b33e687b64cda8674998c9b3ba1b80edc6b1d5be7f345dbc0f096fa40",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts": "cf64519e1b37072d929c5b97592aa2da60696d4de8781d90ac233450ae01dc07",
+      "packages/core/session/README.i18n.yaml": "4f919a919b9adb3e5c7f93c2408e4f98e2915bc0de75fed8cb4cf03b9b382b85",
+      "packages/core/session/README.md": "679c439f61d9fff72c366980a9ebf63b2f85717ecae4df90ba98b48d574be0de",
+      "packages/core/session/README.zh.md": "1accdab6d9bfaaf424676dc43df8bf9cef5f4e5a9986ee52641c10c1f799e9a0",
+      "packages/core/session/src/index.ts": "879b8eba7fe61a1e08c4c8af08b5e2137a3f682ae0b642bfeda18feb8d08bed0",
+      "packages/core/session/src/preparation.ts": "d8f32d4c74cdd77267d56b0092161e69c84de95452d7cf7ee9d051c655228b3f",
+      "packages/core/session/tests/session.spec.ts": "6609cd47052a4d720ea4334840c725fd197a190cd3179b3cc7ec5c8f78a5639e",
+      "packages/extensions/tool-cordis/src/api-catalog.ts": "08ee1728154fb482147fca28c75a21d38d6efca0881654c844ed0e46edb04c79",
+      "packages/session/session-projection/README.i18n.yaml": "537ec57d9e816a2888f942b4a399b87799edd820073439b846453dd0b0242031",
+      "packages/session/session-projection/README.md": "088f5c75ae940a8520e6d2b2a85165e503236d6bb6d054ffa8762ad5831177e6",
+      "packages/session/session-projection/README.zh.md": "d11390564021aae5b4478c65a060a6527c44446d74935d93e36b8a784a9a46f3",
+      "packages/session/session-projection/src/index.ts": "5c31245f90025e0cfb62dfd0760f1d2ca2ea8c8bdc5077ffc9b9b975b21818c7",
+      "packages/session/session-projection/tests/registry.spec.ts": "49d210ab6283da3b11096182a47f2999a4ca80dafe83946870f65dfbf755dcc1"
+    },
+    "preexisting_dirty_worktree": true
+  },
+  "fingerprint_change": {
+    "previous": "19c4a7ee6bf3486017885c46bece9eaf6c5c5f07acf9a7e05c4cd2a413f2dcaf",
+    "current": "9d0ff4573d47479fffff5deb958711b6c7124c91722344f305c72a1add243bcd",
+    "changed_input": [
+      ".agents/customization-policy.json"
+    ],
+    "reason": "A25 registered its approved exact 31-path interaction owner before implementation; this shared file is one of A19’s 34 fingerprint inputs. A19 membership and owner paths remain unchanged."
+  },
+  "verification": {
+    "verify_type_equiv": {
+      "command": "pnpm run verify-type-equiv",
+      "exit_status": 0,
+      "result": "PASS",
+      "summary": "437 source/JSDoc type-equivalence blocks and 437 paired derivatives."
+    },
+    "verify_cordis_catalog": {
+      "command": "pnpm run verify-cordis-catalog",
+      "exit_status": 0,
+      "result": "PASS",
+      "summary": "111 generated catalog files/regions current."
+    },
+    "test_docs": {
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "result": "PASS",
+      "summary": "22 passed, 0 failed, 0 skipped."
+    },
+    "scoped_diff_check": {
+      "command": "git diff --check -- [exact 34 A19 fingerprint inputs]",
+      "exit_status": 0,
+      "result": "PASS"
+    },
+    "a19_owner": {
+      "result": "PASS",
+      "path_count": 32,
+      "unique_paths": true,
+      "session_docs_included": true
+    },
+    "a25_owner": {
+      "result": "PASS",
+      "path_count": 31,
+      "exactly_matches_a24_proposal": true,
+      "api_catalog_and_policy_excluded": true
+    },
+    "doc_sync": {
+      "result": "PARTIAL",
+      "latest_record": ".agent/verification.jsonl#VER-AAA-022-DOC-SYNC-CURRENT-20260923-002",
+      "summary": "37 passed, 6 failed; no new repository-wide doc-sync run is claimed."
+    }
+  },
+  "limitations": [
+    "The repository-wide state checker retains its 359-finding baseline.",
+    "Repository-wide doc-sync remains PARTIAL at 37/43.",
+    "This refresh changes no source code, Session data, runtime behavior, or A19 owner membership."
+  ]
+}

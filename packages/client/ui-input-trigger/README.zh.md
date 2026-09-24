@@ -78,6 +78,8 @@ kind: "package-reference"
 - **只有全局 source 层**——会话 scope 的 source 注册（逐会话遮蔽）已有设计但未启用；台账记录着触发条件，即真实的逐会话 source 需求。
 - **overlay 的 SlotMap 合并归属与 slot 所有权分离**：唯一的 `conversation.input.overlay` 合并放在本包，而 ui-conversation 拥有其锚点、children 声明与生命周期，因为依赖方向是 ui-conversation → ui-input-trigger。
 
+**运行时不变式：** 不发布伴生入口。触发流水线是浏览器侧纯内核（检测／归约／匹配）加一个注册表，其资源释放已由 HMR（热模块替换）安全性测试证明；它不发出 Cordis 事件，也不持有跨插件可变状态。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -87,5 +89,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。触发流水线是浏览器侧纯内核（检测／归约／匹配）加一个注册表，其资源释放已由 HMR（热模块替换）安全性测试证明；它不发出 Cordis 事件，也不持有跨插件可变状态。

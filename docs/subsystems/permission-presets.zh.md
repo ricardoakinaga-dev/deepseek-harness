@@ -74,6 +74,14 @@ interface PresetOption {
 
 `permission/preset` 是持久、仅记日志的用户意图：它不进入模型 transcript（文本记录），模型可见的后果由 knob 事件经各自消费方承担；它存在是为了在两个预设共享同一个旋钮组合时，让 `current()` 仍能保住用户选择的究竟是哪一个预设。`permissions` 投影把该选择与两个 knob 事件一同折叠，并保留用于区分空恢复 seed 与新会话的 `session/end-seed` 边界；回放不需要任何追赶状态或原始日志重扫。恢复的 `auto` 选择在 agent 发布前必须存在 live Auto 注册。完整事件声明见[持久化日志事件目录](../persistence-catalog.zh.md)；方法签名见生成的[服务目录](#ctxpermissionpresets--permissionpresetservice)。
 
+<a id="preset-history-validation"></a>
+
+## 预设历史校验
+
+权限不变式会从每个 Session 的精确连续折叠中检查所有 `permission/preset` 名称。它从借用的创建基线开始，并在事件提交后推进；`permissions` 投影只保留当前选择，无法校验较早的名称。候选事件提交前，伴生插件要求折叠末尾等于候选事件前一序列，并根据配置表或当前存活的 Auto 条目检查候选名称。
+
+创建与恢复基线若含有未知预设名称就会失败。`auto` 名称只有在其 integration 仍存活时才有效。服务提供者与不变式 fiber 会为同一精确 Session 共享一份折叠；卸载其中一个 fiber 时，只要仍有其他 lease，折叠就会保留。最后一个 lease 释放后，折叠会被删除，因此后续提供者无法从日志重建已有事件的 Session，而空 Session 可以从空前缀开始。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>

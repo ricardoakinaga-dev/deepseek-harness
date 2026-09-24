@@ -1,0 +1,78 @@
+{
+  "record_id": "GATE-AAA-009-IMPLEMENTATION-READY-001",
+  "timestamp": "2026-09-21T22:40:03-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-009 approved client-domain ownership and shared document API implementation",
+  "scope_ref": "AAA-009",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The current evidence inventories all 38 client-domain graph violations, and the maintainer decision confirms the proposed Conversation input, Browser, document shared API, renderer, and Office-to-PDF assembly ownership.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-009/findings.json",
+        ".agent/evidence/AAA-023/decision-package-a12.json",
+        ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The authority approves the proposed ownership and API placement; implementation must still preserve the package's existing public loading and slot behavior."
+    },
+    {
+      "id": "IR-002",
+      "description": "The implementation is bounded to the five inventoried groups: move composer and Browser presentation bodies to their owning domains, place only the approved document contract/registry/tab-lifetime helpers in shared package modules, update renderer imports, and keep top-level index.ts as the Office-to-PDF assembly owner.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-009/findings.json",
+        "packages/client/AGENTS.md",
+        "scripts/verify-client-domain-graph.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The change must not widen feature-plugin public exports, introduce cross-domain implementation imports, hand-edit generated module-graph projections, or alter unrelated client packages."
+    },
+    {
+      "id": "IR-003",
+      "description": "Acceptance requires the client-domain verifier, affected Conversation/Browser/document-preview component and composition tests, the relevant client-face typechecks, module-graph regeneration through its owner, bilingual pairing, and the scoped policy and whitespace checks to pass.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-009/findings.json",
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate authorizes implementation only; command results and a retained verification record are required before completion."
+    }
+  ],
+  "evidence": [
+    ".agent/evidence/AAA-009/findings.json",
+    ".agent/evidence/AAA-023/decision-package-a12.json",
+    ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+    "packages/client/AGENTS.md",
+    "scripts/verify-client-domain-graph.ts"
+  ],
+  "candidate_fingerprint": "4f3e6e2794d0e84d9c29200276e8e685265c1b12eb30d42bb7f4503968a958cc",
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-009 approved client-domain ownership and shared document API implementation",
+    "decision": "Implement the proposed Conversation input, Browser, document shared API, renderer, and Office-to-PDF assembly ownership; preserve top-level composition as the only cross-domain assembly owner.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-009-IMPLEMENTATION-A18-001",
+    "expires_or_revalidates": "Revalidate if the client-domain verifier changes, the shared document API expands beyond contract/registry/tab-lifetime, or the implementation requires a new public feature-plugin value export."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Start AAA-009:A03 to implement the approved client-domain ownership and shared document API changes, then run the required focused graph, GUI, type, generator, documentation, policy, and whitespace checks.",
+  "revalidation_triggers": [
+    "The implementation changes a package's public browser entrypoint beyond existing type or loading exports.",
+    "A renderer needs a new cross-domain runtime dependency not covered by the approved shared API.",
+    "The graph verifier or module-graph generator changes its ownership rules."
+  ],
+  "supersedes": null
+}

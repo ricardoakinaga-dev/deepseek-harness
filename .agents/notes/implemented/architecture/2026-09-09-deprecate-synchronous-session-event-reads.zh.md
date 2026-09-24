@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决策
 
-弃用所有同步读取会话事件历史任意位置或区间的操作，包括 `Session.eventAt()`、`Session.snapshotEvents()` 和 `Session.ownEvents()`。现有逻辑可以暂不迁移，但禁止新增调用。同样禁止新增暴露相同同步历史访问能力的别名或包装层。
+弃用所有同步读取会话事件历史任意位置或区间的操作，包括 `Session.eventAt()`、`Session.snapshotEvents()` 和 `Session.ownEvents()`。现有生产调用者保留在迁移清单中；禁止新增调用。同样禁止新增暴露相同同步历史访问能力的别名或包装层。
 
 这三个方法通过 `@deprecated` JSDoc 声明该规则。这是 API 使用决策；当前 Session 实现仍在内存中保留完整事件序列。
 

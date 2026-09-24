@@ -1,0 +1,97 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A29",
+  "kind": "UPSTREAM_REHEARSAL",
+  "observed_at": "2026-09-22T18:16:21-03:00",
+  "candidate": {
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "worktree": "/home/ricardo/dsh-aaa023-candidate.A28.Pqciac",
+    "preserved": true
+  },
+  "refs": {
+    "official": {
+      "name": "deepseek-official/master",
+      "commit": "00102833dfaee1da9f48a3a8eae9d34005a75218"
+    },
+    "fork": {
+      "name": "origin/master",
+      "commit": "ddefc45fbc7f8e46dd73185e68295696d1297887"
+    },
+    "candidate_official_merge_base": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+    "candidate_fork_merge_base": "ddefc45fbc7f8e46dd73185e68295696d1297887"
+  },
+  "rehearsal": {
+    "disposable_worktree": "/tmp/dsh-a29-upstream.py7Jrb/rehearsal",
+    "candidate_vs_official_name_status_lines": 5641,
+    "candidate_vs_fork_name_status_lines": 1445,
+    "merge_command": "git merge --no-commit --no-ff deepseek-official/master",
+    "merge_exit_status": 1,
+    "conflicted_paths": 233,
+    "conflict_kinds": {
+      "content": 218,
+      "modify_delete": 12,
+      "file_location": 3
+    },
+    "unmerged_index_stage_rows": 681,
+    "abort_command": "git merge --abort",
+    "abort_exit_status": 0,
+    "restored_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "post_abort_status_entries": 0
+  },
+  "policy": {
+    "command": "node scripts/verify-customization-policy.mjs --base origin/master",
+    "result": "PASS",
+    "exit_status": 0,
+    "improvements": 23,
+    "attributed_paths": 1445,
+    "policy_sha256": "8198f932d4b2e9d696b7ac393219a301b9d4ae62cc29a46e16ccdc4da676059e"
+  },
+  "conflict_attribution": {
+    "policy_matched": 230,
+    "unowned": 3,
+    "multi_owner": 0,
+    "owner_counts": {
+      "aaa-quality-program": 10,
+      "persistent-shell-diagnostics": 7,
+      "upstream-safe-customization-governance": 1,
+      "dependency-security-remediation": 17,
+      "runtime-resolution-and-ci-fixtures": 3,
+      "resilient-compaction": 8,
+      "client-domain-ownership": 30,
+      "generated-persistence-catalog": 4,
+      "plugin-manager-build-approval": 8,
+      "dynamic-extension-trust": 4,
+      "coverage-comment-preservation": 29,
+      "package-readme-section-order": 82,
+      "package-source-export-policy": 18,
+      "gateway-close-quiescence": 1,
+      "http-bridge-memory-admission": 2,
+      "client-readme-contracts": 1,
+      "source-built-tool-runtime-identity": 1,
+      "frontend-static-symlink-containment": 2,
+      "jobs-lifecycle-test": 1,
+      "session-reader-migration": 1
+    },
+    "unowned_paths": [
+      ".agents/notes/archived/architecture/2026-08-03-per-session-agent-presets.i18n.yaml",
+      "packages/client/ui-settings-agent-loop/README.i18n.yaml",
+      "packages/preset/agent-preset-registry/src/composition-inventory.ts"
+    ],
+    "disposition": "The three unowned conflict paths are retained for A30 exact disposition. No new owner, wildcard, deletion, conflict resolution, or policy mutation was applied."
+  },
+  "result": "PARTIAL",
+  "limitations": "The official upstream update is not cleanly mergeable into the successor: 233 paths conflict. The policy verifier passes for the successor, but the three conflict paths without an existing compatible owner require exact disposition. The rehearsal was disposable and ended after merge abort; no candidate, custom/main, merge, push, publication, registry, release, or final verdict action occurred.",
+  "artifacts": {
+    "repository_evidence": ".agent/evidence/AAA-023/upstream-rehearsal-a64.json",
+    "temporary_manifests": [
+      "/tmp/dsh-a29-candidate-vs-official.txt",
+      "/tmp/dsh-a29-candidate-vs-fork.txt",
+      "/tmp/dsh-a29-unmerged.txt",
+      "/tmp/dsh-a29-conflicts.txt",
+      "/tmp/dsh-a29-merge.log",
+      "/tmp/dsh-a29-conflict-unowned.txt",
+      "/tmp/dsh-a29-conflict-multi.json"
+    ]
+  }
+}

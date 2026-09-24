@@ -31,6 +31,10 @@ kind: "package-reference"
 
 `ctx.sessions.create()` 构建绑定到调用方 fiber 的实时会话；`get(id)` 与 `list()` 查找会话，`fork()` 从实时会话的稳定前缀创建子会话。
 
+在同步发布期间，`session/created` 监听器会收到临时的 `SessionCreationBaseline`，其中包含发布前的精确事件前缀与 `firstLiveSeq`；应在回调期间消费它，不要把它保留为历史读取器。生命周期消费方可以在 `session/event` 开始前初始化派生状态。
+
+当同步消费方需要在接受脱离存储的写入前进行预检时，必须在首次追加前调用 `SessionPreparation.create(session)`。它保留构造切点，并按顺序将已接受的追加交给这些消费方；若转换或状态 schema 检查失败，该追加会在日志或序列变化前被拒绝。即使没有准备 feed，在 `sessions.enter()` 前提交的每个追加也会出现在 `session/created` 基线中。`sessions.enter()` 会封存活动 feed。
+
 ```text
 const session = ctx.sessions.create(sessionId, { meta: { cwd: '/workspace' } })
 ctx.sessions.get(sessionId)      // the live session
@@ -57,7 +61,7 @@ session.deriveMessages()         // the derived model history
 
 ### 读取日志
 
-`session.seq` 无需物化数组即可读取当前日志长度，`session.eventAt(seq)` 按序列号读取单个已接受且深度冻结的事件。`session.snapshotEvents(fromSeq?, toSeqExclusive?)` 会物化半开区间的冻结稳定快照；当前完整快照会缓存到下一次追加。`eventAt()`、`snapshotEvents()` 和 `ownEvents()` 已弃用：现有逻辑可以暂不迁移，但禁止新增生产调用。仓库测试文件可以在限定范围的 lint 豁免下使用这三个读取方法（[策略](../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.zh.md)）。只需要长度的调用方使用 `seq`。
+`session.seq` 无需物化数组即可读取当前日志长度，`session.eventAt(seq)` 按序列号读取单个已接受且深度冻结的事件。`session.snapshotEvents(fromSeq?, toSeqExclusive?)` 会物化半开区间的冻结稳定快照；当前完整快照会缓存到下一次追加。`session.isCommittedEvent(event)` 只按对象身份检查从会话事件流收到的规范事件，不读取历史。`eventAt()`、`snapshotEvents()` 和 `ownEvents()` 已弃用：现有逻辑可以暂不迁移，但禁止新增生产调用。仓库测试文件可以在限定范围的 lint 豁免下使用这三个读取方法（[策略](../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.zh.md)）。只需要长度的调用方使用 `seq`。
 
 会话日志位置使用两种数字类型。`SessionSeq` 标识已有事件或包含端点的事件水位；`SessionLogOffset` 标识间隙、前缀长度或读取边界，并且可以等于事件数量。`SessionSeqCursor` 添加 `-1` 这个“尚无事件”值，`OptionalSessionSeq` 则在缺失本身属于数据时使用 `null`。构造函数会校验非负安全整数，brand 在运行时会被擦除，因此持久 JSON 与 wire 值仍是普通数字。
 

@@ -115,11 +115,11 @@ export async function saveTextFile(options: SaveTextOptions): Promise<SavedText>
       handle = await open(path, 'wx', 0o600)
       break
     } catch (error: unknown) {
-      /* v8 ignore start -- requires another process to remove the directory
+      /*! v8 ignore start -- requires another process to remove the directory
          between mkdir and open, or an external permission/IO race. */
       if (isErrno(error, 'ENOENT')) continue
       throw error
-      /* v8 ignore stop */
+      /*! v8 ignore stop */
     }
   }
   try {

@@ -32,6 +32,8 @@ interface WebBootEntry {
   immediately?: boolean
   /** Non-baseline module specifiers this row requests; omitted when it requests none. */
   external?: string[]
+  /** Marks a package whose browser code requires the explicit dynamic delivery policy. */
+  dynamic?: boolean
 }
 ```
 

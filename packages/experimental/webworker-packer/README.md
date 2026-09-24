@@ -59,6 +59,8 @@ None; this package neither assembles nor sends a provider request.
 - **The CLI requires its original repository location**: `dsh-pack-vfs-image` finds the checkout relative to its own installed file and reads the source CLI, configuration trees, and preview fixtures there. An npm installation supports the parameterized library API; the CLI and repository helpers require a complete, built DeepSeek Harness checkout.
 
 
+**Runtime invariant:** No companion is published. This package is a build-time pass with no production event stream or mutable data; the pack's own gates (unresolvable own requests, the all-or-nothing wrapper contract) fail the pack instead.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -68,5 +70,3 @@ None; this package neither assembles nor sends a provider request.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package is a build-time pass with no production event stream or mutable data; the pack's own gates (unresolvable own requests, the all-or-nothing wrapper contract) fail the pack instead.

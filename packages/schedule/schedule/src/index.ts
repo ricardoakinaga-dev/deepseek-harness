@@ -6,8 +6,9 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-session-persistence'
-// Type-only: resolves ctx.sessionProjections for the optional projection child.
+// Type-only: resolves the required ctx.sessionProjections host service.
 import type {} from '@deepseek-ai/dsh-session-projection'
+import { ScheduleLogError } from './domain.ts'
 import { scheduleProjectionDefinition } from './projection.ts'
 import { ScheduleRuntime } from './runtime.ts'
 import { registerScheduleTools } from './tools.ts'
@@ -35,15 +36,17 @@ export { registerScheduleTools } from './tools.ts'
 /** Cordis function-plugin name. */
 export const name = 'schedule'
 /** Services required before future root agents can receive Schedule. */
-export const inject = ['agents', 'sessions', 'tools', 'sessionPersistence']
+export const inject = ['agents', 'sessions', 'tools', 'sessionPersistence', 'sessionProjections']
 
 type OwnerCleanup = () => void | Promise<void>
 
 /** Install Schedule only for root agents published after this plugin loads. */
 export function apply(ctx: Context): void {
-  ctx.inject(['sessionProjections'], (projectionCtx) => {
-    projectionCtx.sessionProjections.register(scheduleProjectionDefinition)
-  })
+  const projections = ctx.get('sessionProjections')
+  if (projections === undefined) {
+    throw new Error('Schedule requires the SessionProjectionRegistry service')
+  }
+  ctx.effect(() => projections.register(scheduleProjectionDefinition))
 
   const runtimes = new Map<Agent, OwnerCleanup>()
   let stopping = false
@@ -55,9 +58,15 @@ export function apply(ctx: Context): void {
       const cleanup: OwnerCleanup = agent.ctx.effect(() => {
         const disposeTools = registerScheduleTools(ctx, agent.ctx, agent, () => { runtime.requestDrive() })
         const stopStatus = agent.ctx.on('agent/status', ({ status }) => {
-          // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-          if (status === 'idle' && agent.session.snapshotEvents().some(event => event.type === 'schedule/change')) {
-            runtime.requestDrive()
+          if (status !== 'idle') return
+          try {
+            const projection = ctx.sessionProjections.stateOf(agent.session, 'schedule')
+            if (projection === undefined) {
+              throw new Error('required schedule session projection is unavailable')
+            }
+            if (projection.seenIds.length > 0) runtime.requestDrive()
+          } catch (error: unknown) {
+            if (!(error instanceof ScheduleLogError)) throw error
           }
         })
         runtime.start()

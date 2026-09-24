@@ -10,6 +10,7 @@ import type {
 } from '@deepseek-ai/dsh-attachment'
 import type { FileUploadReceiptId } from '@deepseek-ai/dsh-client-file-upload/types'
 import type {} from '@deepseek-ai/dsh-client-file-upload'
+/*! v8 ignore start -- V8 attributes the imported module branch here; the Session-agent module owns that behavior. */
 import {
   ReasoningEffortId, assistantStreamChunks, createUserMessage, freezeMessage,
 } from '@deepseek-ai/dsh-llm'
@@ -32,6 +33,7 @@ import {
   hasApiSessionSubagentOwner,
   inspectApiSession,
 } from './agent.ts'
+/*! v8 ignore stop */
 import type {
   SessionAttachmentRequest,
   SessionAttachmentValue,
@@ -484,7 +486,7 @@ export class SessionCommandController {
         agent.inbox.remove(request.itemId)
         agent.steer(message)
         break
-      /* v8 ignore next 2 -- closed-union exhaustiveness guard */
+      /*! v8 ignore next 2 -- closed-union exhaustiveness guard */
       default:
         assertNever(request.action, 'queue action')
     }

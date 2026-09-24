@@ -57,6 +57,7 @@
 - `docs/AGENTS.md`、`.agents/notes/**/AGENTS.md` 以及指向它们的 `CLAUDE.md` 指令符号链接：agent 指令，与根 `AGENTS.md` 一样只以英文维护。
 - `docs/i18n/terminology.md` 与 [style-samples.md](style-samples.md)：二者本身即为中英对照文档。
 - [translation-prompt.md](translation-prompt.md)：自动翻译流水线的提示词模板；正文逐字进入模型请求，配对翻译会改变流水线行为。
+- `docs/audits/`：由审计程序负责的 fork 本地葡萄牙语审计与整改产物。该例外仅适用于此目录；不允许将其用于 `docs/` 下其他未配对文档，也不能在没有新的政策记录时扩大范围。
 - [review-ownership/README.md](../../.github/review-ownership/README.md)：仓库内部审批策略，只以英文维护。
 - `.agents/notes/archived/`：冻结的历史三文件配对。[`verify-archived-agent-notes`](../../scripts/verify-archived-agent-notes.ts) 校验其完整性和内容封存记录；翻译维护绝不能重写这些文件。
 

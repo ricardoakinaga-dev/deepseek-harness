@@ -33,7 +33,7 @@ describe('title projection unit', () => {
     const { ctx, session } = await harness(true)
     const snapshot = ctx.sessionProjections.snapshot(session)
     expect(snapshot.values.title).toBeNull()
-    expect(ctx.sessionProjections.checkpoint(session).title).toEqual({ ver: 1, seq: -1, val: null })
+    expect(ctx.sessionProjections.checkpoint(session).title).toEqual({ ver: 2, seq: -1, val: null })
   })
 
   it('serves the latest title last-wins and notifies the change feed with the causing seq', async () => {
@@ -52,21 +52,51 @@ describe('title projection unit', () => {
     const snapshot = ctx.sessionProjections.snapshot(session)
     expect(snapshot.values.title).toBe('Second title')
     expect(snapshot.asOfSeq).toBe(session.seq - 1)
+    expect(ctx.sessionProjections.stateOf(session, 'title')).toMatchObject({
+      title: 'Second title',
+      messageSeqs: [firstSeq - 1],
+      source: { kind: 'fallback' },
+      eventSeq: secondSeq,
+    })
   })
 
-  it('reads the version-1 string checkpoint format used by existing title caches', async () => {
+  it('discards the predecessor string checkpoint after the title state version changes', async () => {
     const { ctx } = await harness(true)
 
     expect(ctx.sessionProjections.viewCheckpoint({
       title: { ver: 1, seq: SessionSeq(8), val: 'Cached title' },
-    })).toEqual({ title: 'Cached title' })
+    })).toEqual({})
   })
 
-  it('folds titles already in the log when the service mounts late (lazy cell build)', async () => {
+  it('reconstructs title metadata from a checkpoint and an ordered event tail', async () => {
+    const { ctx, session } = await harness(true)
+    const checkpoint = ctx.sessionProjections.checkpoint(session)
+    const titleSeq = appendTitle(session, 'Reconstructed title')
+
+    const restored = ctx.sessionProjections.restore(
+      checkpoint,
+      session.snapshotEvents(),
+      SessionLogOffset(0),
+      session.header,
+      session.inheritedEventCount,
+    )
+
+    expect(restored.snapshot.values.title).toBe('Reconstructed title')
+    expect(restored.checkpoint.title).toMatchObject({
+      ver: 2,
+      seq: titleSeq,
+      val: {
+        title: 'Reconstructed title',
+        eventSeq: titleSeq,
+      },
+    })
+  })
+
+  it('rejects service registration after events without an explicit restore cut', async () => {
     const { ctx, session } = await harness(false)
     appendTitle(session, 'Pre-mount title')
-    await ctx.plugin(SessionTitleService, CONFIG)
-    expect(ctx.sessionProjections.snapshot(session).values.title).toBe('Pre-mount title')
+    await expect(ctx.plugin(SessionTitleService, CONFIG))
+      .rejects.toThrow(/requires an exact baseline/)
   })
 
   it('has no title key without the title service, and drops it when the service unloads (HMR safety)', async () => {
@@ -81,6 +111,7 @@ describe('title projection unit', () => {
 
   it('keeps thousands of title inputs as a bounded aggregate and checkpoints it', async () => {
     const { ctx, session } = await harness(false)
+    await ctx.plugin(SessionTitleService, CONFIG)
     session.append('turn/start', { turn: 1 })
     for (let index = 0; index < 5_000; index++) {
       session.append('user/message', createUserMessage({
@@ -88,8 +119,6 @@ describe('title projection unit', () => {
         source: { kind: 'user' },
       }), { surfaceOp: 'append' })
     }
-    await ctx.plugin(SessionTitleService, CONFIG)
-
     const state = ctx.sessionProjections.stateOf(session, 'titleInput')
     expect(state?.count).toBe(5_000)
     expect(state?.first?.text).toBe('message 0')

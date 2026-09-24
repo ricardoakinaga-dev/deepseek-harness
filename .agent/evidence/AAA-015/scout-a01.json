@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-015",
+  "action_id": "AAA-015:A01",
+  "candidate_ref": "current custom/main worktree",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T23:15:16-03:00",
+  "scout": {
+    "agent_id": "01a0c1b4-263d-79b2-b732-daac662b4a07",
+    "independence": "I1",
+    "mechanism": "multi_agent_v1 with fork_context=false",
+    "authorization": "read-only"
+  },
+  "source_documents": [
+    "docs/audits/auditoria-completa-2026-09-20.md:73",
+    "packages/extensions/cordis-host-runner/src/index.ts",
+    "packages/extensions/cordis-host-runner/src/registry.ts",
+    "packages/extensions/cordis-host-runner/src/sandbox.ts",
+    "packages/extensions/cordis-client-runner/src/client/evaluator.ts",
+    "packages/extensions/cordis-client-runner/src/client/orchestrator.ts",
+    "packages/extensions/cordis-client-runner/src/client/runtime.ts",
+    "packages/extensions/cordis-client-runner/src/client/guard.ts",
+    "packages/extensions/ui-cordis/src/client/index.ts",
+    "packages/client/modules/src/index.ts",
+    "packages/boot/plugin-manager/README.md",
+    "packages/bundle/web-app/cordis.patch.yml",
+    "apps/web/tests/shipped-composition.e2e.ts"
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-015-DEPLOYMENT-CSP-CONSENT-GAP",
+      "observed_status": "GAP_REPRODUCED",
+      "classification": "DYNAMIC_EXTENSION_POLICY_INCOMPLETE",
+      "severity": "HIGH",
+      "source_refs": [
+        "packages/extensions/cordis-host-runner/src/index.ts",
+        "packages/extensions/cordis-client-runner/src/client/evaluator.ts",
+        "packages/extensions/cordis-client-runner/src/client/orchestrator.ts",
+        "packages/client/modules/src/index.ts",
+        "packages/boot/plugin-manager/README.md"
+      ],
+      "summary": "Existing approval and lifecycle controls do not establish an approved deployment matrix, host-verifiable consent, browser CSP/Trusted Types enforcement, or a uniform default policy across host-only execution, browser execution, and plugin installation.",
+      "limitations": "Static inspection did not include reverse-proxy deployment controls or a live browser/CSP probe; the VM timeout is documented as cooperative rather than a security boundary."
+    }
+  ],
+  "current_contract": {
+    "host": "Host-only dynamic packages can run immediately through the host path and the runner Config currently exposes vmTimeoutMs but no deployment policy.",
+    "client": "Browser evaluation uses new Function and dynamic style/module loading; the guard explicitly is not a security boundary.",
+    "consent": "Client packages have approval state, but direct panel activation and caller-supplied requests are not host-verifiable user gestures across all entry points.",
+    "deployment": "Plugin Manager accepts multiple arbitrary source forms and installed bundles are enabled by default; the Web composition mounts dynamic runner surfaces by default.",
+    "security": "No repository-owned CSP, nonce, Trusted Types, or strict public-entry negative test was found in the inspected surfaces."
+  },
+  "decision": {
+    "status": "PENDING_HUMAN_DECISION",
+    "required": "Approve the supported deployment, CSP, consent, source, and default-enable policy before implementation.",
+    "must_define": [
+      "supported deployments and whether programmatic/headless/SDK/ACP callers are allowed",
+      "whether dynamic code is opt-in and whether host-only execution may run without consent",
+      "consent granularity and binding to session/page/tab/package/version",
+      "CSP stance: redesign, explicit unsafe-eval/inline policy, or block browser halves",
+      "publisher/signature/registry allowlisting versus explicit arbitrary-source approval",
+      "default enablement for runners and installed bundles"
+    ]
+  },
+  "lead_validation": {
+    "procedure": "Inspect the cited runner, evaluator, module, plugin, composition, and test sources with line-numbered rg output after the independent scout returned; no files or generated artifacts were changed.",
+    "procedure_status": "EXECUTED",
+    "result": "PARTIAL",
+    "limitations": "No policy or negative test was added because the backlog action explicitly requires approval of deployment, CSP, consent, and default behavior first."
+  },
+  "proposed_commands": [
+    "pnpm exec vitest run packages/extensions/cordis-host-runner/tests/runner.spec.ts packages/extensions/cordis-host-runner/tests/sandbox.spec.ts packages/extensions/cordis-host-runner/tests/sandbox-context.spec.ts packages/extensions/cordis-host-runner/tests/composition.spec.ts packages/extensions/cordis-host-runner/tests/versioning.spec.ts packages/extensions/cordis-client-runner/tests/evaluator.client.spec.ts packages/extensions/cordis-client-runner/tests/orchestrator.client.spec.ts packages/extensions/cordis-client-runner/tests/runner.client.spec.ts",
+    "pnpm exec vitest run packages/boot/plugin-manager/tests/tools.spec.ts packages/boot/plugin-manager/tests/install-spec.spec.ts packages/boot/plugin-manager/tests/manager.spec.ts packages/client/modules/tests/node-half.client.spec.ts packages/skill/skill-filesystem/tests/skill-filesystem.spec.ts packages/skill/tool-skill/tests/tool-skill.spec.ts",
+    "pnpm exec vitest run apps/web/tests/dynamic-extension-policy.e2e.ts"
+  ]
+}

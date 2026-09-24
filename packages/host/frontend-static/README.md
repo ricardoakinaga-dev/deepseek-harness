@@ -39,7 +39,7 @@ Compose this plugin in a browser-facing host that serves the built Web shell: it
 
 ### What the server enforces
 
-Requests are served from the dist root (the directory containing `distIndex`). The dist root and the configured index path render `index.html` with HTTP 200; any other existing file is served directly with its MIME type, and unknown extensions ship as `application/octet-stream`. A path that resolves outside the root is rejected with 403, so a crafted path cannot read files above the dist. An absent or non-file target inside the dist root — a missing file, a directory, or a missing configured index — returns an empty 404. Non-GET/HEAD requests without a matching named route are answered 405. Every successful index response is rendered through the webserver's `renderIndex`, so the boot manifest reaches the page on `/` and on the configured index path.
+Requests are served from the dist root (the directory containing `distIndex`). The dist root and the configured index path render `index.html` with HTTP 200; any other existing file is served directly with its MIME type, and unknown extensions ship as `application/octet-stream`. The server resolves the root and requested target through existing filesystem entries before checking containment, so an in-root symlink or junction may serve an in-root target while a resolved target outside the root is rejected with 403. Missing paths use the resolved deepest existing ancestor and return an empty 404 without weakening that check. An absent or non-file target inside the dist root — a missing file, a directory, or a missing configured index — returns an empty 404. Non-GET/HEAD requests without a matching named route are answered 405. Every successful index response is rendered through the webserver's `renderIndex`, so the boot manifest reaches the page on `/` and on the configured index path.
 
 Root and configured-index responses call `ctx.connection.authorizeIndex` before reading HTML. A valid process token receives a 303 redirect plus the persistent browser cookie; an existing valid cookie serves the index; every other index request receives the Connection-owned 401 response. Non-index files remain public static assets. Connection owns the token, cookie, expiry, and signing-record semantics.
 
@@ -61,7 +61,7 @@ The package is one function plugin around `serveStatic`: `apply` resolves the di
 
 ### The traversal fence
 
-`serveStatic` normalizes the requested pathname and joins it to the dist root, then requires the target to be the root itself or stay under it. The check uses `sep` rather than `/` because `resolve()` emits backslash paths on Windows, where a `/` suffix would reject every legitimate subpath as traversal.
+`serveStatic` first rejects lexical traversal, then canonicalizes the dist root and requested target through `realpath`. For a missing target it canonicalizes the deepest existing ancestor and appends the missing suffix. Containment uses the canonical paths, and reads use the canonical target so an accepted alias cannot redirect the subsequent read outside the root. The configured index is checked by the same rule before HTML bytes are read. The lexical check uses `sep` rather than `/` because `resolve()` emits backslash paths on Windows, where a `/` suffix would reject every legitimate subpath as traversal.
 
 ### Source map
 
@@ -104,6 +104,8 @@ These limits define when a served asset class is not yet covered. They are curre
 - **The starter MIME table is minimal** — it covers the Vite-emitted asset set plus the shipped PWA manifest; other extensions fall back to `application/octet-stream` until an asset class ships.
 - **Pathname routing is explicit** — the current client enters through the root or configured index path and has no History API pathname routes. Adding one requires an explicit server rule and real-composition coverage rather than a broad fallback for every miss.
 
+**Runtime invariant:** No companion is published. The only owned relation is the single fallback seat, which cannot be probed from the teardown stream — `internal/plugin` fires before the disposing fiber's effects run, so the legitimate owner still holds the seat at notification time and any claim probe would false-positive on every correct disposal (unlike the webserver companion, whose reserved-path probes never collide with a live registration). The seat's register/release symmetry is covered by the package's real-composition HMR-safety test instead.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -113,5 +115,3 @@ These limits define when a served asset class is not yet covered. They are curre
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The only owned relation is the single fallback seat, which cannot be probed from the teardown stream — `internal/plugin` fires before the disposing fiber's effects run, so the legitimate owner still holds the seat at notification time and any claim probe would false-positive on every correct disposal (unlike the webserver companion, whose reserved-path probes never collide with a live registration). The seat's register/release symmetry is covered by the package's real-composition HMR-safety test instead.

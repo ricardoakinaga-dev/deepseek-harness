@@ -85,6 +85,8 @@ None; Chat presentation does not assemble or mutate provider requests.
 - **Rail previews are card-sized** — one prompt line (50 characters) and up to three response lines (120), on loaded and unloaded Turns alike; an unloaded Turn's response arrives from the outline only once the Turn settled, so an open Turn previews its prompt (or just the Turn number) until then.
 
 
+**Runtime invariant:** No companion is published. Conversation and Slot registration enforce Chat target consistency.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -94,5 +96,3 @@ None; Chat presentation does not assemble or mutate provider requests.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Conversation and Slot registration enforce Chat target consistency.

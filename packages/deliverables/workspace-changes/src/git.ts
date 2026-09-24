@@ -72,10 +72,10 @@ export class GitRunner {
     if (signal.aborted) {
       throw new Error(`git ${args.join(' ')} ${timeout.aborted ? `timed out after ${this.limits.timeoutMs}ms` : 'was aborted'}`)
     }
-    /* v8 ignore start -- collect-mode stdio always yields both readers. */
+    /*! v8 ignore start -- collect-mode stdio always yields both readers. */
     const stdout = handle.collected.stdout?.readFrom(0) ?? { text: '', lossy: false }
     const stderr = handle.collected.stderr?.readFrom(0).text ?? ''
-    /* v8 ignore stop */
+    /*! v8 ignore stop */
     return { exitCode: outcome.exitCode, stdout: stdout.text, stderr, truncated: stdout.lossy }
   }
 }
@@ -163,7 +163,7 @@ export async function snapshotTree(git: GitRunner, workspace: GitWorkspace, sign
     // `--ignore-errors` skips unreadable files and reports them through exit code 1; the index is still complete.
     const pathspec = workspace.excludes.length === 0 ? [] : ['--', '.', ...workspace.excludes.map(path => `:(exclude)${path}`)]
     const added = await git.run(['add', '--all', '--ignore-errors', ...pathspec], { cwd: workspace.root, env, signal })
-    /* v8 ignore next -- git reports a skipped unreadable file only on hosts whose permissions the tests can revoke. */
+    /*! v8 ignore next -- git reports a skipped unreadable file only on hosts whose permissions the tests can revoke. */
     if (added.exitCode !== 1) ok(added, `git add in ${workspace.root}`)
     return ok(await git.run(['write-tree'], { cwd: workspace.root, env, signal }), 'git write-tree').stdout.trim()
   } finally {
@@ -213,7 +213,7 @@ export async function blobText(
   git: GitRunner, workspace: GitWorkspace, oid: string, maxBytes: number, signal: AbortSignal,
 ): Promise<string> {
   const result = ok(await git.run(['cat-file', 'blob', oid], { cwd: workspace.root, env: workspace.env, maxBytes, signal }), 'git cat-file')
-  /* v8 ignore next -- callers size the blob with treeBlob first; a blob is immutable, so the cap cannot be exceeded here. */
+  /*! v8 ignore next -- callers size the blob with treeBlob first; a blob is immutable, so the cap cannot be exceeded here. */
   if (result.truncated) throw new Error(`blob ${oid} exceeds ${maxBytes} bytes`)
   return result.stdout
 }

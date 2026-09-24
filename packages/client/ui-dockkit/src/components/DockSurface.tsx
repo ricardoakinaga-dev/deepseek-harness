@@ -173,7 +173,7 @@ export function DockSurface({
   /** Run `use` on the surface element, which every commit and every press inside it has mounted. */
   const withSurface = useCallback((use: (root: HTMLElement) => void): void => {
     const root = surface.current
-    /* v8 ignore next -- ref-null guard: the surface div renders unconditionally. */
+    /*! v8 ignore next -- ref-null guard: the surface div renders unconditionally. */
     if (root === null) return
     use(root)
   }, [])
@@ -246,7 +246,7 @@ export function DockSurface({
     },
     onDividerPressed: (splitId, index, event) => {
       const container = event.currentTarget.parentElement
-      /* v8 ignore next -- a divider is rendered as a child of its split's element. */
+      /*! v8 ignore next -- a divider is rendered as a child of its split's element. */
       if (container === null) return
       const split = getSplit(state, splitId)
       const box = container.getBoundingClientRect()

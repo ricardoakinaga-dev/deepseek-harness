@@ -378,7 +378,7 @@ export async function runScenario(input: InputScript, opts: RunOptions): Promise
   const cleanup = async (action: () => Promise<unknown>): Promise<void> => {
     cleanupResults.push(...await Promise.allSettled([action()]))
   }
-  /* v8 ignore next 1 -- launch itself can only throw on a defensive synchronous spawn API failure */
+  /*! v8 ignore next 1 -- launch itself can only throw on a defensive synchronous spawn API failure */
   await cleanup(() => launched?.close('SIGKILL') ?? Promise.resolve())
   await cleanup(() => rm(cwd, { recursive: true, force: true }))
   await cleanup(() => rm(sessionsRoot, { recursive: true, force: true }))
@@ -788,7 +788,7 @@ async function harvestSessionLogs(root: string): Promise<HarvestedLog[]> {
   for (const file of latestPersistedSessionPaths(files)) {
     const content = await readFile(join(root, file), 'utf8')
     assertPersistedSessionVersion(basename(file), content)
-    /* v8 ignore next -- the generation validator above rejects header-less content. */
+    /*! v8 ignore next -- the generation validator above rejects header-less content. */
     const firstLine = content.split('\n').find(line => line.trim().length > 0) ?? '{}'
     const header = JSON.parse(firstLine) as { id?: unknown; createdAt?: unknown; parentSession?: unknown }
     logs.push({

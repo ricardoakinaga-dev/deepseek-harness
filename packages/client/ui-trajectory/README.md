@@ -99,6 +99,8 @@ These limits define what the view can show while work is in flight; they are cur
 
 - **In-flight Time stays blank** — `partial` and `runningCalls` rows show their running state without a fabricated duration, so the Overview renders a start marker rather than inventing a live span. Record and timeline selection are local to Trajectory, with no anchor deep links.
 
+**Runtime invariant:** No companion is published. It is a pure-consumer plugin: it emits no Cordis events and owns no mutable cross-plugin state; its view-slot registration is a plain effect whose disposal the slot ledger's own specs and this package's behavior specs observe directly.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -108,5 +110,3 @@ These limits define what the view can show while work is in flight; they are cur
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. It is a pure-consumer plugin: it emits no Cordis events and owns no mutable cross-plugin state; its view-slot registration is a plain effect whose disposal the slot ledger's own specs and this package's behavior specs observe directly.

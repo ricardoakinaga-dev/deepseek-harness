@@ -61,6 +61,8 @@ Stable for a fixed profile, provider, model, and tool roster. Profile changes ta
 - **Configuration changes require restart** — the `sdk-app` bundle disables HMR in YAML so one stdio connection never observes a replacement server or Agent dependency.
 
 
+**Runtime invariant:** No companion is published. The bundle adds a process transport and startup latch; source/built stdio tests own frame purity, help exclusion, and shutdown.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -70,5 +72,3 @@ Stable for a fixed profile, provider, model, and tool roster. Profile changes ta
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The bundle adds a process transport and startup latch; source/built stdio tests own frame purity, help exclusion, and shutdown.

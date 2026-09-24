@@ -15,7 +15,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { networkInterfaces } from 'node:os'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { addHarnessSourceSection, auditStartupEntries } from '@deepseek-ai/dsh-app-boot'
@@ -81,7 +81,7 @@ const LOOPBACK_HOST = '127.0.0.1'
 /** The webserver schema's all-interfaces bind literal. */
 const ALL_INTERFACES_HOST = '0.0.0.0'
 
-const BROWSER_OPENER_MODULE = import.meta.resolve('open')
+const BROWSER_OPENER_MODULE = pathToFileURL(createRequire(import.meta.url).resolve('open')).href
 
 const BROWSER_OPENER_PROGRAM = `
 try {
@@ -164,7 +164,7 @@ function resolveDistIndex(): string {
   try {
     return join(dirname(require.resolve('@deepseek-ai/dsh-web-frontend/package.json')), 'dist', 'index.html')
   } catch {
-    /* v8 ignore next 2 -- reachable only when the frontend package is absent from the checkout */
+    /*! v8 ignore next 2 -- reachable only when the frontend package is absent from the checkout */
     throw new Error('web-app: @deepseek-ai/dsh-web-frontend is not resolvable from this composition')
   }
 }

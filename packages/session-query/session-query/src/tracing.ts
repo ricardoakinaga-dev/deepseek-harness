@@ -50,7 +50,7 @@ export function currentSurfaceEvents(
   const analysis = analyzeEventLog(sessionId, events)
   return analysis.currentSeqs.map((seq) => {
     const event = events[seq]
-    /* v8 ignore next 6 -- analyzeEventLog validated contiguous seqs and foldSurface returned only surface-event seqs. */
+    /*! v8 ignore next 6 -- analyzeEventLog validated contiguous seqs and foldSurface returned only surface-event seqs. */
     if (event === undefined || event.seq !== seq || !isSurfaceEvent(event)) {
       throw new SessionQueryError(
         `invalid session surface: current node ${seq} is not a surface event`,
@@ -187,7 +187,7 @@ function analyzeEventLog(
     folded = foldSurface(events, currentSessionMessageProjections)
   } catch (error: unknown) {
     throw new SessionQueryError(
-      /* v8 ignore next -- foldSurface throws Error instances */
+      /*! v8 ignore next -- foldSurface throws Error instances */
       `invalid session surface: ${error instanceof Error ? error.message : 'unknown error'}`,
       'SESSION_QUERY_INVALID_SURFACE',
       { cause: error },

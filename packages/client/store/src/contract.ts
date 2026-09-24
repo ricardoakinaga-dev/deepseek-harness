@@ -2,7 +2,7 @@
 
 /** Minimal observable snapshot source shared by controllers, stores, and render adapters. */
 export interface ObservableSnapshot<T> {
-  /** Read the cached snapshot reference. */
+  /** Read the current snapshot reference without creating a copy. */
   getSnapshot(): T
   /**
    * Subscribe to snapshot invalidation.
@@ -13,17 +13,21 @@ export interface ObservableSnapshot<T> {
 }
 
 /**
- * Typed selector hook over a snapshot source. Canonical shape for the whole
- * slot system (ui-renderer's engine hook is structurally identical; the
- * framework is the only party that ever constructs one).
+ * Typed selector hook over a snapshot source. The renderer creates this hook
+ * from a source; application components consume it but do not construct it.
+ * @param sel - projection applied to the current snapshot.
+ * @param eq - optional equality function for the projected value.
+ * @returns the selected value.
  */
 export type SnapshotSelectorHook<T> = <S>(sel: (s: T) => S, eq?: (a: S, b: S) => boolean) => S
 
 /**
- * Selector hook over a source that follows the current session. The hook is
- * always present, while its selected value is absent whenever no session is
- * current. This keeps hook call sites stable across no-session/session
- * transitions without pretending that a session snapshot exists.
+ * Selector hook over a source that follows the current Session. The hook is
+ * always present, while its selected value is absent when no Session is
+ * current. This keeps hook call sites stable across Session transitions.
+ * @param sel - projection applied when a snapshot exists.
+ * @param eq - optional equality function for the projected value.
+ * @returns the selected value, or `undefined` without a current Session.
  */
 export type MaybeSnapshotSelectorHook<T> =
   <S>(sel: (s: T) => S, eq?: (a: S, b: S) => boolean) => S | undefined
@@ -68,7 +72,9 @@ export interface StoreSpec<T, A extends ActionsDecl<T>> {
  * call create() themselves — instance lifecycle is the framework's.
  */
 export interface StoreInstance<T, A extends ActionsDecl<T>> {
+  /** Bound action functions; the draft parameter is not exposed to callers. */
   readonly actions: BakedActions<T, A>
+  /** Read the current state snapshot without creating a copy. */
   getSnapshot(): T
   /**
    * Subscribe to state changes (uSES subscribe side).
@@ -91,6 +97,7 @@ export interface StoreInstance<T, A extends ActionsDecl<T>> {
  * identity is a disguised singleton across plugin reloads.
  */
 export interface StoreHandle<T, A extends ActionsDecl<T>> {
+  /** Declaration used to create each instance. */
   readonly spec: StoreSpec<T, A>
   /**
    * Create a live engine instance (framework machinery and tests only).

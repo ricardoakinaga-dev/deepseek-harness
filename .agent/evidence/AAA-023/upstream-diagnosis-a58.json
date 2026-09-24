@@ -1,0 +1,95 @@
+{
+  "task": "AAA-023",
+  "action": "AAA-023:A25",
+  "candidate_tree": "3762900cd0a28245ef433647b8bdaf4d5cd84fac",
+  "scope": "Classify the upstream conflict inventory and customization-policy attribution gaps produced by A24",
+  "conflict_inventory": {
+    "total_conflicted_paths": 233,
+    "paths_matching_existing_policy_owners": 195,
+    "paths_without_a_matching_policy_owner": 38,
+    "largest_groups": [
+      { "group": "packages/client", "count": 97 },
+      { "group": "docs", "count": 19 },
+      { "group": "packages/api", "count": 14 },
+      { "group": "packages/llm", "count": 11 },
+      { "group": "packages/experimental", "count": 11 },
+      { "group": "packages/boot", "count": 10 },
+      { "group": ".agents", "count": 10 },
+      { "group": "apps/desktop", "count": 8 }
+    ],
+    "unowned_conflict_groups": [
+      { "group": "packages/client", "count": 10 },
+      { "group": "docs", "count": 4 },
+      { "group": "packages/preset", "count": 4 },
+      { "group": "packages/boot", "count": 3 },
+      { "group": "packages/core", "count": 3 },
+      { "group": "packages/llm", "count": 3 },
+      { "group": "packages/subagent", "count": 2 }
+    ]
+  },
+  "unowned_delta_inventory": {
+    "total_diagnostics": 293,
+    "categories": [
+      {
+        "category": "coverage-comment-preservation",
+        "count": 266,
+        "paths": "Cross-package `/*! v8 ignore */` source/comment migration plus its quality-gates note digest",
+        "disposition": "Requires one narrowly scoped upstream-patch owner if retained; do not hide it under a governance wildcard"
+      },
+      {
+        "category": "ignored-opencode-state",
+        "count": 11,
+        "paths": ".opencode/goals/**",
+        "disposition": "Generated local state; exclude from a candidate rather than assigning a product owner"
+      },
+      {
+        "category": "dynamic-extension-fixture",
+        "count": 2,
+        "paths": "apps/cli/tests/profiles/web/tests/creator-plugin-manager.{expected.e2e.ts,fixtures.mjs}",
+        "disposition": "Candidate for the existing dynamic-extension-trust owner"
+      },
+      {
+        "category": "generated-persistence-catalog",
+        "count": 4,
+        "paths": "docs/persistence-catalog.{i18n.yaml,md,zh.md} and docs/persistence-schema.json",
+        "disposition": "Generated outputs of persistence/session changes; candidate for the owning session-reader or generation record"
+      },
+      {
+        "category": "runtime-resolution-fixtures",
+        "count": 4,
+        "paths": "Loader-shape, Inspector, crash-recovery, and built-runner E2E fixtures",
+        "disposition": "Candidate for the existing runtime-resolution-and-ci-fixtures owner"
+      },
+      {
+        "category": "tool-runtime-source-built-identity",
+        "count": 5,
+        "paths": "Tool scheduler process-global symbol, its source/lib regression test, and paired README files",
+        "disposition": "Requires explicit ownership under the runtime-resolution improvement or a focused owner record"
+      },
+      {
+        "category": "jobs-lifecycle-test",
+        "count": 1,
+        "paths": "packages/jobs/jobs-local/tests/jobs.spec.ts",
+        "disposition": "Requires a focused owner or maintainer disposition; no unrelated wildcard is justified"
+      }
+    ]
+  },
+  "conclusions": [
+    "The 293 diagnostics are not one homogeneous missing record: 266 are a cross-package coverage-comment migration, 11 are ignored local state, and 16 are bounded product/test/generated-file groups.",
+    "The 38 ownerless conflicted paths overlap the same missing ownership and generated-state categories; resolving merge text before assigning ownership would conceal candidate provenance.",
+    "Existing ownership matches are evidence for classification only. They do not make the official merge clean, and no conflict resolution or policy mutation is authorized by this diagnostic."
+  ],
+  "result": "PARTIAL",
+  "decision": "Advance to A26 to prepare a bounded owner/exclusion disposition and candidate rebuild prerequisites. Keep the current candidate unchanged until the disposition is explicit.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/upstream-diagnosis-a58.json",
+    "/tmp/dsh-a24-policy.log",
+    "/tmp/dsh-a24-unowned-paths.txt",
+    "/tmp/dsh-a24-unmerged-paths.txt",
+    "/tmp/dsh-a24-conflicts.txt",
+    "/tmp/dsh-a24-candidate-vs-official.txt",
+    "/tmp/dsh-a24-candidate-vs-fork.txt"
+  ],
+  "limitations": "No policy entry, conflict resolution, deletion, candidate rebuild, merge, push, publication, release, or final verdict was performed. The current candidate remains unsuitable for a clean upstream-updateability claim until the ownership and ignored-state dispositions are implemented and requalified.",
+  "observed_at": "2026-09-22T17:05:09-03:00"
+}

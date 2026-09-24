@@ -22,7 +22,6 @@
       "types": "./lib/types/client/index.d.ts",
       "default": "./lib/client.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -33,7 +32,8 @@
         "@deepseek-ai/dsh-client-modules",
         "@deepseek-ai/dsh-client-ui-theme"
       ],
-      "platform": "web"
+      "platform": "web",
+      "dynamic": true
     }
   },
   "scripts": {

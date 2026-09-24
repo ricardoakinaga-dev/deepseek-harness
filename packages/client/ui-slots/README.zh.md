@@ -98,6 +98,8 @@ register 调用可以用 `store: defineStore(...)` 声明 store 席位：`init` 
 - **`isLive` 会线性扫描所有记录**：在 UI 插件的注册规模（数十项）下没有问题；如果账本变得频繁访问，再使用条目→记录反向引用改进。
 - **`__renders` 幻象锚点在 `PropsRenderSlots` 上可见**：这是与类型链设计的 `__accepts` 相同且已接受的噪声；泛型方法签名在 key 联合之间比较宽松，因此必须依靠逆变标记强制执行「组件 key 集合 ⊆ children 声明」。
 
+**运行时不变式：** 不发布伴生入口。这是零依赖的纯注册表核心，本身不发出 Cordis 事件；`ui-renderer` SlotRegistry 负责事件桥及其不变式。本包的行为规范直接断言 define/register/dispose 的执行顺序。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -107,5 +109,3 @@ register 调用可以用 `store: defineStore(...)` 声明 store 席位：`init` 
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。这是零依赖的纯注册表核心，本身不发出 Cordis 事件；`ui-renderer` SlotRegistry 负责事件桥及其不变式。本包的行为规范直接断言 define/register/dispose 的执行顺序。

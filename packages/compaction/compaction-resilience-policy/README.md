@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package bounds slow compaction requests when their adapter honors cancellation and rejects a loop-built request that is already too large for its logged model capacity before the adapter does expensive work. Compaction calls receive a configurable output cap, optional reasoning effort, and cooperative total deadline. Ordinary model calls keep their request options unchanged. Choose the installable [`dsh-resilient-compaction`](../../bundle/resilient-compaction/README.md) bundle when you want the tested local-model defaults without editing a profile tree.
+This private fork-only package bounds slow compaction requests when their adapter honors cancellation and rejects a loop-built request that is already too large for its logged model capacity before the adapter does expensive work. Compaction calls receive a configurable output cap, optional reasoning effort, and cooperative total deadline. Ordinary model calls keep their request options unchanged. Use it from the repository checkout or through a separately authorized fork-owned package; the upstream namespace is not a publication identity for this fork.
 
 ## Table of Contents
 

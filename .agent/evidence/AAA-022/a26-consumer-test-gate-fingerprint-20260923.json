@@ -1,0 +1,329 @@
+{
+  "record_kind": "A26_CONSUMER_TEST_GATE_FINGERPRINT",
+  "record_id": "FP-AAA-022-A26-CONSUMER-TESTS-001",
+  "timestamp": "2026-09-23T22:40:00-03:00",
+  "task": "AAA-022",
+  "gate_record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A26-CONSUMER-TESTS-001",
+  "predecessor_gate_ref": ".agent/gates/implementation-ready-AAA-022-A25-interaction-readers.json#GATE-AAA-022-IMPLEMENTATION-READY-A25-INTERACTION-READERS-002",
+  "algorithm": "SHA-256",
+  "hash_rule": "Sort existing relative paths; for each input update SHA-256 with UTF-8 relative path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+  "candidate_fingerprint": "ddca7cb79b25d1eeff80ce5cdb8291e01108ec1cc77d45e3800567e3ade406fb",
+  "file_count": 64,
+  "inputs": [
+    {
+      "path": ".agent/authority.jsonl",
+      "sha256": "8c06a5cabeb1bcd16eacaddb31ee4447c5071c36c0452130dcdee172e375fb65"
+    },
+    {
+      "path": ".agent/backlog.json",
+      "sha256": "fa7d2647fdf089cbff513bae78659bc6509d894edadcac5a80a1f3d0d363d950"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/a23-w2-owner-order-disposition-20260923.json",
+      "sha256": "09ead525cb9e3e15ba91551bfa63f38ffaba11fe293b3c27e623327d464778b8"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/context-reader-design-a21.json",
+      "sha256": "6baeb17aba2e91cb257e2503faba70e0ec08de5037b4b23876c3f29f134fb72d"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/reader-inventory-a75.json",
+      "sha256": "66373436b4eb486b895b39c53a7fba340c1180f8910b32b56403f8c3773e70a0"
+    },
+    {
+      "path": ".agent/evidence/AAA-022/reader-migration-plan-a74.json",
+      "sha256": "b596bb26007b7d36ae9aceeca576c02587bc829be9e0966ecd23836c58ea4d43"
+    },
+    {
+      "path": ".agent/execution-log.jsonl",
+      "sha256": "6234276671869ee26176de0ea583f38377509998d28e8865732d77a6a10b9991"
+    },
+    {
+      "path": ".agent/plans/deepseek-harness-aaa.md",
+      "sha256": "6d5bea119079ae68f8a75d91d85ee3ee15b61db2fb387806dfc3d1b001d3eaf1"
+    },
+    {
+      "path": ".agent/state.json",
+      "sha256": "72dcc6884d7194c64d3eba59271d481cb5e25838ebbb7794fd805d4c22a09d1d"
+    },
+    {
+      "path": ".agent/verification.jsonl",
+      "sha256": "76b2db13de2089e86960c30c5d55ab7f9c5d3751279c57e834d7e211d28d82ad"
+    },
+    {
+      "path": ".agents/customization-policy.json",
+      "sha256": "901637b134602ffcd9cffdef01b2ca5ff390aeefc96744948028e74725b80361"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "7aa6243a1a3aaf8f98a8ce241c27dafeba53f74e4935117d9c8996d2ef031f4e"
+    },
+    {
+      "path": "docs/AGENTS.md",
+      "sha256": "64b91092a704c5f4b8689b106eeda0ac4e6262c066c043d158781d9f72d46ccb"
+    },
+    {
+      "path": "docs/subsystems/approval.i18n.yaml",
+      "sha256": "07c2fbaff99ebe1c26510363b0fe09086a954ad4f97a3471c2f694c7f06533a5"
+    },
+    {
+      "path": "docs/subsystems/approval.md",
+      "sha256": "954c63125ad7b544966ea07faf52225863a75bbfe879dc5ff605c212fbab8451"
+    },
+    {
+      "path": "docs/subsystems/approval.zh.md",
+      "sha256": "6218e9777fb6c8866da7e6516a39f031ece2904aa3de8a5092959c798d46d0bf"
+    },
+    {
+      "path": "docs/subsystems/commands.i18n.yaml",
+      "sha256": "adbbda363b114a4ee6cc927b0d3830f7be01ab9ccd6f38b92f2778120f70d896"
+    },
+    {
+      "path": "docs/subsystems/commands.md",
+      "sha256": "0fe333c7e1c228a220a262058dada9df459111fc8c095c51c438d9ba9aa8b622"
+    },
+    {
+      "path": "docs/subsystems/commands.zh.md",
+      "sha256": "2a81158e0da820b0917798915e666e63c5ba27a1d6f1ca8a0b185ce80ef97889"
+    },
+    {
+      "path": "docs/subsystems/permission-presets.i18n.yaml",
+      "sha256": "6cc36b9c0d87897c7938bd8b2e0f47dda91f80a018054e76335caed78c131aa9"
+    },
+    {
+      "path": "docs/subsystems/permission-presets.md",
+      "sha256": "c61e300d0b597b97e8be6d9468b01fee8fbcdea469b956d89bb788f2fc176fca"
+    },
+    {
+      "path": "docs/subsystems/permission-presets.zh.md",
+      "sha256": "3cae538906ecb8013d59f24c9e0bf6f618e6969ec58161167664ea13934801a8"
+    },
+    {
+      "path": "packages/acp/acp/tests/approval.spec.ts",
+      "sha256": "ec11efed8fb221918a7e0e2a024767b04a333cbc008dc2df73bec97a496b309d"
+    },
+    {
+      "path": "packages/core/session/src/index.ts",
+      "sha256": "879b8eba7fe61a1e08c4c8af08b5e2137a3f682ae0b642bfeda18feb8d08bed0"
+    },
+    {
+      "path": "packages/core/session/src/preparation.ts",
+      "sha256": "d8f32d4c74cdd77267d56b0092161e69c84de95452d7cf7ee9d051c655228b3f"
+    },
+    {
+      "path": "packages/core/session/src/types.ts",
+      "sha256": "cf0e7ba5e62c24776dbba928fe7387b6567b7faab330c0a947fbdc8e642d5c3c"
+    },
+    {
+      "path": "packages/core/tools/tests/invariant.spec.ts",
+      "sha256": "50378aec8db8d5166d02cfdd0422904776619bbe70dfc13abc10c687f7494a2b"
+    },
+    {
+      "path": "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "sha256": "7065b42bd782b54417c1850e2f5dcc173c6d5e8bf3b5fda20f61b5f06466e13a"
+    },
+    {
+      "path": "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+      "sha256": "e72d500ac965ba1ae0f32e493225abee19d74e89a3490038e10f18882cc4c1a4"
+    },
+    {
+      "path": "packages/interaction/commands/README.i18n.yaml",
+      "sha256": "37b051db48d7b5d27913b5bfa8114173d3bd449b87a0c4968855c1f4e770425b"
+    },
+    {
+      "path": "packages/interaction/commands/README.md",
+      "sha256": "ae63c7888c69ae19a23873836aedd314622de2663dd871caf56b1d1a8b3c9019"
+    },
+    {
+      "path": "packages/interaction/commands/README.zh.md",
+      "sha256": "91c88b8b13a402ef4c21c28fcec51fb502d457bf7a7d338b949ebfdd82b793eb"
+    },
+    {
+      "path": "packages/interaction/commands/package.json",
+      "sha256": "c7617008d9290f2a14f5889123a019e0bc98452fe275aee8b9b5c29626445cd9"
+    },
+    {
+      "path": "packages/interaction/commands/src/audit-state.ts",
+      "sha256": "c096ab772c3ea4c9b840f7e0684af938d549a634b40f83094f94f79b41dc9c8e"
+    },
+    {
+      "path": "packages/interaction/commands/src/index.ts",
+      "sha256": "4ce206cbed2829814e786d6df5ffdbf9d2143fc70b50654323bf354edd6f0c73"
+    },
+    {
+      "path": "packages/interaction/commands/src/invariant.ts",
+      "sha256": "45bd0510a3e2ee2c27cb2648a339eb290ec1c2ac06da0df02347bc77f41595be"
+    },
+    {
+      "path": "packages/interaction/commands/tests/commands.spec.ts",
+      "sha256": "88bdd496f938b705bb2d72ac2ea41129f19cd227a0afaaafa5bf2ec5a2c8afcb"
+    },
+    {
+      "path": "packages/interaction/commands/tests/invariant.spec.ts",
+      "sha256": "ef04b3572ea10d5911abe9ab649b94cb6b80be2a4cb282ad9120473cf56d37c9"
+    },
+    {
+      "path": "packages/interaction/permission-presets/README.i18n.yaml",
+      "sha256": "87077f866c19d76c7f798792142706ce106c84fa15b8f818b2830767d0877471"
+    },
+    {
+      "path": "packages/interaction/permission-presets/README.md",
+      "sha256": "979c5edd6d3bbd27f4b9bb4017a53b1b98aecb8982d9543383aea32668d713d0"
+    },
+    {
+      "path": "packages/interaction/permission-presets/README.zh.md",
+      "sha256": "daf8bf40e2fbf32940ab17f307ac7999b5039c897f9f1b5cc4fafc0c3ac302bc"
+    },
+    {
+      "path": "packages/interaction/permission-presets/package.json",
+      "sha256": "d22a38c6eabcdd6f75f50f1a7ee1e567bc8f09a23dfe46b17e623a98cd49e27c"
+    },
+    {
+      "path": "packages/interaction/permission-presets/src/index.ts",
+      "sha256": "caadebc6172acc90abfaebee4bb00a077cd898edc3bb4e12cffa8ecd42fd4b99"
+    },
+    {
+      "path": "packages/interaction/permission-presets/src/invariant.ts",
+      "sha256": "acbee3c2e60c3ea4efc3f44f248a468a1c164d833d3e2198560b786a46c5c970"
+    },
+    {
+      "path": "packages/interaction/permission-presets/src/preset-history.ts",
+      "sha256": "75b9efc6b8107a91195426738cf03b493a19b5e61a589cfb3a8e3b8d1d915e32"
+    },
+    {
+      "path": "packages/interaction/permission-presets/tests/invariant.spec.ts",
+      "sha256": "3f5ed812f474910423f4bcc8d37d79ab2ec784e718436c588f0bd98215dee7d7"
+    },
+    {
+      "path": "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+      "sha256": "7cddc9be8c99862efa1c5c331dfb40ed2f37095e3daaf706dda4fadcf7c24c6b"
+    },
+    {
+      "path": "packages/interaction/permission-presets/tests/projection.spec.ts",
+      "sha256": "ef4ae1280d8095650ce4f8132d35c70d8297b972b89182b0f75b7ede146e5dbc"
+    },
+    {
+      "path": "packages/interaction/user-approval/README.i18n.yaml",
+      "sha256": "95f095928b53c6f486e4473ff5c9e46c66f50ba2f799ef93932d2084a7fa75bf"
+    },
+    {
+      "path": "packages/interaction/user-approval/README.md",
+      "sha256": "70b12691d5ea6c4f842d33b7280771f9a548892d91fcc71acd80bb24f5a0d3f8"
+    },
+    {
+      "path": "packages/interaction/user-approval/README.zh.md",
+      "sha256": "4e4c8f0f1d514aa08029cb283750a1eaad3bd315451d3bde04cd1e295550a331"
+    },
+    {
+      "path": "packages/interaction/user-approval/package.json",
+      "sha256": "9cc6da59e65b7d496c91f8b76804113a62cd6e587bfc2b490351c3bbbc0d8bc8"
+    },
+    {
+      "path": "packages/interaction/user-approval/src/index.ts",
+      "sha256": "5519752522baa420f12fb4d849002182ce5e96ad169ddabe490885343da2bc2a"
+    },
+    {
+      "path": "packages/interaction/user-approval/src/invariant.ts",
+      "sha256": "0fa525417321681db5fd3606d58ecf2744d9eca10a435d72e9c0d2f517da1c03"
+    },
+    {
+      "path": "packages/interaction/user-approval/src/session-state.ts",
+      "sha256": "5f31a4d82a520f0fc8ffa97896e9ae4eb8da6cf9f191c7c09021c589d69fb1e1"
+    },
+    {
+      "path": "packages/interaction/user-approval/tests/approval.spec.ts",
+      "sha256": "a3c6a66216289c5f7f179611d9a75b2ba6447212f6930742c329f68bc38521ae"
+    },
+    {
+      "path": "packages/interaction/user-approval/tests/invariant.spec.ts",
+      "sha256": "bc171fb3762d002a607def8d1b120c72ddb77bb9332fd94bb865d49f36aa9017"
+    },
+    {
+      "path": "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+      "sha256": "5ce071e8cf72e9e4454657618c0cc849c65a741291b3c19e23748027a322a46e"
+    },
+    {
+      "path": "packages/session/session-projection-cache/src/index.ts",
+      "sha256": "70902a7afcb96a1e11ab62a505d56d2a3ea6753d2788d9c199f2edb6cedbea2d"
+    },
+    {
+      "path": "packages/session/session-projection-cache/src/spec.ts",
+      "sha256": "da718783bc41182b81d2583f18521fdecde7a293e46900479726c3e724e8ee9d"
+    },
+    {
+      "path": "packages/session/session-projection/src/index.ts",
+      "sha256": "5c31245f90025e0cfb62dfd0760f1d2ca2ea8c8bdc5077ffc9b9b975b21818c7"
+    },
+    {
+      "path": "packages/session/session-projection/src/types.ts",
+      "sha256": "6ad9530ea5cfc8ff3e73b34413e5757da8091248b0a874c304f5c5a83500f555"
+    },
+    {
+      "path": "packages/shell/tool-bash/tests/tools.spec.ts",
+      "sha256": "a24c7f5aed53e62ab09a17a4377f66250fb4fad42b616c4673274ae25ece02ef"
+    },
+    {
+      "path": "scripts/gen-cordis-catalog.ts",
+      "sha256": "9f6d86a19fbcef191eefcbc1b3007970098535c2ffce14f8c1b6599d9de7bd38"
+    }
+  ],
+  "authorized_successor_paths": [
+    "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+    "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+    "packages/shell/tool-bash/tests/tools.spec.ts"
+  ],
+  "remaining_verification_only_paths": [
+    "packages/interaction/commands/tests/commands.spec.ts",
+    "packages/interaction/permission-presets/tests/projection.spec.ts",
+    "packages/feedback/command-feedback/tests/command-feedback.spec.ts",
+    "packages/core/tools/tests/invariant.spec.ts",
+    "packages/acp/acp/tests/approval.spec.ts"
+  ],
+  "customization_owner": {
+    "id": "interaction-session-reader-invariants",
+    "path_count": 34,
+    "paths": [
+      "packages/interaction/commands/src/index.ts",
+      "packages/interaction/commands/src/invariant.ts",
+      "packages/interaction/commands/src/audit-state.ts",
+      "packages/interaction/commands/tests/invariant.spec.ts",
+      "packages/interaction/commands/README.md",
+      "packages/interaction/commands/README.zh.md",
+      "packages/interaction/commands/README.i18n.yaml",
+      "docs/subsystems/commands.md",
+      "docs/subsystems/commands.zh.md",
+      "docs/subsystems/commands.i18n.yaml",
+      "packages/interaction/permission-presets/src/index.ts",
+      "packages/interaction/permission-presets/src/invariant.ts",
+      "packages/interaction/permission-presets/src/preset-history.ts",
+      "packages/interaction/permission-presets/tests/invariant.spec.ts",
+      "packages/interaction/permission-presets/README.md",
+      "packages/interaction/permission-presets/README.zh.md",
+      "packages/interaction/permission-presets/README.i18n.yaml",
+      "docs/subsystems/permission-presets.md",
+      "docs/subsystems/permission-presets.zh.md",
+      "docs/subsystems/permission-presets.i18n.yaml",
+      "packages/interaction/user-approval/src/index.ts",
+      "packages/interaction/user-approval/src/invariant.ts",
+      "packages/interaction/user-approval/src/session-state.ts",
+      "packages/interaction/user-approval/tests/approval.spec.ts",
+      "packages/interaction/user-approval/tests/invariant.spec.ts",
+      "packages/interaction/user-approval/README.md",
+      "packages/interaction/user-approval/README.zh.md",
+      "packages/interaction/user-approval/README.i18n.yaml",
+      "docs/subsystems/approval.md",
+      "docs/subsystems/approval.zh.md",
+      "docs/subsystems/approval.i18n.yaml",
+      "packages/interaction/permission-presets/tests/permission-presets.spec.ts",
+      "packages/plan/plan-mode/tests/plan-mode.spec.ts",
+      "packages/shell/tool-bash/tests/tools.spec.ts"
+    ]
+  },
+  "snapshot": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "preexisting_dirty_worktree": true,
+    "state_revision": 246,
+    "state_updated_at": "2026-09-23T20:32:56-03:00"
+  },
+  "post_gate_transition_note": "This is the pre-transition successor-gate candidate snapshot. The subsequent READY and START transactions update backlog, plan, execution log, verification ledger, and runtime state, all of which are recorded fingerprint inputs. Those state-last lifecycle writes do not widen the approved three-test implementation scope."
+}

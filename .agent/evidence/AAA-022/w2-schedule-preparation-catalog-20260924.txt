@@ -1,0 +1,2 @@
+$ tsx scripts/gen-cordis-catalog.ts --check
+gen-cordis-catalog: 111 generated file(s)/region(s) are up to date.

@@ -69,7 +69,7 @@ The `agent-presets` user-settings namespace carries `modeSelectionEnabled` and `
 
 **A preset multiplies a cost the host was already paying: nothing disposes an agent.** Measured against the shipped compositions with `--expose-gc`, one live agent holds ~0.17 MB on `minimal` and ~1.31 MB on `standard`/`cordis`, mounting in ~38 ms and ~135 ms; the first agent of a process costs ~7 MB more as Node imports the modules, which every later mount then shares. Growth is strictly linear — 10, 30 and 50 agents give the same per-agent delta — and disposal reclaims essentially all of it (50 `standard` agents held 57.8 MB and returned it). So the object graph does not leak; the lifecycle does. `ApiSessionAgentController` discards the `AgentHandle` returned by the registry, `archiveSession` only edits the workspace registry, `AgentRegistry` has no eviction, and the sole disposal site in the host is the JSON-RPC server's own shutdown. A web host therefore retains every session it has touched, at ~1.3 MB each once presets are composed rather than ~0.2 MB before. Note that pruning the mount registry does not help here: it drops records whose fiber `uid` has cleared, and an agent that never dies never clears one.
 
-- Remaining TODO: idle agent eviction — dispose after the session is persisted and re-mount on resume. It belongs to the host that owns the handle, not to this seam.
+- Idle agent eviction is not part of this seam. The host owns the agent handle and therefore owns any retention or disposal policy.
 
 ## Alternatives considered
 

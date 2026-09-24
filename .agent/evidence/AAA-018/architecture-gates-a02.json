@@ -1,0 +1,28 @@
+{
+  "record_id": "EVID-AAA-018-A02-ARCHITECTURE-GATES-2026-09-21",
+  "task": "AAA-018",
+  "action": "AAA-018:A02",
+  "timestamp": "2026-09-21T00:34:21-03:00",
+  "commands": [
+    {
+      "command": "pnpm run verify-client-domain-graph",
+      "exit_status": 1,
+      "observed_status": "FAIL",
+      "summary": "The current client-domain graph still reports 38 violations across the Conversation, Browser, and document-preview client domains."
+    },
+    {
+      "command": "pnpm run verify-module-graph",
+      "exit_status": 1,
+      "observed_status": "FAIL",
+      "summary": "The owning generator still reports docs/module-graph.md, docs/module-graph.zh.md, and docs/module-graph.i18n.yaml as stale."
+    }
+  ],
+  "decision": "The failures remain implementation-gated by the unresolved AAA-009 ownership and shared-API decision; no source or generated file was changed.",
+  "limitations": "This is current revalidation evidence, not a Quality Bar PASS or authorization to choose the client architecture.",
+  "evidence_refs": [
+    ".agent/evidence/AAA-009/findings.json",
+    ".agent/evidence/AAA-010/verify-a01.json",
+    "scripts/verify-client-domain-graph.ts",
+    "scripts/gen-module-graph.ts"
+  ]
+}

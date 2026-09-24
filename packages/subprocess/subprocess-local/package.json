@@ -22,7 +22,6 @@
       "types": "./lib/types/bin.d.ts",
       "default": "./lib/runner.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json",
     "./output": {
       "types": "./lib/types/output.d.ts",

@@ -1,0 +1,13 @@
+Command: pnpm exec vitest run packages/schedule/schedule/tests/projection.spec.ts
+Environment: Linux x86_64; Node v24.20.0; pnpm workspace; 2026-09-24 05:32:22-03:00.
+Exit status: 1.
+
+Result: 1 test file failed; 3 failed and 2 passed.
+
+Failure 1, `restores checkpoints, folds a bounded tail, and fails loud on damaged durable data`, failed at projection.spec.ts:125 because `ctx.sessionProjections` was undefined when the test called `.register()` after mounting `SessionProjectionRegistry`.
+
+Failure 2, `rejects malformed or internally inconsistent checkpoint states`, failed at projection.spec.ts:158 for the same missing service in the test context.
+
+Failure 3, `registers only while the Schedule plugin fiber is live`, expected an empty snapshot after Schedule fiber disposal but received the still-registered `schedule` projection containing the `live` item.
+
+These are test-fixture/expectation failures in a currently verification-only path. They do not establish whether plugin mounting or effect ownership is the cause; inspect and isolate that behavior before choosing the fixture or expectation change.

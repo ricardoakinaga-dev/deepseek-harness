@@ -234,6 +234,7 @@ class FakeWebSocket extends EventTarget {
   static readonly sockets: FakeWebSocket[] = []
   static autoOpen = true
   static dispatchClose = true
+  static closeError: Error | undefined
 
   readonly url: string
   readonly sent: string[] = []
@@ -269,6 +270,7 @@ class FakeWebSocket extends EventTarget {
       ...(code === undefined ? {} : { code }),
       ...(reason === undefined ? {} : { reason }),
     })
+    if (FakeWebSocket.closeError !== undefined) throw FakeWebSocket.closeError
     if (this.readyState === FakeWebSocket.CLOSED) return
     if (!FakeWebSocket.dispatchClose) {
       this.readyState = FakeWebSocket.CLOSING
@@ -2440,6 +2442,169 @@ describe('Remote stream client carrier lifecycle', () => {
     await client.close()
   })
 
+  it('waits for an open socket close event before resolving', async () => {
+    await withFakeWebSocket('https://harness.example', async () => {
+      FakeWebSocket.autoOpen = false
+      FakeWebSocket.dispatchClose = false
+      const client = new RemoteStreamMuxClient()
+      client.start()
+      const socket = FakeWebSocket.sockets[0]!
+      socket.open()
+
+      let resolved = false
+      const closing = client.close().then(() => { resolved = true })
+      await Promise.resolve()
+      expect(socket.readyState).toBe(FakeWebSocket.CLOSING)
+      expect(resolved).toBe(false)
+
+      socket.drop()
+      await closing
+      expect(resolved).toBe(true)
+    })
+  })
+
+  it('does not request a second close from an already-closing socket', async () => {
+    await withFakeWebSocket('https://harness.example', async () => {
+      FakeWebSocket.autoOpen = false
+      FakeWebSocket.dispatchClose = false
+      const client = new RemoteStreamMuxClient()
+      client.start()
+      const socket = FakeWebSocket.sockets[0]!
+      socket.open()
+      socket.readyState = FakeWebSocket.CLOSING
+
+      const closing = client.close()
+      expect(socket.closedWith).toEqual([])
+      socket.drop()
+      await closing
+    })
+  })
+
+  it('completes immediately when the active socket is already closed', async () => {
+    await withFakeWebSocket('https://harness.example', async () => {
+      FakeWebSocket.autoOpen = false
+      const client = new RemoteStreamMuxClient()
+      client.start()
+      const socket = FakeWebSocket.sockets[0]!
+      socket.open()
+      socket.readyState = FakeWebSocket.CLOSED
+
+      await expect(client.close()).resolves.toBeUndefined()
+      expect(socket.closedWith).toEqual([])
+    })
+  })
+
+  it('resolves when the close deadline observes a socket that closed without an event', async () => {
+    vi.useFakeTimers()
+    try {
+      await withFakeWebSocket('https://harness.example', async () => {
+        FakeWebSocket.autoOpen = false
+        FakeWebSocket.dispatchClose = false
+        const client = new RemoteStreamMuxClient()
+        client.start()
+        const socket = FakeWebSocket.sockets[0]!
+        socket.open()
+
+        const closing = client.close()
+        socket.readyState = FakeWebSocket.CLOSED
+        await vi.runAllTimersAsync()
+        await expect(closing).resolves.toBeUndefined()
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shares one pending promise across repeated close calls', async () => {
+    await withFakeWebSocket('https://harness.example', async () => {
+      FakeWebSocket.autoOpen = false
+      FakeWebSocket.dispatchClose = false
+      const client = new RemoteStreamMuxClient()
+      client.start()
+      const socket = FakeWebSocket.sockets[0]!
+      socket.open()
+
+      const first = client.close()
+      const repeated = client.close()
+      expect(repeated).toBe(first)
+      expect(socket.closedWith).toEqual([{ code: 1000, reason: 'disposed' }])
+
+      socket.drop()
+      await Promise.all([first, repeated])
+    })
+  })
+
+  it('rejects close when the socket reports an error', async () => {
+    await withFakeWebSocket('https://harness.example', async () => {
+      FakeWebSocket.autoOpen = false
+      FakeWebSocket.dispatchClose = false
+      const client = new RemoteStreamMuxClient()
+      client.start()
+      const socket = FakeWebSocket.sockets[0]!
+      socket.open()
+
+      const closing = client.close()
+      socket.fail()
+      await expect(closing).rejects.toThrow('api gateway: Remote stream WebSocket close failed')
+      socket.drop()
+    })
+  })
+
+  it('keeps a close success when an error arrives after the close event', async () => {
+    await withFakeWebSocket('https://harness.example', async () => {
+      const client = new RemoteStreamMuxClient()
+      client.start()
+      await Promise.resolve()
+      const socket = FakeWebSocket.sockets[0]!
+
+      const closing = client.close()
+      socket.fail()
+      await expect(closing).resolves.toBeUndefined()
+    })
+  })
+
+  it('rejects close when requesting physical closure throws', async () => {
+    await withFakeWebSocket('https://harness.example', async () => {
+      const closeError = new Error('fixture close failure')
+      FakeWebSocket.closeError = closeError
+      const client = new RemoteStreamMuxClient()
+      client.start()
+      await Promise.resolve()
+      const socket = FakeWebSocket.sockets[0]!
+
+      await expect(client.close()).rejects.toMatchObject({
+        message: 'api gateway: Remote stream WebSocket close failed',
+        cause: closeError,
+      })
+      socket.drop()
+    })
+  })
+
+  it('rejects at the bounded close timeout when no close event arrives', async () => {
+    vi.useFakeTimers()
+    try {
+      await withFakeWebSocket('https://harness.example', async () => {
+        FakeWebSocket.autoOpen = false
+        FakeWebSocket.dispatchClose = false
+        const client = new RemoteStreamMuxClient()
+        client.start()
+        const socket = FakeWebSocket.sockets[0]!
+        socket.open()
+
+        const closing = client.close()
+        const timedOut = expect(closing).rejects.toThrow(
+          'api gateway: Remote stream WebSocket close timed out after 5000ms',
+        )
+        await vi.runAllTimersAsync()
+        await timedOut
+        expect(socket.readyState).toBe(FakeWebSocket.CLOSING)
+        socket.drop()
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('connects without a logical stream, waits for owner-driven retries, and stops permanently', async () => {
     await withFakeWebSocket('https://harness.example', async () => {
       FakeWebSocket.autoOpen = false
@@ -2546,6 +2711,33 @@ describe('Remote stream client carrier lifecycle', () => {
       client.reconnect()
       await Promise.resolve()
       expect(FakeWebSocket.sockets).toHaveLength(3)
+    })
+  })
+
+  it('ignores a late close callback from a replaced socket', async () => {
+    await withFakeWebSocket('https://harness.example', async () => {
+      FakeWebSocket.dispatchClose = false
+      const client = new RemoteStreamMuxClient()
+      client.start()
+      const first = FakeWebSocket.sockets[0]!
+      first.open()
+
+      client.reconnect()
+      await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
+      const replacement = FakeWebSocket.sockets[1]!
+      replacement.open()
+      FakeWebSocket.dispatchClose = true
+
+      first.drop()
+      expect(replacement.readyState).toBe(FakeWebSocket.OPEN)
+
+      const stream = client.open('feed/follow', {}, new AbortController().signal)[Symbol.asyncIterator]()
+      const pending = stream.next()
+      await vi.waitFor(() => { expect(replacement.sent).toHaveLength(1) })
+      const { streamId } = JSON.parse(replacement.sent[0]!) as { streamId: string }
+      replacement.receive({ type: 'end', streamId })
+      await expect(pending).resolves.toEqual({ done: true, value: undefined })
+      await client.close()
     })
   })
 
@@ -2699,7 +2891,9 @@ describe('Remote stream client carrier lifecycle', () => {
         [Symbol.asyncIterator]().next()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets[1]?.sent).toHaveLength(1) })
       const disposedSocket = FakeWebSocket.sockets[1]!
-      await disposedClient.close()
+      const closing = disposedClient.close()
+      disposedSocket.drop()
+      await closing
       disposedSocket.receive({ type: 'end', streamId: 'stale' })
       disposedSocket.drop()
       await expect(disposed).rejects.toThrow('Remote stream client disposed')
@@ -2719,12 +2913,14 @@ async function withFakeWebSocket(
   FakeWebSocket.sockets.length = 0
   FakeWebSocket.autoOpen = true
   FakeWebSocket.dispatchClose = true
+  FakeWebSocket.closeError = undefined
   try {
     await run()
   } finally {
     FakeWebSocket.sockets.length = 0
     FakeWebSocket.autoOpen = true
     FakeWebSocket.dispatchClose = true
+    FakeWebSocket.closeError = undefined
     if (originalWebSocket === undefined) delete (globalThis as WebSocketGlobal).WebSocket
     else globalThis.WebSocket = originalWebSocket
     if (locationDescriptor === undefined) Reflect.deleteProperty(globalThis, 'location')

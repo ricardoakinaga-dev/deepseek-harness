@@ -391,7 +391,7 @@ export function SnapshotBody({ content, source, t }: {
   t: Translate
 }): ReactNode {
   const sections = snapshotSections(source)
-  /* v8 ignore next -- contextBody reads the sections before choosing this body. */
+  /*! v8 ignore next -- contextBody reads the sections before choosing this body. */
   if (sections === null) return <OpaqueBody content={content} source={source} t={t} />
   return (
     <>
@@ -440,7 +440,7 @@ export function RelayBody({ content, source, t }: {
   t: Translate
 }): ReactNode {
   const sender = relaySender(source)
-  /* v8 ignore next -- contextBody resolves the sender before choosing this body. */
+  /*! v8 ignore next -- contextBody resolves the sender before choosing this body. */
   if (sender === null) return <OpaqueBody content={content} source={source} t={t} />
   return (
     <>
@@ -582,7 +582,7 @@ export function contextBody(
         : { rendered: 'recall', summary: null, body: <RecallBody {...props} /> }
     case null:
       return opaque
-    /* v8 ignore next 4 -- closed-union backstop; the compiler rejects a new
+    /*! v8 ignore next 4 -- closed-union backstop; the compiler rejects a new
     KnownContextForm here rather than letting it degrade to opaque silently. */
     default: {
       const unreachable: never = form

@@ -1,0 +1,202 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-W2-CORE-TOOLS-001",
+  "timestamp": "2026-09-24T09:28:40.098842-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+  "scope_ref": "AAA-022",
+  "version": 3,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "The user-authorized exact 15-path W2 core/tools scope has a fresh independent design approval bound to the current design hash. The fold uses exact creation baselines and preparation feeds, verifies canonical committed events and sequence order, preserves synchronous pre-commit rejection, and refuses late activation on eventful Sessions.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-022-W2-CORE-TOOLS-GATE-20260924-001",
+        ".agent/evidence/AAA-022/core-tools-invariant-design-w2-20260924.json",
+        ".agent/evidence/AAA-022/core-tools-invariant-design-review-w2-20260924.json",
+        ".agent/authority.jsonl#AUTH-AAA-022-W2-CORE-TOOLS-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "This is implementation readiness only; behavior tests and source changes remain pending."
+    },
+    {
+      "id": "IR-002",
+      "description": "The exact 15 implementation paths have one expected current customization owner each. The nine core-tools, tools-subsystem, and invariant-documentation paths were added to schedule-session-projection-readers; the six existing owner assignments remain unchanged, and the official customization-policy validator exits 0.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-022-W2-CORE-TOOLS-GATE-20260924-001",
+        ".agent/evidence/AAA-022/core-tools-gate-policy-validation-20260924.txt",
+        ".agent/evidence/AAA-022/core-tools-gate-fingerprint-20260924.json",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The owner update is limited to the nine named additions; no other policy owner or path is reattributed."
+    },
+    {
+      "id": "IR-003",
+      "description": "The design contains acceptance coverage and post-implementation checks for restore/fork baselines, preparation replay exactly once, rollback and live append validation, synthetic delivery exclusion, commit sequencing, teardown, bilingual docs, and the fail-closed late-activation limitation. Session/AgentLoop source, persisted formats, and A28 remain outside scope.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/verification.jsonl#VER-AAA-022-W2-CORE-TOOLS-GATE-20260924-001",
+        ".agent/evidence/AAA-022/core-tools-invariant-design-w2-20260924.json",
+        ".agent/evidence/AAA-022/core-tools-invariant-design-review-w2-20260924.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The listed behavioral and documentation checks must pass during implementation; no verification result is claimed here."
+    }
+  ],
+  "evidence": [
+    ".agent/verification.jsonl#VER-AAA-022-W2-CORE-TOOLS-GATE-20260924-001",
+    ".agent/evidence/AAA-022/core-tools-invariant-design-w2-20260924.json",
+    ".agent/evidence/AAA-022/core-tools-invariant-design-review-w2-20260924.json",
+    ".agent/evidence/AAA-022/core-tools-gate-fingerprint-20260924.json",
+    ".agent/authority.jsonl#AUTH-AAA-022-W2-CORE-TOOLS-001",
+    ".agent/evidence/AAA-022/core-tools-gate-policy-validation-20260924.txt",
+    ".agents/customization-policy.json"
+  ],
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+    "decision": "Apply the user-authorized M01-M50 program to the independently reviewed exact 15-path W2 core/tools transactional baseline fold for REM-028-S029. Add only the nine core-tools, tools-docs, and invariant-doc paths named by the design to schedule-session-projection-readers; preserve the six existing-owner assignments. Run only the listed local implementation verification. Preserve Session formats and released data, AgentLoop source, all unrelated dirty work, the FAIL-358 baseline, and sealed A28. Do not push, merge, publish, write registries, release, or issue a final verdict.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-W2-CORE-TOOLS-001",
+    "expires_or_revalidates": "Revalidate if any exact path, owner, baseline/preparation sequencing, late-activation behavior, persisted-format exclusion, FAIL-358 baseline, sealed A28 status, or external-action boundary changes."
+  },
+  "residual_risk": "HIGH",
+  "decision": "PASS",
+  "next_action": "Implement only the exact 15 paths in this gate, preserving the six existing owner assignments, Session/AgentLoop source, persisted Session formats, the FAIL-358 baseline, and sealed A28; then run every listed local verification command.",
+  "revalidation_triggers": [
+    "Any implementation edit outside the exact 15 paths is required.",
+    "Any of the 15 current path hashes or exact owner assignments changes before implementation begins.",
+    "The design requires a Session or AgentLoop change, a new persisted field, or a change to released Session formats.",
+    "Preparation replay, rollback, synchronous rejection, post-commit containment, or late-activation failure behavior changes.",
+    "The state checker no longer reproduces the retained FAIL-358 baseline or the recorded M09 metrics limitation changes.",
+    "Any A28 artifact would be edited or used as an implementation input.",
+    "Push, merge, publication, registry write, release, or final-verdict action is proposed."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-W2-SCHEDULE-PREPARATION-SUCCESSOR-001",
+  "candidate_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "candidate_fingerprint": "a449a360a3af5b6759f073af7b90448d8f849f3f533b2c317cd6aa428a7ed752",
+  "candidate_fingerprint_record_sha256": "b1c292ada3547d03bad600e2f8893b4943ffdd058d1a9934a91f635a78afc01c",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256 over UTF-8 canonical JSON of the sorted array of path and sha256 objects, with sorted keys and compact separators.",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/subsystems/tools.i18n.yaml",
+      "docs/subsystems/tools.md",
+      "docs/subsystems/tools.zh.md",
+      "packages/core/tools/README.i18n.yaml",
+      "packages/core/tools/README.md",
+      "packages/core/tools/README.zh.md",
+      "packages/core/tools/package.json",
+      "packages/core/tools/src/invariant.ts",
+      "packages/core/tools/tests/invariant.spec.ts",
+      "packages/core/tools/tsconfig.json",
+      "packages/runtime-diagnostics/invariants/README.i18n.yaml",
+      "packages/runtime-diagnostics/invariants/README.md",
+      "packages/runtime-diagnostics/invariants/README.zh.md",
+      "pnpm-lock.yaml"
+    ],
+    "implementation_paths": [
+      ".agents/customization-policy.json",
+      "docs/subsystems/tools.i18n.yaml",
+      "docs/subsystems/tools.md",
+      "docs/subsystems/tools.zh.md",
+      "packages/core/tools/README.i18n.yaml",
+      "packages/core/tools/README.md",
+      "packages/core/tools/README.zh.md",
+      "packages/core/tools/package.json",
+      "packages/core/tools/src/invariant.ts",
+      "packages/core/tools/tests/invariant.spec.ts",
+      "packages/core/tools/tsconfig.json",
+      "packages/runtime-diagnostics/invariants/README.i18n.yaml",
+      "packages/runtime-diagnostics/invariants/README.md",
+      "packages/runtime-diagnostics/invariants/README.zh.md",
+      "pnpm-lock.yaml"
+    ],
+    "verification_only_paths": [],
+    "excluded": [
+      "packages/core/session source",
+      "packages/core/agent-loop source",
+      "Session format and released persistence data",
+      "A28 sealed artifacts",
+      "all other worktree paths"
+    ]
+  },
+  "scope_exclusions": [
+    "No packages/session/session-projection source or tests; the existing onBeforePrepareSession and SessionPreparation.subscribeAppends APIs are sufficient.",
+    "No packages/core/session source or Session event changes.",
+    "No tool runtime src/index.ts changes or new service method.",
+    "No SessionProjectionStateMap entry, zod dependency, generated Cordis catalog, session schema, session format, persistence type, or SQLite schema change.",
+    "No change to sealed A28 artifacts."
+  ],
+  "verification_commands": [
+    {
+      "id": "W2-CORE-TOOLS-TESTS",
+      "command": "pnpm exec vitest run packages/core/tools/tests/invariant.spec.ts",
+      "purpose": "Verify exact baseline adoption, preparation replay, setup rollback, synchronous live rejection, post-commit containment, synthetic event exclusion, late-activation refusal, and disposal."
+    },
+    {
+      "id": "W2-CORE-TOOLS-TSC",
+      "command": "pnpm exec tsc -b packages/core/tools/tsconfig.json --pretty false",
+      "purpose": "Build the tools package through the new session-projection project reference."
+    },
+    {
+      "id": "W2-CORE-TOOLS-OXLINT",
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/core/tools/src packages/core/tools/tests",
+      "purpose": "Lint the exact tools implementation and tests."
+    },
+    {
+      "id": "W2-CORE-TOOLS-DOCS-QUICK",
+      "command": "pnpm run test:docs",
+      "purpose": "Run documentation quick gates after bilingual README and subsystem updates."
+    },
+    {
+      "id": "W2-CORE-TOOLS-DOC-TYPECHECK",
+      "command": "pnpm run doc-typecheck",
+      "purpose": "Typecheck public API examples after the service and lifecycle documentation updates."
+    },
+    {
+      "id": "W2-CORE-TOOLS-TYPE-EQUIV",
+      "command": "pnpm run verify-type-equiv",
+      "purpose": "Verify documented TypeScript API types match declarations."
+    },
+    {
+      "id": "W2-CORE-TOOLS-EXPORT-JSDOC",
+      "command": "pnpm run verify-export-jsdoc",
+      "purpose": "Check JSDoc on affected public exports and methods."
+    },
+    {
+      "id": "W2-CORE-TOOLS-PAIRING",
+      "command": "pnpm run verify-translation-pairing -- packages/core/tools/README.md docs/subsystems/tools.md packages/runtime-diagnostics/invariants/README.md",
+      "purpose": "Verify exact English/Chinese pairing and sidecars for the three changed document pairs."
+    },
+    {
+      "id": "W2-CORE-TOOLS-DOC-BUDGETS",
+      "command": "pnpm run verify-doc-budgets",
+      "purpose": "Check updated package and subsystem documentation budgets."
+    },
+    {
+      "id": "W2-CORE-TOOLS-CUSTOMIZATION-POLICY",
+      "command": "node scripts/verify-customization-policy.mjs --base master",
+      "purpose": "Validate the current custom delta and exact owner assignments."
+    },
+    {
+      "id": "W2-CORE-TOOLS-DIFF-CHECK",
+      "command": "git diff --check -- .agents/customization-policy.json docs/subsystems/tools.md docs/subsystems/tools.zh.md docs/subsystems/tools.i18n.yaml packages/core/tools/src/invariant.ts packages/core/tools/tests/invariant.spec.ts packages/core/tools/tsconfig.json packages/core/tools/package.json packages/core/tools/README.md packages/core/tools/README.zh.md packages/core/tools/README.i18n.yaml packages/runtime-diagnostics/invariants/README.md packages/runtime-diagnostics/invariants/README.zh.md packages/runtime-diagnostics/invariants/README.i18n.yaml pnpm-lock.yaml",
+      "purpose": "Check whitespace only across the authorized 15 paths."
+    },
+    {
+      "id": "W2-CORE-TOOLS-STATE-BASELINE",
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py /home/ricardo/deepseek-harness --contracts-root /home/ricardo/.agents/skills/engineering-framework",
+      "purpose": "Compare the full checker output to the retained FAIL-358/23-class baseline; do not represent historical findings as resolved."
+    }
+  ]
+}

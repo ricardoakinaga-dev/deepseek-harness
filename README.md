@@ -14,6 +14,10 @@ DeepSeek Harness is in _developer preview_ and iterating rapidly. **THERE WILL B
 
 Review the [safety notice](SAFETY.md) before running the project.
 
+## Prerequisites
+
+Source checkouts require Node.js `^22.19.0 || >=24.0.0` and pnpm `11.11.0`, as declared in the root `package.json`. If pnpm is not installed, use Corepack with `corepack pnpm`.
+
 ## Run
 
 ### Run from `npm`

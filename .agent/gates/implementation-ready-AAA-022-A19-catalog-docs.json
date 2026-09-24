@@ -1,0 +1,141 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CATALOG-DOCS-002",
+  "timestamp": "2026-09-23T06:47:11.210243-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: A19 prepared Session append feed and synchronous projection readiness before Agent construction; exact upstream ownership, package tests and documentation",
+  "scope_ref": "AAA-022",
+  "version": 2,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "Confirmed A03 authority and the explicit M08 requirement cover the exact A19 implementation and its required subsystem documentation. The prepared-session owner names the persistence, Session, and session-projection page pairs and sidecars; the generated Cordis catalog remains in its existing catalog-owner records.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-A19-CATALOG-DOCS-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agents/customization-policy.json",
+        "docs/audits/backlog-50-melhorias-2026-09-23.md",
+        ".agent/gates/implementation-ready-AAA-022-A19-canonical.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The existing generated API catalog path still has overlapping policy owners; the broader attribution failures remain assigned to M11 and are not silently resolved here."
+    },
+    {
+      "id": "IR-002",
+      "description": "The approved A19 source changes define preparation append capture and exact projection initialization before Agent construction. The new subsystem text and generated catalog will describe those public APIs without changing released Session data or model-visible input.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+        "packages/core/session/src/preparation.ts",
+        "packages/core/session/src/index.ts",
+        "packages/session/session-projection/src/index.ts",
+        "packages/core/agent-loop/src/index.ts",
+        "packages/session/session-projection/tests/registry.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "A20 owns persistence page draining and recovery. The A19 changes add no projection key, Session format version, stored event member, model-visible input, or SDK output."
+    },
+    {
+      "id": "IR-003",
+      "description": "A19 acceptance includes exact public type documentation, all three Session subsystem page pairs and sidecars, generated Cordis catalog freshness, targeted type and package checks, documentation pairing, and the scoped owner review.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/backlog.json",
+        ".agent/plans/deepseek-harness-aaa.md",
+        "docs/subsystems/persistence.md",
+        "docs/subsystems/session.md",
+        "docs/subsystems/session-projection.md",
+        "packages/extensions/tool-cordis/src/api-catalog.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "These documentation and generator checks remain outstanding at gate creation; the decision permits only the exact 34 fingerprint inputs."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-A19-CATALOG-DOCS-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-review-a96.json",
+    ".agent/gates/implementation-ready-AAA-022-A19-canonical.json#GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001",
+    ".agents/customization-policy.json",
+    "docs/audits/backlog-50-melhorias-2026-09-23.md",
+    "docs/subsystems/persistence.md",
+    "docs/subsystems/session.md",
+    "docs/subsystems/session-projection.md",
+    "packages/extensions/tool-cordis/src/api-catalog.ts"
+  ],
+  "candidate_fingerprint": "c5c87df8f72111bf4b0c09801dc2a9ed683229a2487561f2cc2b82c527602b96",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/architecture.i18n.yaml",
+      "docs/architecture.md",
+      "docs/architecture.zh.md",
+      "docs/subsystems/persistence.i18n.yaml",
+      "docs/subsystems/persistence.md",
+      "docs/subsystems/persistence.zh.md",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "docs/subsystems/session.i18n.yaml",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "packages/core/agent-loop/README.i18n.yaml",
+      "packages/core/agent-loop/README.md",
+      "packages/core/agent-loop/README.zh.md",
+      "packages/core/agent-loop/src/index.ts",
+      "packages/core/agent-loop/tests/invariant.spec.ts",
+      "packages/core/agent-loop/tests/resume.spec.ts",
+      "packages/core/agent-loop/tests/runtime-context.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-admission.spec.ts",
+      "packages/core/agent-loop/tests/system-prompt-projection.spec.ts",
+      "packages/core/session/README.i18n.yaml",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/src/preparation.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts"
+    ],
+    "hash_rule": "Sort relative paths; for each existing input hash path, NUL, working-tree bytes, NUL.",
+    "file_count": 34,
+    "preexisting_dirty_worktree": true
+  },
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: A19 prepared Session append feed and synchronous projection readiness before Agent construction; exact upstream ownership, package tests and documentation",
+    "decision": "The explicit M08 instruction authorizes the local Session subsystem documentation, pairing records, and generated Cordis catalog updates required by the approved A19 code. The existing A03 authority continues to limit runtime changes to the owner-scoped reader migration; this does not authorize A20 storage draining or external repository actions.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A19-CATALOG-DOCS-001",
+    "expires_or_revalidates": "Revalidate if A19 changes runtime/API behavior, Session data, package dependencies, any of the 34 fingerprint inputs, or requires an external repository action."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Complete the A19 subsystem type updates, generated Cordis catalog refresh, paired documentation, and focused verification within this exact 34-path scope.",
+  "revalidation_triggers": [
+    "A generated Session catalog does not match the public source declarations or its reviewed Chinese counterpart.",
+    "The persistence type-equivalence block omits a public SessionPreparation member or drifts from source.",
+    "A prepared event is missed, duplicated, reordered, or projected after Agent construction.",
+    "The change modifies stored Session data, Session format, model-visible input, SDK projections, A20 storage draining, or a path outside this scope."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001",
+  "revalidation": {
+    "kind": "SCOPE_EXPANSION",
+    "previous_record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A19-CANONICAL-001",
+    "previous_candidate_fingerprint": "c75f66f6d5c77bf22ca0676d28416c434e0f7bf9f93c6045dcc05c94cccd1dc7",
+    "reason": "The approved A19 source changes affect three public Session subsystem catalogs and the generated Cordis API catalog. The former 24-path scope omitted those derivative outputs required by M08.",
+    "authority_effect": "A03 remains the authority for runtime behavior; the explicit M08 instruction authorizes only the required local documentation and generated-artifact work. No external action is added."
+  }
+}

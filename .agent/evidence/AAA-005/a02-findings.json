@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-005",
+  "action_id": "AAA-005:A02",
+  "candidate_ref": "aaa-savepoint-2026-09-20-m0-a02-01 plus current working-tree AAA-005:A02 fixture generation",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T20:29:23-03:00",
+  "source_documents": [
+    {
+      "id": "snapshots-policy",
+      "location": "snapshots/AGENTS.md; scripts/session-snapshot-corpus.corpus.ts",
+      "role": "The snapshot policy requires current-writer generations while preserving committed predecessors and prohibits rewriting or deleting old generations."
+    },
+    {
+      "id": "AAA-QB-v1.4",
+      "location": ".agent/plans/deepseek-harness-aaa-quality-bar.json",
+      "role": "Frozen quality criteria require current-generation replay and built-path evidence."
+    },
+    {
+      "id": "AAA-006-adapter-owner",
+      "location": "snapshots/session/resilient-compaction-timeout/resilient-compaction-snapshot-adapter.mjs; package.json",
+      "role": "The custom adapter imports dsh-llm, but the root snapshot consumer does not declare or link that workspace package."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-005-V3",
+      "source_refs": ["AAA-QB-03", "AAA-QB-12"],
+      "source_location": "snapshots/session/resilient-compaction-timeout/session.jsonl; snapshots/session/resilient-compaction-timeout/session.v3.jsonl",
+      "command_ids": ["CMD-AAA-005-004", "CMD-AAA-005-005"],
+      "observed_status": "PASS",
+      "classification": "ADJACENT_CURRENT_GENERATION_PRESERVES_V0",
+      "owner": "AAA-005",
+      "severity": "CLOSED",
+      "summary": "The adjacent current-writer v3 fixture exists, its header agrees with its filename, the focused corpus passes 3/3, and the prior v0 bytes remain unchanged.",
+      "limitations": "The authored headless replay still requires the separate adapter path repair tracked by AAA-006."
+    },
+    {
+      "id": "F-AAA-005-REPLAY",
+      "source_refs": ["AAA-QB-03", "AAA-QB-06", "AAA-QB-12"],
+      "source_location": "snapshots/session/headless.snapshot.ts; snapshots/session/resilient-compaction-timeout/resilient-compaction-snapshot-adapter.mjs; package.json",
+      "command_ids": ["CMD-AAA-005-006", "CMD-AAA-005-007", "CMD-AAA-005-008", "CMD-AAA-005-009"],
+      "observed_status": "FAIL_REPRODUCED",
+      "classification": "SEPARATE_SOURCE_IDENTITY_AND_LIB_ADAPTER_PATH_FAILURES",
+      "owner": "AAA-006",
+      "severity": "CRITICAL_OPEN",
+      "summary": "The source launch fails with a ToolRuntime scheduler identity mismatch, while the CI-representative lib launch reaches the scenario but cannot import its dsh-llm adapter and reports NO_ADAPTER. A standard lib snapshot passes, so the lib failure is scoped to the authored custom adapter path.",
+      "limitations": "AAA-005 cannot be marked complete until its focused replay acceptance is rerun after AAA-006 restores the lib adapter path; no failure was normalized into PASS."
+    }
+  ],
+  "decision": {
+    "result": "AAA-005:A02 PARTIAL",
+    "fixture_change": true,
+    "product_change": false,
+    "diagnosis": "The stale current-generation fixture is corrected without modifying v0, and the corpus is green. Focused replay remains open because source launch has a separate source/artifact identity mismatch and lib launch cannot resolve the custom adapter dependency.",
+    "next_action": "Hand the built adapter import failure to AAA-006, restore the root test consumer dependency through its own implementation gate, then rerun AAA-005 focused replay."
+  },
+  "validation": {
+    "command_record_count": 6,
+    "raw_output_files": 6,
+    "validation_method": "Parse a02-commands.jsonl and this findings file; verify every raw-output file and SHA-256 digest; require v0 preservation, v3 header agreement, focused corpus result, source/lib replay results, and the passing lib control; run git diff --check.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T20:29:23-03:00"
+  }
+}

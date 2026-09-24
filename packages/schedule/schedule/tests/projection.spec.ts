@@ -121,6 +121,7 @@ describe('Schedule Session projection', () => {
   it('restores checkpoints, folds a bounded tail, and fails loud on damaged durable data', async () => {
     const ctx = new Context()
     contexts.push(ctx)
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     ctx.sessionProjections.register(scheduleProjectionDefinition)
 
@@ -154,6 +155,7 @@ describe('Schedule Session projection', () => {
   it('rejects malformed or internally inconsistent checkpoint states', async () => {
     const ctx = new Context()
     contexts.push(ctx)
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     ctx.sessionProjections.register(scheduleProjectionDefinition)
     const row = (val: unknown) => ({ schedule: { ver: 2, seq: SessionSeq(0), val } })
@@ -180,7 +182,7 @@ describe('Schedule Session projection', () => {
     }))).toEqual({})
   })
 
-  it('registers only while the Schedule plugin fiber is live', async () => {
+  it('keeps the invariant-owned projection after the Schedule plugin fiber unloads', async () => {
     const ctx = new Context()
     contexts.push(ctx)
     await ctx.plugin(SessionStore)
@@ -197,6 +199,6 @@ describe('Schedule Session projection', () => {
     expect(ctx.sessionProjections.snapshot(session).values.schedule).toHaveLength(1)
 
     await fiber.dispose()
-    expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
+    expect(ctx.sessionProjections.snapshot(session).values.schedule).toEqual([afterRecord('live')])
   })
 })

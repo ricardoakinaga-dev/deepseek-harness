@@ -113,6 +113,8 @@ kind: "package-reference"
 - **任何页面都可以应答任何请求**——审批按设计是框架级的，所以某个标签页里的人可以批准模型为另一个标签页正在看的会话所发起的 run；收窄「谁有权应答」延后。
 - **call head 掉出事件窗的卡片会丢掉标签**——define 卡片的 name 与 purpose 取自调用参数，因此会话长到把它们截断时，卡片只能以自己的 call id 自称；面板不受影响，因为 host 清单携带标签。
 
+**运行时不变式：** 不发布伴生入口。插件只注册一个 keyed toolview，其资源释放已由 HMR 安全性测试证明。本包拥有的唯一可变关系，即 per-definition run-state 观察量，只存在于浏览器进程中，Host 不变式服务无法触及；Node 端不发出任何 Cordis 事件，也不持有任何跨插件状态。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -122,5 +124,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。插件只注册一个 keyed toolview，其资源释放已由 HMR 安全性测试证明。本包拥有的唯一可变关系，即 per-definition run-state 观察量，只存在于浏览器进程中，Host 不变式服务无法触及；Node 端不发出任何 Cordis 事件，也不持有任何跨插件状态。

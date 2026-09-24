@@ -176,6 +176,8 @@ These limits define when the backend is a poor fit or needs special operational 
 - **Wide-directory and FAT-volume warnings are deferred; FAT-class targets stay writable** — the UI-side warnings are not implemented, a FAT volume as a grant root fails loudly, and a FAT-class target outside the granted roots has no security descriptors so it stays writable under both confined modes; FAT is treated as legacy residue.
 - **PowerShell language mode differs by confined mode** — under `read-only`, PowerShell cannot create its AppLocker probe files in temp and conservatively starts in ConstrainedLanguage (`Add-Type`, non-core .NET static calls, COM, and reflection fail); the shipped `workspace-write` path lets the probe complete, so pwsh stays in FullLanguage unless host-wide WDAC/AppLocker policy says otherwise, while a direct `AclSandbox` with `tempDir: null` has no such guarantee. This split is PowerShell startup behavior, not part of the ACL write boundary.
 
+**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond the fail-closed contracts it enforces at each Win32 call boundary.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -189,5 +191,3 @@ This Dev Note is working context for maintainers: undecided directions and open 
 The warn-only posture for unusually wide directories and FAT-class volumes is documented in the limitations above but not implemented, and a cleanup command that reaps standing workspace ACEs from renamed workspaces is undecided. Both are open directions, not shipped behavior.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond the fail-closed contracts it enforces at each Win32 call boundary.

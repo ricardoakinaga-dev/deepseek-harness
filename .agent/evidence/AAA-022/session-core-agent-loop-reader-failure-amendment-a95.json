@@ -1,0 +1,88 @@
+{
+  "record_id": "EVID-AAA-022-W2-PREPARED-PAGE-FAILURE-AMENDMENT-A95-2026-09-23",
+  "task": "AAA-022",
+  "action": "AAA-022:A18",
+  "kind": "BACKEND_FAILURE_AND_RECOVERY_DECISION_AMENDMENT",
+  "timestamp": "2026-09-23T04:16:00-03:00",
+  "status": "PROPOSED",
+  "amends_ref": ".agent/evidence/AAA-022/session-core-agent-loop-reader-failure-decision-a94.json",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+  "design_refs": [
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-design-a92.json",
+    ".agent/evidence/AAA-022/session-core-agent-loop-reader-handoff-a93.json"
+  ],
+  "critic_interim_ref": "/root/a18_failure_decision_critic",
+  "candidate": {
+    "branch": "custom/main",
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "working_tree": "pre-existing dirty work preserved",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false
+  },
+  "amendments": {
+    "append_rejection": {
+      "rule": "A rejected SessionHandle.append has backend-specific effects; the promise does not establish whether zero, some, or all of the submitted page became visible. Never derive the recovery cursor from resolved-page count and never retry the rejected page blindly.",
+      "recovery": "After closing the failed create handle, reopen the exact id and read the backend's actual valid log before deciding whether it can be resumed or freshly created. Resume continues from that actual log and applies the existing interrupted-turn repair. It cannot recreate seed or setup events that are absent from storage.",
+      "failure_outcome": "The create returns or reports its original failure and does not announce a Session or Agent. No stored event is truncated, deleted, or replayed over an acknowledged sequence. The attempted create can leave no record or a cold-visible valid log, depending on the backend's observed write effect.",
+      "idempotency": "If a stored record exists, same-id create may collide; if no record exists, a fresh create may be possible. Reconciliation reads actual storage first. A failed create never silently changes into resume or an automatic same-id retry."
+    },
+    "configured_identity": {
+      "caller_supplied_id": "AgentLoop.create and createAgent callers know the supplied id and can explicitly resume or reconcile it after failure.",
+      "generated_config_id": "Config startup without sessionId generates an id. The existing agent-loop/config-start-failed warning and event report that exact id, while a later remount generates a different id. Recovery of a partial generated-id record therefore requires an operator or caller to use the reported id explicitly, for example by configuring it as sessionId or calling resume; remount does not resume it automatically.",
+      "falsifier": "Fault-inject a prepublication append rejection for config startup without sessionId; assert no lifecycle announcement, the failure report contains the exact generated id, and a later remount uses the documented new-id behavior."
+    },
+    "prepared_projection_commit": {
+      "rule": "Preparation-owned projections are critical synchronous bookkeeping, not contained session/event observers. Compute and validate the next projection state before accepting the event; if that work throws, append rejects with the Session log, seq, and prior projection state unchanged. Commit the event and prepared projection state in one synchronous append section. The existing post-commit session/event observer route keeps its current contained-failure behavior and does not carry critical preparation state.",
+      "reentrancy": "The per-Session append guard covers attached and unattached Sessions while critical prepared projection state is computed and committed. A nested append rejects before sequence acceptance. Preparation bookkeeping invokes no caller-owned callback and performs no asynchronous work.",
+      "falsifiers": [
+        "A prepared projection failure leaves the log length, next seq, and previous projection state unchanged.",
+        "A nested append from internal prepared bookkeeping is rejected and the outer event receives the next contiguous seq.",
+        "A throwing post-commit session/event observer remains contained after the event and its critical projection state commit."
+      ]
+    }
+  },
+  "decisions_retained_from_a94": {
+    "successful_publication": "Before publication, every accepted seed and setup event is stored once through the final fixed cut. The preparation feed then seals synchronously before the existing live event route can observe later appends.",
+    "page_limit_owner": {
+      "package": "@deepseek-ai/dsh-agent-loop",
+      "config_field": "prepublicationAppendBatchSize",
+      "ownership": "Validated AgentLoop Config read by the prepublication SessionHandle writer; each handle.append receives no more than this number of events.",
+      "documentation": [
+        "packages/core/agent-loop/README.md",
+        "packages/core/agent-loop/README.zh.md",
+        "packages/core/agent-loop/README.i18n.yaml",
+        "docs/config-catalog.md and its bilingual generated counterparts"
+      ],
+      "validation": "Positive safe integer with a finite maximum; not a test-only hook or hidden DEFAULT-only tunable.",
+      "default": "Select and document an exact default and finite maximum in the A20 implementation gate. Do not claim a measured throughput optimum without performance evidence."
+    },
+    "atomic_create": "No cross-provider all-or-none staging transaction is introduced. Current persistence contracts do not promise that a rejected append has no effect; this amendment exposes that uncertainty and makes actual-log reconciliation explicit."
+  },
+  "review_conditions": [
+    "Confirm actual-log reconciliation and the configured-id recovery path are consistent with SessionPersistence and AgentLoop public behavior.",
+    "Confirm prepared projection failures are separate from existing contained post-commit observers and preserve append atomicity.",
+    "Confirm A92/A93/A94/A95 collectively close W2-01 through W2-05 and are ready for a narrow A19 implementation gate, with storage draining/page policy deferred to its own gate."
+  ],
+  "scope": {
+    "production_changes": [],
+    "tests_run": [],
+    "session_format_version_change": false,
+    "released_session_record_change": false,
+    "persistence_schema_change": false,
+    "model_visible_event_change": false,
+    "sealed_candidate_mutated": false
+  },
+  "next_action": {
+    "id": "AAA-022:A18",
+    "kind": "FRESH_DESIGN_REVIEW",
+    "summary": "Independently review A95 recovery, configured identity, and prepared projection commit semantics",
+    "completion_signal": "A fresh read-only critic approves the A92-A95 design and W2-01 through W2-05; then reconcile A18 and prepare the exact A19 prepared-projection implementation gate."
+  },
+  "limitations": [
+    "A92 baseline remains 5 files with 2 failing and 3 passing: 48 tests fail and 29 pass because unpublished Agent construction reads an uninitialized turnBoundary projection. It has not been rerun.",
+    "Multi-page append failure, actual-log reconciliation, configured generated-id recovery, critical projection failure, nested prepared append, old-cache missing-key, and handoff race fixtures do not yet exist.",
+    "Canonical repository debt metrics remain unavailable on the incomplete pre-existing dirty worktree."
+  ],
+  "freshness": "CURRENT"
+}

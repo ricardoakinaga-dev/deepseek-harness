@@ -23,7 +23,7 @@ export function canonicalClientTimeZone(value: string): string | undefined {
   try {
     const canonical = new Intl.DateTimeFormat('en-US', { timeZone: value })
       .resolvedOptions().timeZone
-    /* v8 ignore next -- Intl returns UTC or a canonical IANA Area/Location for accepted input. */
+    /*! v8 ignore next -- Intl returns UTC or a canonical IANA Area/Location for accepted input. */
     if (canonical !== 'UTC' && !IANA_TIME_ZONE.test(canonical)) return undefined
     return canonical
   } catch {

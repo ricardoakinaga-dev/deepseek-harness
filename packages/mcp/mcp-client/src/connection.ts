@@ -356,7 +356,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
     // a server that crashes AFTER a successful initial sync cannot flip client
     // to undefined before this continuation runs.
     if (client !== undefined) return {}
-    /* v8 ignore next -- defensive: firstAttemptError is always set when connect/sync fails */
+    /*! v8 ignore next -- defensive: firstAttemptError is always set when connect/sync fails */
     return { error: firstAttemptError ?? new Error(`${label}: initial connection failed`) }
   })
 
@@ -379,7 +379,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
             ) as JsonValue
           case 'resources/read':
             return await generation.readResource({ uri: request.uri }, options) as JsonValue
-          /* v8 ignore next 2 -- resource requests are the closed, typed tool operation union */
+          /*! v8 ignore next 2 -- resource requests are the closed, typed tool operation union */
           default:
             return assertNever(request)
         }

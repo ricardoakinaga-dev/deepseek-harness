@@ -1,0 +1,19 @@
+{
+  "record_id": "EVID-AAA-023-COVERAGE-A46-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A16",
+  "result": "PARTIAL",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; sealed candidate tree 594d3afbb864b88bb5239f12d0ffdf54adc983c9; /home/ricardo/dsh-aaa023-candidate.C6avS2",
+  "command": "pnpm run test:coverage",
+  "exit_status": 1,
+  "duration_seconds": 611.46,
+  "summary": {
+    "test_files": { "passed": 1535, "skipped": 12 },
+    "tests": { "passed": 26307, "expected_failures": 1, "skipped": 153 },
+    "coverage_percent": { "statements": 99.11, "branches": 98.88, "functions": 98.74, "lines": 99.58 },
+    "failure": "The repository coverage gate requires 100% per file under packages/*/*/src; multiple files remained below that threshold. No skip, normalizer, or threshold change was made."
+  },
+  "decision": "Keep AAA-023:A16 active for coverage remediation or an explicitly authorized owner-scoped disposition; do not treat aggregate percentages or passing test counts as a coverage PASS.",
+  "limitations": "This is candidate evidence, not a release qualification. The full local aggregate matrix passed separately; benchmark, required platform, credentialed-provider, packed-install, upstream-rehearsal, release-identity, and final-critic evidence remain outstanding.",
+  "observed_at": "2026-09-22T12:02:08-03:00"
+}

@@ -40,7 +40,7 @@ installFailLoud('dsh')
 const ctx = await boot('dsh', resolveConfigPath(argv[2], process.env.DSH_SNAPSHOT))
 ```
 
-With that entry point, startup keeps every plugin that can activate. An enabled failed plugin produces a labelled warning. A failed required entry makes startup dispose the whole app and exit nonzero; required ids absent from a profile and disabled required entries do not affect startup. The global required list covers shared Agent execution, application endpoints, and Web bootstrap/transport: `agent-loop`, `webserver`, `modules`, `connection`, `headless-runner`, `acp`, and `sdk-jsonrpc-server`.
+With that entry point, startup keeps every plugin that can activate. An enabled failed plugin produces a labelled warning. A failed required entry makes startup dispose the whole app and exit nonzero; required ids absent from a profile and disabled required entries do not affect startup. The global required list covers shared Agent execution, application endpoints, Web bootstrap/transport, and configured model-backed title providers: `agent-loop`, `webserver`, `modules`, `connection`, `headless-runner`, `acp`, `sdk-jsonrpc-server`, `session-title-first-prompt-llm`, and `session-title-all-prompts-llm`. Title providers are also identified by package name, so a custom entry id cannot make a pending provider optional.
 
 <a id="profiles"></a>
 ### Profiles
@@ -87,7 +87,7 @@ After the Loader settles, app-boot warns when only optional entries are inactive
 | Detached asynchronous work outside the `apply()` return Promise produces an unhandled rejection | Fatal: dispose the app and exit nonzero | Fatal: dispose the app and exit nonzero | Fatal: dispose the app and exit nonzero, regardless of entry id |
 | Entry is absent or explicitly disabled | Ignore it | Ignore it | Do not activate it; no required-startup audit |
 
-The required list above includes `modules` and `connection`; Web startup cannot succeed when either enabled entry fails. Failure of an optional provider can also prevent a required consumer from activating. Schema rejection before an existing entry updates is not a transactional rollback of sibling changes.
+The required list above includes `modules` and `connection`; Web startup cannot succeed when either enabled entry fails. A configured title-provider package that waits for `sessionQuery` or another injected service also stops startup; profiles that do not mount these packages are unaffected. Failure of another optional provider can also prevent a required consumer from activating. Schema rejection before an existing entry updates is not a transactional rollback of sibling changes.
 
 The [Web process matrix](../../../apps/cli/tests/profiles/web/tests/web-failure-matrix.expected.e2e.ts) and [startup acceptance](../../../apps/cli/tests/profiles/web/tests/web-best-effort-startup.expected.e2e.ts) verify these outcomes through the shipped Web profile; [app-boot tests](tests/app-boot.spec.ts) also exercise root Include failures.
 

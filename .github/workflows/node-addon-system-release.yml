@@ -29,10 +29,11 @@ jobs:
   matrix:
     name: Matrix
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     outputs:
       prebuilds: ${{ steps.matrix.outputs.prebuilds }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - id: matrix
         run: echo "prebuilds=$(node ./scripts/github-matrix.mjs release-prebuild)" >> "$GITHUB_OUTPUT"
@@ -41,17 +42,18 @@ jobs:
     name: ${{ matrix.package }}
     needs: matrix
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix.outputs.prebuilds) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           package_json_file: package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
@@ -80,7 +82,7 @@ jobs:
           pnpm test:packaging
 
       - name: Upload prebuild artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ matrix.artifact }}
           path: native/system/${{ matrix.dir }}/bin/**
@@ -91,14 +93,19 @@ jobs:
     name: Pack npm tarballs
     needs: build-prebuilds
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           package_json_file: package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
@@ -116,7 +123,7 @@ jobs:
           RELEASE_PUBLISH: ${{ inputs.publish }}
 
       - name: Download prebuild artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: prebuild-*
           path: native/system/.release/prebuild-artifacts
@@ -137,11 +144,50 @@ jobs:
         env:
           NALR_REQUIRE_LANDLOCK: 1
 
+      - name: Generate release SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: native/system/dist/npm
+          format: spdx-json
+          output-file: native/system/dist/node-addon-system-release.spdx.json
+          artifact-name: node-addon-system-release-sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate release artifact attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: native/system/dist/npm/*.tgz
+
+      - name: Generate release SBOM attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: native/system/dist/npm/*.tgz
+          sbom-path: native/system/dist/node-addon-system-release.spdx.json
+
+      - name: Verify release attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for artifact in native/system/dist/npm/*.tgz; do
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY" \
+              --predicate-type https://spdx.dev/Document/v2.3
+          done
+
       - name: Upload npm tarballs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: npm-tarballs
           path: native/system/dist/npm/*
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: node-addon-system-release-sbom
+          path: native/system/dist/node-addon-system-release.spdx.json
           if-no-files-found: error
           retention-days: 7
 
@@ -150,27 +196,46 @@ jobs:
     if: inputs.publish
     needs: pack
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     environment: npm-publish
     permissions:
       contents: read
       id-token: write
+      attestations: read
     steps:
       # The publish script is the only repository file this job needs, and it
       # imports nothing outside Node's builtins, so there is no install step.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Download npm tarballs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: npm-tarballs
           path: native/system/dist/npm
+
+      - name: Download release SBOM
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: node-addon-system-release-sbom
+          path: native/system/dist
+
+      - name: Verify release attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for artifact in native/system/dist/npm/*.tgz; do
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
+            gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY" \
+              --predicate-type https://spdx.dev/Document/v2.3
+          done
 
       - name: Configure npm token fallback
         env:

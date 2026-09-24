@@ -240,13 +240,13 @@ function glyph(type: TraditionalFileType, size: number, className: string | unde
           <path d="M10.5118 20.5L8.24179 13.5H10.2818L12.1918 19.56H11.1618L13.1718 13.5H14.9918L16.8918 19.56H15.9018L17.8718 13.5H19.7618L17.4918 20.5H15.3718L13.7518 15.35H14.3218L12.6318 20.5H10.5118Z" fill="currentColor" />
         </FileGlyph>
       )
-    /* v8 ignore next -- closed-union backstop; only reached if a type is forged */
+    /*! v8 ignore next -- closed-union backstop; only reached if a type is forged */
     default: return assertNever(type)
   }
 }
 
 /** Closed-union exhaustiveness guard for traditional file artwork. */
-/* v8 ignore next 3 -- only reachable when an untyped caller forges a traditional file type */
+/*! v8 ignore next 3 -- only reachable when an untyped caller forges a traditional file type */
 function assertNever(value: never): never {
   throw new Error(`unreachable traditional file type: ${String(value)}`)
 }

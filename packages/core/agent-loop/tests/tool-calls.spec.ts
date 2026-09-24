@@ -33,6 +33,12 @@ async function harness(adapter: MockAdapter, maxParallelToolCalls?: number) {
   return ctx
 }
 
+it('keeps the scheduler view addressable across source and built package copies', async () => {
+  const ctx = await harness(new MockAdapter([textResponse('done')]))
+  expect(Symbol.for('@deepseek-ai/dsh-tools.scheduler')).toBe(TOOL_RUNTIME_SCHEDULER)
+  expect(ctx.tools[TOOL_RUNTIME_SCHEDULER]).toBeDefined()
+})
+
 function waitForIdle(ctx: Context, agent: Agent): Promise<void> {
   return new Promise((resolve) => {
     const dispose = ctx.on('agent/status', ({ agent: subject, status }) => {

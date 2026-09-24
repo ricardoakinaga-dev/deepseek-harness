@@ -1,0 +1,35 @@
+{
+  "record_id": "EVID-AAA-023-CANDIDATE-ISOLATION-A44-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A15",
+  "timestamp": "2026-09-22T10:01:52-03:00",
+  "result": "PARTIAL",
+  "scope": "Private candidate checkout attempt and recovery of the main worktree dependency links",
+  "observed": {
+    "private_candidate": {
+      "path": "/tmp/dsh-aaa023-candidate.REqBE2",
+      "head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+      "tree": "012d6399bb112f14260da5a63fb6b1acd5029960",
+      "staged_path_count": 1400,
+      "source_move_index_check": "PASS"
+    },
+    "candidate_gate_attempt": {
+      "command": "pnpm run check:all",
+      "result": "Stopped before gates because pnpm attempted to purge the linked modules directory without a TTY"
+    },
+    "recovery": {
+      "command": "CI=true pnpm install --offline --frozen-lockfile",
+      "result": "Main worktree dependencies recreated from the local store"
+    },
+    "post_recovery": {
+      "command": "pnpm run verify-client-domain-graph",
+      "result": "client domain layering clean"
+    },
+    "cleanup": "The private checkout was moved to the desktop trash; the main index and tracked files were not changed."
+  },
+  "limitations": [
+    "The candidate checkout used links to the main node_modules tree; its dependency preparation was not an isolated candidate setup and was discarded.",
+    "No aggregate gate ran in the private checkout, and no immutable candidate was retained.",
+    "This does not authorize staging, commit, publication, push, merge, release, or final verdict."
+  ]
+}

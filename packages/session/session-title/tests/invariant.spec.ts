@@ -1,11 +1,11 @@
 // Title-source invariant: `messageSeqs` is empty iff `source.kind` is `user`.
 // — the durable relationship every appended session/title event must keep.
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import * as SessionTitleInvariantCompanion from '@deepseek-ai/dsh-session-title/invariant'
 import InvariantRegistry, { InvariantError } from '@deepseek-ai/dsh-invariants'
-import SessionStore, { SessionId, SessionSeq } from '@deepseek-ai/dsh-session'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import SessionStore, { Session, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
+import { createUserMessage, type ImageBlock } from '@deepseek-ai/dsh-llm'
 
 async function setup(): Promise<Context> {
   const ctx = new Context()
@@ -22,8 +22,25 @@ describe('session-title source invariant', () => {
     const source = session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'title me' }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
+    const blank = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: '   ' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    const nonText = session.append('user/message', createUserMessage({
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: 'title-invariant-image' as ImageBlock['attachment']['attachmentId'],
+          mediaType: 'image/png',
+          bytes: 1,
+          width: 1,
+          height: 1,
+        },
+      }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
     expect(() => {
       session.append('session/title', { title: 'auto', messageSeqs: [source.seq], source: { kind: 'fallback' } })
+      session.append('session/title', { title: 'blank source', messageSeqs: [blank.seq], source: { kind: 'fallback' } })
+      session.append('session/title', { title: 'non-text source', messageSeqs: [nonText.seq], source: { kind: 'fallback' } })
       session.append('session/title', { title: 'named', messageSeqs: [], source: { kind: 'user' } })
     }).not.toThrow()
   })
@@ -75,6 +92,51 @@ describe('session-title source invariant', () => {
     expect(() => session.append('session/title', {
       title: 'duplicate source', messageSeqs: [source.seq, source.seq], source: { kind: 'fallback' },
     })).toThrow(/repeats message seq/)
+  })
+
+  it('does not index an uncommitted human message emitted for another event sequence', async () => {
+    const ctx = await setup()
+    const session = ctx.sessions.create(SessionId('title-invariant-fake-event'))
+    const boundary = session.append('turn/start', { turn: 1 })
+    ctx.emit('session/event', session, {
+      type: 'user/message',
+      seq: boundary.seq,
+      time: boundary.time,
+      data: createUserMessage({
+        content: [{ type: 'text', text: 'uncommitted fake prompt' }], source: { kind: 'user' },
+      }),
+      surfaceOp: 'append',
+    })
+
+    expect(() => session.append('session/title', {
+      title: 'must reject fake source', messageSeqs: [boundary.seq], source: { kind: 'fallback' },
+    })).toThrow(/must name an earlier human user\/message/)
+    expect(session.seq).toBe(1)
+  })
+
+  it('validates seeded title events from the creation baseline without rereading the new Session', async () => {
+    const ctx = await setup()
+    const snapshot = vi.spyOn(Session.prototype, 'snapshotEvents')
+    try {
+      const message = createUserMessage({
+        content: [{ type: 'text', text: 'seeded title source' }], source: { kind: 'user' },
+      })
+      const session = ctx.sessions.create(SessionId('title-invariant-seeded'), {
+        seed: [
+          { type: 'user/message', seq: SessionSeq(0), time: 1, data: message, surfaceOp: 'append' },
+          {
+            type: 'session/title', seq: SessionSeq(1), time: 2,
+            data: { title: 'seeded', messageSeqs: [SessionSeq(0)], source: { kind: 'fallback' } },
+          },
+        ],
+        inheritedEventCount: SessionLogOffset(2),
+        meta: { isSeeded: true },
+      })
+      expect(snapshot).not.toHaveBeenCalled()
+      expect(session.seq).toBe(3)
+    } finally {
+      snapshot.mockRestore()
+    }
   })
 
   it('validates title relations when the companion loads after a Session', async () => {

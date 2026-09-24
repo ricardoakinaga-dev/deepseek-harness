@@ -167,7 +167,7 @@ export async function fileComposition(
   try {
     rows = load(await readFile(path, 'utf8'), { schema: entryListSchema })
   } catch (error) {
-    /* v8 ignore next -- fs and js-yaml throw Errors for every failure here; the fallback keeps a hostile value readable */
+    /*! v8 ignore next -- fs and js-yaml throw Errors for every failure here; the fallback keeps a hostile value readable */
     return { broken: error instanceof Error ? error.message : String(error) }
   }
   const problem = entryListProblem(rows)

@@ -1,0 +1,62 @@
+{
+  "task": "AAA-022",
+  "action_id": "AAA-022:A19",
+  "command": "pnpm run doc-sync",
+  "exit_status": 1,
+  "result": "PARTIAL",
+  "summary": "38 of 43 gates passed; five gates failed.",
+  "failures": [
+    {
+      "gate": "doc graphs",
+      "command": "pnpm run verify-doc-graphs",
+      "detail": "docs/event-producer-consumer.md is stale; generator requested."
+    },
+    {
+      "gate": "tool catalog",
+      "command": "pnpm run verify-tool-catalog",
+      "detail": "tool-catalog generation failed because @deepseek-ai/dsh-plugin-manager booted without harvesting a tool."
+    },
+    {
+      "gate": "config catalog",
+      "command": "pnpm run verify-config-catalog",
+      "detail": "docs/config-catalog.md is stale; generator requested."
+    },
+    {
+      "gate": "persistence catalog",
+      "command": "pnpm run verify-persistence-catalog",
+      "detail": "docs/persistence-catalog.md, docs/persistence-catalog.zh.md, docs/persistence-catalog.i18n.yaml, and docs/persistence-schema.json are stale; generator requested."
+    },
+    {
+      "gate": "persistence type history",
+      "command": "pnpm run verify-persistence-changes",
+      "detail": "docs/persistence-schema.json is stale; persistence catalog regeneration requested."
+    }
+  ],
+  "focused_passes": [
+    {
+      "command": "pnpm run test:docs",
+      "result": "PASS",
+      "detail": "22/22 doc-quick gates passed."
+    },
+    {
+      "command": "pnpm run verify-cordis-catalog",
+      "result": "PASS",
+      "detail": "111 generated artifacts/regions are up to date."
+    },
+    {
+      "command": "pnpm run verify-translation-pairing",
+      "result": "PASS",
+      "detail": "1,027 pairs checked; all consistent."
+    },
+    {
+      "command": "pnpm run verify-type-equiv",
+      "result": "PASS",
+      "detail": "437 primary blocks and 437 paired derivatives match source structure and JSDoc."
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "result": "PASS",
+      "detail": "Every exported package API name is documented."
+    }
+  ]
+}

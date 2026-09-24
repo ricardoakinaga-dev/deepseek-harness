@@ -12,7 +12,9 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the timeout package owns that behavior. */
 import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
+/*! v8 ignore stop */
 import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 
 /**

@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "task": "AAA-002",
+  "action": "AAA-002:A01",
+  "captured_at": "2026-09-20T19:38:37-03:00",
+  "classification": "STALE_GENERATED_RESIDUE",
+  "targets": [
+    {
+      "path": "packages/client/ui-sidebar-textpreview",
+      "tracked_files": 0,
+      "remaining_entries": ["lib", "node_modules"],
+      "entry_rules": [".gitignore:7:lib/", ".gitignore:6:node_modules/"],
+      "history_context": "A prior client document-preview package rename left only ignored build and dependency output.",
+      "disposition": "SAFE_FOR_CLEAN_PROCEDURE"
+    },
+    {
+      "path": "packages/code-runtime/code-runtime",
+      "tracked_files": 0,
+      "remaining_entries": ["lib", "node_modules"],
+      "entry_rules": [".gitignore:7:lib/", ".gitignore:6:node_modules/"],
+      "history_context": "A prior PTC runtime package alignment left only ignored build and dependency output.",
+      "disposition": "SAFE_FOR_CLEAN_PROCEDURE"
+    },
+    {
+      "path": "packages/code-runtime/code-runtime-worker-thread",
+      "tracked_files": 0,
+      "remaining_entries": ["lib", "node_modules"],
+      "entry_rules": [".gitignore:7:lib/", ".gitignore:6:node_modules/"],
+      "history_context": "A prior Node runtime provider rename left only ignored build and dependency output.",
+      "disposition": "SAFE_FOR_CLEAN_PROCEDURE"
+    },
+    {
+      "path": "packages/e2b/e2b",
+      "tracked_files": 0,
+      "remaining_entries": ["lib", "node_modules"],
+      "entry_rules": [".gitignore:7:lib/", ".gitignore:6:node_modules/"],
+      "history_context": "A prior retirement of remote E2B providers left only ignored build and dependency output.",
+      "disposition": "SAFE_FOR_CLEAN_PROCEDURE"
+    },
+    {
+      "path": "packages/e2b/fs-e2b",
+      "tracked_files": 0,
+      "remaining_entries": ["lib", "node_modules"],
+      "entry_rules": [".gitignore:7:lib/", ".gitignore:6:node_modules/"],
+      "history_context": "A prior retirement of remote E2B providers left only ignored build and dependency output.",
+      "disposition": "SAFE_FOR_CLEAN_PROCEDURE"
+    },
+    {
+      "path": "packages/e2b/subprocess-e2b",
+      "tracked_files": 0,
+      "remaining_entries": ["lib", "node_modules"],
+      "entry_rules": [".gitignore:7:lib/", ".gitignore:6:node_modules/"],
+      "history_context": "A prior retirement of remote E2B providers left only ignored build and dependency output.",
+      "disposition": "SAFE_FOR_CLEAN_PROCEDURE"
+    },
+    {
+      "path": "packages/experimental/code-runtime-python",
+      "tracked_files": 0,
+      "remaining_entries": ["lib", "node_modules"],
+      "entry_rules": [".gitignore:7:lib/", ".gitignore:6:node_modules/"],
+      "history_context": "A prior PTC runtime package alignment left only ignored build and dependency output.",
+      "disposition": "SAFE_FOR_CLEAN_PROCEDURE"
+    },
+    {
+      "path": "packages/workflow/workflow-worker-thread",
+      "tracked_files": 0,
+      "remaining_entries": ["lib", "node_modules"],
+      "entry_rules": [".gitignore:7:lib/", ".gitignore:6:node_modules/"],
+      "history_context": "A prior workflow runtime change left only ignored build and dependency output.",
+      "disposition": "SAFE_FOR_CLEAN_PROCEDURE"
+    }
+  ],
+  "safe_cleanup": {
+    "command": "pnpm run clean",
+    "execution_status": "PASS",
+    "preconditions": [
+      "Run from the repository root after reviewing this exact target list.",
+      "The cleaner must find no unknown entry in a manifest-less package directory.",
+      "Re-run constraints and inspect the worktree after cleanup."
+    ],
+    "script_guarantees": [
+      "Only node_modules, lib, .typecheck, and .tsbuildinfo residue is accepted in a manifest-less package directory.",
+      "Unknown entries abort the complete operation before deletion.",
+      "Every deletion target must remain below the repository root, with symlink ancestors resolved before removal."
+    ],
+    "deletion_performed": true,
+    "postconditions": [
+      "pnpm run constraints exited 0 after cleanup.",
+      "All eight manifest-less target directories are absent.",
+      "The cleaner plans zero targets after cleanup."
+    ]
+  },
+  "limitations": [
+    "The target inventory proves current contents and ownership state; it does not remove residue.",
+    "The safe cleanup command has no dry-run mode in its public CLI, so AAA-002:A02 must execute it only after this list is accepted.",
+    "The historical audit named four directories, while current constraints finds eight; this action uses the current eight-directory observation."
+  ]
+}

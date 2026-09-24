@@ -1,7 +1,9 @@
 /** Shared Files resolution, bounded stale-id recovery, and normalized-image diagnostics. */
 
 import type { RequestImageAttachment } from '@deepseek-ai/dsh-attachment'
+/*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the timeout package owns that behavior. */
 import { deadline } from '@deepseek-ai/dsh-timeout'
+/*! v8 ignore stop */
 import type { DeepSeekFileStore, DeepSeekFileConnection, DeepSeekFilePolicy } from './file-store.ts'
 import type { DeepSeekFileId } from './file-id.ts'
 

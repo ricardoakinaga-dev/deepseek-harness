@@ -75,6 +75,8 @@ kind: "package-reference"
 - **不支持表单编码**：GitHub 必须发送 `application/json`；`application/x-www-form-urlencoded` 会被拒绝。
 
 
+**运行时不变式：** 不发布伴生入口。authentication 与 input validation 在对应 HTTP 操作中完成；route/disposer 对称性由 `dsh-host-webserver` 负责。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -84,5 +86,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。authentication 与 input validation 在对应 HTTP 操作中完成；route/disposer 对称性由 `dsh-host-webserver` 负责。

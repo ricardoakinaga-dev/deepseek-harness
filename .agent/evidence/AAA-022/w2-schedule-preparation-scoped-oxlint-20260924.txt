@@ -1,0 +1,1 @@
+packages/session/session-projection/tests/registry.spec.ts:360:18: error typescript(no-confusing-void-expression): Returning a void expression from an arrow function shorthand is forbidden. help: Add braces to the arrow function.

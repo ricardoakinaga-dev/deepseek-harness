@@ -1,0 +1,37 @@
+{
+  "record_id": "EVID-AAA-023-EXTERNAL-LANE-STATUS-A72-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A36",
+  "kind": "EXTERNAL_LANE_STATUS",
+  "status": "PARTIAL",
+  "timestamp": "2026-09-22T18:51:55-03:00",
+  "candidate": {
+    "commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "worktree": "CLEAN",
+    "candidate_bound_evidence_files": 8
+  },
+  "procedure": "Check only local carrier availability, candidate identity, and presence of credential variable names; do not read credential values or dispatch external workflows.",
+  "command_observations": {
+    "host": "Linux x86_64",
+    "node": "v24.20.0",
+    "wine": "ABSENT",
+    "mac_carriers": [],
+    "node_alternative_binaries": [],
+    "DEEPSEEK_API_KEY_EXTERNAL": "ABSENT",
+    "AZURE_OPENAI_API_KEY_EXTERNAL": "ABSENT",
+    "ANTHROPIC_API_KEY_EXTERNAL": "ABSENT"
+  },
+  "lanes": {
+    "windows_wine": "NOT_RUN_MISSING_LOCAL_CARRIER",
+    "linux_arm64": "NOT_RUN_NO_LOCAL_CARRIER",
+    "macos_arm64": "NOT_RUN_NO_LOCAL_CARRIER",
+    "macos_x64": "NOT_RUN_NO_LOCAL_CARRIER",
+    "supported_node_22_19_24_9_26": "NOT_RUN_AS_HOSTED_MATRIX",
+    "credentialed_deepseek_provider": "NOT_RUN_MISSING_CREDENTIAL",
+    "credentialed_azure_anthropic_provider": "NOT_RUN_MISSING_CREDENTIAL"
+  },
+  "disposition": "External qualification remains explicitly unresolved. The local Node 24.20 x64 checks and keyless E2E evidence are not promoted to the missing hosted, platform, or credentialed-provider PASS results.",
+  "candidate_impact": "No candidate, product source, policy, workflow dispatch, secret value, publication, merge, push, release, or verdict action occurred.",
+  "freshness": "CURRENT"
+}

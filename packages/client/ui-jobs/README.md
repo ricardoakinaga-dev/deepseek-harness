@@ -76,6 +76,8 @@ These limits define the current job list. They are current package constraints, 
 - **Rows are read-only** — a job's streamed output and a human-initiated cancellation are separate phases. Cancellation additionally owes a model-facing decision the seam does not answer: `kill()` marks terminal delivery reported, so an interrupt written against the current contract would leave the model believing its job is still running.
 - **The list is not the registry's own set** — it shows what one session can see through the wire view, so a job owned by another session never appears here, and a process restart empties the list while the transcript keeps the `run_in_background` cards that started those jobs. An unowned job (one started without a live `Agent`) reaches every session's list, matching what `list(caller)` reports to every caller.
 
+**Runtime invariant:** No companion is published. This package is a read-only projection of the `jobsBySession` mirror onto one header slot entry. It emits no Cordis events, owns no cross-plugin mutable state, and its single slot registration proves disposal through the HMR-safety spec.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -85,5 +87,3 @@ These limits define the current job list. They are current package constraints, 
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package is a read-only projection of the `jobsBySession` mirror onto one header slot entry. It emits no Cordis events, owns no cross-plugin mutable state, and its single slot registration proves disposal through the HMR-safety spec.

@@ -79,6 +79,8 @@ kind: "package-reference"
 - **仅限本地承载**——Electron 对话框选择本地路径；普通 Web 打开 Host 选择器。远程浏览器与进程内部署使用 `-browse` 组合。平台失败经由持有方的可重试文件夹对话框呈现。
 - **Linux 自动选择**——缺少 zenity 或 kdialog 时，Host 即使在 Desktop 中也选择浏览模式，不使用 Electron 对话框。
 
+**运行时不变式：** 不发布伴生入口。插件将一个无渲染 flow occupant 作为一个事务性 effect 注册到两个 workspace hole；HMR 安全性规范证明该 effect 的释放行为，并且插件在各次 pick 之间不保留状态。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -88,5 +90,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。插件将一个无渲染 flow occupant 作为一个事务性 effect 注册到两个 workspace hole；HMR 安全性规范证明该 effect 的释放行为，并且插件在各次 pick 之间不保留状态。

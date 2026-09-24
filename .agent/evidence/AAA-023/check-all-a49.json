@@ -1,0 +1,24 @@
+{
+  "record_id": "EVID-AAA-023-CHECK-ALL-A49-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A17",
+  "result": "PASS",
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; sealed candidate tree f3b4cb2064db3af52807cfd631afda85dfa56aae; /home/ricardo/dsh-aaa023-candidate.eSCkTH",
+  "command": "pnpm run check:all",
+  "exit_status": 0,
+  "duration_seconds": 433.90,
+  "summary": {
+    "gates": { "passed": 77, "failed": 0, "skipped": 0 },
+    "test_files": { "passed": 1535, "skipped": 12 },
+    "tests": { "passed": 26314, "expected_failures": 1, "skipped": 153 },
+    "derived_checks": "build, snapshots, expected outputs, package and NodeNext checks, documentation, catalogs, policy, metrics, and client-domain graph all passed",
+    "first_attempt": "check-all-a48 retained the initial same-candidate preparation and repair failures"
+  },
+  "decision": "AAA-023:A17 passes the aggregate matrix on sealed candidate tree f3b4cb2064db3af52807cfd631afda85dfa56aae. Re-run coverage on this exact tree before accepting the candidate for the remaining release lanes.",
+  "limitations": "Coverage on this final tree remains to be revalidated after the compile and documentation repairs. Benchmark, required-platform, credentialed-provider, packed-install, upstream-rehearsal, release-identity, publication, and final-critic evidence remain outstanding; no commit, publication, push, merge, release, or final verdict is claimed.",
+  "artifacts": [
+    ".agent/evidence/AAA-023/check-all-a49.json",
+    "/tmp/dsh-a17-candidate-check-all-fixed.log"
+  ],
+  "observed_at": "2026-09-22T14:57:37-03:00"
+}

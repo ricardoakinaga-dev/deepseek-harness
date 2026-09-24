@@ -657,7 +657,7 @@ export function apply(ctx: Context, config: Config, session?: Session): void {
     throw new Error('tool-subagent: standing `modelSelectionSettings` requires a scoped preset Context')
   }
   const agents = ctx.get('agents')
-  /* v8 ignore next -- shipped preset compositions always include the Agent registry. */
+  /*! v8 ignore next -- shipped preset compositions always include the Agent registry. */
   if (agents === undefined) throw new Error('tool-subagent: standing `modelSelectionSettings` requires the Agent registry')
   const scopedInstalls = new WeakMap<Agent, ReturnType<Context['inject']>>()
   const installing = new WeakSet<Agent>()
@@ -686,7 +686,7 @@ export function apply(ctx: Context, config: Config, session?: Session): void {
     const fiber = scopedInstalls.get(candidate)
     if (fiber === undefined) return
     scopedInstalls.delete(candidate)
-    /* v8 ignore next 3 -- Cordis Fiber disposal contains registration cleanup failures; this is the final diagnostic sink. */
+    /*! v8 ignore next 3 -- Cordis Fiber disposal contains registration cleanup failures; this is the final diagnostic sink. */
     void fiber.dispose().catch((error: unknown) => {
       ctx.logger.warn(`tool-subagent: failed to remove recomposed Agent "${candidate.id}" definitions: ${String(error)}`)
     })

@@ -79,6 +79,8 @@ kind: "package-reference"
 - **只有一组填充**——替代呈现属于占据相同 slot 的另一个 Cordis 包。
 - **浏览器标题独立**——`DSH_CLIENT_TITLE` 在构建时选择标题文本，而非通过 UI slot。
 
+**运行时不变式：** 不发布伴生入口。本包不保留可变状态，三个 slot occupant 通过同一个事务性 effect 安装和释放。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -88,5 +90,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。本包不保留可变状态，三个 slot occupant 通过同一个事务性 effect 安装和释放。

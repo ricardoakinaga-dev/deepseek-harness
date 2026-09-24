@@ -1,0 +1,65 @@
+{
+  "record_id": "EVID-AAA-022-W2-NEW-LEDGER-CORRECTION-EXECUTION-2026-09-24",
+  "task": "AAA-022",
+  "action": "AAA-022:W2-SCHEDULE-READERS-IMPLEMENT",
+  "kind": "USER_AUTHORIZED_NEW_ROW_CORRECTION",
+  "timestamp": "2026-09-24T04:30:00-03:00",
+  "authorization_source": "User explicitly selected “Authorize this correction” for the three exact malformed rows in .agent/evidence/AAA-022/w2-new-ledger-correction-proposal-20260924.json.",
+  "scope": "Only two newly authored verification rows and one newly authored correction event listed below; no pre-existing history or product files.",
+  "corrections": [
+    {
+      "ledger_path": ".agent/verification.jsonl",
+      "record_id": "VER-AAA-022-W2-SCHEDULE-DESIGN-REVIEW-AMENDMENT-2-001",
+      "original_line_sha256": "56bce6f63104c58a424a40d42b03d7ceb48ca1f6357d1b6e9d8a16d615645a1b",
+      "corrected_line_sha256": "e2c59241423d5e88ffcceb19ace27b5e86ce3174c92b3f5a6b71c9245cfd00d2",
+      "field_changes": {
+        "freshness": {
+          "from": "STALE",
+          "to": "CURRENT"
+        }
+      },
+      "removed_fields": {},
+      "authorization": "User selected “Authorize this correction” for the three exact rows in the correction proposal."
+    },
+    {
+      "ledger_path": ".agent/verification.jsonl",
+      "record_id": "VER-AAA-022-W2-SCHEDULE-IMPLEMENTATION-GATE-20260924-001",
+      "original_line_sha256": "46560f59b6c7e031bfbfbbaa1ef16b33db9e9b3341777ca31e2a770c23b958da",
+      "corrected_line_sha256": "83e490349ce5dd05418974ad269a60179df1f2631231d722880ee4132193b698",
+      "field_changes": {
+        "evidence_kind": {
+          "from": "ARTIFACT_INSPECTION_AND_STATIC_VALIDATION",
+          "to": "ARTIFACT_INSPECTION"
+        }
+      },
+      "removed_fields": {},
+      "authorization": "User selected “Authorize this correction” for the three exact rows in the correction proposal."
+    },
+    {
+      "ledger_path": ".agent/execution-log.jsonl",
+      "record_id": "EVT-AAA-022-CORRECTION-W2-SCHEDULE-IMPLEMENTATION-TRANSITION-001-143",
+      "original_line_sha256": "365d446a73da8994818cd14c63c7722fda9a64ea81be43e20119385248dcd46d",
+      "corrected_line_sha256": "6ec52443ee5e4ac4b6d536efdcce50405d49e7d56d89a54cb12ece48c915066c",
+      "field_changes": {},
+      "removed_fields": {
+        "lifecycle_from": "SPEC",
+        "lifecycle_to": "BUILD"
+      },
+      "authorization": "User selected “Authorize this correction” for the three exact rows in the correction proposal."
+    }
+  ],
+  "file_hashes": [
+    {
+      "path": ".agent/verification.jsonl",
+      "original_file_sha256": "f7cf5d53310be61553d6ab6c4648369442d783794f3ad75dcb5e7e0fce659d80",
+      "corrected_file_sha256": "769388342aaa75e47b50e30ccc7a5568c448f24aca98712ef228d8da33b1945a"
+    },
+    {
+      "path": ".agent/execution-log.jsonl",
+      "original_file_sha256": "274084b5a55f6993d0d28a3f2e159d170d62058c1e4652e5901beedb5d966cb4",
+      "corrected_file_sha256": "c48ed1a475cef1f12d8da1edc08f175b89764d8c2dfb8cc0459ea21dab7734e9"
+    }
+  ],
+  "baseline": "FAIL-358 retained; the state checker must return exactly 358 findings with no new or removed findings after this correction.",
+  "source_proposal": ".agent/evidence/AAA-022/w2-new-ledger-correction-proposal-20260924.json"
+}

@@ -2,9 +2,127 @@ import { EventEmitter } from 'node:events'
 import { Readable } from 'node:stream'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { describe, expect, it } from 'vitest'
-import { bridge } from '../src/http-bridge.ts'
+import { bridge, BufferedRequestLimiter } from '../src/http-bridge.ts'
+
+function bufferedRequest(body: string, url = '/api/test'): IncomingMessage {
+  const request = Readable.from([Buffer.from(body)]) as unknown as IncomingMessage
+  Object.assign(request, {
+    url,
+    method: 'POST',
+    headers: { 'content-length': String(Buffer.byteLength(body)), 'content-type': 'application/json' },
+  })
+  return request
+}
+
+function bufferedResponse(): { readonly response: ServerResponse; readonly body: () => string | undefined } {
+  let body: string | undefined
+  const response = Object.assign(new EventEmitter(), {
+    writableEnded: false,
+    writableFinished: false,
+    writeHead() { return this },
+    write(chunk: string | Uint8Array) { body = Buffer.from(chunk).toString(); return true },
+    end(this: { writableEnded: boolean; writableFinished: boolean; emit: EventEmitter['emit'] }, chunk?: string) {
+      if (chunk !== undefined) body = chunk
+      this.writableEnded = true
+      this.writableFinished = true
+      this.emit('finish')
+      return this
+    },
+  }) as unknown as ServerResponse
+  return { response, body: () => body }
+}
 
 describe('HTTP bridge abort', () => {
+  it('rejects concurrent buffered intake at the shared aggregate budget and releases after quiescence', async () => {
+    const limiter = new BufferedRequestLimiter(4)
+    const firstStarted = Promise.withResolvers<undefined>()
+    const releaseFirst = Promise.withResolvers<undefined>()
+    let calls = 0
+    const firstResponse = bufferedResponse()
+    const first = bridge(bufferedRequest('body'), firstResponse.response, {
+      requestBodyMode: () => 'buffered',
+      fetch: async () => {
+        calls++
+        firstStarted.resolve(undefined)
+        await releaseFirst.promise
+        return Response.json({ accepted: true })
+      },
+    }, 4, limiter)
+    try {
+      await firstStarted.promise
+
+      const rejectedResponse = bufferedResponse()
+      await bridge(bufferedRequest('body'), rejectedResponse.response, {
+        requestBodyMode: () => 'buffered',
+        fetch: async () => {
+          calls++
+          return Response.json({ accepted: false })
+        },
+      }, 4, limiter)
+      expect(rejectedResponse.body()).toBe('buffered request capacity exhausted')
+      expect(calls).toBe(1)
+
+      releaseFirst.resolve(undefined)
+      await first
+
+      const acceptedResponse = bufferedResponse()
+      await bridge(bufferedRequest('body'), acceptedResponse.response, {
+        requestBodyMode: () => 'buffered',
+        fetch: async () => Response.json({ accepted: true }),
+      }, 4, limiter)
+      expect(acceptedResponse.body()).toContain('accepted')
+    } finally {
+      releaseFirst.resolve(undefined)
+      await first
+    }
+  })
+
+  it('keeps a disconnected reservation until the cancelled handler settles', async () => {
+    const limiter = new BufferedRequestLimiter(4)
+    const handlerStarted = Promise.withResolvers<undefined>()
+    const abortSeen = Promise.withResolvers<undefined>()
+    const finishHandler = Promise.withResolvers<undefined>()
+    const response = bufferedResponse()
+    const pending = bridge(bufferedRequest('body'), response.response, {
+      requestBodyMode: () => 'buffered',
+      fetch: async (request) => {
+        handlerStarted.resolve(undefined)
+        if (!request.signal.aborted) {
+          await new Promise<void>((resolve) => {
+            request.signal.addEventListener('abort', () => { resolve() }, { once: true })
+          })
+        }
+        abortSeen.resolve(undefined)
+        await finishHandler.promise
+        return Response.json({ aborted: request.signal.aborted })
+      },
+    }, 4, limiter)
+    try {
+      await handlerStarted.promise
+      response.response.emit('close')
+      await abortSeen.promise
+
+      const rejectedResponse = bufferedResponse()
+      await bridge(bufferedRequest('body'), rejectedResponse.response, {
+        requestBodyMode: () => 'buffered',
+        fetch: async () => Response.json({ accepted: false }),
+      }, 4, limiter)
+      expect(rejectedResponse.body()).toBe('buffered request capacity exhausted')
+
+      finishHandler.resolve(undefined)
+      await pending
+      const acceptedResponse = bufferedResponse()
+      await bridge(bufferedRequest('body'), acceptedResponse.response, {
+        requestBodyMode: () => 'buffered',
+        fetch: async () => Response.json({ accepted: true }),
+      }, 4, limiter)
+      expect(acceptedResponse.body()).toContain('accepted')
+    } finally {
+      finishHandler.resolve(undefined)
+      await pending
+    }
+  })
+
   it('destroys a declared-oversize request instead of draining it', async () => {
     const destroyed: true[] = []
     const request = Readable.from([]) as unknown as IncomingMessage
@@ -12,15 +130,21 @@ describe('HTTP bridge abort', () => {
       url: '/api/session.prompt',
       method: 'POST',
       headers: { 'content-type': 'application/json', 'content-length': '999999' },
-      destroy: () => { destroyed.push(true) },
+      destroy: () => { destroyed.push(true); request.emit('close') },
     })
     let status: number | undefined
     let headers: unknown
     const response = Object.assign(new EventEmitter(), {
       writableEnded: false,
+      writableFinished: false,
       writeHead(code: number, values?: unknown) { status = code; headers = values; return this },
       write() { return true },
-      end(this: { writableEnded: boolean }) { this.writableEnded = true; return this },
+      end(this: { writableEnded: boolean; writableFinished: boolean; emit: EventEmitter['emit'] }) {
+        this.writableEnded = true
+        this.writableFinished = true
+        this.emit('finish')
+        return this
+      },
     }) as unknown as ServerResponse
 
     await bridge(request, response, {
@@ -47,9 +171,15 @@ describe('HTTP bridge abort', () => {
 
     const response = Object.assign(new EventEmitter(), {
       writableEnded: false,
+      writableFinished: false,
       writeHead() { return this },
       write() { return true },
-      end() { this.writableEnded = true; return this },
+      end(this: { writableEnded: boolean; writableFinished: boolean; emit: EventEmitter['emit'] }) {
+        this.writableEnded = true
+        this.writableFinished = true
+        this.emit('finish')
+        return this
+      },
     }) as unknown as ServerResponse
 
     let resolveStarted!: () => void
@@ -89,9 +219,15 @@ describe('HTTP bridge abort', () => {
     const responseBytes: Uint8Array[] = []
     const response = Object.assign(new EventEmitter(), {
       writableEnded: false,
+      writableFinished: false,
       writeHead(code: number) { status = code; return this },
       write(chunk: Uint8Array) { responseBytes.push(chunk); return true },
-      end(this: { writableEnded: boolean }) { this.writableEnded = true; return this },
+      end(this: { writableEnded: boolean; writableFinished: boolean; emit: EventEmitter['emit'] }) {
+        this.writableEnded = true
+        this.writableFinished = true
+        this.emit('finish')
+        return this
+      },
     }) as unknown as ServerResponse
 
     let resolveStarted!: () => void
@@ -125,15 +261,21 @@ describe('HTTP bridge abort', () => {
       url: '/api/session/uploadFileBinary',
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      destroy: () => { destroyed.push(true) },
+      destroy: () => { destroyed.push(true); request.emit('close') },
     })
     let status: number | undefined
     let headers: unknown
     const response = Object.assign(new EventEmitter(), {
       writableEnded: false,
+      writableFinished: false,
       writeHead(code: number, values?: unknown) { status = code; headers = values; return this },
       write() { return true },
-      end(this: { writableEnded: boolean }) { this.writableEnded = true; return this },
+      end(this: { writableEnded: boolean; writableFinished: boolean; emit: EventEmitter['emit'] }) {
+        this.writableEnded = true
+        this.writableFinished = true
+        this.emit('finish')
+        return this
+      },
     }) as unknown as ServerResponse
 
     await bridge(request, response, {

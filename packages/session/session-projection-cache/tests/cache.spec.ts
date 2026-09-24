@@ -64,7 +64,7 @@ declare module '@deepseek-ai/dsh-session/types' {
 }
 
 type MarksState = { marks: string[] } | null
-const marksUnit = (stateVersion = 1) => ({
+const marksUnit = (stateVersion = 1, cacheFingerprint?: string) => ({
   key: 'cache-test/marks',
   stateSchema: z.object({ marks: z.array(z.string()) }).nullable(),
   init: () => null,
@@ -74,6 +74,7 @@ const marksUnit = (stateVersion = 1) => ({
     view: state => state ?? { marks: [] },
   },
   stateVersion,
+  ...(cacheFingerprint === undefined ? {} : { cacheFingerprint }),
 }) satisfies ProjectionDefinition<'cache-test/marks', MarksState>
 
 const marks3Unit = {
@@ -120,6 +121,7 @@ interface HarnessOptions {
   root?: string
   config?: { writeEveryEvents: number; writeIntervalMs: number }
   stateVersion?: number
+  cacheFingerprint?: string
 }
 
 const contexts: Context[] = []
@@ -137,7 +139,7 @@ async function harness(options: HarnessOptions = {}) {
   await ctx.plugin({ name: storageDomainName, inject: storageDomainInject, apply: storageDomainApply, Config: storageDomainConfig }, { backend: 'json' })
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
-  ctx.sessionProjections.register(marksUnit(options.stateVersion))
+  ctx.sessionProjections.register(marksUnit(options.stateVersion, options.cacheFingerprint))
   const fiber = await ctx.plugin(SessionProjectionCache, options.config ?? { writeEveryEvents: 100, writeIntervalMs: 60_000 })
   return { ctx, root, fiber, cache: ctx.sessionProjectionCache }
 }
@@ -629,6 +631,44 @@ describe('SessionProjectionCache cold-read seeding', () => {
     })
     return events
   }
+
+  it.each([
+    { current: 'intl-b', stored: 'intl-a', matches: false },
+    { current: 'intl-b', stored: undefined, matches: false },
+    { current: undefined, stored: 'intl-a', matches: false },
+    { current: 'intl-a', stored: 'intl-a', matches: true },
+    { current: undefined, stored: undefined, matches: true },
+  ] as const)(
+    'coldSnapshot applies strict optional cache fingerprint equality ($current / $stored)',
+    async ({ current, stored, matches }) => {
+      const root = await mkdtemp(join(tmpdir(), 'dsh-projcache-fingerprint-'))
+      roots.push(root)
+      const id = SessionId('fingerprint-row')
+      const row = {
+        ver: 1,
+        seq: SessionSeq(1),
+        val: { marks: [matches ? 'older' : 'stale'] },
+        ...(stored === undefined ? {} : { cacheFingerprint: stored }),
+      }
+      await seedRecord(root, String(id), { 'cache-test/marks': row })
+      const { ctx, cache } = await harness({
+        root,
+        ...(current === undefined ? {} : { cacheFingerprint: current }),
+      })
+      const record = await storedRecord(root, id)
+      if (record === undefined) throw new Error('fingerprint fixture did not open as a cache record')
+      expect(ctx.sessionProjections.restoreFloor(record.rows)).toBe(matches ? 1 : 0)
+
+      const events = storedLog([['older'], ['fresh']])
+      const written = whenWritten(ctx, id)
+      const snapshot = cache.coldSnapshot(headerOf(id), SessionLogOffset(0), events)
+      expect(snapshot.values['cache-test/marks']).toEqual({ marks: ['fresh'] })
+      await written
+      const rewritten = await storedRows(root, id)
+      expect(rewritten?.['cache-test/marks']?.cacheFingerprint).toBe(current)
+      expect(rewritten?.['cache-test/marks']?.val).toEqual({ marks: ['fresh'] })
+    },
+  )
 
   it('hydratePrepared seeds from a matching row and retries from the exact log on a malformed one', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-projcache-'))

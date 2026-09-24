@@ -159,6 +159,8 @@ kind: "package-library"
 - **面向用户的文案必须由渲染点提供**：这些原子组件是 zero-Cordis 的，拿不到 `ctx.locale`；各功能必须通过原子组件的带类型 prop 提供完整本地化 label（见[决策](../../../.agents/notes/implemented/architecture/2026-08-23-locale-owned-client-ui-copy.zh.md)）。
 - **`TerminalBlock` 不是终端模拟器**：它渲染已结束或仍在运行的命令输出，而不是交互式会话：SGR 颜色、回车、退格、行内擦除、制表位与字符宽度会被遵循；绝对光标定位、清屏与备用屏幕序列会被剥离。
 
+**运行时不变式：** 不发布伴生入口。这些是纯 props-in React atom，没有 Cordis API、事件、service 或跨插件可变状态；渲染约定由组件测试覆盖。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -168,5 +170,3 @@ kind: "package-library"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。这些是纯 props-in React atom，没有 Cordis API、事件、service 或跨插件可变状态；渲染约定由组件测试覆盖。

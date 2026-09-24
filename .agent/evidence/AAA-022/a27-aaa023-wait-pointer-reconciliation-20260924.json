@@ -1,0 +1,98 @@
+{
+  "record_id": "AAA-022-A27-AAA023-WAIT-POINTER-RECONCILIATION-20260924-001",
+  "captured_at": "2026-09-24T00:29:45-03:00",
+  "authorization": "User-approved correction of the stale AAA-023 A38 pointer through an append-only transaction; preserve history and the sealed A28 candidate.",
+  "preconditions": {
+    "active_task": "AAA-022",
+    "active_action_id": "AAA-022:A27-AGGREGATE-SCOPE",
+    "state_revision_before": 251,
+    "last_event_id_before": "EVT-AAA-022-BLOCK-A26-CONSUMER-TESTS-001-126",
+    "aaa023_status_before": "IN_PROGRESS",
+    "aaa023_a38_target_before": "AAA-022:A16 telemetry/title disposition and any successor candidate after the remaining Session-reader waves",
+    "aaa022_status_before": "BLOCKED"
+  },
+  "disposition": {
+    "aaa023_status_after": "BLOCKED",
+    "aaa023_a38_target_after": "AAA-022:A27-AGGREGATE-SCOPE and its gated follow-up actions",
+    "aaa022_next_action": "Define exact successor scopes and gates for the remaining aggregate blockers",
+    "execution_order": [
+      "EVT-AAA-023-BLOCK-A38-WAIT-RECONCILIATION-001-127",
+      "EVT-AAA-022-CHECKPOINT-A27-POINTER-RECONCILIATION-001-128",
+      "VER-AAA-022-A27-AAA023-WAIT-POINTER-RECONCILIATION-001",
+      "state.json last"
+    ]
+  },
+  "append_only_records": {
+    "new_execution_events": [
+      {
+        "event_id": "EVT-AAA-023-BLOCK-A38-WAIT-RECONCILIATION-001-127",
+        "timestamp": "2026-09-24T00:29:43-03:00",
+        "type": "BLOCK",
+        "task": "AAA-023",
+        "action": "Block AAA-023 behind its unfinished AAA-022 dependency and reconcile the A38 wait target",
+        "result": "BLOCKED",
+        "verification": ".agent/verification.jsonl#VER-AAA-022-A27-AAA023-WAIT-POINTER-RECONCILIATION-001",
+        "decision": "AAA-023 remains a dependent release-qualification task while AAA-022 is blocked. Its A38 wait now targets the active AAA-022:A27 aggregate-scope action instead of the completed A16 telemetry/title disposition. The sealed A28 candidate and external qualification boundaries are unchanged.",
+        "next_state": "AAA-023 BLOCKED at AAA-023:A38; resume after AAA-022 completes aggregate remediation and records current candidate qualification evidence",
+        "active_action_id": "AAA-023:A38",
+        "status_from": "IN_PROGRESS",
+        "status_to": "BLOCKED"
+      },
+      {
+        "event_id": "EVT-AAA-022-CHECKPOINT-A27-POINTER-RECONCILIATION-001-128",
+        "timestamp": "2026-09-24T00:29:44-03:00",
+        "type": "CHECKPOINT",
+        "task": "AAA-022",
+        "action": "Checkpoint the A27 aggregate-scope action after reconciling the dependent AAA-023 wait pointer",
+        "result": "PASS",
+        "verification": ".agent/verification.jsonl#VER-AAA-022-A27-AAA023-WAIT-POINTER-RECONCILIATION-001",
+        "decision": "AAA-023:A38 now accurately waits on AAA-022:A27, and AAA-023 is BLOCKED while its dependency is unfinished. AAA-022 remains BLOCKED at A27, now classified as DESIGN for exact successor scopes and gates. No product path or sealed candidate changed.",
+        "next_state": "AAA-022 remains BLOCKED in BUILD/DESIGN at AAA-022:A27-AGGREGATE-SCOPE; define exact successor scopes and gates before any newly scoped path changes",
+        "active_action_id": "AAA-022:A27-AGGREGATE-SCOPE"
+      }
+    ],
+    "new_verification_record": {
+      "id": "VER-AAA-022-A27-AAA023-WAIT-POINTER-RECONCILIATION-001",
+      "task": "AAA-022",
+      "timestamp": "2026-09-24T00:29:45-03:00",
+      "scope": "AAA-022:A27 control-plane reconciliation of the stale AAA-023:A38 wait target and dependent-task status",
+      "procedure": "Inspect the current AAA-022 action, AAA-023 dependency, and stale A38 target; update the active plan/backlog pointers; append the corresponding AAA-023 BLOCK and AAA-022 CHECKPOINT events; preserve the prior records and seal.",
+      "procedure_status": "EXECUTED",
+      "evidence_kind": "STATIC_INSPECTION",
+      "environment": "Linux x86_64; Python 3; shared dirty custom/main worktree at HEAD 60b5295027f6fb7652a1a350a68c6275715b5dbd.",
+      "result": "PASS",
+      "exit_status": null,
+      "evidence": "The A38 target changed from completed AAA-022:A16 to active AAA-022:A27-AGGREGATE-SCOPE; AAA-023 changed from IN_PROGRESS to BLOCKED because it depends on unfinished AAA-022. The plan marker and first concrete step remain bound to A27; the final execution-log event is the A22 checkpoint and state is updated last.",
+      "artifacts": [
+        ".agent/evidence/AAA-022/a27-aaa023-wait-pointer-reconciliation-20260924.json",
+        ".agent/evidence/AAA-022/a27-aggregate-scope-inventory-20260924.json"
+      ],
+      "limitations": "This verifies only the pointer/status reconciliation. It does not resolve the historical state-check findings or qualify, mutate, publish, or replace the sealed A28 candidate.",
+      "observed_at": "2026-09-24T00:29:45-03:00",
+      "freshness": "CURRENT"
+    }
+  },
+  "preservation": {
+    "historical_events_and_verifications_modified": false,
+    "sealed_candidate": "/home/ricardo/dsh-aaa023-candidate.A28.Pqciac",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "product_paths_changed": false
+  },
+  "sha256": {
+    "before": {
+      ".agent/state.json": "6a1cbba3848111bea26f451caee94e3960ef3c90204b06c3772bab93b7d6672a",
+      ".agent/backlog.json": "d8e29ce8a3c50b8ffada8f8b4c9b7378ebd76697e31b69ddffa582a634266b62",
+      ".agent/plans/deepseek-harness-aaa.md": "0e362fdc1248971baaf0e6b9924c42b9ca7d38e28e7d309c3adca5a2f1621977",
+      ".agent/execution-log.jsonl": "8f506fbe55c7825bce3ace2b9b400f8093f5b723cb2d42474dd165718861695b",
+      ".agent/verification.jsonl": "4925d1da9b225598cfb2e059403ce60dd83a9834522d00e920418a791e485d69"
+    },
+    "after": {
+      ".agent/plans/deepseek-harness-aaa.md": "c174a77fd41a928fa4976b3e6a3ad36c5b79ac2a0c12927bfc7957ce33e0c3e6",
+      ".agent/backlog.json": "e9bfbd16b6cd15438d6025cdaccad7930ae50a2633b1aac6d2beb1412b6aa8a6",
+      ".agent/execution-log.jsonl": "9c6d37805d561794bd0c817b2555d1368f7539f32ec4c98c716fe1ecdef19247",
+      ".agent/verification.jsonl": "880d7bc6bc7f0637c76562f92791a21ea424609887bf5fbce7505d3847edb311",
+      ".agent/state.json": "3d152412017d8b6719e2b009f1bd69cc6121c07026623d1dc6908b469e1d0ed1"
+    }
+  }
+}

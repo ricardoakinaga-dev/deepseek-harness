@@ -109,7 +109,7 @@ class PackageIdentityResolver {
 
   /** Resolve one Loader entry's owning package, or absence for a non-package loose module. */
   resolve({ entry, bareBaseUrl }: ActiveEntry): DeepSeekPluginPackageIdentity | undefined {
-    /* v8 ignore next -- Loader entry trees inherit a base URL; the fallback supports direct embedders. */
+    /*! v8 ignore next -- Loader entry trees inherit a base URL; the fallback supports direct embedders. */
     const treeBase = entry.parent.tree.ctx.baseUrl ?? this.hostBaseUrl
     const anchors = [...new Set([bareBaseUrl ?? treeBase, treeBase, this.hostBaseUrl, import.meta.url])]
     const key = `${anchors.join('\u0000')}\u0000${entry.options.name}`

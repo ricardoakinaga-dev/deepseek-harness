@@ -66,6 +66,8 @@ No direct invalidation; the named consumer owns any request-prefix changes.
 - **The vocabulary is the question-form shape only** — selectable options plus optional custom text; richer interaction shapes (file pickers, diff-preview confirmations) have no seam vocabulary yet.
 
 
+**Runtime invariant:** No companion is published. The answerer waterfall is resolved per request and returns directly to its caller; the seam publishes no independent request/answer audit stream.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -77,5 +79,3 @@ None.
 The optional plan-review `callId` identifies the logged tool invocation for document navigation. It does not change the answer or its validation.
 
 </details>
-
-**Runtime invariant:** No companion is published. The answerer waterfall is resolved per request and returns directly to its caller; the seam publishes no independent request/answer audit stream.

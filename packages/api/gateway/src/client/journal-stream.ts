@@ -378,7 +378,7 @@ export abstract class RemoteJournalStream<
       throw protocolViolation(`${this.options.name} page did not reach its opening cursor`)
     }
     const first = entries[0]
-    /* v8 ignore next -- a successful positive-cursor replacement page cannot be empty. */
+    /*! v8 ignore next -- a successful positive-cursor replacement page cannot be empty. */
     this.firstCursor = first === undefined ? undefined : this.options.first(first)
     this.lastCursor = this.tailCursor(entries)
     this.setResumeCursor(this.lastCursor)

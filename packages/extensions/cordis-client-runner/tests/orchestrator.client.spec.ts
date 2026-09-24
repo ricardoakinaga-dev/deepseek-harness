@@ -60,6 +60,7 @@ function boot(overrides: {
     runHostHalf: vi.fn(overrides.hostHalf ?? (() => Promise.resolve(HOST_OK))),
     getClientCode: vi.fn(overrides.clientCode ?? (() => Promise.resolve({
       code: 'return {}', name: 'demo', pluginId: PLUGIN, packageId: PACKAGE, pluginRunId: RUN,
+      browserDelivery: 'unsafe-eval-inline-style' as const,
     }))),
     resolveRequestRun: vi.fn((_requestId: unknown, resolution: unknown) => {
       answers.push(resolution)
@@ -237,6 +238,7 @@ describe('approve', () => {
     // reported back to whoever the run was carried out for.
     expect(bench.load).toHaveBeenCalledWith({
       pluginId: PLUGIN, packageId: PACKAGE, pluginRunId: RUN, agentId: AGENT, name: 'demo', code: 'return {}',
+      browserDelivery: 'unsafe-eval-inline-style',
     })
     expect(bench.answers).toEqual([{ ok: true, pluginRunId: RUN }])
     expect(bench.orchestrator.activeRuns.getSnapshot().size).toBe(0)

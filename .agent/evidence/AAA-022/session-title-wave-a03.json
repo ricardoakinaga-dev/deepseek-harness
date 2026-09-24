@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-022",
+  "action_id": "AAA-022:A01",
+  "candidate_ref": "current custom/main worktree",
+  "captured_at": "2026-09-21T17:44:49-03:00",
+  "scope": "Bounded owner-scoped static-debt wave for @deepseek-ai/dsh-session-title",
+  "baseline": {
+    "id": "AAA-018:A03",
+    "commit": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "worktree_status": "uncommitted changes are evaluated against this HEAD",
+    "corpus_file_count": 4436,
+    "corpus_files_digest": "b5cff71909ba95fd9660ebbde74bf22be39ebca8e7d729ae368f2938f7caa3cb",
+    "metrics": {
+      "deprecated_reader": 90,
+      "lint_suppression": 263,
+      "todo_marker": 53,
+      "explicit_any": 1625,
+      "selected_skip": 7
+    }
+  },
+  "current": {
+    "source_report": ".artifacts/audit-metrics-current.json",
+    "captured_at": "2026-09-21T20:42:17.934Z",
+    "metrics": {
+      "deprecated_reader": { "count": 89, "budget": 90, "delta": -1 },
+      "lint_suppression": { "count": 262, "budget": 263, "delta": -1 },
+      "todo_marker": { "count": 53, "budget": 53, "delta": 0 },
+      "explicit_any": { "count": 1624, "budget": 1625, "delta": -1 },
+      "selected_skip": { "count": 4, "budget": 7, "delta": -3 }
+    },
+    "ratchet": {
+      "policy": "non_increasing",
+      "status": "passed",
+      "violations": []
+    }
+  },
+  "owner_scope": {
+    "package": "packages/session/session-title",
+    "source_counts": [
+      {
+        "file": "packages/session/session-title/src/index.ts",
+        "deprecated_reader_baseline": 2,
+        "deprecated_reader_current": 1,
+        "delta": -1
+      },
+      {
+        "file": "packages/session/session-title/src/invariant.ts",
+        "deprecated_reader_baseline": 2,
+        "deprecated_reader_current": 2,
+        "delta": 0
+      }
+    ],
+    "reduction": "The first-prompt automatic provider no longer needs a deprecated Session history read; the corresponding no-deprecated and oxlint-disable lines were removed from index.ts."
+  },
+  "implementation": {
+    "changes": [
+      "SessionTitleService.get reads the maintained title projection instead of folding Session history.",
+      "The title projection stores accepted title facts as state version 2 while retaining a title-only client view.",
+      "The host-only titleInput projection supplies the first eligible message to first-prompt automatic work in O(1) time.",
+      "The README and localized README pair document the projection ownership and the remaining complete-history limitation."
+    ],
+    "retained_exceptions": [
+      "The all-prompts provider still reads the complete eligible in-memory prefix because storage-backed paging is not available.",
+      "The pre-commit title invariant still uses synchronous eventAt and the restore scan still uses snapshotEvents; their local reasons identify the synchronous veto and deferred storage-backed paging requirements."
+    ],
+    "configuration_disposition": "No repository-wide correctness rule, compiler default, or Session reader allowance changed; those choices remain pending future authority."
+  },
+  "commands": [
+    {
+      "command": "pnpm exec vitest run packages/session/session-title/tests",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "7 test files and 50 tests passed."
+    },
+    {
+      "command": "pnpm run audit:metrics -- --output .artifacts/audit-metrics-current.json",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "The 4,436-file corpus matched the frozen digest and the non-increasing ratchet passed with no violations."
+    }
+  ],
+  "acceptance": {
+    "status": "PASS_WITH_DEFERRED_BOUNDARY",
+    "summary": "This owner-scoped wave reduces the frozen deprecated-reader and suppression counts, keeps every canonical debt metric non-increasing, documents retained local exceptions, and leaves broad lint/compiler policy unchanged."
+  },
+  "limitations": [
+    "This evidence closes only the bounded session-title wave; it does not claim that all AAA-022 static debt is removed.",
+    "The remaining complete-history reads require a storage-backed paged reader and a synchronous pre-commit validation seam before migration.",
+    "The worktree is uncommitted, and the full repository test suite remains partial under the separate AAA-023 qualification evidence."
+  ]
+}

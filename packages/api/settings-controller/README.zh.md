@@ -59,6 +59,8 @@ kind: "package-reference"
 
 - 批量上限固定为 64 个引用，不是可按部署配置的字段。
 
+**运行时不变式：** 不发布伴生入口。settings 与凭据 seam 负责存储和更新事件，本包只把它们的方法投影到 wire。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -68,5 +70,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。settings 与凭据 seam 负责存储和更新事件，本包只把它们的方法投影到 wire。

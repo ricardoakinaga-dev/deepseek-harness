@@ -1,0 +1,135 @@
+{
+  "record_id": "EVID-AAA-022-SESSION-PROJECTION-BASELINE-HANDOFF-IMPLEMENTATION-A83-2026-09-22",
+  "task": "AAA-022",
+  "action": "AAA-022:A12",
+  "kind": "W1_SESSION_PROJECTION_BASELINE_HANDOFF_IMPLEMENTATION",
+  "status": "PASS_WITH_RETAINED_ENVIRONMENTAL_LIMITATION",
+  "timestamp": "2026-09-22T21:15:15-03:00",
+  "authority": ".agent/gates/implementation-ready-AAA-022-A12.json#GATE-AAA-022-IMPLEMENTATION-READY-A12-001",
+  "candidate_binding": {
+    "working_tree_head": "60b5295027f6fb7652a1a350a68c6275715b5dbd",
+    "sealed_candidate_commit": "0b85fbd2df5d378e1f2ae7107a54b9cad8de2023",
+    "sealed_candidate_tree": "e5db2822132da3cdcc48aad11d087cb3a3d32ab1",
+    "sealed_candidate_mutated": false,
+    "successor_rebuild_required": true
+  },
+  "implementation": {
+    "files": [
+      "packages/core/session/src/types.ts",
+      "packages/core/session/src/index.ts",
+      "packages/core/session/tests/session.spec.ts",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/session/session-projection-cache/tests/cache.spec.ts",
+      "packages/session/session-telemetry-otel/tests/otel.spec.ts",
+      "packages/session/session-log-deepseek/tests/upload.spec.ts",
+      "packages/core/session/README.md",
+      "packages/core/session/README.zh.md",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "docs/event-producer-consumer.md",
+      "docs/event-producer-consumer.zh.md",
+      "docs/subsystems/session.md",
+      "docs/subsystems/session.zh.md",
+      "scripts/gen-cordis-catalog.ts"
+    ],
+    "facts": [
+      "SessionCreationBaseline is a transient, frozen constructor-owned handoff containing the contiguous pre-live events and firstLiveSeq; it is borrowed only during synchronous session/created dispatch and is not a general history reader.",
+      "SessionStore now delivers the baseline with session/created and removes the borrowed entry after dispatch; the existing Session format, persistence schema, wire values, and released generations are unchanged.",
+      "SessionProjectionRegistry initializes every cell from the exact creation baseline or an explicit restore/hydrate cut, requires an exact live watermark, advances only from the delivered current event, and reports a named error for eventful late registration without a baseline.",
+      "The three session-projection production history reads S067-S069 are removed; the projection production source has no direct snapshotEvents or eventAt calls.",
+      "Projection cache ordering, seeded sessions, forked sessions, restore/hydrate, HMR re-registration, disposal, late registration, and an injected sequence-gap failure are covered by focused tests.",
+      "The telemetry test's manual session/created emission now supplies the required baseline; the unrelated pre-existing upload-test option access was narrowed to optional chaining after the host compiler exposed it."
+    ]
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run packages/core/session/tests packages/session/session-projection/tests packages/session/session-projection-cache/tests",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "19 files and 567 tests passed."
+    },
+    {
+      "command": "pnpm exec vitest run packages/session/session-telemetry-otel/tests/otel.spec.ts packages/session/session-log-deepseek/tests/upload.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "2 files and 71 tests passed."
+    },
+    {
+      "command": "pnpm exec tsc -b packages/core/session/tsconfig.json packages/session/session-projection/tsconfig.json packages/session/session-projection-cache/tsconfig.json --pretty false",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm exec tsc -b tsconfig.host.json --pretty false",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "The host program compiles after updating the two affected consumer call sites."
+    },
+    {
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/core/session/src/index.ts packages/core/session/src/types.ts packages/core/session/tests/session.spec.ts packages/session/session-projection/src/index.ts packages/session/session-projection/tests/registry.spec.ts packages/session/session-projection-cache/tests/cache.spec.ts",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    },
+    {
+      "command": "pnpm run verify-package-dependencies",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "65 packages match the published dependency policy."
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "Every exported package API name is documented."
+    },
+    {
+      "command": "pnpm run verify-type-equiv",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "436 type-equivalence blocks match their source and 436 paired derivatives are present."
+    },
+    {
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "22 documentation checks passed."
+    },
+    {
+      "command": "pnpm run verify-translation-pairing docs/event-producer-consumer.md docs/subsystems/session.md packages/core/session/README.md packages/session/session-projection/README.md",
+      "exit_status": 0,
+      "observed_status": "PASS",
+      "summary": "All four named English/Chinese pairs are structurally consistent."
+    },
+    {
+      "command": "rg -n --glob '*.ts' --glob '!**/tests/**' '\\b(snapshotEvents|eventAt)\\s*\\(' packages/session/session-projection/src",
+      "exit_status": 1,
+      "observed_status": "PASS",
+      "summary": "No direct Session history reads remain in the projection production source."
+    },
+    {
+      "command": "pnpm run doc-sync",
+      "exit_status": 1,
+      "observed_status": "RETAINED_ENVIRONMENTAL_LIMITATION",
+      "summary": "The run retained four pre-existing stale catalog/tool-environment failures: plugin-manager tool registration, config catalog, persistence catalog, and persistence type history. The earlier host doc-typecheck failure was corrected and the host tsc plus doc-quick checks pass; doc-sync was not reclassified as a full pass."
+    },
+    {
+      "command": "pnpm run audit:metrics",
+      "exit_status": 1,
+      "observed_status": "NOT_CANONICAL_ON_CURRENT_WORKTREE",
+      "summary": "The command still cannot open 12 pre-existing tracked paths absent from the current worktree; canonical promotion is withheld."
+    },
+    {
+      "command": "git diff --check -- .agent packages/core/session packages/session/session-projection packages/session/session-projection-cache packages/session/session-telemetry-otel packages/session/session-log-deepseek docs scripts/gen-cordis-catalog.ts",
+      "exit_status": 0,
+      "observed_status": "PASS"
+    }
+  ],
+  "limitations": [
+    "The canonical audit-metrics command remains unavailable until a complete successor checkout restores the 12 missing tracked paths.",
+    "The full doc-sync aggregate is not clean because four unrelated stale catalog or tool-composition failures remain; focused documentation and generated-truth checks pass.",
+    "The implementation is validated on the preserved dirty custom/main worktree and is not yet bound to a rebuilt successor candidate.",
+    "No broad lint/compiler rule change, Session format change, persistence migration, publication, registry, push, merge, release, or final-verdict action was taken."
+  ],
+  "decision": "Accept the bounded A12 SessionCreationBaseline and strict session-projection implementation. Remove S067-S069 from the retained projection-reader set, preserve canonical metrics and aggregate-doc limitations, and proceed to a source-grounded design for the remaining W1 owners without mutating the sealed candidate."
+}

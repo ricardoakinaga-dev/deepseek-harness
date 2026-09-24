@@ -734,3 +734,8 @@ Types: [Scoped](scope.zh.md)
 
 Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.ts)
 <!-- END GENERATED cordis-surface -->
+
+<a id="runtime-invariant-companion"></a>
+## 运行时不变量配套入口
+
+`@deepseek-ai/dsh-tools/invariant` 需要 `sessions` 与 `sessionProjections`。它从每个精确 Session 创建基线折叠 PTC 分派祖先关系，通过 `sessionProjections.onBeforePrepareSession()` 校验尚未发布的 setup 追加事件，并在日志前同步拒绝无效的实时分派。请在任何已存储 Session 产生事件前加载它；之后启用会因构造基线已不可用而失败。

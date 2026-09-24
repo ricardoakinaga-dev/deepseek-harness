@@ -1,0 +1,219 @@
+{
+  "record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A22-CONTEXT-READERS-001",
+  "timestamp": "2026-09-23T11:33:20-03:00",
+  "gate_id": "IMPLEMENTATION_READY",
+  "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+  "scope_ref": "AAA-022",
+  "version": 1,
+  "criteria": [
+    {
+      "id": "IR-001",
+      "description": "Confirmed A03 authority and independent A21 approval authorize only the exact A22 reader, projection-cache, documentation, test, and generated-catalog scope; every changed path is attributed by the approved customization owners.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+        ".agent/authority.jsonl#AUTH-AAA-022-A22-CONTEXT-READERS-001",
+        ".agent/evidence/AAA-022/context-reader-design-review-a21-round2.json#REVIEW-AAA-022-A21-FINAL-002",
+        ".agents/customization-policy.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The gate authorizes local A22 implementation and verification only; it does not authorize external repository actions."
+    },
+    {
+      "id": "IR-002",
+      "description": "A22 implements A21-01 through A21-07: active model-visible message reads retain existing selection and ordering; time-context validation folds raw durable events, including compaction-shadowed zones; creation and dispatch invariants remain exact and synchronous; environment-bound cache rows use strict optional fingerprint equality and the existing invalidation/refold path.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/context-reader-design-a21.json",
+        ".agent/evidence/AAA-022/context-reader-design-review-a21-round2.json"
+      ],
+      "confidence": "HIGH",
+      "limitations": "Session format, released records, persistence SCHEMA_VERSION, SDK outputs, wire fields, and model-visible behavior remain unchanged."
+    },
+    {
+      "id": "IR-003",
+      "description": "The exact 33 implementation paths include owner package code/tests, bilingual package and subsystem documentation, catalog/type compatibility, request-zone/cache regression coverage, and the archived v7 fixture. Three verification-only tests preserve existing schema-invalid behavior; the two not-yet-created paths are explicitly named.",
+      "required": true,
+      "status": "PASS",
+      "evidence_refs": [
+        ".agent/evidence/AAA-022/context-reader-design-a21.json",
+        "packages/session/session-turn-outline/tests/projection.spec.ts",
+        "packages/session/session-title/tests/projection.spec.ts",
+        "packages/llm/token-meter/tests/context-breakdown-projection.spec.ts"
+      ],
+      "confidence": "HIGH",
+      "limitations": "The 33 implementation paths include two files that do not exist before A22 starts; all other implementation and verification inputs are fingerprinted at gate time. Required checks remain to be run during A22."
+    }
+  ],
+  "evidence": [
+    ".agent/authority.jsonl#AUTH-AAA-022-READER-MIGRATION-A03-001",
+    ".agent/authority.jsonl#AUTH-AAA-022-A22-CONTEXT-READERS-001",
+    ".agent/evidence/AAA-022/context-reader-design-a21.json",
+    ".agent/evidence/AAA-022/context-reader-design-review-a21-round2.json",
+    ".agent/verification.jsonl#VER-AAA-022-A21-DESIGN-REVIEW-001",
+    ".agent/evidence/AAA-022/a19-scope-31-revalidation-20260923.json",
+    ".agents/customization-policy.json",
+    ".agent/backlog.json",
+    ".agent/plans/deepseek-harness-aaa.md"
+  ],
+  "candidate_fingerprint": "714a1dbe3df54df12f58a655e65d246a516169f4d6cf492530853e60f8674fcf",
+  "fingerprint_scope": {
+    "algorithm": "SHA-256",
+    "inputs": [
+      ".agents/customization-policy.json",
+      "docs/subsystems/session-projection.i18n.yaml",
+      "docs/subsystems/session-projection.md",
+      "docs/subsystems/session-projection.zh.md",
+      "packages/context/agent-instructions/README.i18n.yaml",
+      "packages/context/agent-instructions/README.md",
+      "packages/context/agent-instructions/README.zh.md",
+      "packages/context/agent-instructions/src/index.ts",
+      "packages/context/agent-instructions/src/state.ts",
+      "packages/context/agent-instructions/tests/agent-instructions.spec.ts",
+      "packages/context/time-context/README.i18n.yaml",
+      "packages/context/time-context/README.md",
+      "packages/context/time-context/README.zh.md",
+      "packages/context/time-context/src/index.ts",
+      "packages/context/time-context/src/invariant.ts",
+      "packages/context/time-context/src/request-zone.ts",
+      "packages/context/time-context/tests/invariant.spec.ts",
+      "packages/context/time-context/tests/request-zone.spec.ts",
+      "packages/context/time-context/tests/time-context.spec.ts",
+      "packages/extensions/tool-cordis/src/api-catalog.ts",
+      "packages/llm/token-meter/tests/context-breakdown-projection.spec.ts",
+      "packages/session/session-projection-cache/README.i18n.yaml",
+      "packages/session/session-projection-cache/README.md",
+      "packages/session/session-projection-cache/README.zh.md",
+      "packages/session/session-projection-cache/src/index.ts",
+      "packages/session/session-projection-cache/src/spec.ts",
+      "packages/session/session-projection-cache/tests/cache.spec.ts",
+      "packages/session/session-projection-cache/tests/fixtures.spec.ts",
+      "packages/session/session-projection/README.i18n.yaml",
+      "packages/session/session-projection/README.md",
+      "packages/session/session-projection/README.zh.md",
+      "packages/session/session-projection/src/index.ts",
+      "packages/session/session-projection/tests/registry.spec.ts",
+      "packages/session/session-title/tests/projection.spec.ts",
+      "packages/session/session-turn-outline/tests/projection.spec.ts"
+    ],
+    "hash_rule": "Sort relative paths; for each input update with UTF-8 relative path, NUL, raw SHA-256 digest of current file bytes, NUL.",
+    "file_count": 35,
+    "implementation_path_count": 33,
+    "verification_only_path_count": 3,
+    "unmaterialized_scope_paths": [
+      "packages/context/time-context/src/projection.ts",
+      "packages/session/session-projection-cache/tests/fixtures/v7-session-doc.json"
+    ],
+    "preexisting_dirty_worktree": true
+  },
+  "implementation_scope": [
+    "packages/context/agent-instructions/src/index.ts",
+    "packages/context/agent-instructions/src/state.ts",
+    "packages/context/agent-instructions/tests/agent-instructions.spec.ts",
+    "packages/context/agent-instructions/README.md",
+    "packages/context/agent-instructions/README.zh.md",
+    "packages/context/agent-instructions/README.i18n.yaml",
+    "packages/context/time-context/src/index.ts",
+    "packages/context/time-context/src/invariant.ts",
+    "packages/context/time-context/src/request-zone.ts",
+    "packages/context/time-context/src/projection.ts",
+    "packages/context/time-context/tests/time-context.spec.ts",
+    "packages/context/time-context/tests/invariant.spec.ts",
+    "packages/context/time-context/tests/request-zone.spec.ts",
+    "packages/context/time-context/README.md",
+    "packages/context/time-context/README.zh.md",
+    "packages/context/time-context/README.i18n.yaml",
+    "packages/session/session-projection/src/index.ts",
+    "packages/session/session-projection/tests/registry.spec.ts",
+    "packages/session/session-projection/README.md",
+    "packages/session/session-projection/README.zh.md",
+    "packages/session/session-projection/README.i18n.yaml",
+    "packages/session/session-projection-cache/tests/cache.spec.ts",
+    "packages/session/session-projection-cache/tests/fixtures.spec.ts",
+    "packages/session/session-projection-cache/tests/fixtures/v7-session-doc.json",
+    "packages/session/session-projection-cache/src/index.ts",
+    "packages/session/session-projection-cache/src/spec.ts",
+    "packages/session/session-projection-cache/README.md",
+    "packages/session/session-projection-cache/README.zh.md",
+    "packages/session/session-projection-cache/README.i18n.yaml",
+    "docs/subsystems/session-projection.md",
+    "docs/subsystems/session-projection.zh.md",
+    "docs/subsystems/session-projection.i18n.yaml",
+    "packages/extensions/tool-cordis/src/api-catalog.ts"
+  ],
+  "customization_owner": {
+    "id": "session-context-reader-projections",
+    "path_count": 23,
+    "paths": [
+      "packages/context/agent-instructions/src/index.ts",
+      "packages/context/agent-instructions/src/state.ts",
+      "packages/context/agent-instructions/tests/agent-instructions.spec.ts",
+      "packages/context/agent-instructions/README.md",
+      "packages/context/agent-instructions/README.zh.md",
+      "packages/context/agent-instructions/README.i18n.yaml",
+      "packages/context/time-context/src/index.ts",
+      "packages/context/time-context/src/invariant.ts",
+      "packages/context/time-context/src/request-zone.ts",
+      "packages/context/time-context/src/projection.ts",
+      "packages/context/time-context/tests/time-context.spec.ts",
+      "packages/context/time-context/tests/invariant.spec.ts",
+      "packages/context/time-context/tests/request-zone.spec.ts",
+      "packages/context/time-context/README.md",
+      "packages/context/time-context/README.zh.md",
+      "packages/context/time-context/README.i18n.yaml",
+      "packages/session/session-projection-cache/tests/cache.spec.ts",
+      "packages/session/session-projection-cache/tests/fixtures/v7-session-doc.json",
+      "packages/session/session-projection-cache/src/index.ts",
+      "packages/session/session-projection-cache/src/spec.ts",
+      "packages/session/session-projection-cache/README.md",
+      "packages/session/session-projection-cache/README.zh.md",
+      "packages/session/session-projection-cache/README.i18n.yaml"
+    ],
+    "other_scope_owners": {
+      "packages/session/session-projection-cache/tests/fixtures.spec.ts": "session-reader-migration",
+      "packages/session/session-projection/src/index.ts": "prepared-session-projection-baseline",
+      "docs/subsystems/session-projection.md": "prepared-session-projection-baseline",
+      "packages/extensions/tool-cordis/src/api-catalog.ts": [
+        "session-reader-migration",
+        "dynamic-extension-trust"
+      ]
+    }
+  },
+  "verification_only_paths": [
+    "packages/session/session-turn-outline/tests/projection.spec.ts",
+    "packages/session/session-title/tests/projection.spec.ts",
+    "packages/llm/token-meter/tests/context-breakdown-projection.spec.ts"
+  ],
+  "confidence": "HIGH",
+  "gaps": [],
+  "conditions": [],
+  "authority": {
+    "required": true,
+    "state": "CONFIRMED",
+    "actor": "Ricardo Akinaga",
+    "scope": "AAA-022 task scope: owner-scoped W0-W4 Session reader migrations that preserve durable event history and synchronous precommit invariants",
+    "decision": "Apply confirmed A03 W0-W4 migration authority and the independently approved A21 design to implement the exact 33 context, projection, cache, documentation, test, and generated-catalog paths in A21, with the exact session-context-reader-projections owner. Local implementation and verification only; external repository actions are excluded.",
+    "evidence_ref": ".agent/authority.jsonl#AUTH-AAA-022-A22-CONTEXT-READERS-001",
+    "expires_or_revalidates": "Revalidate if A22 changes the public Session format, released data, wire or model-visible output; changes any exact path or owner; changes the cache invalidation rule; or requires an external repository action."
+  },
+  "residual_risk": "MEDIUM",
+  "decision": "PASS",
+  "next_action": "Implement A22 only within the exact 33 implementation paths and the confirmed customization owner, then run the gate-bound behavior, compatibility, type, lint, documentation, catalog, pairing, and whitespace checks.",
+  "revalidation_triggers": [
+    "A current reader differs from raw-event or active-message semantics in A21-01 through A21-07.",
+    "A same-stateVersion row with absent-versus-defined cacheFingerprint is reused instead of invalidated and refolded.",
+    "A creation or dispatch invariant can observe a prefix different from the exact durable sequence.",
+    "A change adds a new wire, model-visible, Session format, released-data, or persistence-schema effect.",
+    "A path, owner, or implementation detail falls outside the gate fingerprint and A21-approved scope."
+  ],
+  "supersedes": "GATE-AAA-022-IMPLEMENTATION-READY-A20-PREPARED-PAGES-001",
+  "revalidation": {
+    "kind": "SUCCESSOR_ACTION",
+    "previous_record_id": "GATE-AAA-022-IMPLEMENTATION-READY-A20-PREPARED-PAGES-001",
+    "previous_candidate_fingerprint": "38626327cf3c17bf38a1eee8f8b3a2f59482a816207eabcfb0c6320dca2eb160",
+    "reason": "A21 is approved for design readiness; A22 is the next W2 implementation action for REM-028-S014-S019.",
+    "authority_effect": "A03 remains the source of local W0-W4 authority; the new gate narrows it to the exact reviewed A22 paths and verified ownership."
+  }
+}

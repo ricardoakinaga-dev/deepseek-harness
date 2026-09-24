@@ -1,0 +1,86 @@
+{
+  "record_id": "EVID-AAA-022-A22-POST-CHECKPOINT-20260923-001",
+  "timestamp": "2026-09-23T15:24:06-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:A22",
+  "status": "PASS_WITH_RETAINED_LIMITATIONS",
+  "checkpoint_event": ".agent/execution-log.jsonl#EVT-AAA-022-CHECKPOINT-A22-A23-001-102",
+  "scope": {
+    "implementation_path_count": 33,
+    "verification_only_path_count": 3,
+    "gate_fingerprint_input_count": 35,
+    "gate_baseline_fingerprint": "714a1dbe3df54df12f58a655e65d246a516169f4d6cf492530853e60f8674fcf",
+    "current_gate_input_fingerprint": "26bdbc8daee35661c1754018c2602b403995e630597773b82df55a20b1632efc",
+    "materialized_scope_fingerprint": "6a552ffa3ada95d9ec92d4ff5e539a2d73f341c8179479909aba991218c1bf67"
+  },
+  "environment": "Linux x86_64; Node v24.20.0; pnpm 11.11.0; Python 3.12.3; preserved dirty custom/main worktree at HEAD 60b5295027f6fb7652a1a350a68c6275715b5dbd.",
+  "checks": [
+    {
+      "command": "pnpm exec vitest run packages/context/agent-instructions/tests/agent-instructions.spec.ts packages/context/time-context/tests/time-context.spec.ts packages/context/time-context/tests/invariant.spec.ts packages/context/time-context/tests/request-zone.spec.ts packages/session/session-projection/tests/registry.spec.ts packages/session/session-projection-cache/tests/cache.spec.ts packages/session/session-projection-cache/tests/fixtures.spec.ts --reporter=dot",
+      "exit_status": 0,
+      "result": "PASS: 7 files, 295 tests"
+    },
+    {
+      "command": "pnpm exec tsc -b packages/context/agent-instructions packages/context/time-context packages/session/session-projection packages/session/session-projection-cache --pretty false",
+      "exit_status": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm exec tsx scripts/run-oxlint.ts packages/context/agent-instructions packages/context/time-context packages/session/session-projection packages/session/session-projection-cache packages/extensions/tool-cordis/src/api-catalog.ts",
+      "exit_status": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm run test:docs",
+      "exit_status": 0,
+      "result": "PASS: 22 checks, 0 failures, 0 skipped"
+    },
+    {
+      "command": "pnpm run verify-translation-pairing",
+      "exit_status": 0,
+      "result": "PASS: 1,027 pairs checked"
+    },
+    {
+      "command": "pnpm run verify-cordis-catalog",
+      "exit_status": 0,
+      "result": "PASS: 111 generated files/regions are up to date"
+    },
+    {
+      "command": "pnpm run verify-type-equiv",
+      "exit_status": 0,
+      "result": "PASS: 437 source blocks and 437 paired derivatives match"
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "exit_status": 0,
+      "result": "PASS: every exported name in each package API is documented"
+    },
+    {
+      "command": "pnpm run doc-typecheck:contracts-ready",
+      "exit_status": 0,
+      "result": "PASS: 84 blocks compiled, 79 ignored, 842 type-equivalence/catalog blocks checked separately, 1,005 paired derivatives"
+    },
+    {
+      "command": "pnpm run website:build",
+      "exit_status": 0,
+      "result": "PASS: 4,368 fragment references resolve; 201 raw-Markdown files and llms.txt emitted"
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "result": "PASS"
+    }
+  ],
+  "warnings": [
+    "Vitest reports its existing warning that the DateTimeFormat mock in the invalid configured/process-zone test does not use a function or class implementation.",
+    "The website build falls back to plain-text highlighting for Caddyfile and reports chunks above 500 kB; build and fragment validation pass."
+  ],
+  "review_ref": ".agent/evidence/AAA-022/a22-final-review-20260923.json#REVIEW-AAA-022-A22-CONTEXT-READERS-FINAL-20260923-001",
+  "limitations": [
+    "Repository-wide doc-sync was not rerun; its latest recorded result remains PARTIAL at 38/43 with five generated/runtime findings.",
+    "The aggregate state checker was not rerun; its latest recorded result was 353 findings before the A19 scope-gate transaction.",
+    "The canonical deprecated-reader metric, external platform/provider qualification, release qualification, publication, and final AAA audit remain outside this scoped verification.",
+    "The pre-existing dirty worktree is preserved; unrelated paths are not attributed to A22 and the worktree is not claimed clean."
+  ],
+  "successor_action": "AAA-022:A23"
+}

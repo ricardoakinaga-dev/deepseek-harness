@@ -68,7 +68,7 @@ export function apply(ctx: Context): void {
         case 'remove_bundle':
           if (args.target === undefined) throw new Error('target bundle name is required')
           return JSON.stringify(await manager.removeBundle(args.target))
-        /* v8 ignore next -- tool JSON validation rejects actions outside the declared enum */
+        /*! v8 ignore next -- tool JSON validation rejects actions outside the declared enum */
         default: return assertNever(args.action)
       }
     },

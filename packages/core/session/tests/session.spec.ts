@@ -8,10 +8,11 @@ import SessionStore, {
   SessionEvent,
   SessionId,
   SessionLogOffset,
+  SessionPreparation,
   SessionSeq,
   snapshotSessionEvent,
 } from '@deepseek-ai/dsh-session'
-import type { CreateSessionOptions, SessionEventType, SessionHeader, SessionSurface } from '@deepseek-ai/dsh-session'
+import type { CreateSessionOptions, SessionCreationBaseline, SessionEventType, SessionHeader, SessionSurface } from '@deepseek-ai/dsh-session'
 
 describe('Session', () => {
   it('exposes one stable readonly surface view', () => {
@@ -1093,6 +1094,14 @@ describe('Session', () => {
     expect(range).toEqual([end])
   })
 
+  it('identifies only the canonical event object at a sequence', () => {
+    const session = Session.create(SessionId('canonical-event'))
+    const event = session.append('turn/start', { turn: 1 })
+
+    expect(session.isCommittedEvent(event)).toBe(true)
+    expect(session.isCommittedEvent(structuredClone(event))).toBe(false)
+  })
+
   it('detaches and freezes an explicitly supplied session header', () => {
     const input = {
       version: SESSION_FORMAT_VERSION,
@@ -1241,12 +1250,27 @@ describe('SessionStore', () => {
     await ctx.plugin(SessionStore)
 
     const created: Session[] = []
+    const baselines: SessionCreationBaseline[] = []
     const events: [Session, SessionEvent][] = []
-    ctx.on('session/created', session => void created.push(session))
+    ctx.on('session/created', (session, baseline) => {
+      created.push(session)
+      baselines.push(baseline)
+    })
     ctx.on('session/event', (session, event) => void events.push([session, event]))
 
     const session = ctx.sessions.create()
     expect(created).toEqual([session])
+    expect(baselines[0]).toMatchObject({ events: [], firstLiveSeq: SessionLogOffset(0) })
+    expect(Object.isFrozen(baselines[0]!.events)).toBe(true)
+
+    const seeded = ctx.sessions.create(SessionId('created-baseline-seeded'), {
+      seed: [{ type: 'turn/start', seq: SessionSeq(0), time: 1, data: { turn: 1 } }],
+      inheritedEventCount: SessionLogOffset(1),
+      meta: { isSeeded: true },
+    })
+    expect(baselines[1]!.events).toHaveLength(seeded.seq)
+    expect(baselines[1]!.events.map(event => event.type)).toEqual(['turn/start', 'session/end-seed'])
+    expect(baselines[1]!.firstLiveSeq).toBe(SessionLogOffset(1))
 
     // The store-owned append publication hooks are module-private. A JavaScript caller
     // may create an unrelated property with the old implementation's name,
@@ -1261,7 +1285,60 @@ describe('SessionStore', () => {
     expect(events[1]![1].type).toBe('user/message')
 
     expect(ctx.sessions.get(session.id)).toBe(session)
-    expect(ctx.sessions.list()).toEqual([session])
+    expect(ctx.sessions.list()).toEqual([session, seeded])
+  })
+
+  it('replays preparation appends in order and seals the exact pre-live baseline', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    const session = ctx.sessions.prepare(SessionId('prepared-feed'))
+    const preparation = SessionPreparation.create(session)
+    const first = session.append('turn/start', { turn: 1 })
+    const fed: SessionEvent[] = []
+    preparation.subscribeAppends((event) => {
+      fed.push(event)
+      return () => {}
+    })
+    const second = session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+
+    expect(fed).toEqual([first, second])
+
+    const detach = ctx.sessions.enter(session)
+    let announced!: SessionCreationBaseline
+    ctx.on('session/created', (_session, baseline) => { announced = baseline })
+    ctx.sessions.announce(session)
+    expect(announced.events).toEqual([first, second])
+    expect(announced.events).toHaveLength(session.seq)
+    expect(() => preparation.subscribeAppends(() => () => {})).toThrow(/feed is sealed/)
+
+    const live = session.append('turn/start', { turn: 2 })
+    expect(live.seq).toBe(2)
+    detach()
+    preparation[Symbol.dispose]()
+  })
+
+  it('rejects reentrant appends from an unpublished preparation consumer before assigning a seq', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    const session = ctx.sessions.prepare(SessionId('prepared-reentrant'))
+    const preparation = SessionPreparation.create(session)
+    let reenter = true
+    preparation.subscribeAppends(() => {
+      if (reenter) {
+        reenter = false
+        session.append('turn/start', { turn: 99 })
+      }
+      return () => {}
+    })
+
+    expect(() => session.append('turn/start', { turn: 1 }))
+      .toThrow('session append cannot reenter while another append is being published')
+    expect(session.seq).toBe(0)
+
+    const accepted = session.append('turn/start', { turn: 1 })
+    expect(accepted.seq).toBe(0)
+    expect(session.seq).toBe(1)
+    preparation[Symbol.dispose]()
   })
 
   it('rejects duplicate ids and supports seeding', async () => {

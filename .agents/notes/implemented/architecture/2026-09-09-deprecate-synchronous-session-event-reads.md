@@ -12,7 +12,7 @@ New callers increase that dependency even when they read only one old event. Rep
 
 ## Decision
 
-All operations that synchronously read arbitrary positions or ranges of Session event history are deprecated, including `Session.eventAt()`, `Session.snapshotEvents()`, and `Session.ownEvents()`. Existing logic may remain unmigrated for now, but new calls are prohibited. New aliases or wrappers that expose the same synchronous historical access are prohibited as well.
+All operations that synchronously read arbitrary positions or ranges of Session event history are deprecated, including `Session.eventAt()`, `Session.snapshotEvents()`, and `Session.ownEvents()`. Existing production callers remain in the migration inventory; new calls are prohibited. New aliases or wrappers that expose the same synchronous historical access are prohibited as well.
 
 The three methods carry this rule in `@deprecated` JSDoc. This is an API-use decision; the current Session implementation still retains the complete event sequence in memory.
 

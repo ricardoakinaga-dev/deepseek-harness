@@ -78,6 +78,8 @@ Koffi 的 `STARTUPINFOW` 与 `PROCESS_INFORMATION` 定义还会在模块加载�
 - **header 证据限定架构** — 已提交的 ABI probe 与布局常量覆盖仓库当前 64 位 Windows 目标。支持新的指针宽度或不兼容 Windows ABI 前，必须先更新 probe。
 
 
+**运行时不变式：** 不发布伴生入口。操作只持有调用内的原生句柄。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -87,5 +89,3 @@ Koffi 的 `STARTUPINFOW` 与 `PROCESS_INFORMATION` 定义还会在模块加载�
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。操作只持有调用内的原生句柄。

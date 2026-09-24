@@ -25,11 +25,11 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin beside the title service when a session should be retitled as it grows, so the title keeps representing the whole conversation. It requires the full [shared LLM configuration](../session-title-llm/README.md#configuration) with no defaults.
+Mount this plugin with the title, LLM, session-store, and session-query services when a session should be retitled as it grows, so the title keeps representing the whole conversation. It requires the full [shared LLM configuration](../session-title-llm/README.md#configuration) with no defaults.
 
 ### When titles are generated
 
-A new revision starts after each new eligible human prompt, including prompts in child sessions; the generation folds all eligible messages through the current revision, seeded history included. A newer revision aborts and supersedes older work, so a stale completion can never commit. An automatic failure — including input over `maxInputBytes`, which fails instead of truncating history — warns and keeps the prior title; `ctx.sessionTitle.refresh()` is the explicit retry.
+A new revision starts after each new eligible human prompt, including prompts in child sessions; the query service loads all eligible messages through the revision's captured inclusive seq, seeded history included. A newer revision aborts and supersedes older work, so a stale read or completion can never reach generation or commit. An automatic failure — including a history read failure or input over `maxInputBytes`, which fails instead of truncating history — warns and keeps the prior title; `ctx.sessionTitle.refresh()` is the explicit retry.
 
 ### Configuration
 
@@ -51,17 +51,17 @@ This section explains the plugin's shape; the observable behavior is fully cover
 
 ### Design concept
 
-A thin provider plugin: it registers the `all-prompts` cadence with an identity selector over all eligible messages, and delegates everything else to the [shared LLM policy](../session-title-llm/README.md).
+A thin provider plugin: it registers the `all-prompts` cadence and delegates history loading, framing, and generation to the [shared LLM policy](../session-title-llm/README.md).
 
 ### Source map
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | Plugin entry: shared config schema, provider registration with the all-messages selector |
+| [`src/index.ts`](src/index.ts) | Plugin entry: shared config schema and all-prompts provider registration |
 
 ### Scheduling
 
-The title service schedules automatic work: for the `all-prompts` cadence, every new eligible user message starts a revision, and a newer revision supersedes older work; the provider call begins after the exact main-request route is logged.
+The title service schedules automatic work: for the `all-prompts` cadence, every new eligible user message starts a revision. The shared helper observes the session through the captured inclusive seq, maps eligible messages in log order, and releases the observation before generation; a newer revision cancels a stale read. Provider work begins after the exact main-request route is logged.
 
 </details>
 
@@ -106,6 +106,8 @@ These limits define how the provider treats long and heterogeneous sessions. The
 - **No summarization-of-summaries** — input overflow retains the prior title; this provider has no summarization-of-summaries or retention policy for very long sessions.
 - **Messages are treated equally** — it treats all eligible human messages alike and offers no weighting, filtering, or manual-title precedence.
 
+**Runtime invariant:** No companion is published. This thin provider delegates request and result validation to the shared title service and LLM helper and retains no independent mutable state.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -115,5 +117,3 @@ These limits define how the provider treats long and heterogeneous sessions. The
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This thin provider delegates request and result validation to the shared title service and LLM helper and retains no independent mutable state.

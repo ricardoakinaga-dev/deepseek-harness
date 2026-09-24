@@ -89,6 +89,8 @@ These limits define which runs produce records and what the node exposes; they a
 - **Navigation is intentionally live-only** — terminal members remain visible for review but never expose a cold-session opener from this node.
 - **The node shows run, phase, member identity, and status only** — scripts, outputs, errors, logs, usage, static topology, and controls remain outside this surface.
 
+**Runtime invariant:** No companion is published. The browser plugin contributes one effect-owned Conversation Definition, keyed renderer, and dictionary; tests prove their disposal and the Host tool package owns the durable event invariant.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -98,5 +100,3 @@ These limits define which runs produce records and what the node exposes; they a
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The browser plugin contributes one effect-owned Conversation Definition, keyed renderer, and dictionary; tests prove their disposal and the Host tool package owns the durable event invariant.

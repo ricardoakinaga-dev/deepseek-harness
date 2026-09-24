@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "record_id": "EVID-AAA-015-A02-IMPLEMENTATION-A19-001",
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-015",
+  "action_id": "AAA-015:A02",
+  "candidate_ref": "custom/main working tree at 60b5295027f6fb7652a1a350a68c6275715bdbd",
+  "captured_at": "2026-09-21T23:44:00-03:00",
+  "decision_status": "CONFIRMED",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+  "scope": "Approved dynamic-extension deployment matrix, host-verifiable consent, restrictive browser delivery, publisher/source allowlisting, and disabled defaults.",
+  "implementation": "Dynamic manifests declare deployment and browser-delivery policy; host and browser runners fail closed by default, installed bundles are inert until explicitly enabled, browser evaluation requires the approved delivery marker, shipped Web composition is disabled by default, and owned documentation states CSP/Trusted Types as deployment controls and residual limits.",
+  "commands": [
+    {"command":"pnpm exec vitest run packages/extensions/cordis-host-runner/tests packages/extensions/cordis-client-runner/tests packages/client/modules/tests/node-half.client.spec.ts packages/boot/plugin-manager/tests/build-approval.spec.ts packages/boot/plugin-manager/tests/manager.spec.ts --maxWorkers=1","exit_status":0,"result":"PASS","observation":"15 files and 318 tests passed, including default-denied dynamic browser fixtures."},
+    {"command":"pnpm exec tsc -p packages/extensions/cordis-host-runner/tsconfig.json --noEmit && pnpm exec tsc -p packages/extensions/cordis-client-runner/tsconfig.json --noEmit && pnpm exec tsc -p packages/client/modules/tsconfig.json --noEmit && pnpm exec tsc -p packages/boot/plugin-manager/tsconfig.json --noEmit","exit_status":0,"result":"PASS","observation":"All four affected package programs typechecked."},
+    {"command":"pnpm exec tsx scripts/verify-type-equiv.ts","exit_status":0,"result":"PASS","observation":"436 type-equivalence blocks and paired derivatives passed."},
+    {"command":"pnpm run verify-translation-pairing packages/extensions/cordis-client-runner/README.md packages/extensions/cordis-host-runner/README.md packages/client/modules/README.md packages/boot/plugin-manager/README.md docs/subsystems/client-modules.md","exit_status":0,"result":"PASS","observation":"Five named bilingual pairs are consistent."},
+    {"command":"node scripts/verify-customization-policy.mjs --base master","exit_status":0,"result":"PASS","observation":"1115 custom paths are attributed across 17 improvements."}
+  ],
+  "acceptance": {"status":"PASS","summary":"The approved dynamic-extension controls, negative default-denied tests, four affected typechecks, type-equivalence source documentation, five bilingual pairs, and ownership policy pass."},
+  "limitations": ["CSP and Trusted Types remain deployment-owned controls; no live reverse-proxy or browser policy probe was authorized.","The evidence is from an uncommitted working tree and is not immutable release evidence."],
+  "freshness": "CURRENT"
+}

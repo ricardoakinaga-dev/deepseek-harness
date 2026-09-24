@@ -64,6 +64,8 @@ None; this package neither assembles nor sends a provider request.
 - **Transport, worker-host, and page-half coverage needs a browser-grade harness** — the per-file coverage gate is unmet for those modules; unit specs cover storage, ALS, the transform, and the stub contracts.
 
 
+**Runtime invariant:** No companion is published. This package is pre-Cordis platform glue — the tree it boots runs the product packages' own invariants, and the assembly's contracts (image contract gate, tunnel refusals) fail loud at boot rather than drifting at run time.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -73,5 +75,3 @@ None; this package neither assembles nor sends a provider request.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This package is pre-Cordis platform glue — the tree it boots runs the product packages' own invariants, and the assembly's contracts (image contract gate, tunnel refusals) fail loud at boot rather than drifting at run time.

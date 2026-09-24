@@ -63,7 +63,7 @@ export function createGoalActivationSource(deps: GoalActivationDeps): HostObserv
       if (read !== readEpoch || startedAtEvent !== eventEpoch || startedAtProjection !== projectionEpoch) return
       if (!result.ok) return
       const goal = result.value
-      /* v8 ignore next 4 -- projection drive is the authoritative clear edge; an active projection with no live goal is transient. */
+      /*! v8 ignore next 4 -- projection drive is the authoritative clear edge; an active projection with no live goal is transient. */
       if (goal === undefined) {
         if (activeRef(deps.projection.getSnapshot()) === undefined) publish({})
         return
@@ -76,7 +76,7 @@ export function createGoalActivationSource(deps: GoalActivationDeps): HostObserv
     projectionEpoch++
     const ref = activeRef(deps.projection.getSnapshot())
     if (ref === undefined) {
-      /* v8 ignore next -- clearing an already-empty activation snapshot is idempotent. */
+      /*! v8 ignore next -- clearing an already-empty activation snapshot is idempotent. */
       if (snapshot.id !== undefined) publish({})
       return
     }

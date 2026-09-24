@@ -79,6 +79,8 @@ These limits define how brand presentation is supplied. They are current package
 - **One occupant set** — alternative presentation belongs in another Cordis package occupying the same slots.
 - **The browser title is independent** — `DSH_CLIENT_TITLE` selects title text at build time rather than through a UI slot.
 
+**Runtime invariant:** No companion is published. The package retains no mutable state, and its three slot occupants install and leave through one transactional effect.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -88,5 +90,3 @@ These limits define how brand presentation is supplied. They are current package
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. The package retains no mutable state, and its three slot occupants install and leave through one transactional effect.

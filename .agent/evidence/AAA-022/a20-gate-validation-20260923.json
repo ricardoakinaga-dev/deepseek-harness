@@ -1,0 +1,11 @@
+{
+  "record_id": "A20-GATE-VALIDATION-20260923-001",
+  "timestamp": "2026-09-23T08:25:22.952267-03:00",
+  "procedure": "Directly validate the A20 record against the engineering-framework canonical IMPLEMENTATION_READY schema, confirm its exact confirmed authority record and supersession chain, and recompute both fingerprints.",
+  "result": "PASS",
+  "candidate_fingerprint": "38626327cf3c17bf38a1eee8f8b3a2f59482a816207eabcfb0c6320dca2eb160",
+  "gate_fingerprint": "f79856f9c8e8860deefecab5d35416aaffcede75ddcd4411ddc88661ffcbcc35",
+  "scope_ref": "AAA-022",
+  "path_count": 15,
+  "validator_findings": []
+}

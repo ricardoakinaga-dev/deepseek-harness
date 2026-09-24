@@ -216,7 +216,7 @@ export class ClientModuleSystem implements ClientModuleLoader {
     const existing = this.loadCache.get(id)
     if (existing !== undefined) return existing
     const registered = this.factories.get(id)
-    /* v8 ignore next -- callers check the factory branch before dispatching here. */
+    /*! v8 ignore next -- callers check the factory branch before dispatching here. */
     if (registered === undefined) throw new Error(`client-modules: no registered factory for "${id}"`)
     if (this.materializing.has(id)) {
       throw new Error(`client-modules: require cycle through "${id}" (factory-form CJS cannot deliver partial exports)`)
@@ -271,7 +271,7 @@ export class ClientModuleSystem implements ClientModuleLoader {
       const generation = this.generations.get(ownerId) ?? 0
       const row = this.graphRows.get(ownerId)
       if (row === undefined) throw new Error(`client-modules: chunk owner "${ownerId}" is not a boot graph entry`)
-      /* v8 ignore next -- the final fallback needs an impossible graph-owned factory with no recorded revision. */
+      /*! v8 ignore next -- the final fallback needs an impossible graph-owned factory with no recorded revision. */
       const revision = this.factories.get(ownerId)?.rev ?? this.reloadTargets.get(ownerId)?.rev ?? row.rev
       const url = chunkUrl(row, fileName, revision)
       let transport = this.pendingArrival.get(url)

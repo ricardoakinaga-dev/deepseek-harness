@@ -7,6 +7,20 @@ import { createPackagingRun, packagingOutputRedactor } from '../scripts/packagin
 const environment = Object.fromEntries(Object.entries(process.env)
   .filter(([name]) => !/KEY|SECRET|TOKEN|PASSWORD|^NODE_OPTIONS$/iu.test(name)))
 
+/** Wait for a process-group member to be reaped after the supervisor kills its group. */
+async function waitForProcessExit(pid: number, timeoutMs = 2_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (true) {
+    try {
+      process.kill(pid, 0)
+    } catch {
+      return
+    }
+    if (Date.now() >= deadline) throw new Error(`process ${String(pid)} remained alive after ${String(timeoutMs)}ms`)
+    await new Promise<void>(resolve => setTimeout(resolve, 10))
+  }
+}
+
 describe('packaging run records', () => {
   it('redacts credential values across every byte split', () => {
     const secret = 'test-口令-!secret'
@@ -47,12 +61,12 @@ describe('packaging run records', () => {
         cwd: root, env: environment,
       })).rejects.toThrow('fatal failed')
       const descendant = JSON.parse(await readFile(join(run.directory, 'descendant.json'), 'utf8')) as { pid: number }
-      expect(() => process.kill(descendant.pid, 0)).toThrow()
+      await waitForProcessExit(descendant.pid)
       const events = (await readFile(join(run.directory, 'events.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line) as { type: string; fatalObserved?: boolean; terminationError?: boolean })
       expect(events.at(-1)).toMatchObject({ type: 'stage-end', fatalObserved: true, terminationError: false })
       run.finish(false)
     } finally { await rm(root, { recursive: true, force: true }) }
-  })
+  }, 10_000)
 
   it('fails closed when the output journal cannot be written', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-package-log-failure-'))

@@ -161,6 +161,21 @@ export class SessionObservationReader {
     }
   }
 
+  /**
+   * Capture a known live Session without resolving its id through persistence.
+   * @param session - attached Session to capture.
+   * @param options - cancellation and projection selection for this cut.
+   * @returns a caller-owned live observation lease.
+   */
+  captureLive(
+    session: Session,
+    options: SessionObservationOptions = {},
+  ): SessionObservation {
+    const { signal, projectionMode = 'all' } = options
+    throwIfObservationAborted(signal)
+    return this.live(session, projectionMode)
+  }
+
   /** Observe the stored snapshot, mapping absence and backend failures to the query taxonomy. */
   private async statSource(
     persistence: SessionPersistence,

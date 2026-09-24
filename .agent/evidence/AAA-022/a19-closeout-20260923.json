@@ -1,0 +1,82 @@
+{
+  "record_id": "A19-CLOSEOUT-20260923-001",
+  "timestamp": "2026-09-23T08:20:09.374182-03:00",
+  "task": "AAA-022",
+  "action": "AAA-022:A19",
+  "disposition": "PASS_WITH_RETAINED_LIMITATIONS",
+  "scope": "Exact 34-path prepared Session append feed, projection readiness, subsystem documentation, and generated catalog scope",
+  "candidate_fingerprint": "a4bf9d5394480411f0a1743ce9fe3938dc68836f897dd9e5df4b702a8bf27ccb",
+  "candidate_path_count": 34,
+  "scoped_review": {
+    "reviewer": "/root/a19_final_critic",
+    "verdict": "PASS",
+    "findings": "No P1/P2 findings; exact candidate digest remained stable before and after review.",
+    "reviewed_candidate_fingerprint": "a4bf9d5394480411f0a1743ce9fe3938dc68836f897dd9e5df4b702a8bf27ccb",
+    "limits": "Scoped review only; it does not clear repository-wide documentation or state-checker findings."
+  },
+  "checks": [
+    {
+      "command": "pnpm exec vitest run --no-cache --reporter=dot packages/core/session/tests/session.spec.ts packages/session/session-projection/tests/registry.spec.ts packages/core/agent-loop/tests/resume.spec.ts",
+      "result": "PASS: 3 files, 156 tests"
+    },
+    {
+      "command": "pnpm exec tsc -b packages/core/session/tsconfig.json packages/session/session-projection/tsconfig.json packages/core/agent-loop/tsconfig.json --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "Scoped Oxlint on changed core/session, session-projection, and agent-loop sources/tests",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm --filter @deepseek-ai/dsh-session exec tsdown --config tsdown.config.ts",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm --filter @deepseek-ai/dsh-agent-loop exec tsdown --config tsdown.config.ts",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm run verify-package-readme-order",
+      "result": "PASS: 696 READMEs"
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm run verify-type-equiv",
+      "result": "PASS: 437 blocks and paired derivatives"
+    },
+    {
+      "command": "pnpm run test:docs",
+      "result": "PASS: 22/22"
+    },
+    {
+      "command": "pnpm run gen-cordis-catalog",
+      "result": "PASS: 111 artifacts computed, 3 written, 0 pair records refreshed"
+    },
+    {
+      "command": "pnpm run verify-translation-pairing --write <approved A19 pairs>",
+      "result": "PASS: 1,027 pairs consistent"
+    },
+    {
+      "command": "pnpm run doc-sync",
+      "result": "PARTIAL: 38/43; five recorded repository-wide findings remain"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 /home/ricardo/.agents/skills/engineering-framework/scripts/check_state.py .",
+      "result": "FAIL: 350 findings; one new equal-timestamp A19 RECONCILE_GATE_REOPENED finding over the prior 349 baseline"
+    }
+  ],
+  "retained_limitations": [
+    "Aggregate doc-sync remains 38/43 with stale event-producer-consumer graph, plugin-manager tool-catalog harvest failure, stale config catalog, stale persistence catalog/schema, and stale persistence type history.",
+    "The state checker reports 350 findings; the only new A19 finding is the immutable equal-timestamp reopen chronology diagnostic.",
+    "Late registration of new session-projection keys remains separately gated.",
+    "A19 makes no claim about the full Triple-A candidate, external platform/provider prerequisites, release identity, publication, or final independent audit."
+  ],
+  "successor_scope": "AAA-022:A20 owns bounded storage drains, explicit append batch Config, final synchronous persistence handoff, and multi-page ambiguous-write recovery."
+}

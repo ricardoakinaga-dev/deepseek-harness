@@ -1,6 +1,7 @@
 /** Host registry and HTTP adapter for generic Connection RPC channels. */
 
 import { Context, Service } from '@deepseek-ai/cordis'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import {
   RpcId,
@@ -8,7 +9,7 @@ import {
   type RpcId as RpcIdType,
 } from './rpc.ts'
 import { clientRequestSchema } from './rpc-schema.ts'
-import { bridge } from './http-bridge.ts'
+import { bridge, BufferedRequestLimiter, DEFAULT_MAX_REQUEST_BODY_BYTES } from './http-bridge.ts'
 import { isTrustedApiRequest } from './api-request-trust.ts'
 import { API_PATH } from './api-path.ts'
 import type { BrowserAuth } from './browser-auth.ts'
@@ -60,19 +61,39 @@ declare module '@deepseek-ai/cordis' {
 export class HostConnectionService extends Service implements HostConnectionHandle {
   private readonly interceptors = new Map<string, ConnectionRpcInterceptor>()
   private readonly fetchRoutes = new Map<string, RegisteredFetchRoute>()
+  private readonly bufferedRequestLimiter: BufferedRequestLimiter
 
   /**
    * Provide the Host half over the active HTTP server.
    * @param ctx - owning Connection plugin context.
    * @param trustedHosts - deployment authorities accepted by the Host/Origin fence.
    * @param browserAuth - process token and persistent browser-session owner.
+   * @param maxRequestBodyBytes - per-request and aggregate buffered-body budget.
    */
   constructor(
     ctx: Context,
     private readonly trustedHosts: readonly string[],
     private readonly browserAuth: BrowserAuth,
+    private readonly maxRequestBodyBytes = DEFAULT_MAX_REQUEST_BODY_BYTES,
   ) {
     super(ctx, 'connection')
+    this.bufferedRequestLimiter = new BufferedRequestLimiter(maxRequestBodyBytes)
+  }
+
+  /**
+   * Bridge one authenticated node:http request using this instance's shared
+   * buffered-body budget.
+   * @param req - incoming node:http request.
+   * @param res - response owned by the bridge until it is quiescent.
+   * @param fetchHandler - transport-independent Fetch dispatcher.
+   * @returns a promise settling after request, handler, and response work ends.
+   */
+  bridgeRequest(
+    req: IncomingMessage,
+    res: ServerResponse,
+    fetchHandler: ConnectionFetchHandler,
+  ): Promise<void> {
+    return bridge(req, res, fetchHandler, this.maxRequestBodyBytes, this.bufferedRequestLimiter)
   }
 
   /** Generic channel registry scoped to the Context reading this service. */
@@ -172,7 +193,7 @@ export class HostConnectionService extends Service implements HostConnectionHand
           res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
           return
         }
-        await bridge(req, res, fetchHandler)
+        await this.bridgeRequest(req, res, fetchHandler)
       },
     }
     return owner.effect(

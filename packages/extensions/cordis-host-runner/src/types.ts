@@ -91,6 +91,12 @@ export interface CordisInspectResolveAck {
 /** Whether a package starts the current version or replaces it. */
 export type CordisDynamicRunMode = 'run' | 'update'
 
+/** Deployment plane permitted to execute dynamic definitions. */
+export type DynamicCordisDeployment = 'disabled' | 'host-only' | 'browser'
+
+/** Browser delivery exception required by the source evaluator. */
+export type DynamicCordisBrowserDelivery = 'disabled' | 'unsafe-eval-inline-style'
+
 /** How a model-driven Client activation request left the pending state. */
 export type RequestRunOutcome = 'approved' | 'completed' | 'rejected' | 'cancelled' | 'failed'
 
@@ -296,6 +302,7 @@ export type DynamicCordisRunResponse =
       | 'rejected'
       | 'cancelled'
       | 'not-running'
+      | 'policy-denied'
     message: string
     /** Original failure stack when available. */
     stack?: string
@@ -331,6 +338,8 @@ export interface DynamicCordisClientSource {
   packageId: CordisDynamicPackageId
   /** Exact activation the source belongs to. */
   pluginRunId: CordisDynamicPluginRunId
+  /** Delivery policy the browser evaluator must enforce before evaluating this source; absent means denied. */
+  browserDelivery?: DynamicCordisBrowserDelivery
 }
 
 /** Browser verdict used for both approved tool runs and panel runs. */

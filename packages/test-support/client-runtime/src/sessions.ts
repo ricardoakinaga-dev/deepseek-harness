@@ -10,7 +10,7 @@ import type {
   SessionReference, SessionReferenceSource, SessionRetainInfo, SessionRetainOptions,
   SessionSnapshot, SessionSummary, SessionTarget, SubmissionHandle,
 } from '@deepseek-ai/dsh-api-session-controller/client'
-import { scopeIdentityOf } from '@deepseek-ai/dsh-api-session-controller/src/client/scope.ts'
+import { scopeIdentityOf } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -222,7 +222,7 @@ const EMPTY_RETAIN_INFO: SessionRetainInfo = Object.freeze({
 // SessionGeneration without importing the production service's private record.
 /* jscpd:ignore-start -- The fixture intentionally mirrors production SessionReference settlement and release semantics. */
 async function waitForOpen(opening: Promise<void>, signal?: AbortSignal): Promise<void> {
-  /* v8 ignore next -- TestSessionReference always supplies its release-composed signal. */
+  /*! v8 ignore next -- TestSessionReference always supplies its release-composed signal. */
   if (signal === undefined) return opening
   const aborted = Promise.withResolvers<never>()
   const onAbort = (): void => { aborted.reject(signal.reason) }
@@ -756,7 +756,7 @@ export class TestSessions implements ISessions {
     if (row === undefined || row.retainedBy === retention.retainedBy) return
     const summary = { ...row, retainedBy: retention.retainedBy }
     const record = this.records.get(id)
-    /* v8 ignore next -- a catalog row and its fixture record are inserted and removed together. */
+    /*! v8 ignore next -- a catalog row and its fixture record are inserted and removed together. */
     if (record !== undefined) record.summary = summary
     this.list.set({ ...state, byId: { ...state.byId, [id]: summary } })
   }
@@ -809,11 +809,11 @@ export class TestSessions implements ISessions {
   }
 
   private drop(id: SessionId, generation: SessionGeneration): void {
-    /* v8 ignore next -- only the live generation's retained callback can enter drop. */
+    /*! v8 ignore next -- only the live generation's retained callback can enter drop. */
     if (!generation.live) return
     generation.live = false
     generation.retention = EMPTY_RETAIN_INFO
-    /* v8 ignore next -- this synchronous path drops only the generation currently stored for id. */
+    /*! v8 ignore next -- this synchronous path drops only the generation currently stored for id. */
     if (this.generations.get(id) === generation) this.generations.delete(id)
     generation.lifetime.abort(new Error(`test Session generation "${id}" is released`))
     this.publishRetention(id)

@@ -135,6 +135,8 @@ selector 必须是 owner currency 的纯函数。非 null 返回值作为 `match
 - **Factory occurrence 继承渲染位置的 Session**——`conversation.content` 不接受独立寻址的 Session；该能力需要单独的 Session provider。
 
 
+**运行时不变式：** 不发布伴生入口。Conversation Definition、target builder 与 View 已由其所属注册表和 Slot ledger 校验。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -144,5 +146,3 @@ selector 必须是 owner currency 的纯函数。非 null 返回值作为 `match
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。Conversation Definition、target builder 与 View 已由其所属注册表和 Slot ledger 校验。

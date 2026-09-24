@@ -96,6 +96,8 @@ Add the machine-readable portion to `.agents/customization-policy.json`. This pl
 
 `configuration`, `profile-patch`, and `skill` records may omit `packageRoots` because they must not add production package source. `upstream-package-change` uses `kind: "upstream-patch"` and an `upstreamPlan`; `repository-automation` uses `kind: "governance"`. Each custom path belongs to exactly one improvement.
 
+The policy verifier rejects `packageRoots` when one of those non-packaged extension solution types declares the field. Packaged extension types must use non-empty `packages/<...>/` roots so the verifier can prove that their runtime source stays inside the declared package.
+
 -----
 
 <a id="architecture-and-compatibility-rules"></a>

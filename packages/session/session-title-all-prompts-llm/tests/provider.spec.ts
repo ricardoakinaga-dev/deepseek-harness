@@ -1,9 +1,10 @@
-import { Context } from '@deepseek-ai/cordis'
+import { Context, FiberState } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import LlmRuntime, { createUserMessage, LlmAdapter  } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import SessionQuerySqlite from '@deepseek-ai/dsh-session-query-sqlite'
 import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
 import SessionTitleService from '@deepseek-ai/dsh-session-title'
 import * as providerPlugin from '@deepseek-ai/dsh-session-title-all-prompts-llm'
@@ -32,6 +33,22 @@ async function settle(): Promise<void> {
 }
 
 describe('all-messages LLM title provider', () => {
+  it('keeps the plugin pending when its required query service is absent', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
+    await ctx.plugin(SessionTitleService, TITLE_CONFIG)
+
+    const fiber = await ctx.plugin(providerPlugin, LLM_CONFIG)
+
+    expect(providerPlugin.inject).toContain('sessionQuery')
+    expect(fiber.state).toBe(FiberState.PENDING)
+    expect(ctx.sessionQuery).toBeUndefined()
+    await ctx.fiber.dispose()
+  })
+
   it('includes seeded history and the latest prompt while inheriting the logged request route', async () => {
     const seeded = Session.create(SessionId('seed-source'))
     seeded.append('turn/start', { turn: 1 })
@@ -47,6 +64,7 @@ describe('all-messages LLM title provider', () => {
     await ctx.plugin(LlmRuntime)
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SessionQuerySqlite, { path: ':memory:', openAt: 'never' })
     ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
     await ctx.plugin(SessionTitleService, TITLE_CONFIG)
     const adapter = new RecordingAdapter()

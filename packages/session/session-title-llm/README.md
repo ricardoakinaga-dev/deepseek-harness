@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-session-title-llm` generates concise session titles from selected human messages with a consistent model request policy. Callers choose which messages contribute to each revision and may either supply a provider and model route together or use the route recorded for the current session. Required limits cap the framed input, generated output, and end-to-end duration, while caller cancellation remains effective throughout streaming. Invalid, empty, late, tool-call, or otherwise non-text results are rejected before they can replace a title.
+`dsh-session-title-llm` turns the title service's selected human messages into concise titles under one shared model policy. An injected `SessionQueryEngine` loads full history; automatic first-prompt work uses the first-message projection. Explicit refresh loads all eligible history with either shipped provider. Choose a paired provider/model route or reuse the session's logged route. Required limits cap framed input, output tokens, and duration. Cancellation stays active while streaming, and invalid, late, empty, tool-call, or non-text results cannot replace a title.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ As a deployment, configure this policy through the [first-prompt](../session-tit
 
 ### Registering a provider
 
-A provider plugin calls `registerSessionTitleLlmProvider(ctx, config, id, automatic, selectMessages)`; the helper validates the shared config, registers the provider on `ctx.sessionTitle`, and runs every generation through the shared policy. The two shipped plugins register the `first-prompt` and `all-prompts` cadences with their message selectors, and a second registration on the service throws.
+A provider plugin calls `registerSessionTitleLlmProvider(ctx, config, id, automatic)`; the helper validates the shared config, registers the provider on `ctx.sessionTitle`, and runs every generation through the shared policy. The helper also reads all-history revisions through `ctx.sessionQuery`; provider plugins therefore require the title, LLM, session-store, and session-query services. The two shipped plugins register the `first-prompt` and `all-prompts` cadences, and a second registration on the service throws.
 
 ### Route and failure contract
 
@@ -62,17 +62,17 @@ This section explains the generation path; the observable behavior is fully cove
 
 ### Design concept
 
-One shared policy so provider plugins cannot drift: config validation, route resolution, prompt framing, budget enforcement, cancellation, and output validation all live here, parameterized only by the provider's cadence and message selector.
+One shared policy so provider plugins cannot drift: config validation, route resolution, prompt framing, budget enforcement, cancellation, and output validation live here. The title service supplies automatic first-message input; all-history input is loaded through the session-query service at a fixed inclusive sequence cut.
 
 ### Source map
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | Config schema and validation, provider registration helper, request framing, dispatch, and output validation |
+| [`src/index.ts`](src/index.ts) | Config schema and validation, query-backed history loader, provider registration helper, request framing, dispatch, and output validation |
 
 ### Request flow
 
-A generation validates the config once at registration; each revision frames the selected messages as JSON, measures the framed prompt's UTF-8 bytes against `maxInputBytes`, resolves the route (the explicit pair or the logged `request/header`), appends a log-only `session/title-llm-request` event carrying the exact dispatchable request, then streams through `ctx.llm` under a composed timeout and cancellation deadline. The dispatched envelope carries `purpose: 'session-title'` and deliberately lacks the agent loop's process-local request identity; the DeepSeek adapter maps that purpose to thinking-disabled so the small output budget is reserved for visible title text, and other adapters own their purpose-specific behavior. Output assembles into text blocks only; tool calls, malformed or empty output, and non-stop finish reasons reject, and a later model failure leaves the request record intact.
+A generation validates the config once at registration. For an all-history revision, the helper observes the session through `ctx.sessionQuery` with the revision's inclusive seq cut, maps eligible messages in log order, and disposes the observation after reading. The service bypasses that loader for automatic `first-prompt` work and supplies its first-message projection; explicit refreshes use the loader under either plugin. Each revision then frames the supplied messages as JSON, measures the framed prompt's UTF-8 bytes against `maxInputBytes`, resolves the route (the explicit pair or the logged `request/header`), appends a log-only `session/title-llm-request` event carrying the exact dispatchable request, then streams through `ctx.llm` under a composed timeout and cancellation deadline. The dispatched envelope carries `purpose: 'session-title'` and deliberately lacks the agent loop's process-local request identity; the DeepSeek adapter maps that purpose to thinking-disabled so the small output budget is reserved for visible title text, and other adapters own their purpose-specific behavior. Output assembles into text blocks only; tool calls, malformed or empty output, and non-stop finish reasons reject, and a later model failure leaves the request record intact.
 
 </details>
 
@@ -118,6 +118,8 @@ These limits define the accepted generation shapes. They are current package con
 - **Text output only** — the helper accepts text output and rejects tool calls; structured-output adapters and provider-specific prompt variants are not exposed.
 - **Whole-prompt byte ceiling** — it enforces a byte ceiling for the whole framed user prompt rather than clipping individual messages or applying a retention policy.
 
+**Runtime invariant:** No companion is published. This stateless helper validates and freezes each auxiliary request before dispatch; deadline, stream, cited message seqs, and provider/model fields are checked synchronously and by tests.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -127,5 +129,3 @@ These limits define the accepted generation shapes. They are current package con
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This stateless helper validates and freezes each auxiliary request before dispatch; deadline, stream, cited message seqs, and provider/model fields are checked synchronously and by tests.

@@ -136,7 +136,7 @@ function validateClientConfig(index: number, parse: () => McpClient.Config): Mcp
   try {
     return parse()
   } catch (error: unknown) {
-    /* v8 ignore next -- Schemastery validation rejects with Error instances. */
+    /*! v8 ignore next -- Schemastery validation rejects with Error instances. */
     const detail = error instanceof Error ? error.message : String(error)
     throw new AcpMcpConfigError(`mcpServers[${index}] is invalid: ${detail}`)
   }

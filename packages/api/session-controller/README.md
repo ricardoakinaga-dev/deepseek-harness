@@ -49,6 +49,8 @@ A resume blocked by an existing write handle returns `session/writer-held` with 
 
 `sessions.retain(target, { source, signal? })` immediately acquires one exact Client generation and starts its shared initial history opening. The target is a known Session id or a durable direct-parent subagent address; the Host validates an explicit address when history opens. The returned reference supports idempotent `release()` and `Symbol.dispose`; its `ready` Promise follows the shared `Session.open()` result and resolves to the exact binding when that attempt settles, including when a Remote failure is represented by `openState: 'error'`. It rejects when `Session.open()` rejects, its waiter is cancelled, or the reference is released early. Cancelling one waiter does not cancel another owner's opening. `sessions.using(target, options, operation)` waits for that settlement, holds its reference until the callback settles, and propagates rejected readiness and callback failures.
 
+The Client entry also exports `scopeIdentityOf(ctx)` for consumers that must compare the exact retained generation, rather than only its Session id.
+
 References keep local Session data, scoped Contexts, and history streams alive, not Host Agents. Final release withdraws the generation before teardown; later acquisition can create a new generation with the same id. `binding(id)` and `scope(id)` only borrow an existing generation. `retainInfo(id)` observes stable read-only source counts independently of catalog membership and performs no history I/O. Consumer source keys are declaration-merge extensible; navigation and completion acknowledgement belong to UI consumers, not this Controller. See [Client Session references](../../../.agents/notes/implemented/architecture/2026-09-15-client-session-references.md) for ownership and teardown rules.
 
 <a id="session-media-references"></a>
@@ -89,6 +91,8 @@ No direct effect; model requests remain owned by the Agent and LLM packages.
 - File-reference completion uses the shared Agent lookup and can resume a cold Session; the `skills/list` catalog is the non-activating alternative for skill metadata.
 
 
+**Runtime invariant:** No companion is published. Every page and frame is checked against the addressed durable Session.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -98,5 +102,3 @@ No direct effect; model requests remain owned by the Agent and LLM packages.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Every page and frame is checked against the addressed durable Session.

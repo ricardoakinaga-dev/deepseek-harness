@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-008",
+  "action_id": "AAA-008:A01",
+  "candidate_ref": "current working tree AAA-008 focused request-sequence capture",
+  "baseline_tag": "aaa-m0-source-2026-09-20",
+  "captured_at": "2026-09-20T20:55:10-03:00",
+  "source_documents": [
+    {
+      "id": "historical-expected-output-finding",
+      "location": "docs/customization/repository-audit-2026-09-20.md:68; .agent/evidence/AAA-001/commands.jsonl#CMD-AAA-001-008",
+      "role": "The historical audit reported three server requests where the fixture expected two, without preserving a request-body trace or a request-role classification."
+    },
+    {
+      "id": "focused-oracle",
+      "location": "apps/cli/tests/profiles/headless/tests/headless.expected.e2e.ts:675-711; apps/cli/tests/profiles/headless/tests/fixtures/pi-ai-defaults.patch.yml",
+      "role": "The current expected-output case declares and checks the two intended DeepSeek requests."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-AAA-008-REQUEST-ROLES",
+      "source_refs": ["repository-audit:expected-output", "AAA-QB-03"],
+      "source_location": "apps/cli/tests/profiles/headless/tests/headless.expected.e2e.ts; local assembled-profile capture",
+      "command_ids": ["CMD-AAA-008-001", "CMD-AAA-008-002", "CMD-AAA-008-003", "CMD-AAA-008-004"],
+      "observed_status": "PASS",
+      "classification": "CURRENT_TWO_REQUEST_ORACLE_CONFIRMED",
+      "owner": "AAA-008",
+      "severity": "MEDIUM",
+      "summary": "The current focused case deterministically emits two intended requests: one user-triggered agent turn with tools and max_tokens 1024, followed by one background session-title request without tools and max_tokens 64.",
+      "limitations": "The external DeepSeek API was not contacted; the capture uses the repository's local compatibility server."
+    },
+    {
+      "id": "F-AAA-008-HISTORICAL-DIVERGENCE",
+      "source_refs": ["repository-audit:expected-output", "CMD-AAA-001-008"],
+      "source_location": "docs/customization/repository-audit-2026-09-20.md:68",
+      "command_ids": ["CMD-AAA-008-001", "CMD-AAA-008-002", "CMD-AAA-008-003"],
+      "observed_status": "NOT_REPRODUCED_CURRENT_TREE",
+      "classification": "HISTORICAL_EXTRA_REQUEST_WITHOUT_CURRENT_TRACE",
+      "owner": "AAA-008",
+      "severity": "MEDIUM",
+      "summary": "The reported third request is not reproduced by the current focused test or by five concurrent repeats. Current evidence supports the fixture's two-request oracle and does not justify a product change.",
+      "limitations": "The original audit did not retain all request bodies, timing, environment, or the exact failing process output, so this action cannot identify the historical trigger conclusively."
+    }
+  ],
+  "decision": {
+    "result": "AAA-008:A01 PASS WITH HUMAN DECISION PENDING",
+    "product_change": false,
+    "diagnosis": "The current request sequence is deterministic and intentional. The historical extra request remains an unqualified, non-reproduced observation rather than a confirmed product defect.",
+    "next_action": "Request maintainer approval of the current two-request oracle or an original failing-run trace before closing AAA-008."
+  },
+  "validation": {
+    "command_record_count": 4,
+    "raw_output_files": 4,
+    "validation_method": "Parse commands.jsonl and findings.json; verify all four raw-output files and SHA-256 digests; confirm the focused test, concurrent repeats, direct request capture, and fixture/profile inspection.",
+    "validation_status": "PASS",
+    "validated_at": "2026-09-20T20:55:10-03:00"
+  }
+}

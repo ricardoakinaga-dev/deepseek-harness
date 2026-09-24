@@ -45,6 +45,8 @@ No direct effect; Workspace mutations do not alter model requests.
 - Process-local deletion markers prevent delayed data from reviving a removed Workspace only for the lifetime of the Client model.
 
 
+**Runtime invariant:** No companion is published. Workspace Registry owns persistence; every stream generation is a full projection.
+
 <a id="dev-note"></a>
 ### Dev Note
 
@@ -54,5 +56,3 @@ No direct effect; Workspace mutations do not alter model requests.
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. Workspace Registry owns persistence; every stream generation is a full projection.

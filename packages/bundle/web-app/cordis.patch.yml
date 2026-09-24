@@ -120,6 +120,11 @@
 
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
+      # Keep the Host inspection registry available to the cordis preset while
+      # dynamic execution and browser source delivery remain disabled.
+      config:
+        deployment: disabled
+        browserDelivery: disabled
 
     # Ordinary provider for the parsed Web flags. Its plugin-level injection
     # waits for cmdlineArgs; no launcher metadata or special row kind is needed.
@@ -197,6 +202,10 @@
 
     - id: cordis-client-runner
       name: '@deepseek-ai/dsh-cordis-client-runner'
+      # The browser evaluator uses source evaluation and inline styles; its
+      # row stays absent unless the deployment owner accepts that policy and
+      # supplies the corresponding CSP/Trusted Types controls.
+      disabled: true
 
     - id: ui-theme
       name: '@deepseek-ai/dsh-client-ui-theme'
@@ -288,6 +297,9 @@
 
     - id: ui-cordis
       name: '@deepseek-ai/dsh-client-ui-cordis'
+      # Keep the dynamic-definition controls out of the default web surface
+      # together with both dynamic runner halves.
+      disabled: true
 
     # Turn tail: the changed-files card and delivery cards under each closing
     # assistant message. Remove this entry to turn the surface off; the tail
@@ -393,6 +405,15 @@
 
 - id: tool-plugin-manager
   disabled: true
+
+# Bundle installation is inert by default. A deployment that intentionally
+# permits installation must restate this row with an owner-selected source
+# list and publisher allowlist. This code does not provide a CSP response
+# header; the Web host/reverse proxy owns that deployment control.
+- id: plugin-manager
+  config:
+    allowedSources: [registry]
+    allowedPublishers: ['@deepseek-ai']
 
 - id: tool-bash
   disabled: true

@@ -55,7 +55,11 @@ const definition = {
 
 ### Register and read
 
-`register(definition)` installs the unit; registrants with the same key and `stateVersion` share its cells, while an incompatible version or invalid `stateVersion` throws. Registration is an effect on the calling fiber, so the last unload removes the key and its cached cells. Carriers read a consistent synchronous cut over every client-visible unit with `snapshot(session)` — `{ asOfSeq, values }`, where `asOfSeq` is the seq of the last event every value reflects — and subscribe to per-change notifications with `onChanged(listener)`. `stateOf(session, key)` reads one unit's live read-only host state without computing unrelated views.
+`register(definition)` installs the unit; registrants with the same key, `stateVersion`, and optional `cacheFingerprint` share its cells, while an incompatible identity or invalid `stateVersion` throws. A defined fingerprint identifies process-dependent fold inputs such as Intl data; absence is also part of the identity. Creation initializes cells from the transient `session/created` baseline; registration fails when an eventful live Session has no baseline for a new key. Registration is an effect on the calling fiber, so the last unload removes the key and its cached cells. Carriers read a consistent synchronous cut over every client-visible unit with `snapshot(session)` — `{ asOfSeq, values }`, where `asOfSeq` is the seq of the last event every value reflects — and subscribe to per-change notifications with `onChanged(listener)`. `stateOf(session, key)` reads one unit's live read-only host state without computing unrelated views.
+
+Before Agent construction, `prepareSession(preparation)` initializes registered cells from the constructor baseline and replays accepted preparation appends in order. Each new append computes and validates every next state before the Session accepts its event; failure leaves the log and all projection cells at their previous cut. Store entry seals the feed, and the live `session/event` route advances from the same seq watermark.
+
+`onBeforePrepareSession(listener)` runs synchronously after baseline structure checks and before projection cells are folded or the registry attaches its append consumer. A listener can validate domain-owned baseline state and subscribe to `preparation` appends; accepted suffix events replay in order, and later invalid appends fail before Session mutation. Disposing the listener stops future preparations, while a consumer already attached to one preparation remains until that feed is sealed or disposed.
 
 ```text
 const dispose = ctx.sessionProjections.register(definition)
@@ -80,7 +84,7 @@ This section explains the drive machinery and the unit contract; the observable 
 
 ### Design concept
 
-The package is the Service Definition and drive role of a capability seam: the framework drives, the domain computes. The registry subscribes to `session/event` once; every committed event passes every registered unit's `apply` eagerly (cells build lazily on first touch). The first `Object.is` gate skips view work when the state reference is unchanged; a two-slot live-drive cache reuses the previous raw view and a second `Object.is` gate suppresses publication while the raw view reference is unchanged. Carriers read `snapshot()` in the same tick as their page slice, which is what makes `asOfSeq` one consistent cut; an accidentally async view returns a Promise and fails `wire.viewSchema.parse`.
+The package is the Service Definition and drive role of a capability seam: the framework drives, the domain computes. The registry subscribes to `session/event` once; creation baselines and explicit restore/hydrate cuts initialize cells, and every later committed event passes every registered unit's `apply` eagerly. The first `Object.is` gate skips view work when the state reference is unchanged; a two-slot live-drive cache reuses the previous raw view and a second `Object.is` gate suppresses publication while the raw view reference is unchanged. Carriers read `snapshot()` in the same tick as their page slice, which is what makes `asOfSeq` one consistent cut; an accidentally async view returns a Promise and fails `wire.viewSchema.parse`.
 
 ### Source map
 
@@ -92,7 +96,7 @@ The package is the Service Definition and drive role of a capability seam: the f
 
 ### Drive and checkpoint flow
 
-One committed event drives every registered unit in registration order; a client-visible unit whose raw view changes by `Object.is` notifies the change feed with its schema-validated view and the causing seq. The live drive retains its previous and current raw views; snapshots and cold reads remain complete independent reads. `checkpoint(session)` returns one detached `(key → {ver, seq, val})` row per unit for the persisted cache; `restoreFloor` anchors a tail read one event below the lowest usable watermark so a shrunk log is detected, and `restore` refolds persisted rows over a stored suffix, discarding any row whose `ver` does not match or that claims events past the stored end.
+One committed event drives every registered unit in registration order; a client-visible unit whose raw view changes by `Object.is` notifies the change feed with its schema-validated view and the causing seq. The live drive retains its previous and current raw views; snapshots and cold reads remain complete independent reads. `checkpoint(session)` returns one detached `(key → {ver, cacheFingerprint?, seq, val})` row per unit for the persisted cache; `restoreFloor` anchors a tail read one event below the lowest usable watermark so a shrunk log is detected, and `restore` refolds persisted rows over a stored suffix, discarding any row whose version or fingerprint differs (including absence) or that claims events past the stored end.
 
 </details>
 
@@ -130,7 +134,7 @@ These limits define where the projection registry needs care at scale. They are 
 - **Every tail page carries every client-visible key** — there is no per-key opt-out or lazy-key request shape yet; acceptable while values are UI-scale whole states, revisit if a domain's value grows large.
 - **The unit table is process-wide, so key presence is not a per-session capability signal** — a key registered by any agent preset appears in every session's snapshot; a client must read the value rather than treat an absent key as absence of the feature.
 - **Eager drive touches every unit per event** — cheap by construction (whole-value rule and state/view reference gates), but a hot path would justify per-unit event-type prefilters.
-- **Registry cells live in memory only** — a restart rebuilds by folding the log on first touch; compositions that mount `dsh-session-projection-cache` seed that fold from persisted rows instead.
+- **A live cell requires an exact baseline** — creation supplies the transient baseline, while a prepared or cold Session must use `hydrate` or `restore`; registering a new key after events flowed fails instead of silently refolding history.
 - **Synchronous unit discipline is only partially mechanical** — `wire.viewSchema.parse` rejects a Promise-returning view, but an `apply` that blocks or reads torn non-session state is a review concern.
 
 <a id="dev-note"></a>

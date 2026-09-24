@@ -61,6 +61,8 @@ profile 在第一方指导之前提供 `You are a coding agent powered by the {{
 - **配置变化需要重启**：`sdk-app` 组合包在 YAML 中禁用 HMR，因此一个 stdio 连接不会观察到 server 或 agent 依赖被替换。
 
 
+**运行时不变式：** 不发布伴生入口。该 bundle 增加进程传输与启动 latch；帧纯度、help 排除和关闭行为由源码及构建产物的 stdio 测试负责。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -70,5 +72,3 @@ profile 在第一方指导之前提供 `You are a coding agent powered by the {{
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。该 bundle 增加进程传输与启动 latch；帧纯度、help 排除和关闭行为由源码及构建产物的 stdio 测试负责。

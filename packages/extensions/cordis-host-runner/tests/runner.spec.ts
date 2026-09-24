@@ -147,8 +147,20 @@ describe('dynamic runner definitions', () => {
 })
 
 describe('dynamic runner dispatch', () => {
+  it('denies dynamic execution when the deployment policy is omitted', async () => {
+    const { runner } = await setup({})
+    const { pluginId, packageId } = define(runner, {
+      sessionId: AGENT_A.id, name: 'disabled', purpose: 'p', host: HOST_CODE,
+    })
+
+    const refused = await runner.run(AGENT_A, pluginId, packageId, 'run')
+    expect(refused).toMatchObject({ ok: false, reason: 'policy-denied' })
+    if (refused.ok) throw new Error('the default deployment policy unexpectedly allowed execution')
+    expect(refused.message).toContain('disabled by the deployment policy')
+  })
+
   it('starts a host-only package immediately, with no request and no approval', async () => {
-    const { ctx, runner, gateway } = await setup()
+    const { ctx, runner, gateway } = await setup({ deployment: 'host-only' })
     const { pluginId, packageId } = define(runner, {
       sessionId: AGENT_A.id, name: 'doubler', purpose: 'p', host: HOST_CODE,
     })
@@ -302,18 +314,41 @@ describe('dynamic runner dispatch', () => {
   })
 
   it('hands the browser half\'s source only to the owning session, and only while it runs', async () => {
-    const { runner } = await setup()
+    const { runner, gateway } = await setup()
     const { pluginId, packageId } = define(runner, {
       sessionId: AGENT_A.id, name: 'ui', purpose: 'p', client: CLIENT_CODE,
     })
 
     expect(() => runner.getClientCode(AGENT_A, pluginId, 'run-0' as never)).toThrow('is not running')
-    const started = await runner.runHostHalf(AGENT_A, pluginId, packageId, 'run', null, false)
+    await runner.run(AGENT_A, pluginId, packageId, 'run')
+    const request = gateway.events.find(([name]) => name === 'cordis/request-run')?.[1] as { requestId: ApprovalRequestIdType }
+    const started = await runner.runHostHalf(AGENT_A, pluginId, packageId, 'run', request.requestId, false)
     if (!started.ok) throw new Error(started.message)
     expect(runner.getClientCode(AGENT_A, pluginId, started.pluginRunId)).toEqual({
       code: CLIENT_CODE, name: 'ui', pluginId, packageId, pluginRunId: started.pluginRunId,
+      browserDelivery: 'unsafe-eval-inline-style',
     })
     expect(() => runner.getClientCode(AGENT_B, pluginId, started.pluginRunId)).toThrow('no dynamic plugin')
+  })
+
+  it('requires a matching Host-issued request before a browser half can start', async () => {
+    const { runner } = await setup({ deployment: 'browser', browserDelivery: 'unsafe-eval-inline-style' })
+    const { pluginId, packageId } = define(runner, {
+      sessionId: AGENT_A.id, name: 'unverified', purpose: 'p', client: CLIENT_CODE,
+    })
+
+    const forged = await runner.runHostHalf(
+      AGENT_A, pluginId, packageId, 'run', ApprovalRequestId('forged'), false,
+    )
+    expect(forged.ok).toBe(false)
+    if (forged.ok) throw new Error('a forged request unexpectedly authorized execution')
+    expect(forged.message).toContain('does not authorize')
+    const direct = await runner.runHostHalf(
+      AGENT_A, pluginId, packageId, 'run', null, false,
+    )
+    expect(direct.ok).toBe(false)
+    if (direct.ok) throw new Error('a direct browser gesture unexpectedly authorized execution')
+    expect(direct.message).toContain('host-issued approval request')
   })
 
   it('accepts and ignores an answer to a request nobody is waiting for', async () => {
@@ -349,8 +384,10 @@ describe('dynamic runner dispatch', () => {
       'cordis/request-run-resolved',
       { requestId, outcome: 'cancelled' },
     ])
-    await expect(runner.runHostHalf(AGENT_A, pluginId, packageId, 'run', null, false))
-      .resolves.toMatchObject({ ok: true, pluginRunId: 'run-2', startedHere: true })
+    const direct = await runner.runHostHalf(AGENT_A, pluginId, packageId, 'run', null, false)
+    expect(direct.ok).toBe(false)
+    if (direct.ok) throw new Error('a direct browser gesture unexpectedly authorized execution')
+    expect(direct.message).toContain('host-issued approval request')
   })
 
   it('cancels a pending request after its provisional activation is stopped', async () => {
@@ -510,11 +547,13 @@ describe('dynamic runner teardown', () => {
 
 describe('render failure reports', () => {
   it('keeps the last report per package and shows it to a snapshot reader', async () => {
-    const { runner } = await setup()
+    const { runner, gateway } = await setup()
     const { pluginId, packageId } = define(runner, {
       sessionId: AGENT_A.id, name: 'ui', purpose: 'renders', client: CLIENT_CODE,
     })
-    const started = await runner.runHostHalf(AGENT_A, pluginId, packageId, 'run', null, false)
+    await runner.run(AGENT_A, pluginId, packageId, 'run')
+    const request = gateway.events.find(([name]) => name === 'cordis/request-run')?.[1] as { requestId: ApprovalRequestIdType }
+    const started = await runner.runHostHalf(AGENT_A, pluginId, packageId, 'run', request.requestId, false)
     if (!started.ok) throw new Error(started.message)
 
     await runner.reportRenderFailure(
@@ -533,11 +572,13 @@ describe('render failure reports', () => {
   })
 
   it('drops a report for a definition the reporting session does not own', async () => {
-    const { runner } = await setup()
+    const { runner, gateway } = await setup()
     const { pluginId, packageId } = define(runner, {
       sessionId: AGENT_A.id, name: 'ui', purpose: 'renders', client: CLIENT_CODE,
     })
-    const started = await runner.runHostHalf(AGENT_A, pluginId, packageId, 'run', null, false)
+    await runner.run(AGENT_A, pluginId, packageId, 'run')
+    const request = gateway.events.find(([name]) => name === 'cordis/request-run')?.[1] as { requestId: ApprovalRequestIdType }
+    const started = await runner.runHostHalf(AGENT_A, pluginId, packageId, 'run', request.requestId, false)
     if (!started.ok) throw new Error(started.message)
 
     // The reporting path must never fail a render, so a report it cannot place

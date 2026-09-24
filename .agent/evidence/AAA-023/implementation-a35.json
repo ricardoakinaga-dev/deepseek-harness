@@ -1,0 +1,43 @@
+{
+  "record_id": "EVID-AAA-023-IMPLEMENTATION-A35-2026-09-22",
+  "task": "AAA-023",
+  "action": "AAA-023:A10",
+  "timestamp": "2026-09-22T04:54:25-03:00",
+  "result": "PASS",
+  "scope": "Rename-safe canonical audit baseline reader",
+  "changes": [
+    "scripts/audit-metrics.ts now passes --no-renames to the private git diff used to identify paths changed since the pinned baseline revision. This keeps both sides of a source rename in the changed set so the baseline reader uses git show for the old path instead of opening the current worktree."
+  ],
+  "commands": [
+    {
+      "command": "pnpm exec vitest run scripts/audit-metrics.spec.ts",
+      "result": "PASS",
+      "observed": "1 test file and 8 tests passed."
+    },
+    {
+      "command": "pnpm exec tsx --eval \"import './scripts/audit-metrics.ts'\"",
+      "result": "PASS",
+      "observed": "The modified script loads and type-transforms successfully."
+    },
+    {
+      "command": "Temporary GIT_INDEX_FILE with all 16 UI moves; pnpm run audit:metrics",
+      "result": "EXPECTED_RATCHET_FAIL",
+      "observed": "The audit exits 1 only for the existing ratchet increase in @deepseek-ai/dsh-cordis-client-runner (explicit_any 59 versus budget 58); no deleted old UI path is opened."
+    },
+    {
+      "command": "Temporary GIT_INDEX_FILE with all 16 UI moves; pnpm run rescope-vendor:check",
+      "result": "PASS",
+      "observed": "Vendor rescope verifies 7,356 tracked candidate paths with no residue."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "limitations": [
+    "The actual worktree index still does not represent the 16-path source move, so the ordinary current-worktree path gates remain unqualified until a candidate tree is supplied.",
+    "The explicit_any ratchet increase is a separate owner-scoped finding and was not waived or changed by this repair.",
+    "No staging, commit, publication, push, merge, release, or final verdict was performed."
+  ],
+  "next_action": "Inspect the single explicit_any increase in the cordis-client-runner owner and specify a behavior-preserving bounded test correction."
+}

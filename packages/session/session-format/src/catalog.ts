@@ -58,7 +58,7 @@ export function createSessionFormatCatalog(options: SessionFormatCatalogOptions)
       })
     }
     const codec = codecs.get(storedVersion)
-    /* v8 ignore next -- construction proves every supported version has exactly one codec. */
+    /*! v8 ignore next -- construction proves every supported version has exactly one codec. */
     if (codec === undefined) {
       return Object.freeze({
         status: 'unsupported',
@@ -100,7 +100,7 @@ export function createSessionFormatCatalog(options: SessionFormatCatalogOptions)
       )
     }
     const codec = codecs.get(storedVersion)
-    /* v8 ignore next -- construction proves every supported version has exactly one codec. */
+    /*! v8 ignore next -- construction proves every supported version has exactly one codec. */
     if (codec === undefined) {
       throw new SessionFormatUnsupportedMigrationError(`this build has no Session format codec for v${storedVersion}`)
     }

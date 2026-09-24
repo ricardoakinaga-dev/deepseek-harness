@@ -19,16 +19,23 @@ import { defineDomain, domainTable } from '@deepseek-ai/dsh-storage-domain'
  * One persisted checkpoint row (the RFC's `(sessionId, key, ver, seq, val)`
  * minus the two record keys). `val` is the unit's internal state — plain
  * JSON by the unit contract; `z.json()` enforces that at the durable
- * boundary. A row is never wrong, only possibly stale: `seq` says exactly
- * how stale, and a `ver` mismatch against the live unit's `stateVersion`
- * discards it at read time (never a migration).
+ * boundary. `cacheFingerprint` records process-dependent fold inputs, and
+ * absence is part of its identity. A row is never wrong, only possibly stale:
+ * `seq` says exactly how stale, and a `ver` or fingerprint mismatch against
+ * the live unit discards it at read time (never a migration).
  */
 export const checkpointRow = z.object({
   ver: z.number().int().nonnegative(),
   seq: z.number().int().gte(-1).transform((value): SessionSeqCursor =>
     value === -1 ? -1 : SessionSeq(value)),
   val: z.json(),
-})
+  cacheFingerprint: z.string().optional(),
+}).transform(({ ver, seq, val, cacheFingerprint }) => ({
+  ver,
+  seq,
+  val,
+  ...(cacheFingerprint === undefined ? {} : { cacheFingerprint }),
+}))
 
 /**
  * The stored-log identity a record is bound to: the immutable header fields

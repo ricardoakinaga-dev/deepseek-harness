@@ -24,6 +24,10 @@ describe('Loader internal shape detection', () => {
         ? internal!.resolveSync(baseUrl, { specifier: 'node:path', attributes: {} })
         : internal!.resolveSync('node:path', baseUrl, {})
       expect(resolved.url).toBe('node:path')
+      const withoutAttributes = internal!.version === 'v2'
+        ? internal!.resolveSync(baseUrl, { specifier: 'node:path' })
+        : internal!.resolveSync('node:path', baseUrl, {})
+      expect(withoutAttributes.url).toBe('node:path')
     } finally {
       await ctx.fiber.dispose()
       rmSync(dir, { recursive: true, force: true })

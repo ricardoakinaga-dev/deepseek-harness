@@ -817,7 +817,7 @@ Source: [`packages/session/session-title/src/index.ts:77`](../packages/session/s
 
 Types: [SessionTitleLlmRequestEventData](subsystems/session-title.md)
 
-Source: [`packages/session/session-title-llm/src/index.ts:45`](../packages/session/session-title-llm/src/index.ts)
+Source: [`packages/session/session-title-llm/src/index.ts:47`](../packages/session/session-title-llm/src/index.ts)
 
 ### `session-log-deepseek/*`
 
@@ -4660,7 +4660,7 @@ One of:
 
 SHA-256: `3cfc3a56502da1f8c6153c2c56657bab4b749056968634dd0991d325ec1c919f`
 
-Sources: [`packages/core/tools/src/index.ts:682`](../packages/core/tools/src/index.ts)
+Sources: [`packages/core/tools/src/index.ts:684`](../packages/core/tools/src/index.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -5637,7 +5637,7 @@ Sources: [`packages/session/session-persistence-jsonl/src/format.ts:82`](../pack
 
 SHA-256: `9fe0e77a7816b7fdb4b953ec0e2f0cd7bbd22c5de5c3567e612d1b20eb0992e6`
 
-Sources: [`packages/session/session-title-llm/src/index.ts:27`](../packages/session/session-title-llm/src/index.ts)
+Sources: [`packages/session/session-title-llm/src/index.ts:29`](../packages/session/session-title-llm/src/index.ts)
 
 | Property | Presence | Type |
 |---|---|---|

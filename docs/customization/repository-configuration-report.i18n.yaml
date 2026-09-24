@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/repository-configuration-report.md
-repository-configuration-report.md: 4163a19267b97614eac5135ddfd3f51cece6b947
-repository-configuration-report.zh.md: d94b4cc392378d0f8cb69e58ee3c41897cd6d9db
+repository-configuration-report.md: d24a73651178d9ee3d91b2ca0d0b1e2d2b1675b6
+repository-configuration-report.zh.md: 97af349e566ff0e2ce4c4c0faf179d2c88cdd9c7

@@ -85,6 +85,8 @@ Client export 挂载来自 [`@deepseek-ai/dsh-experimental-agent-team/remote`](.
 - **普通 child continuation**——导航后发送的人类消息使用稳定 addressed-subagent 提示词路径，而不是 Team peer mailbox。
 - **没有 lifecycle 或 workspace control**——panel 不能 spawn、rename、delete 或 interrupt teammate，write scope 仍只是提示性 metadata。
 
+**运行时不变式：** 不发布伴生入口。RPC 是权威来源，本包只持有一个可释放的 slot 注册。
+
 <a id="dev-note"></a>
 ### 开发备注
 
@@ -94,5 +96,3 @@ Client export 挂载来自 [`@deepseek-ai/dsh-experimental-agent-team/remote`](.
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。RPC 是权威来源，本包只持有一个可释放的 slot 注册。

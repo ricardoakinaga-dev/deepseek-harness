@@ -11,6 +11,7 @@ import SessionTitleService, {
   foldSessionTitle,
   type SessionTitleProviderRequest,
 } from '@deepseek-ai/dsh-session-title'
+import { loadTestSessionTitleMessages } from './provider-fixtures.ts'
 
 const CONFIG = {
   fallbackMaxWords: 5,
@@ -80,6 +81,7 @@ describe('SessionTitleService.rename', () => {
     ctx.sessionTitle.register({
       id: SessionTitleProviderId('pin-provider'),
       automatic: 'all-prompts',
+      loadMessages: loadTestSessionTitleMessages,
       generate,
     })
     const session = ctx.sessions.create(SessionId('rename-pin'))
@@ -146,6 +148,7 @@ describe('SessionTitleService.rename', () => {
     ctx.sessionTitle.register({
       id: SessionTitleProviderId('deferred-provider'),
       automatic: 'all-prompts',
+      loadMessages: loadTestSessionTitleMessages,
       generate,
     })
     const session = ctx.sessions.create(SessionId('rename-supersede'))

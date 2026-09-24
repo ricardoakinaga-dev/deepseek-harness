@@ -7,7 +7,7 @@ import type {} from '@deepseek-ai/dsh-credentials'
 // Activates the webServer Context merge used below.
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { API_PATH } from './api-path.ts'
-import { bridge, DEFAULT_MAX_REQUEST_BODY_BYTES } from './http-bridge.ts'
+import { DEFAULT_MAX_REQUEST_BODY_BYTES } from './http-bridge.ts'
 import { assertTrustedAuthority } from './api-request-trust.ts'
 import { BrowserAuth } from './browser-auth.ts'
 import { HostConnectionService } from './rpc-host.ts'
@@ -98,7 +98,7 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Absolute browser-session lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
-  /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
+  /** Maximum bytes reserved by one buffered request and by all buffered requests in this Connection instance. Default: 300 MiB. */
   maxRequestBodyBytes?: number
 }
 
@@ -130,6 +130,7 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
     ctx,
     trustedHosts,
     await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays),
+    maxRequestBodyBytes,
   )
   ctx.inject(['webServer'], (webCtx) => {
     assertImageBodyCapacity(webCtx, maxRequestBodyBytes)
@@ -147,7 +148,7 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
           res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
           return
         }
-        await webCtx.waterfall('connection/request', req, res, () => bridge(req, res, fetchHandler, maxRequestBodyBytes))
+        await webCtx.waterfall('connection/request', req, res, () => connection.bridgeRequest(req, res, fetchHandler))
       },
     }
     webCtx.effect(() => webCtx.webServer.register(route), 'client-connection: /api route')

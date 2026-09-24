@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "record_id": "EVID-AAA-009-A03-IMPLEMENTATION-001",
+  "program": "DeepSeek Harness Triple-A",
+  "task": "AAA-009",
+  "action_id": "AAA-009:A03",
+  "candidate_ref": "custom/main working tree at 60b5295027f6fb7652a1a350a68c6275715b5dbd",
+  "captured_at": "2026-09-21T23:33:00-03:00",
+  "decision_status": "CONFIRMED",
+  "authority_ref": ".agent/authority.jsonl#AUTH-AAA-023-DECISIONS-A17-001",
+  "scope": "Approved Conversation input, Browser presentation, shared document API, renderer import, and top-level Office-to-PDF ownership correction.",
+  "implementation": {
+    "conversation": "Moved InputBar and ContextMeter implementation and local styling from skeleton/ into input/; apply and tests now resolve the input owner.",
+    "browser": "Moved BrowserBody, BrowserTitle, and their styling from view/ into browser/; the package index remains the registration and export owner.",
+    "document_preview": "Moved TextPreview and text state/helpers into text/, retained the document contract, registry, tab-lifetime, and suffix helpers as top-level shared modules, and kept index.ts as the Office-to-PDF composition owner.",
+    "source_resolution": "Removed cross-package runtime imports from ordinary src/* paths, added generated source-plane tsconfig aliases for repository tests/tooling, and documented that those aliases do not publish source exports.",
+    "generated_projection": "Regenerated and verified the module-graph artifacts after the ownership moves."
+  },
+  "commands": [
+    {
+      "command": "pnpm exec tsx scripts/verify-client-domain-graph.ts",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "client domain layering clean."
+    },
+    {
+      "command": "pnpm exec tsc -p packages/client/ui-conversation/tsconfig.json --noEmit && pnpm exec tsc -p packages/client/ui-sidebar-browser/tsconfig.json --noEmit && pnpm exec tsc -p packages/client/ui-sidebar-documentpreview/tsconfig.client.json --noEmit",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "All three affected client face typechecks completed without diagnostics."
+    },
+    {
+      "command": "pnpm exec vitest run packages/client/ui-conversation packages/client/ui-sidebar-browser packages/client/ui-sidebar-documentpreview --maxWorkers=1",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "82 test files and 817 tests passed."
+    },
+    {
+      "command": "pnpm exec vitest run packages/test-support/client-runtime/tests/assembly-test-client.client.spec.ts packages/test-support/client-runtime/tests/runtime.client.spec.tsx scripts/gen-tsconfig-paths.spec.ts --maxWorkers=1",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "Three source-plane/runtime test files and 57 tests passed."
+    },
+    {
+      "command": "pnpm run verify-client-ui-i18n",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "695 Client UI source files use locale-owned copy."
+    },
+    {
+      "command": "pnpm run gen-module-graph && pnpm run verify-module-graph",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "Three generated module-graph artifacts were current and no file was rewritten."
+    },
+    {
+      "command": "pnpm run verify-translation-pairing docs/module-graph.md docs/subsystems/sidebar-right.md .agents/notes/proposed/architecture/2026-09-14-composer-model-and-draft-editor.md docs/testing.md",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "Four named bilingual pairs are consistent."
+    },
+    {
+      "command": "pnpm run verify-tsconfig-paths",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "Generated source and package aliases are current."
+    },
+    {
+      "command": "pnpm exec tsc -p packages/api/session-controller/tsconfig.client.json --noEmit && pnpm exec tsc -p packages/client/ui-renderer/tsconfig.json --noEmit && pnpm exec tsc -p packages/client/web/tsconfig.json --noEmit && pnpm exec tsc -p packages/test-support/client-runtime/tsconfig.json --noEmit && pnpm exec tsc -p packages/sandbox/sandbox-local/tsconfig.json --noEmit",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "Public entry migrations and source-plane resolver changes typecheck across their affected package faces."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "result": "PASS",
+      "observation": "No whitespace errors."
+    }
+  ],
+  "prior_diagnostic": {
+    "command": "pnpm exec vitest run packages/client packages/test-support/client-runtime --maxWorkers=1",
+    "result": "PARTIAL",
+    "observation": "428 test files and 6,132 tests passed; one ContextMeter test initially referenced its pre-move skeleton path and was corrected, then passed independently as 9/9."
+  },
+  "acceptance": {
+    "status": "PASS",
+    "summary": "The approved client-domain ownership correction is implemented, the domain graph is clean, affected client faces and composition tests pass, generated graph and bilingual documentation remain current, source-plane aliases preserve test resolution without restoring published ./src/* exports, and runtime package imports use public entries."
+  },
+  "limitations": [
+    "The worktree remains uncommitted and contains unrelated pre-existing fork changes; this record is not immutable release evidence.",
+    "AAA-008 remains separately unresolved because its historical request-count oracle was not authorized for change."
+  ]
+}

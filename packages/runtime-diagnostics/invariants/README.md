@@ -58,7 +58,7 @@ Each companion protects relationships its package owns, and a companion installs
 | Companion | Checks |
 |---|---|
 | `dsh-session`, `dsh-agent`, `dsh-scope`, `dsh-agent-loop` | Session log enclosure and call/result trace, agent-status transitions, scope-filtered dispatch subjects, loop-built request reconstruction |
-| `dsh-llm`, `dsh-llm-retry`, `dsh-tools`, `dsh-system-prompt` | LLM stream grammar, retry-failure shape, tool-pipeline stage pairing and frozen results, prompt-assembly section names |
+| `dsh-llm`, `dsh-llm-retry`, `dsh-tools`, `dsh-system-prompt` | LLM stream grammar, retry-failure shape, tool-pipeline stage pairing and frozen results, PTC ancestry from exact Session baselines, prompt-assembly section names |
 | `dsh-compaction`, `dsh-hook-protocol`, `dsh-sandbox-policy` | Compaction stream pairing, hook invocation/result pairing, sandbox mode values |
 | `dsh-fs`, `dsh-subagent`, `dsh-workflow`, `dsh-tool-workflow` | Filesystem event identity, subagent provider and start/end pairing, workflow lifecycle identity, workflow record shape |
 | `dsh-goal`, `dsh-goal-round-driver` | Durable goal-stream folds and reconstructed continuation prompts |
@@ -150,7 +150,7 @@ Checks observe assembled requests and durable state without mutating request con
 These limits define when the registry is a poor fit or needs operational care. They are current package constraints, not a task backlog.
 
 - **Filters are fixed for the service lifetime** — `enabled`, `package_allowlist`, and `package_blocklist` are compiled once at startup; changing them requires a Cordis plugin reload.
-- **Live-only companions miss pre-reload operations** — a companion that only observes live operations cannot reconstruct operations that began before its own reload; session-backed companions rebuild their baseline from durable events.
+- **Live-only companions miss pre-reload operations** — a companion that only observes live operations cannot reconstruct work from before its reload; `dsh-tools` instead folds the exact creation baseline and preparation feed, and refuses late activation when any stored Session has events.
 - **Request reconstruction covers loop-built requests only** — the `dsh-agent-loop` companion reconstructs requests explicitly built by the loop; direct one-shot LLM calls remain outside that contract even when callers freeze them or attach a session id.
 - **No checks without a companion** — the registry ships no product checks; a composition that mounts the service alone observes nothing.
 
