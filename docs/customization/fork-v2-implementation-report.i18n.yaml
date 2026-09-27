@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for fork-v2-implementation-report.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/fork-v2-implementation-report.md
-fork-v2-implementation-report.md: 9646632940589e7461c0f41446d2ff91f81b2aca
-fork-v2-implementation-report.zh.md: 5c8c8424ca425dcfaac82d1d4b5aca4ce4b1ef97
+/fork-v2-implementation-report:
+  en: d0168ccd2e9502e2
+  zh: 7b8c32de4c36d2d6
+/fork-v2-implementation-report/summary:
+  en: 9ac199f7fcc4b743
+  zh: 0593d3647d103fdb
+/fork-v2-implementation-report/table-of-contents:
+  en: 7034d7f1bdfba29d
+  zh: e91bb5f3816fc9e3
+/fork-v2-implementation-report/implementation-answer:
+  en: 6ea798d366f83831
+  zh: 62bb0636bcff4dd5
+/fork-v2-implementation-report/delivered-extension:
+  en: c4cb53ecfb331c10
+  zh: 72ea92477e172f86
+/fork-v2-implementation-report/local-activation:
+  en: 5cac8f05b39392ce
+  zh: 4801d9032c6fbfa2
+/fork-v2-implementation-report/fork-disposition:
+  en: 017f10ece9d77a63
+  zh: 45dead21c43869f2
+/fork-v2-implementation-report/verification-evidence:
+  en: 56ef7e410058da5a
+  zh: bf349666b75b63cb
+/fork-v2-implementation-report/future-maintenance:
+  en: 14ed177ae58dec1e
+  zh: d5df7d4a5440c4ba
+/fork-v2-implementation-report/further-exploration:
+  en: 5deee68ba3eba85e
+  zh: 265f9b5b38aff9cb
+/fork-v2-implementation-report/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

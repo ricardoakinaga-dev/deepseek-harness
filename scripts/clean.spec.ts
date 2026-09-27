@@ -39,6 +39,9 @@ describe('RepositoryCleaner', () => {
     write(join(root, 'products/shell/lib/index.js'))
     write(join(root, '.typecheck/legacy.tsbuildinfo'))
     write(join(root, '.dsh-build/client-build-environment.json'))
+    write(join(root, 'apps/desktop/renderer/assets/welcome-brand.svg'))
+    write(join(root, 'apps/desktop/renderer/assets/welcome-loading.svg'))
+    write(join(root, 'apps/desktop/renderer/welcome.css'))
     write(join(root, 'root.tsbuildinfo'))
     write(join(root, 'packages/removed/ghost/node_modules/.bin/tool'))
 
@@ -48,6 +51,9 @@ describe('RepositoryCleaner', () => {
     expect(existsSync(join(root, 'products/shell/src/index.ts'))).toBe(true)
     expect(existsSync(join(root, '.typecheck'))).toBe(false)
     expect(existsSync(join(root, '.dsh-build'))).toBe(false)
+    expect(existsSync(join(root, 'apps/desktop/renderer/assets/welcome-brand.svg'))).toBe(true)
+    expect(existsSync(join(root, 'apps/desktop/renderer/assets/welcome-loading.svg'))).toBe(true)
+    expect(existsSync(join(root, 'apps/desktop/renderer/welcome.css'))).toBe(true)
     expect(existsSync(join(root, 'root.tsbuildinfo'))).toBe(false)
     expect(existsSync(join(root, 'packages/removed/ghost'))).toBe(false)
   })
@@ -74,6 +80,21 @@ describe('RepositoryCleaner', () => {
     expect(existsSync(join(root, entry, 'lib'))).toBe(false)
     expect(existsSync(join(root, entry, 'src/index.ts'))).toBe(true)
     expect(existsSync(join(root, 'native/system/tsconfig.tsbuildinfo'))).toBe(false)
+  })
+
+  it('removes the Desktop keyboard fixture declaration output', async () => {
+    const root = fixture()
+    write(join(root, 'tsconfig.json'), JSON.stringify({ files: [], references: [{ path: './tsconfig.desktop-keyboard-tests.json' }] }))
+    write(join(root, 'tsconfig.desktop-keyboard-tests.json'), JSON.stringify({
+      compilerOptions: { composite: true, outDir: 'lib/desktop-keyboard-test-types' },
+      files: ['keyboard.ts'],
+    }))
+    write(join(root, 'keyboard.ts'), 'export {}\n')
+    write(join(root, 'lib/desktop-keyboard-test-types/apps/desktop/tests/keyboard.spec.d.ts'))
+
+    await new RepositoryCleaner(root).clean()
+
+    expect(existsSync(join(root, 'lib/desktop-keyboard-test-types'))).toBe(false)
   })
 
   it('refuses project outputs reached through a symlink outside the repository', async () => {

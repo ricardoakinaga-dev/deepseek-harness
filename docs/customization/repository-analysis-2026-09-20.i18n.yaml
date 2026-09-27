@@ -1,6 +1,49 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for repository-analysis-2026-09-20.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/repository-analysis-2026-09-20.md
-repository-analysis-2026-09-20.md: 712940a171e39fd25e512a65b287d68439f4fe15
-repository-analysis-2026-09-20.zh.md: cdefc285454a2a0e40c395d270e0b3884b342f66
+/m0-repository-analysis-2026-09-20-updated-2026-09-21:
+  en: 8c01ef00817a7258
+  zh: afb0140dcb36ca23
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/summary:
+  en: db3ba8156174f75b
+  zh: 26ed02cd2039b941
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/table-of-contents:
+  en: 90582b2adb5e3a6d
+  zh: bdbb8554d5fa69a7
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/scope-and-status:
+  en: 0a7f73e5b4804722
+  zh: a53549ded747fc16
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/evidence-identity:
+  en: 307d9f432c5e7a85
+  zh: 0b1d6fc4777ee7a1
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/current-findings:
+  en: a6afeb43b631f601
+  zh: e5573039f69b7a9f
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/updates-since-the-m0-baseline:
+  en: 9a76c86106638cea
+  zh: 89be1c1834d6cc96
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/release-lane-matrix:
+  en: 0c36e09405be81a7
+  zh: 98a2584dabcf3325
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/release-lane-matrix/focused-follow-up-results:
+  en: 19e38a39ce625633
+  zh: 2e662f681d570922
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/quality-bar-reconciliation:
+  en: 81001508fd2edfd4
+  zh: f2d0c08bb9380cbd
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/ownership-and-next-action:
+  en: 09e397a02fc61cb2
+  zh: 9cde72859f91fb5f
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/reproducibility:
+  en: 5c3f6f108db63bd4
+  zh: c53f1b6311f8c1a0
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/limitations:
+  en: 8392885f5efd598c
+  zh: 69e05baa5f10692c
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/further-exploration:
+  en: aeb2c979f0ecc18f
+  zh: 8943e3a73d5f72d9
+/m0-repository-analysis-2026-09-20-updated-2026-09-21/dev-note:
+  en: 0fa3ca577803fa86
+  zh: d397b66fbd3d4d4c

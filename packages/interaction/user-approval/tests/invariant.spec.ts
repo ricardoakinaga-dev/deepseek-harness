@@ -140,7 +140,7 @@ describe('approval invariants', () => {
     await ctx.plugin(SessionStore)
     const first = await mountApprovalStateLease(ctx)
     const session = ctx.sessions.create()
-    const registry = (ctx.root as unknown as { [key: symbol]: unknown })[
+    const registry = (ctx.root as Context & { [key: symbol]: unknown })[
       Symbol.for('@deepseek-ai/dsh-user-approval/session-state')
     ] as { entries: WeakMap<Session, { leases: Set<{ sessions: Set<Session> }> }> }
     const leaseCount = (): number => registry.entries.get(session)?.leases.size ?? 0

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import TerminalSessionService from '@deepseek-ai/dsh-terminal'
@@ -38,7 +38,7 @@ class PassthroughSandbox extends SandboxProvider {
 function stubAgent(ctx: Context, rawId: string): Agent {
   const id = SessionId(rawId)
   const scope = ctx.plugin(() => {})
-  const session = Session.create(id)
+  const session = ctx.sessions.create(id)
   const agent: Agent = {
     id, options: {}, session, inbox: unsupportedInbox(),
     status: 'idle',
@@ -61,6 +61,7 @@ async function harness(
   const ctx = new Context()
   contexts.push(ctx)
   await ctx.plugin(AgentRegistry)
+  await ctx.plugin(SessionStore)
   await ctx.plugin(TerminalSessionService)
   await ctx.plugin(PassthroughSandbox)
   await ctx.plugin(SessionProjectionRegistry)
@@ -233,9 +234,10 @@ describe.skipIf(process.platform === 'win32')('terminal-bash real shell', () => 
     const child = /CHILD=(\d+)/.exec(output)?.[1]
     expect(child).toBeDefined()
     const pid = Number(child)
-    expect(() => process.kill(pid, 0)).not.toThrow()
+    expect(processIsRunning(pid)).toBe(true)
     await ctx.terminals.kill(agent, created.sessionId)
-    expect(() => process.kill(pid, 0)).toThrow()
+    // Linux can retain a stopped descendant as a zombie until its parent reaps it.
+    expect(processIsRunning(pid)).toBe(false)
   }, 10_000)
 
   it('quiesces a disowned same-session descendant after the shell exits naturally', async () => {

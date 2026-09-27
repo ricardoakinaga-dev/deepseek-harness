@@ -24,6 +24,7 @@ import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
 interface Bench {
   ctx: Context
   session: Session
+  todoFiber?: Awaited<ReturnType<Context['plugin']>>
   tailProjections(): Promise<{ asOfSeq: number; values: Record<string, unknown> } | undefined>
 }
 
@@ -35,12 +36,13 @@ async function harness(withTodoTool: boolean): Promise<Bench> {
   await ctx.plugin(UserQuestionService)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(SessionProjectionRegistry)
-  if (withTodoTool) await ctx.plugin(ToolTodo, { allowParallelInProgress: true })
+  const todoFiber = withTodoTool ? await ctx.plugin(ToolTodo, { allowParallelInProgress: true }) : undefined
   const session = ctx.sessions.create()
   await ctx.agents.register({ id: session.id, session, status: 'idle', ctx } as Agent)
   return {
     ctx,
     session,
+    ...todoFiber === undefined ? {} : { todoFiber },
     async tailProjections() {
       return ctx.sessionProjections.snapshot(session)
     },
@@ -106,11 +108,11 @@ describe('todos projection provider', () => {
   })
 
   it('drops the key when the tool-todo fiber unloads (HMR safety)', async () => {
-    const bench = await harness(false)
+    const bench = await harness(true)
     seedMessage(bench.session)
-    const fiber = await bench.ctx.plugin(ToolTodo, { allowParallelInProgress: true })
     expect((await bench.tailProjections())?.values.todos).toBeNull()
-    await fiber.dispose()
+    if (bench.todoFiber === undefined) throw new Error('todo tool was not mounted')
+    await bench.todoFiber.dispose()
     expect('todos' in ((await bench.tailProjections())?.values ?? {})).toBe(false)
   })
 })

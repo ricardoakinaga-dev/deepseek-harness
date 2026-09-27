@@ -6,7 +6,6 @@ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionTitleService, {
   SessionTitleProviderId,
   type Config,
-  type SessionTitleProvider,
   type SessionTitleProviderRequest,
   type SessionTitleProviderResult,
   type SessionTitleUserMessage,
@@ -402,7 +401,7 @@ describe('SessionTitleService Provider validation and stale scheduling', () => {
       automatic: 'first-prompt',
       loadMessages: loadTestSessionTitleMessages,
       generate,
-    } as unknown as SessionTitleProvider)).toThrow(/id must be a non-empty string/)
+    } as never)).toThrow(/id must be a non-empty string/)
     expect(() => ctx.sessionTitle.register({
       id: SessionTitleProviderId(''),
       automatic: 'first-prompt',
@@ -420,13 +419,13 @@ describe('SessionTitleService Provider validation and stale scheduling', () => {
       automatic: 'first-prompt',
       loadMessages: loadTestSessionTitleMessages,
       generate: undefined,
-    } as unknown as SessionTitleProvider)).toThrow(/requires generate/)
+    } as never)).toThrow(/requires generate/)
     expect(() => ctx.sessionTitle.register({
       id: SessionTitleProviderId('missing-loader'),
       automatic: 'first-prompt',
       loadMessages: undefined,
       generate,
-    } as unknown as SessionTitleProvider)).toThrow(/requires loadMessages/)
+    } as never)).toThrow(/requires loadMessages/)
   })
 
   it('drops automatic work when its provider is disposed before the queued start', async () => {

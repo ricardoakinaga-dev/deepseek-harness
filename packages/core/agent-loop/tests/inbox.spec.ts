@@ -64,14 +64,12 @@ async function reconstructPersistedInbox(
   const ctx = new Context()
   onTestFinished(() => ctx.fiber.dispose())
   await ctx.plugin(SessionStore)
-  const session = ctx.sessions.create(SessionId(rawId))
-  populate(session)
   await ctx.plugin(SessionProjectionRegistry)
   ctx.sessionProjections.register(inboxProjectionDefinition)
-  const agent = stubAgent(rawId, { ctx, session })
-  const inbox = new ReactLoopInbox(ctx.sessionProjections, session, agentEvents(ctx, agent))
+  const seed = Session.create(SessionId(rawId))
+  populate(seed)
   try {
-    void inbox.nextTurn
+    ctx.sessions.create(SessionId(rawId), { seed: seed.snapshotEvents() })
   } catch (error: unknown) {
     if (error instanceof Error) return error
     throw error

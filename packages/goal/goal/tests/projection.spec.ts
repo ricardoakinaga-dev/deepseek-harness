@@ -13,6 +13,7 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { agentEvents } from '@deepseek-ai/dsh-agent'
 import type { Agent, AgentStatus } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SessionStore from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
@@ -20,10 +21,17 @@ import GoalService, { GoalId, applyGoalProjection, foldGoal, goalProjectionDefin
 import type { GoalProjection, GoalProjectionState, GoalRef } from '@deepseek-ai/dsh-goal'
 import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
 
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'test': { kind: 'test' } & ContextFormed
+  }
+}
+
 interface Bench {
   ctx: Context
   session: Session
   agent: Agent
+  goalFiber?: Awaited<ReturnType<Context['plugin']>>
   tailValues(): Record<string, unknown>
   tailAsOfSeq(): number
 }
@@ -55,13 +63,14 @@ async function harness(withGoal: boolean): Promise<Bench> {
   await ctx.plugin(SessionStore)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(SessionProjectionRegistry)
-  if (withGoal) await ctx.plugin(GoalService)
+  const goalFiber = withGoal ? await ctx.plugin(GoalService) : undefined
   const session = ctx.sessions.create()
   const agent = await liveAgent(ctx, session)
   return {
     ctx,
     session,
     agent,
+    ...goalFiber === undefined ? {} : { goalFiber },
     tailValues: () => ctx.sessionProjections.snapshot(session).values,
     tailAsOfSeq: () => ctx.sessionProjections.snapshot(session).asOfSeq,
   }
@@ -132,9 +141,10 @@ describe('goal projection unit', () => {
       start: 0,
       inserted: [createUserMessage({
         content: [{ type: 'text', text: 'unrelated pending context' }],
-        source: { kind: 'plugin', plugin: 'test' },
+        source: { kind: 'test' },
       })],
     })
+
 
     expect(bench.tailValues().goal).toBeNull()
     expect(foldGoal(bench.session.snapshotEvents()).goal).toBeUndefined()
@@ -244,11 +254,11 @@ describe('goal projection unit', () => {
   })
 
   it('drops the key when the goal fiber unloads (HMR safety)', async () => {
-    const bench = await harness(false)
+    const bench = await harness(true)
     seedMessage(bench.session)
-    const fiber = await bench.ctx.plugin(GoalService)
     expect(bench.tailValues().goal).toBeNull()
-    await fiber.dispose()
+    if (bench.goalFiber === undefined) throw new Error('goal service was not mounted')
+    await bench.goalFiber.dispose()
     expect('goal' in (bench.tailValues() ?? {})).toBe(false)
   })
 })

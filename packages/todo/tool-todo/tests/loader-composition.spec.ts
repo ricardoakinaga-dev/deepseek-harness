@@ -10,7 +10,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -32,7 +32,8 @@ afterEach(async () => {
 async function agent(ctx: Context): Promise<Agent> {
   const scope = ctx.plugin(() => {})
   const id = SessionId('todo-loader-agent')
-  const session = Session.create(id)
+  const session = ctx.sessions.create(id)
+  session.append('turn/start', { turn: 1 })
   const value: Agent = {
     id, options: {}, session, inbox: unsupportedInbox(),
     status: 'idle', ctx: scope.ctx,
@@ -60,6 +61,7 @@ async function boot(configLines: readonly string[]): Promise<Context> {
     "- name: '@deepseek-ai/dsh-agent'",
     "- name: '@deepseek-ai/dsh-system-prompt'",
     "- name: '@deepseek-ai/dsh-tools'",
+    "- name: '@deepseek-ai/dsh-session'",
     "- name: '@deepseek-ai/dsh-session-projection'",
     "- name: '@deepseek-ai/dsh-tool-todo'",
     ...configLines.length > 0 ? ['  config:', ...configLines] : [],
@@ -75,6 +77,7 @@ async function boot(configLines: readonly string[]): Promise<Context> {
     ['@deepseek-ai/dsh-agent', AgentRegistry],
     ['@deepseek-ai/dsh-system-prompt', SystemPrompt],
     ['@deepseek-ai/dsh-tools', ToolRuntime],
+    ['@deepseek-ai/dsh-session', SessionStore],
     ['@deepseek-ai/dsh-session-projection', SessionProjectionRegistry],
     ['@deepseek-ai/dsh-tool-todo', ToolTodo],
   ])
@@ -100,8 +103,8 @@ describe('tool-todo real Loader composition through cordis.yml', () => {
   it('allowParallelInProgress: false narrows the description and rejects a parallel write', async () => {
     const ctx = await boot(['    allowParallelInProgress: false'])
     const description = ctx.tools.schemas().find(s => s.name === 'todo_write')?.description ?? ''
-    expect(description).toContain('Keep AT MOST ONE todo `in_progress`')
-    expect(description).not.toContain('several at once')
+    expect(description).toContain('keep exactly one todo `in_progress`')
+    expect(description).not.toContain('several only')
 
     const owner = await agent(ctx)
     const result = await ctx.tools.execute({
@@ -119,7 +122,7 @@ describe('tool-todo real Loader composition through cordis.yml', () => {
   it('allowParallelInProgress: true permits a parallel write end to end', async () => {
     const ctx = await boot(['    allowParallelInProgress: true'])
     const description = ctx.tools.schemas().find(s => s.name === 'todo_write')?.description ?? ''
-    expect(description).toContain('several at once when work genuinely runs in parallel')
+    expect(description).toContain('several only when work runs in parallel')
 
     const owner = await agent(ctx)
     const result = await ctx.tools.execute({

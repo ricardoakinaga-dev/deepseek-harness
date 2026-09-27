@@ -28,12 +28,12 @@ it('records ignored build scripts from pnpm output without replacing existing de
   const { dir, filename } = fixture('nodeLinker: hoisted\nallowBuilds:\n  denied: false\n')
   const output = '│   Ignored build scripts: approval-fixture-addon@file:../../addon, @scope/native. │\n'
 
-  expect(pendingBuildsFromOutput(output)).toEqual(['@scope/native', 'approval-fixture-addon'])
+  expect(pendingBuildsFromOutput(output)).toEqual(['@scope/native', 'approval-fixture-addon@file:../../addon'])
   await recordPendingBuilds(dir, pendingBuildsFromOutput(output))
-  expect(await readPendingBuilds(dir)).toEqual(['@scope/native', 'approval-fixture-addon'])
+  expect(await readPendingBuilds(dir)).toEqual(['@scope/native', 'approval-fixture-addon@file:../../addon'])
   expect(parse(readFileSync(filename, 'utf8'))).toMatchObject({
     nodeLinker: 'hoisted',
-    allowBuilds: { denied: false, '@scope/native': 'set this to true or false', 'approval-fixture-addon': 'set this to true or false' },
+    allowBuilds: { denied: false, '@scope/native': 'set this to true or false', 'approval-fixture-addon@file:../../addon': 'set this to true or false' },
   })
   await recordPendingBuilds(dir, ['denied'])
   const parsed = parse(readFileSync(filename, 'utf8')) as { allowBuilds: Record<string, unknown> }

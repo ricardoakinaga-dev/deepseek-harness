@@ -5,7 +5,7 @@ import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import { Session, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type { TodoItem } from '@deepseek-ai/dsh-tool-todo'
 import { type Agent } from '@deepseek-ai/dsh-agent'
 
@@ -22,8 +22,9 @@ const testToolSignal = new AbortController().signal
  */
 
 /** A parent Agent backed by a real Session — the tool reads `agent.session`. */
-function agentWithSession(id = 'parent-1'): Agent & { session: Session } {
-  const session = Session.create(SessionId(id))
+function agentWithSession(ctx: Context, id = 'parent-1'): Agent & { session: Session } {
+  const session = ctx.sessions.create(SessionId(id))
+  session.append('turn/start', { turn: 1 })
   return { id: SessionId(id), session } as unknown as Agent & { session: Session }
 }
 
@@ -31,6 +32,7 @@ async function setup(allowParallelInProgress: boolean): Promise<Context> {
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(tool, { allowParallelInProgress })
   return ctx
@@ -38,7 +40,7 @@ async function setup(allowParallelInProgress: boolean): Promise<Context> {
 
 let callCounter = 0
 function callTodo(ctx: Context, args: unknown, over: { agent?: Agent | undefined } = {}) {
-  const agent = 'agent' in over ? over.agent : agentWithSession()
+  const agent = 'agent' in over ? over.agent : agentWithSession(ctx)
   return ctx.tools.execute({
     signal: testToolSignal,
     callId: ToolCallId(`call-${++callCounter}`),
@@ -68,7 +70,7 @@ describe('dsh-tool-todo', () => {
 
   it('appends a todo/write event carrying the whole list to the calling session', async () => {
     const ctx = await setup(true)
-    const agent = agentWithSession('writer')
+    const agent = agentWithSession(ctx, 'writer')
     const todos: TodoItem[] = [
       { content: 'plan', status: 'in_progress' },
       { content: 'build', status: 'pending' },
@@ -88,7 +90,7 @@ describe('dsh-tool-todo', () => {
 
   it('stores the trimmed content (the dedupe/length key), not the raw input', async () => {
     const ctx = await setup(true)
-    const agent = agentWithSession('trim')
+    const agent = agentWithSession(ctx, 'trim')
     const result = await callTodo(ctx, { todos: [{ content: '  plan the work  ', status: 'pending' }] }, { agent })
     expect(result.isError).toBe(false)
 
@@ -98,7 +100,7 @@ describe('dsh-tool-todo', () => {
 
   it('replaces the list on a second call (last-write-wins on the log)', async () => {
     const ctx = await setup(true)
-    const agent = agentWithSession('writer-2')
+    const agent = agentWithSession(ctx, 'writer-2')
     await callTodo(ctx, { todos: [{ content: 'a', status: 'pending' }] }, { agent })
     await callTodo(ctx, { todos: [
       { content: 'a', status: 'completed' },
@@ -126,7 +128,7 @@ describe('dsh-tool-todo', () => {
 
   it('accepts several in_progress items at once (parallel work)', async () => {
     const ctx = await setup(true)
-    const agent = agentWithSession('parallel')
+    const agent = agentWithSession(ctx, 'parallel')
     const todos: TodoItem[] = [
       { content: 'run subagent a', status: 'in_progress' },
       { content: 'run subagent b', status: 'in_progress' },
@@ -150,7 +152,7 @@ describe('dsh-tool-todo', () => {
 
     it('false rejects a call marking several items in_progress', async () => {
       const ctx = await setup(false)
-      const agent = agentWithSession('single-active')
+      const agent = agentWithSession(ctx, 'single-active')
       const result = await callTodo(ctx, { todos: parallel }, { agent })
       expect(result.isError).toBe(true)
       expect(text(result)).toContain('at most one task may be in_progress')
@@ -177,12 +179,12 @@ describe('dsh-tool-todo', () => {
     it('instructs the model to keep at most one active, while true instructs parallel', async () => {
       const single = await setup(false)
       const singleDesc = single.tools.schemas().find(s => s.name === 'todo_write')!.description
-      expect(singleDesc).toContain('Keep AT MOST ONE todo `in_progress`')
-      expect(singleDesc).not.toContain('several at once')
+      expect(singleDesc).toContain('keep exactly one todo `in_progress`')
+      expect(singleDesc).not.toContain('several only')
 
       const parallelDesc = (await setup(true)).tools.schemas().find(s => s.name === 'todo_write')!.description
-      expect(parallelDesc).toContain('several at once when work genuinely runs in parallel')
-      expect(parallelDesc).not.toContain('AT MOST ONE')
+      expect(parallelDesc).toContain('several only when work runs in parallel')
+      expect(parallelDesc).not.toContain('exactly one')
     })
   })
 
@@ -215,6 +217,7 @@ describe('dsh-tool-todo', () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     const fiber = await ctx.plugin(tool, { allowParallelInProgress: true })
     expect(ctx.tools.schemas().some(s => s.name === 'todo_write')).toBe(true)

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-presets'
+import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionLogOffset, SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import { SessionAlreadyOwnedError } from '@deepseek-ai/dsh-session-persistence'
@@ -424,24 +424,17 @@ describe('ApiSession create or adoption', () => {
       resolve: (id?: string) => Promise.resolve({ id: id ?? 'minimal' }),
       mount: () => Promise.resolve(),
     } as never)
-    const resumed = {
-      id: meta.id,
-      session: {
-        id: meta.id,
-        header: meta,
-        snapshotEvents: () => events,
-        eventAt: (seq: number) => events[seq],
-        seq: events.length,
-      },
-      status: 'idle',
-      ctx,
-    } as unknown as Agent
-    const resume = vi.spyOn(ctx.agents, 'resume').mockResolvedValue({
-      agent: resumed,
-      dispose: () => Promise.resolve(),
+    let resumed: Agent | undefined
+    const resume = vi.spyOn(ctx.agents, 'resume').mockImplementation(() => {
+      const session = ctx.sessions.create(meta.id, { meta, seed: events })
+      resumed = { id: meta.id, session, status: 'idle', ctx } as Agent
+      return Promise.resolve({ agent: resumed, dispose: () => Promise.resolve() })
     })
 
-    await expect(agents.ensureSession(meta.id, '/workspace', true, 'minimal')).resolves.toBe(resumed)
+    const resolved = await agents.ensureSession(meta.id, '/workspace', true, 'minimal')
+    expect(resolved.id).toBe(meta.id)
+    expect(resolved.session).toBe(resumed?.session)
+    expect(ctx.sessionProjections.stateOf(resolved.session, 'agentPreset')).toBe('minimal')
     expect(resume).toHaveBeenCalledWith(expect.objectContaining({ resumeSessionId: meta.id }))
   })
 

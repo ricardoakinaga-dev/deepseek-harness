@@ -109,7 +109,7 @@ type ProjectionChangeListener = (
 
 ## 注册表：`ctx.sessionProjections`
 
-`SessionProjectionRegistry`（[签名](#ctxsessionprojections--sessionprojectionregistry)）拥有驱动权：一份 `session/event` 订阅、对每个已注册单元即时调用 `apply`，以及每会话每单元的水位线（watermark）cell。cell 从精确的创建、恢复或 hydration 切面开始；实时 cell 不会在首次触达时通过折叠完整 Session 历史重建。注册是一个 effect，其 disposer 随调用方 fiber 走：领域插件卸载后，其 key（连同缓存的 cell）从后续驱动与快照中消失，客户端将其读作能力缺失；key 的 `stateVersion` 或可选 `cacheFingerprint` 不同时直接 throw，身份匹配的注册方共享一个单元并被计数。领域插件在 `ctx.inject(['sessionProjections'], …)` 下注册，因此不带注册表的 headless 组装完全不受影响。
+`SessionProjectionRegistry`（[签名](#ctxsessionprojections--sessionprojectionregistry)）拥有驱动权：一份 `session/event` 订阅、对每个已注册单元即时调用 `apply`，以及每会话每单元的水位线（watermark）cell。cell 从精确的创建、恢复或 hydration 切面开始；实时 cell 不会在首次触达时通过折叠完整 Session 历史重建。注册是一个 effect，其 disposer 随调用方 fiber 走：领域插件卸载后，其 key 从后续驱动与快照中消失，客户端将其读作能力缺失。若每个实时 Session 仍停留在原 cell 记录的 seq 水位，相同定义可以复用保留的 cell；若期间出现新事件，则需要新的创建或恢复基线。活跃 key 的 `stateVersion` 或可选 `cacheFingerprint` 不同时直接 throw，身份匹配的注册方共享一个单元并被计数。领域插件在 `ctx.inject(['sessionProjections'], …)` 下注册，因此不带注册表的 headless 组装完全不受影响。
 
 `prepareSession(preparation)` 会让同步领域检查在基线结构校验后、注册表折叠 cell 或附加自己的追加 consumer 前运行。检查可以校验构造切点并订阅已接受的 setup 追加；Session 会在日志或序列变化前拒绝之后的无效追加。移除检查会阻止后续 preparation 调用它；每个活动 preparation 会持有已附加到其 feed 的 consumer，直至 feed 被封存或释放。
 
@@ -130,20 +130,24 @@ The persisted projection cache service. Opens the `session_projcache` domain at 
 ```ts cordis-catalog
 /**
  * The zero-I/O listing read: whole values viewed straight from the stored
- * rows (version-matching keys only), each cut carried with its watermark so
- * a client value store can seed under its higher-seq-wins rule — as stale
- * as the last durable checkpoint but never wrong, and never from an
- * unrelated log (the caller's header is the identity witness). Fresher
- * paths (the history tail baseline) supersede these values whenever a
- * session is actually opened.
+ * rows (version-matching keys only) of the record bound to the caller's
+ * lifecycle. The header is the only identity witness a listing holds, so
+ * this face matches the lifecycle identity (`formatVersion`, `createdAt`,
+ * `cwd`, `isSeeded`) and not the inherited cut: within one format
+ * generation the cut is fixed at fork time, so it distinguishes no
+ * lifecycle the other fields do not, and a viewed value never seeds a fold.
+ * The view is as stale as the last durable checkpoint but never wrong and
+ * never from an unrelated log. Its `asOfSeq` is the lowest watermark among
+ * the served rows: the stored record's own position, which the header
+ * cannot relate to the log the caller later opens. The Session list
+ * therefore labels the block as cached, and the client lets every value the
+ * connected Session produces supersede it whatever this number says.
  * @param meta - the listed session's header (identity witness; no log read).
- * @param inheritedEventCount - exact inherited prefix length that completes
- * the checkpoint identity.
  * @param keys - optional projection keys required by the caller's audience.
- * @returns the cut (`asOfSeq` = lowest served-row watermark), or
- *   `undefined` when no usable row exists for this lifecycle.
+ * @returns the viewed block, or `undefined` when no usable row exists for
+ *   this lifecycle at the current Session format.
  */
-cachedSnapshot( meta: SessionHeader, inheritedEventCount: SessionLogOffset, keys?: readonly Extract<keyof SessionProjectionMap, string>[], ): ProjectionSnapshot | undefined
+cachedSnapshot( meta: SessionHeader, keys?: readonly Extract<keyof SessionProjectionMap, string>[], ): ProjectionSnapshot | undefined
 
 /**
  * Read only a predecessor checkpoint's title as a zero-I/O listing hint.
@@ -154,15 +158,13 @@ cachedSnapshot( meta: SessionHeader, inheritedEventCount: SessionLogOffset, keys
  * fact from this Session. The registry still requires the current title
  * projection's row version, exact optional fingerprint, and schema. No other predecessor projection is
  * exposed: format normalization can change their current meaning, and the
- * strict {@link cachedSnapshot} / hydration paths continue to reject them.
+ * {@link cachedSnapshot} / hydration paths continue to reject them.
  * @param meta - authoritative listed Session header.
- * @param inheritedEventCount - exact inherited cut completing the lifecycle identity.
- * @returns a title-only checkpoint view with `asOfSeq: -1`, or `undefined`
- *   when the record is current, newer, unrelated, missing, or incompatible
- *   with the title unit. The sentinel avoids reusing a sequence that a
- *   cardinality-changing Session migration may have remapped.
+ * @returns a title-only block at the stored title row's watermark, or
+ *   `undefined` when the record is current, newer, unrelated, missing, or
+ *   incompatible with the title unit.
  */
-cachedPredecessorTitle( meta: SessionHeader, inheritedEventCount: SessionLogOffset, ): ProjectionSnapshot | undefined
+cachedPredecessorTitle(meta: SessionHeader): ProjectionSnapshot | undefined
 
 /**
  * Hydrate projection cells for an already-prepared Session without another
@@ -210,7 +212,7 @@ Source: [`packages/session/session-projection-cache/src/index.ts`](../../package
 
 ### `ctx.sessionProjections` — `SessionProjectionRegistry`
 
-`ctx.sessionProjections`: the projection unit table and its drive. The service subscribes to `session/event` once; every committed event passes every registered unit's `apply` (eager drive). A changed state reference computes the next client view; the change feed is notified only when its raw result changes by `Object.is`. Session cells are initialized from the creation baseline or an explicit restore/hydrate cut; a live cell is never reconstructed by reading Session history. Registration is an effect (disposer rides the calling fiber): an unloaded domain plugin's key disappears from snapshots and clients read it as capability absence. A host reader either declares `sessionProjections` in its plugin `inject` or fails explicitly when the registry or required key is absent. Contributors may preserve optional registration through `ctx.inject(['sessionProjections'], ...)`. Registrants sharing a key share one unit only when both `stateVersion` and optional `cacheFingerprint` match exactly; absent and defined fingerprints are incompatible. Such registrants are counted: the same tool package mounted in N agent presets registers N times, and the key survives until the last one unloads.
+`ctx.sessionProjections`: the projection unit table and its drive. The service subscribes to `session/event` once; every committed event passes every registered unit's `apply` (eager drive). A changed state reference computes the next client view; the change feed is notified only when its raw result changes by `Object.is`. Session cells are initialized from the creation baseline or an explicit restore/hydrate cut; a live cell is never reconstructed by reading Session history. Registration is an effect (disposer rides the calling fiber): an unloaded domain plugin's key disappears from snapshots and clients read it as capability absence. Its exact cells remain eligible for an identical registration only while each live Session stays at the cursor those cells observed. A host reader either declares `sessionProjections` in its plugin `inject` or fails explicitly when the registry or required key is absent. Contributors may preserve optional registration through `ctx.inject(['sessionProjections'], ...)`. Registrants sharing a key share one unit only when both `stateVersion` and optional `cacheFingerprint` match exactly; absent and defined fingerprints are incompatible. Such registrants are counted: the same tool package mounted in N agent presets registers N times, and the key survives until the last one unloads.
 
 ```ts cordis-catalog
 /**
@@ -218,8 +220,9 @@ Source: [`packages/session/session-projection-cache/src/index.ts`](../../package
  * only when both `stateVersion` and optional `cacheFingerprint` match exactly;
  * absent and defined fingerprints are incompatible. The registration is an
  * effect on the calling context's fiber: disposing the fiber (or calling the
- * returned disposer) removes the key — and its cached cells — from subsequent
- * drives and snapshots.
+ * returned disposer) removes the key from subsequent drives and snapshots.
+ * An identical later registration reuses retained cells only when every live
+ * Session still has the exact cursor those cells observed.
  * @param definition - key, state schema, pure unit functions, and cache identity.
  * @returns the exact disposer that unregisters this unit.
  */

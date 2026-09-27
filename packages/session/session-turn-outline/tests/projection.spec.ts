@@ -12,6 +12,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
@@ -19,12 +20,18 @@ import * as SessionTurnOutlinePlugin from '@deepseek-ai/dsh-session-turn-outline
 import { turnOutlineProjectionDefinition } from '@deepseek-ai/dsh-session-turn-outline/src/projection.ts'
 import type { TurnOutlineEntry, TurnOutlineState } from '@deepseek-ai/dsh-session-turn-outline/types'
 
-async function harness(withOutlinePlugin: boolean): Promise<{ ctx: Context; session: Session }> {
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'test-injector': { kind: 'test-injector' } & ContextFormed
+  }
+}
+
+async function harness(withOutlinePlugin: boolean, seed?: readonly SessionEvent[]): Promise<{ ctx: Context; session: Session }> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
   if (withOutlinePlugin) await ctx.plugin(SessionTurnOutlinePlugin)
-  return { ctx, session: ctx.sessions.create(SessionId('outlined')) }
+  return { ctx, session: ctx.sessions.create(SessionId('outlined'), seed === undefined ? {} : { seed }) }
 }
 
 /** Append one human prompt; returns its seq. */
@@ -136,7 +143,7 @@ describe('turn outline projection unit', () => {
     session.append('turn/start', { turn: 1 })
     session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'injected context' }],
-      source: { kind: 'plugin', plugin: 'test-injector', form: 'relay' },
+      source: { kind: 'test-injector', form: 'relay' },
     }), { surfaceOp: 'append' })
     expect(outlineOf(ctx, session)).toEqual([
       { turn: 1, seq: 1, prompt: '', response: '' },
@@ -217,12 +224,12 @@ describe('turn outline projection unit', () => {
     expect(turnOutlineProjectionDefinition.apply(state, regressive)).toBe(state)
   })
 
-  it('folds turns already in the log when the plugin mounts late (lazy cell build)', async () => {
-    const { ctx, session } = await harness(false)
+  it('folds restored turns from the creation baseline', async () => {
+    const { session } = await harness(false)
     session.append('turn/start', { turn: 1 })
     appendPrompt(session, 'pre-mount prompt')
-    await ctx.plugin(SessionTurnOutlinePlugin)
-    expect(outlineOf(ctx, session)).toEqual([{ turn: 1, seq: 0, prompt: 'pre-mount prompt', response: '' }])
+    const { ctx, session: restored } = await harness(true, session.snapshotEvents())
+    expect(outlineOf(ctx, restored)).toEqual([{ turn: 1, seq: 0, prompt: 'pre-mount prompt', response: '' }])
   })
 
   it('has no key without the plugin and drops it when the plugin unloads (HMR safety)', async () => {

@@ -1,6 +1,7 @@
 import { createUserMessage, createMessage } from '@deepseek-ai/dsh-llm'
+import type { ContextFormed, MessageSource } from '@deepseek-ai/dsh-llm'
 import { describe, expect, it, vi } from 'vitest'
-import { Context, type Fiber } from '@deepseek-ai/cordis'
+import { Context, Fiber } from '@deepseek-ai/cordis'
 import SessionStore, { SessionLogOffset, SessionSeq, SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { SessionEvent, SessionHeader, SessionId as SessionIdType } from '@deepseek-ai/dsh-session'
@@ -25,6 +26,19 @@ import SessionQueryEngine, {
 import { SessionTitleProviderId, SessionTitleService } from '@deepseek-ai/dsh-session-title'
 import { SessionObservationReader } from '../src/observation.ts'
 import { TestSessionQueryEngine } from './test-service.ts'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'test': { kind: 'test' } & ContextFormed
+  }
+}
+
+type CheckpointSource = Extract<MessageSource, { readonly kind: 'compact-checkpoint' }>
+
+/** Build a typed checkpoint source for a query fixture without owning compaction. */
+function checkpointSource(compactionId: string): CheckpointSource {
+  return { kind: 'compact-checkpoint', compactionId: compactionId as CheckpointSource['compactionId'] }
+}
 
 const TITLE_SERVICE_CONFIG = { fallbackMaxWords: 8, fallbackMaxBytes: 64, maxTitleBytes: 256 }
 
@@ -960,7 +974,7 @@ describe('session-query exact reads', () => {
       'user/message',
       createUserMessage({
         content: [{ type: 'text', text: 'replacement' }],
-        source: { kind: 'plugin', plugin: 'test' },
+        source: { kind: 'test' },
       }),
       { surfaceOp: { op: 'replace', startSeq: first.seq, endSeq: first.seq }, sourceEventSeqs: [first.seq] },
     )
@@ -987,7 +1001,7 @@ describe('session-query exact reads', () => {
     session.append(
       'user/message',
       createUserMessage({
-        content: [{ type: 'text', text: 'checkpoint' }], source: { kind: 'plugin', plugin: 'compact' },
+        content: [{ type: 'text', text: 'checkpoint' }], source: checkpointSource('query-compaction-1'),
       }),
       { surfaceOp: { op: 'replace', startSeq: first.seq, endSeq: first.seq }, sourceEventSeqs: [first.seq] },
     )
@@ -1001,7 +1015,7 @@ describe('session-query exact reads', () => {
     session.append(
       'user/message',
       createUserMessage({
-        content: [{ type: 'text', text: 'latest checkpoint' }], source: { kind: 'plugin', plugin: 'compact' },
+        content: [{ type: 'text', text: 'latest checkpoint' }], source: checkpointSource('query-compaction-2'),
       }),
       { surfaceOp: { op: 'replace', startSeq: SessionSeq(2), endSeq: retained.seq }, sourceEventSeqs: [SessionSeq(2), retained.seq] },
     )
@@ -1031,7 +1045,7 @@ describe('session-query exact reads', () => {
     ])
     if (snapshot.events[0]?.type !== 'user/message') throw new Error('expected current user message')
     expect(() => {
-      (snapshot.events[0]!.data as { content: unknown[] }).content = []
+      (snapshot.events[0]!.data as unknown as { content: unknown[] }).content = []
     }).toThrow()
     Object.assign(snapshot.session, { cwd: '/mutated' })
 
@@ -1286,9 +1300,10 @@ describe('session-query exact reads', () => {
     await ctx.plugin(SessionProjectionRegistry)
     const query = await ctx.plugin(TestSessionQueryEngine)
     const persistence = await ctx.plugin(TestPersistence)
-    const optional = (ctx.sessionQuery as unknown as {
-      _corpus: { _optionalPersistenceFiber: Fiber }
-    })._corpus._optionalPersistenceFiber
+    const corpus: unknown = Reflect.get(ctx.sessionQuery, '_corpus')
+    if (typeof corpus !== 'object' || corpus === null) throw new Error('expected session corpus')
+    const optional: unknown = Reflect.get(corpus, '_optionalPersistenceFiber')
+    if (!(optional instanceof Fiber)) throw new Error('expected optional persistence fiber')
     let release!: () => void
     const cleanup = new Promise<void>((resolve) => { release = resolve })
     optional.ctx.effect(() => () => cleanup)

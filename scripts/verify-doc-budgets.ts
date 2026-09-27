@@ -98,7 +98,8 @@ export function renderDocBudgetRows(
 }
 
 function readJson(path: string): unknown {
-  return JSON.parse(readFileSync(path, 'utf8')) as unknown
+  const value: unknown = JSON.parse(readFileSync(path, 'utf8'))
+  return value
 }
 
 const manifest = readJson(manifestPath) as Record<string, number>

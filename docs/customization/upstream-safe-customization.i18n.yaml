@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for upstream-safe-customization.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/upstream-safe-customization.md
-upstream-safe-customization.md: fd01ad5eca2313d337250d5147dd3ac268262b39
-upstream-safe-customization.zh.md: 4c515aefd655a50b6b102f1d51134b3da22efab0
+/upstream-safe-customization:
+  en: f6efe32b6410ba7c
+  zh: 18c31a4c80f0b4a7
+/upstream-safe-customization/summary:
+  en: 3c6072c041a69019
+  zh: c1ff563b69cfe803
+/upstream-safe-customization/contents:
+  en: 2204e335aca6eaff
+  zh: 5347a6f2d6b1145c
+/upstream-safe-customization/repository-topology:
+  en: be36d94c9c53e10e
+  zh: ab04d5d685ca9470
+/upstream-safe-customization/configure-a-clone:
+  en: 2166bcbfc7833d2e
+  zh: dac150cfe50c9e05
+/upstream-safe-customization/model-an-improvement:
+  en: 78a4787981573aa0
+  zh: 1b35117f89e0595c
+/upstream-safe-customization/update-from-upstream:
+  en: e072a93668f8e7bf
+  zh: 4107bf9e552c54f2
+/upstream-safe-customization/verification-and-recovery:
+  en: 88a18954f68c2a6b
+  zh: 4812621972fbd15a

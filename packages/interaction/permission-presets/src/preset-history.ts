@@ -39,21 +39,17 @@ interface Registry {
   readonly entries: WeakMap<Session, Entry>
 }
 
-interface RegistryHost {
-  [key: symbol]: unknown
-}
-
 const registryKey = Symbol.for('@deepseek-ai/dsh-permission-presets/preset-history')
 
 /** Provider and companion entrypoints are bundled separately, so store their fold in the Cordis root. */
 function registryFor(ctx: Context): Registry {
-  const root = ctx.root as unknown as RegistryHost
-  let registry = root[registryKey]
+  const root = ctx.root
+  let registry = Reflect.get(root, registryKey) as Registry | undefined
   if (registry === undefined) {
     registry = { entries: new WeakMap<Session, Entry>() } satisfies Registry
-    root[registryKey] = registry
+    Reflect.set(root, registryKey, registry)
   }
-  return registry as Registry
+  return registry
 }
 
 /** Install one ref-counted lifecycle lease and reconcile already-published Sessions.

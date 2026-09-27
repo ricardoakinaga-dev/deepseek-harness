@@ -3,7 +3,7 @@
  * web carrier; the fetch-shaped handler itself is transport-agnostic).
  */
 
-import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import type { ConnectionFetchHandler } from './rpc.ts'
 
@@ -74,9 +74,23 @@ export class BufferedRequestLimiter {
   }
 }
 
+interface BridgeServerResponse {
+  readonly destroyed: boolean
+  readonly writableEnded: boolean
+  readonly writableFinished: boolean
+  on(event: 'close', listener: () => void): this
+  off(event: 'close' | 'drain' | 'finish', listener: () => void): this
+  off(event: 'error', listener: (error: Error) => void): this
+  once(event: 'close' | 'drain' | 'finish', listener: () => void): this
+  once(event: 'error', listener: (error: Error) => void): this
+  writeHead(statusCode: number, headers?: Record<string, string>): unknown
+  write(chunk: Uint8Array): boolean
+  end(chunk?: string): unknown
+}
+
 /**
  * Bridge one node:http request to the fetch-shaped handler (client close
- * aborts; response bodies stream out chunk by chunk).
+ * aborts; response writes respect backpressure and stop on disconnect).
  * @param req - incoming node:http request.
  * @param res - node:http response the bridge writes and owns to completion.
  * @param apiHandler - fetch-shaped API carrier the request is dispatched to.
@@ -85,7 +99,7 @@ export class BufferedRequestLimiter {
  */
 export async function bridge(
   req: IncomingMessage,
-  res: ServerResponse,
+  res: BridgeServerResponse,
   apiHandler: ConnectionFetchHandler,
   maxRequestBodyBytes = DEFAULT_MAX_REQUEST_BODY_BYTES,
   limiter = new BufferedRequestLimiter(maxRequestBodyBytes),
@@ -216,12 +230,12 @@ export async function bridge(
       return
     }
     for await (const chunk of response.body) {
-      if (isAborted()) break
+      if (isAborted()) continue
       // Backpressure: a false return means the socket buffer is full — wait for drain
       // instead of buffering unboundedly (slow or suspended consumers). 'close' also
       // resolves so a mid-wait disconnect can't park this loop forever; the close
       // handler above aborts the handler stream, which then ends the iteration.
-      if (!res.write(chunk) && !isAborted()) {
+      if (!res.write(chunk) && !res.destroyed && !isAborted()) {
         await waitForDrainOrClose(res, () => responseState.closed)
       }
     }
@@ -258,7 +272,7 @@ function declaredBodyLength(value: string | undefined): number | undefined {
 
 async function rejectBufferedRequest(
   req: IncomingMessage,
-  res: ServerResponse,
+  res: BridgeServerResponse,
   status: number,
   body: string,
   responseClosed: () => boolean,
@@ -274,14 +288,14 @@ async function rejectBufferedRequest(
 async function cancelResponseBody(response: Response): Promise<void> {
   if (response.body === null) return
   try {
-    await response.body.cancel()
+    for await (const _chunk of response.body) { /* Drain the multipart producer after disconnect. */ }
   } catch (error) {
     // A handler may already own the body reader; the disconnected response no longer has a consumer.
     void error
   }
 }
 
-async function waitForDrainOrClose(res: ServerResponse, responseClosed: () => boolean): Promise<void> {
+async function waitForDrainOrClose(res: BridgeServerResponse, responseClosed: () => boolean): Promise<void> {
   await new Promise<void>((resolve) => {
     const done = (): void => {
       res.off('drain', done)
@@ -309,7 +323,7 @@ async function waitForRequestQuiescence(
   })
 }
 
-async function waitForResponseQuiescence(res: ServerResponse, responseClosed: () => boolean): Promise<void> {
+async function waitForResponseQuiescence(res: BridgeServerResponse, responseClosed: () => boolean): Promise<void> {
   if (responseClosed() || res.writableFinished) return
   await new Promise<void>((resolve, reject) => {
     const done = (): void => {

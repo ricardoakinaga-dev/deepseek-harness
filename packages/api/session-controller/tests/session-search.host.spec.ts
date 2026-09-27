@@ -106,11 +106,6 @@ describe('session.search', () => {
 
   it('searches only list-visible ids and current conversation-message events', async () => {
     const ctx = await baseContext()
-    const live = ctx.sessions.create(sid('live'), { meta: header('live', '/live') })
-    live.append('user/message', createUserMessage({
-      content: [{ type: 'text', text: 'live text' }],
-      source: { kind: 'user' },
-    }), { surfaceOp: 'append' })
     const cold = header('cold', '/cold')
     const legacy = header('legacy', null)
     ctx.provide('sessionPersistence', testSessionPersistence(ctx, {
@@ -152,6 +147,12 @@ describe('session.search', () => {
     }))
     installSearchQuery(ctx, searchSessions)
     const remote = createSessionTestRemote(ctx, defaults)
+    await ctx.fiber.await()
+    const live = ctx.sessions.create(sid('live'), { meta: header('live', '/live') })
+    live.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'live text' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
     const signal = new AbortController().signal
 
     const response = await remote.search(request('  matching answer  '), signal)
@@ -164,7 +165,7 @@ describe('session.search', () => {
       },
     })
     expect(searchSessions).toHaveBeenCalledOnce()
-    const [query, exec] = searchSessions.mock.calls[0] as unknown as [
+    const [query, exec] = searchSessions.mock.calls[0] as [
       SessionSearchRequest,
       { signal: AbortSignal },
     ]

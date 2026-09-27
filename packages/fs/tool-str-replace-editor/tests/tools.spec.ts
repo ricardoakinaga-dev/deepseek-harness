@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { FsVersion } from '@deepseek-ai/dsh-fs'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
-import { SESSION_FORMAT_VERSION, Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
@@ -30,9 +30,7 @@ afterEach(async () => {
 async function agent(ctx: Context, cwd: string): Promise<Agent> {
   const id = SessionId(`str-replace-editor-owner-${callNumber}`)
   const scope = ctx.plugin(() => {})
-  const session = Session.create(id, [], {
-    version: SESSION_FORMAT_VERSION, id, createdAt: 0, cwd, isSeeded: false,
-  })
+  const session = ctx.sessions.create(id, { meta: { createdAt: 0, cwd } })
   const value: Agent = {
     id,
     options: {},
@@ -68,12 +66,13 @@ function call(ctx: Context, owner: Agent | undefined, args: unknown) {
 
 async function setup(
   config: ToolStrReplaceEditor.Config = {},
-  options: { fsPolicy?: boolean; sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access' } = {},
+  options: { fsPolicy?: boolean; sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; root?: string } = {},
 ) {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-tool-str-replace-editor-'))
-  roots.push(root)
+  const root = options.root ?? await mkdtemp(join(tmpdir(), 'dsh-tool-str-replace-editor-'))
+  if (options.root === undefined) roots.push(root)
   const ctx = new Context()
   contexts.push(ctx)
+  await ctx.plugin(SessionStore)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(AgentRegistry)
@@ -345,6 +344,23 @@ describe('tool-str-replace-editor', () => {
       path: join(clipped.root, 'large.txt'),
     })))
       .toContain('<response clipped>')
+  })
+
+  it('clips a view at a code-unit boundary without splitting a surrogate pair', async () => {
+    const wide = await setup({ maxOutputChars: 10_000 })
+    const file = join(wide.root, 'emoji.txt')
+    await writeFile(file, `${'😀'.repeat(4)}tail`)
+    const untruncated = text(await call(wide.ctx, wide.owner, { command: 'view', path: file }))
+    // The cap lands on the high surrogate of the first emoji.
+    const splitAt = untruncated.indexOf('😀') + 1
+
+    // Share the renderer's root so the clipped context reads the file inside its
+    // own working directory.
+    const clipped = await setup({ maxOutputChars: splitAt }, { root: wide.root })
+    const rendered = text(await call(clipped.ctx, clipped.owner, { command: 'view', path: file }))
+
+    expect(rendered.startsWith(`${untruncated.slice(0, splitAt - 1)}<response clipped>`)).toBe(true)
+    expect(rendered).not.toContain('\uD83D')
   })
 
   it('matches canonical empty-line, range, and end-insert behavior', async () => {

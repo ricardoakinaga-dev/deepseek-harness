@@ -4,6 +4,7 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import { createUserMessage, ToolCallId, LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import SessionStore, { Session, SessionId, SessionLogOffset, SessionSeq, type SessionEvent } from '@deepseek-ai/dsh-session'
+import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import AgentRegistry, { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
 import { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
@@ -13,6 +14,13 @@ import * as timeContext from '@deepseek-ai/dsh-time-context'
 import type { Config } from '@deepseek-ai/dsh-time-context'
 import { timeContextCacheFingerprint } from '../src/projection.ts'
 import type { TimeContextProjection } from '../src/projection.ts'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'compaction-basic': { kind: 'compaction-basic' } & ContextFormed
+    'time-context-test': { kind: 'time-context-test' } & ContextFormed
+  }
+}
 
 const BASE = Date.parse('2026-07-14T00:00:00.000Z')
 const ORIGINAL_TIME_ZONE = process.env['TZ']
@@ -118,8 +126,7 @@ function contextTexts(session: Session): string[] {
   const texts: string[] = []
   for (const event of session.snapshotEvents()) {
     if (event.type === 'user/message'
-      && event.data.source.kind === 'plugin'
-      && event.data.source.plugin === 'time-context') {
+      && event.data.source.kind === 'time-context') {
       texts.push(event.data.content.find(block => block.type === 'text')?.text ?? '')
     }
   }
@@ -136,7 +143,7 @@ async function fire(
   prepareStep(ctx, agent.session, turn, step)
   const proposed = createUserMessage({
     content: [{ type: 'text', text: 'request proposal' }],
-    source: { kind: 'plugin', plugin: 'time-context-test' },
+    source: { kind: 'time-context-test' },
   })
   const decision = await agentEvents(ctx, agent).waterfall(
     'agent/pre-step',
@@ -224,8 +231,7 @@ describe('durable step context', () => {
     // text is exactly what the model read, so a consumer attributes it without
     // re-splitting prose.
     expect(event.data.source).toEqual({
-      kind: 'plugin',
-      plugin: 'time-context',
+      kind: 'time-context',
       form: 'snapshot',
       sections: [{
         name: 'time-context',
@@ -249,11 +255,8 @@ describe('durable step context', () => {
     )
   })
 
-  it.each([
-    ['omitted interval', {}],
-    ['zero interval', { refreshIntervalMs: 0 }],
-  ] as const)('uses the preceding durable step-context timestamp after step one with %s', async (_label, config) => {
-    const { ctx } = await mount(config)
+  it('uses the preceding durable step-context timestamp after step one with zero interval', async () => {
+    const { ctx } = await mount({ refreshIntervalMs: 0 })
     const session = newSession(ctx, SessionId('later-step'))
     const agent = sessionAgent(session)
     openMessageTurn(session, 3)
@@ -335,17 +338,20 @@ describe('durable step context', () => {
     expect(contextTexts(session)[1]).toContain('Elapsed since the preceding step context: 0s.')
   })
 
-  it('uses a shadowed durable injection after resume and injects at the exact threshold', async () => {
-    const { ctx } = await mount({ refreshIntervalMs: 1_000 })
+  it.each([
+    ['default interval', {}, 600_000],
+    ['explicit interval', { refreshIntervalMs: 1_000 }, 1_000],
+  ] as const)('uses a shadowed durable injection after resume at the exact %s threshold', async (_label, config, interval) => {
+    const { ctx } = await mount(config)
     const original = newSession(ctx, SessionId('seed-source'))
     openMessageTurn(original, 1)
     await fire(ctx, sessionAgent(original), 1, 1)
     const user = original.snapshotEvents().find(event => event.type === 'user/message' && event.data.source.kind === 'user')
-    const reading = original.snapshotEvents().find(event => event.type === 'user/message' && event.data.source.kind === 'plugin')
+    const reading = original.snapshotEvents().find(event => event.type === 'user/message' && event.data.source.kind === 'time-context')
     if (user === undefined || reading === undefined) throw new Error('missing source surface events')
     original.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'compacted history' }],
-      source: { kind: 'plugin', plugin: 'compaction-basic' },
+      source: { kind: 'compaction-basic' },
     }), {
       surfaceOp: { op: 'replace', startSeq: user.seq, endSeq: reading.seq },
       sourceEventSeqs: [user.seq, reading.seq],
@@ -355,7 +361,7 @@ describe('durable step context', () => {
 
     const resumed = newSession(ctx, SessionId('resumed'), original.snapshotEvents())
     const resumedAgent = sessionAgent(resumed)
-    vi.setSystemTime(BASE + 999)
+    vi.setSystemTime(BASE + interval - 1)
     openMessageTurn(resumed, 2)
     const beforeSkip = resumed.snapshotEvents().length
 
@@ -364,7 +370,7 @@ describe('durable step context', () => {
     expect(resumed.snapshotEvents()).toHaveLength(beforeSkip)
     expect(contextTexts(resumed)).toHaveLength(1)
 
-    vi.setSystemTime(BASE + 1_000)
+    vi.setSystemTime(BASE + interval)
     await fire(ctx, resumedAgent, 2, 2)
 
     expect(contextTexts(resumed)).toHaveLength(2)
@@ -383,7 +389,7 @@ describe('durable step context', () => {
     if (browserMessage === undefined) throw new Error('missing browser-zone source event')
     source.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'compacted user context' }],
-      source: { kind: 'plugin', plugin: 'compaction-basic' },
+      source: { kind: 'compaction-basic' },
     }), {
       surfaceOp: { op: 'replace', startSeq: browserMessage.seq, endSeq: browserMessage.seq },
       sourceEventSeqs: [browserMessage.seq],
@@ -709,7 +715,7 @@ describe('real agent-loop request history', () => {
 
   it('persists one ordered context per request, accumulates readings, and leaves system headers unchanged', async () => {
     const adapter = new ScriptedAdapter([toolCallResponse(), textResponse('done')])
-    const ctx = await loopHarness(adapter)
+    const ctx = await loopHarness(adapter, { refreshIntervalMs: 0 })
     ctx.tools.register(defineContentToolFixture({
       name: 'tick',
       description: 'advance fake time',
@@ -726,15 +732,14 @@ describe('real agent-loop request history', () => {
 
     expect(adapter.requests).toHaveLength(2)
     const contexts = agent.session.snapshotEvents().filter(
-      (event): event is SessionEvent<'user/message'> => event.type === 'user/message' && event.data.source.kind === 'plugin')
+      (event): event is SessionEvent<'user/message'> => event.type === 'user/message' && event.data.source.kind !== 'user')
     const starts = agent.session.snapshotEvents().filter(event => event.type === 'step/start')
     expect(contexts).toHaveLength(adapter.requests.length)
     expect(starts).toHaveLength(adapter.requests.length)
     for (let index = 0; index < contexts.length; index += 1) {
       expect(contexts[index]!.seq).toBeGreaterThan(starts[index]!.seq)
     }
-    expect(contexts.every(event => event.data.source.kind === 'plugin'
-      && event.data.source.plugin === 'time-context'
+    expect(contexts.every(event => event.data.source.kind === 'time-context'
       && event.surfaceOp === 'append')).toBe(true)
 
     const firstRequestText = requestText(adapter.requests[0]!)

@@ -95,8 +95,15 @@ function validatePreparation(
   })
 }
 
-/* jscpd:ignore-start -- package companions share projection and append plumbing */
-/** Install replay and pre-append validation for the owned event stream. */
+/* jscpd:ignore-start -- package companions share replay and dispatch plumbing */
+/**
+ * Install replay and pre-append validation for the owned event stream.
+ *
+ * The durable task table is not asserted here: `scheduleDomain` validates every stored
+ * record through its table schema when the domain opens, and its only writer stores each
+ * task under `task.record.id`, so a check of the write payload would observe the same value
+ * the writer had just built.
+ */
 const install: InvariantInstaller = Object.assign((ctx: Context, fail: InvariantFailure) => {
   ctx.effect(() => ctx.sessionProjections.register(scheduleProjectionDefinition))
   for (const session of ctx.sessions.list()) projectionOf(ctx, session, fail)

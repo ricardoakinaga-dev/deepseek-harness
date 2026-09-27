@@ -1,6 +1,67 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/compaction/compaction-resilience-policy/README.md
-README.md: aa25260e3059503040f95406b17a54f131c896e5
-README.zh.md: 8a6fa1d0beb283c4481cb035be1d9abd447a8705
+/:
+  en: 6c9c7ca151fcbb06
+  zh: f89621f762e55bf3
+/deepseek-ai-dsh-compaction-resilience-policy:
+  en: 423d20d3b5430795
+  zh: 83ad400e0b513290
+/deepseek-ai-dsh-compaction-resilience-policy/summary:
+  en: 67ff960f70fd0a72
+  zh: f9e68540d6265ac4
+/deepseek-ai-dsh-compaction-resilience-policy/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: be08589a8d2e121d
+/deepseek-ai-dsh-compaction-resilience-policy/use-this-package:
+  en: 9e2117745ac7f96f
+  zh: 0e082cfadbd6a2dd
+/deepseek-ai-dsh-compaction-resilience-policy/use-this-package/when-to-choose-it:
+  en: bc9de21ad9638b5f
+  zh: be4b46a61440ff27
+/deepseek-ai-dsh-compaction-resilience-policy/use-this-package/minimal-configuration:
+  en: e18ec35b575e799f
+  zh: d9277ff94aebfb99
+/deepseek-ai-dsh-compaction-resilience-policy/use-this-package/outcomes-and-recovery:
+  en: 84f3ce632e400db1
+  zh: 856cc9df3168f181
+/deepseek-ai-dsh-compaction-resilience-policy/understand-the-implementation:
+  en: 04c7125bdee2833c
+  zh: 1abba5f2202e2d1d
+/deepseek-ai-dsh-compaction-resilience-policy/further-exploration:
+  en: b67f4cfbc42dbe81
+  zh: 5f60d9664926190c
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience/auxiliary-compaction-request:
+  en: abd70fc17ff0e7e8
+  zh: 93aca18d12af179b
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience/auxiliary-compaction-request/what-the-model-sees:
+  en: 342364f9164793c5
+  zh: d01257f1ebd21499
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience/auxiliary-compaction-request/token-effect:
+  en: 6ba7cb7f195c6923
+  zh: 8c52cb0d98f2e143
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience/auxiliary-compaction-request/kv-cache-effect:
+  en: 0b234025e1932d23
+  zh: 5cdb6f2b10bc34f3
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience/rejected-conversation-request:
+  en: 5cda491a9ce8c6af
+  zh: 95c9fc85a7b92e8a
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience/rejected-conversation-request/what-the-model-sees:
+  en: 0aee6389f7882b23
+  zh: 489b09e7e09a42b5
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience/rejected-conversation-request/token-effect:
+  en: 7888c7144fb72919
+  zh: 3a4a335c928d7a23
+/deepseek-ai-dsh-compaction-resilience-policy/model-experience/rejected-conversation-request/kv-cache-effect:
+  en: 094fffc7e2490b3a
+  zh: d5c8f81f85d39475
+/deepseek-ai-dsh-compaction-resilience-policy/known-limitations-and-deferred-work:
+  en: 47073e9c5dc5c366
+  zh: ba6ed10cd5c9609c
+/deepseek-ai-dsh-compaction-resilience-policy/known-limitations-and-deferred-work/dev-note:
+  en: 76cb6be58d5f5183
+  zh: 268f07d373171b3e

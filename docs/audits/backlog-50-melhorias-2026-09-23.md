@@ -147,7 +147,7 @@ Cada ID tem resultado verificável, pré-condição ou dependência, falha que d
 
 ### M18 — Recuperar gerações de presets
 
-- Base: [agent-presets](../../packages/preset/agent-presets/src/index.ts) retém gerações substituídas enquanto agentes antigos podem usá-las.
+- Base: [agent-presets](../../packages/preset/agent-preset/src/index.ts) retém gerações substituídas enquanto agentes antigos podem usá-las.
 - Execução: contar agentes associados por geração e descartar a antiga quando o último escopo termina, sem encerrar agentes vivos.
 - Aceite: edições repetidas não acumulam watchers ou fibras inativas; agentes ainda associados preservam a composição até terminar.
 - Evidência e docs: teste de duas gerações, corrida de join/dispose e README de presets.

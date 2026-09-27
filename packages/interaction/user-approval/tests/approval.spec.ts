@@ -26,7 +26,7 @@ function fakeAgent(ctx: Context, seed: Array<{ type: string }> = [{ type: 'turn/
     else if (item.type === 'turn/end') session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
   }
   appended.length = 0
-  const agent = { id: String(session.id), session } as unknown as Agent
+  const agent = { id: session.id, session } as Agent
   return { agent, appended }
 }
 
@@ -172,7 +172,7 @@ describe('ApprovalService.request', () => {
     const session = ctx.sessions.create()
     session.append('turn/start', { turn: 1 })
     vi.spyOn(session, 'append').mockImplementation(() => { throw failure })
-    const agent = { session } as unknown as Agent
+    const agent = { session } as Agent
 
     await expect(ctx.approval.request(requestOf(agent))).rejects.toBe(failure)
   })
@@ -473,7 +473,7 @@ describe('approval policy (the approval/policy fold)', () => {
         type: 'text',
         text: 'The approval policy changed from "ask" to "never" (changed by the user).',
       }],
-      source: { kind: 'plugin', plugin: 'user-approval' },
+      source: { kind: 'user-approval' },
     })
   })
 

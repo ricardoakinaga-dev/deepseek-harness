@@ -94,7 +94,7 @@ export function applyTimeContextEvent(
 ): TimeContextProjection {
   let next = state
   if (event.type === 'user/message') {
-    const reading = event.data.source.kind === 'plugin' && event.data.source.plugin === SOURCE_NAME
+    const reading = event.data.source.kind === SOURCE_NAME
     const firstValidationFailure = reading && state.firstValidationFailure === null
       ? timeContextReadingFailure(state, event) ?? null
       : state.firstValidationFailure
@@ -178,7 +178,7 @@ function validateReading(state: TimeContextProjection, event: SessionEvent<'user
     throw new Error(`time-context reading names turn ${turn}/step ${step}, expected turn ${state.openTurn}/step ${state.openStep}`)
   }
   const source = event.data.source
-  if (source.kind !== 'plugin' || source.plugin !== SOURCE_NAME) {
+  if (source.kind !== SOURCE_NAME) {
     throw new Error('time-context source must retain package ownership')
   }
   const sections: unknown = 'sections' in source ? source.sections : undefined
@@ -186,7 +186,7 @@ function validateReading(state: TimeContextProjection, event: SessionEvent<'user
   const section = typeof sectionValue === 'object' && sectionValue !== null
     ? sectionValue as Record<string, unknown>
     : undefined
-  if (Object.keys(source).length !== 4
+  if (Object.keys(source).length !== 3
     || source.form !== 'snapshot'
     || !Array.isArray(sections)
     || sections.length !== 1
@@ -230,8 +230,7 @@ function validateReading(state: TimeContextProjection, event: SessionEvent<'user
 /** Check whether a Session event is an owned durable time-context reading. */
 export function isTimeContextReading(event: SessionEvent): event is SessionEvent<'user/message'> {
   return event.type === 'user/message'
-    && event.data.source.kind === 'plugin'
-    && event.data.source.plugin === SOURCE_NAME
+    && event.data.source.kind === SOURCE_NAME
 }
 
 /** Return proposed browser-zone inputs in the supplied user-message order. */

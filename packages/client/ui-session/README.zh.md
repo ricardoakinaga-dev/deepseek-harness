@@ -10,6 +10,8 @@ kind: "package-reference"
 
 挂载本插件即可通过标准 Slot 输入公开 Session catalog、retain 信息、统一 UI 状态与 Session 作用域 source。本插件把 `ClientSessions` 连接到 renderer，但不会把 React hook 放进 Session model；领域插件可以添加类型化 source 或 pending interaction。`SessionProvider` 可以继承外围 binding，也可以指向显式的 `SessionReference`；Controller transport、历史与 reference 仍由 Session Controller 所有。
 
+运行状态来自 Host 列表基线或状态事件。Subagent 目录行和已保留子会话的 fallback 行不会建立运行状态；主视图引用仍会确认完成提醒。
+
 ## 目录
 
 - [使用本包](#use-this-package)

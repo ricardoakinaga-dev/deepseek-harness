@@ -7,7 +7,7 @@ import { snapshotSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
 import { subagentIdentityProjectionDefinition } from '@deepseek-ai/dsh-subagent/src/projection.ts'
 import { describe, expect, it, vi } from 'vitest'
 import { SessionHistoryController } from '../src/history.ts'
-import { installSessionReadTestServices, testSessionPersistence } from './test-remote.ts'
+import { installSessionReadTestServices, TestSessionQuery, testSessionPersistence } from './test-remote.ts'
 
 const signal = (): AbortSignal => new AbortController().signal
 
@@ -72,11 +72,15 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve }
 }
 
-async function setup(): Promise<{ ctx: Context; transport: SessionHistoryController }> {
+async function setup(withProjections = true): Promise<{ ctx: Context; transport: SessionHistoryController }> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
-  installSessionReadTestServices(ctx)
-  ctx.sessionProjections.register(subagentIdentityProjectionDefinition)
+  if (withProjections) {
+    installSessionReadTestServices(ctx)
+    ctx.sessionProjections.register(subagentIdentityProjectionDefinition)
+  } else {
+    new TestSessionQuery(ctx)
+  }
   const transport = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
   return { ctx, transport }
 }
@@ -168,7 +172,7 @@ describe('SessionHistoryController', () => {
   })
 
   it('subscribes before a cold read and ignores unrelated and replayed buffered events', async () => {
-    const { ctx, transport } = await setup()
+    const { ctx, transport } = await setup(false)
     const sessionId = SessionId('cold-race')
     const header: SessionHeader = {
       version: SESSION_FORMAT_VERSION,
@@ -315,7 +319,7 @@ describe('SessionHistoryController', () => {
   })
 
   it('rejects gaps in replayed and live event sequences', async () => {
-    const replay = await setup()
+    const replay = await setup(false)
     const replayId = SessionId('replay-gap')
     const replayHeader: SessionHeader = {
       version: SESSION_FORMAT_VERSION,
@@ -330,7 +334,7 @@ describe('SessionHistoryController', () => {
     }, signal())[Symbol.asyncIterator]()
     await expect(replayed.next()).rejects.toMatchObject({ code: 'SESSION_QUERY_CORRUPT_SESSION' })
 
-    const live = await setup()
+    const live = await setup(false)
     const session = live.ctx.sessions.create(SessionId('live-gap'), { meta: { cwd: '/workspace' } })
     append(session, 'fixture/start', {})
     live.ctx.provide('agents', { get: () => ({ id: session.id }) } as never)
@@ -441,11 +445,26 @@ describe('SessionHistoryController', () => {
     const signal = new AbortController().signal
 
     await expect(transport.page({
-      address: { kind: 'subagent', parentSessionId, childSessionId, mode: 'continuable' },
+      address: {
+        kind: 'subagent',
+        parentSessionId,
+        childSessionId,
+        mode: 'continuable',
+      },
       throughSeq: 0,
     }, signal)).resolves.toMatchObject({
       records: [{ type: 'event', event: { type: 'subagent/descriptor' } }],
     })
+    await expect(transport.page({
+      address: { kind: 'subagent', parentSessionId, childSessionId, mode: 'unknown' },
+      throughSeq: 0,
+    }, signal)).resolves.toMatchObject({
+      records: [{ type: 'event', event: { type: 'subagent/descriptor' } }],
+    })
+    await expect(transport.page({
+      address: { kind: 'subagent', parentSessionId: SessionId('other-parent'), childSessionId, mode: 'unknown' },
+      throughSeq: 0,
+    }, signal)).rejects.toMatchObject({ code: 'subagent/unauthorized' })
     await expect(transport.page({
       address: {
         kind: 'subagent',
@@ -456,7 +475,12 @@ describe('SessionHistoryController', () => {
       throughSeq: 0,
     }, signal)).rejects.toMatchObject({ code: 'subagent/unauthorized' })
     await expect(transport.page({
-      address: { kind: 'subagent', parentSessionId, childSessionId, mode: 'one-shot' },
+      address: {
+        kind: 'subagent',
+        parentSessionId,
+        childSessionId,
+        mode: 'one-shot',
+      },
       throughSeq: 0,
     }, signal)).rejects.toMatchObject({ code: 'subagent/unauthorized' })
     await expect(transport.page({
@@ -497,6 +521,12 @@ describe('SessionHistoryController', () => {
       { address, throughSeq: -1, beforeSeq: 1.5 },
       { address, throughSeq: -1, maxMessages: 0 },
       { address, throughSeq: -1, maxMessages: 1.5 },
+      { address, throughSeq: -1, turnWindow: { minMessages: 0, minTurns: 2 } },
+      { address, throughSeq: -1, turnWindow: { minMessages: 1.5, minTurns: 2 } },
+      { address, throughSeq: -1, turnWindow: { minMessages: 51, minTurns: 2 } },
+      { address, throughSeq: -1, maxMessages: 20, turnWindow: { minMessages: 21, minTurns: 2 } },
+      { address, throughSeq: -1, turnWindow: { minMessages: 50, minTurns: 0 } },
+      { address, throughSeq: -1, turnWindow: { minMessages: 50, minTurns: 1.5 } },
     ]) {
       await expect(transport.page(request, signal())).rejects.toMatchObject({ code: 'gateway/bad-request' })
     }
@@ -515,6 +545,16 @@ describe('SessionHistoryController', () => {
     }, signal())).rejects.toMatchObject({ code: 'SESSION_QUERY_CORRUPT_SESSION' })
     for (const maxMessages of [0, 0.5]) {
       const iterator = transport.follow({ address, maxMessages }, signal())[Symbol.asyncIterator]()
+      await expect(iterator.next()).rejects.toMatchObject({ code: 'gateway/bad-request' })
+    }
+    for (const turnWindow of [
+      { minMessages: 0, minTurns: 2 },
+      { minMessages: 1.5, minTurns: 2 },
+      { minMessages: 51, minTurns: 2 },
+      { minMessages: 50, minTurns: 0 },
+      { minMessages: 50, minTurns: 1.5 },
+    ]) {
+      const iterator = transport.follow({ address, turnWindow }, signal())[Symbol.asyncIterator]()
       await expect(iterator.next()).rejects.toMatchObject({ code: 'gateway/bad-request' })
     }
   })
@@ -659,7 +699,12 @@ describe('SessionHistoryController', () => {
     const history = new SessionHistoryController(ctx, vi.fn())
 
     await expect(history.page({
-      address: { kind: 'subagent', parentSessionId, childSessionId, mode: 'continuable' },
+      address: {
+        kind: 'subagent',
+        parentSessionId,
+        childSessionId,
+        mode: 'continuable',
+      },
       throughSeq: -1,
     }, signal())).rejects.toMatchObject({
       code: 'subagent/catalog-diagnostic', details: { reason: 'unsupported' },
@@ -690,7 +735,12 @@ describe('SessionHistoryController', () => {
     }))
     const childSnapshot = vi.spyOn(child.ctx.sessionProjections, 'snapshot')
     const page = await child.transport.page({
-      address: { kind: 'subagent', parentSessionId, childSessionId, mode: 'continuable' },
+      address: {
+        kind: 'subagent',
+        parentSessionId,
+        childSessionId,
+        mode: 'continuable',
+      },
       throughSeq: 0,
     }, signal())
     expect('projections' in page).toBe(false)

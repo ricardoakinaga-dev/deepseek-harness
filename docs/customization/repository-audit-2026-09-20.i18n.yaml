@@ -1,6 +1,49 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for repository-audit-2026-09-20.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/repository-audit-2026-09-20.md
-repository-audit-2026-09-20.md: d7bb246925115627e7f5b4539e0db865ed218b30
-repository-audit-2026-09-20.zh.md: 24f1bfcafea06a6289f986e542db99700728d2b0
+/repository-audit-report-2026-09-20:
+  en: 9deb8ba8aaaa92a8
+  zh: 70b46ba8d4848e68
+/repository-audit-report-2026-09-20/summary:
+  en: dd9e9bb2bce87326
+  zh: 5c41ead4346d030a
+/repository-audit-report-2026-09-20/table-of-contents:
+  en: 73e728a3733b423e
+  zh: 488155ff093d2076
+/repository-audit-report-2026-09-20/scope-and-decision:
+  en: 5542daf3fc7d753a
+  zh: 9ffa73bb0f036b67
+/repository-audit-report-2026-09-20/scorecard:
+  en: 35c7789ae91b3003
+  zh: 40bc31e1db6275cc
+/repository-audit-report-2026-09-20/executed-evidence:
+  en: d2c6a8a8919fde26
+  zh: c5cb14e6170e448e
+/repository-audit-report-2026-09-20/findings:
+  en: 328003a032ed7878
+  zh: c8502e79544859e2
+/repository-audit-report-2026-09-20/findings/test-evidence-and-model-visible-behavior:
+  en: 650be33148e168a9
+  zh: 2d0155a889fd5fdb
+/repository-audit-report-2026-09-20/findings/graph-and-generated-residue-hygiene:
+  en: 4cccb771ed5b96da
+  zh: d0d0b90e5c4e70de
+/repository-audit-report-2026-09-20/findings/runtime-and-security-sensitive-paths:
+  en: 75a671e0858b9f19
+  zh: d4a0e662820e2371
+/repository-audit-report-2026-09-20/findings/documentation-and-governance:
+  en: 31ce9d552cb0369e
+  zh: 88ce077a0c274328
+/repository-audit-report-2026-09-20/strengths:
+  en: 1b68d5817844685e
+  zh: 576ed8340ba6db5e
+/repository-audit-report-2026-09-20/recommended-order:
+  en: 5ee7c81d1e82cb92
+  zh: 765492da7b897913
+/repository-audit-report-2026-09-20/limitations:
+  en: 5e9517997d3f89a7
+  zh: 37811d3b43522029
+/repository-audit-report-2026-09-20/limitations/dev-note:
+  en: 3fd45b23382c2085
+  zh: 257876b93b608851

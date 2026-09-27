@@ -21,12 +21,12 @@ import * as SessionStatsPlugin from '@deepseek-ai/dsh-session-stats'
 import { sessionStatsProjectionDefinition } from '@deepseek-ai/dsh-session-stats/src/projection.ts'
 import type { SessionStatsProjection } from '@deepseek-ai/dsh-session-stats/types'
 
-async function harness(withStatsPlugin: boolean): Promise<{ ctx: Context; session: Session }> {
+async function harness(withStatsPlugin: boolean, seed?: readonly SessionEvent[]): Promise<{ ctx: Context; session: Session }> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
   if (withStatsPlugin) await ctx.plugin(SessionStatsPlugin)
-  return { ctx, session: ctx.sessions.create(SessionId('counted')) }
+  return { ctx, session: ctx.sessions.create(SessionId('counted'), seed === undefined ? {} : { seed }) }
 }
 
 /** Close one step; returns the counted `step/end` seq. */
@@ -125,14 +125,14 @@ describe('sessionStats projection unit (registry drive)', () => {
       .toMatchObject({ turns: 1, steps: 1, ttftSteps: 0, decodeTokens: 0 })
   })
 
-  it('folds steps already in the log when the plugin mounts late (lazy cell build)', async () => {
-    const { ctx, session } = await harness(false)
+  it('folds restored steps from the creation baseline', async () => {
+    const { session } = await harness(false)
     session.append('turn/start', { turn: 1 })
     closeStep(session, 1, 1)
     closeStep(session, 1, 2)
     session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
-    await ctx.plugin(SessionStatsPlugin)
-    expect(ctx.sessionProjections.snapshot(session).values.sessionStats)
+    const { ctx, session: restored } = await harness(true, session.snapshotEvents())
+    expect(ctx.sessionProjections.snapshot(restored).values.sessionStats)
       .toMatchObject({ turns: 1, steps: 2 })
   })
 

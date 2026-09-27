@@ -29,20 +29,16 @@ interface SharedCommandAuditRegistry {
   readonly entries: WeakMap<Session, CommandAuditEntry>
 }
 
-interface RegistryHost {
-  [key: symbol]: unknown
-}
-
 const REGISTRY_KEY = Symbol.for('@deepseek-ai/dsh-commands/command-audit-state')
 
 /** Retrieve the Cordis-root registry shared by separately bundled entrypoints. */
 function sharedRegistry(ctx: Context): SharedCommandAuditRegistry {
-  const root = ctx.root as unknown as RegistryHost
-  const current = root[REGISTRY_KEY]
-  if (current !== undefined) return current as SharedCommandAuditRegistry
+  const root = ctx.root
+  const current = Reflect.get(root, REGISTRY_KEY) as SharedCommandAuditRegistry | undefined
+  if (current !== undefined) return current
 
   const created: SharedCommandAuditRegistry = { entries: new WeakMap() }
-  root[REGISTRY_KEY] = created
+  Reflect.set(root, REGISTRY_KEY, created)
   return created
 }
 

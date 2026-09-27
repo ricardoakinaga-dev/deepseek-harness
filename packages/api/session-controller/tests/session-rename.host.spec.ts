@@ -47,6 +47,7 @@ async function composed(withTitles = true): Promise<Context> {
     },
     resume: () => Promise.reject(new Error('resume must not run: every source is attached')),
   })
+  remote(ctx)
   return ctx
 }
 

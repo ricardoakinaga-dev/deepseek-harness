@@ -9,7 +9,7 @@ import type { SessionLogOffset as SessionLogOffsetType } from '@deepseek-ai/dsh-
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 import { applyScheduleChanges, decodeScheduleChange } from './domain.ts'
 import type { FoldedSchedules } from './domain.ts'
-import type { ScheduleChange, ScheduleId, ScheduleRecord } from './types.ts'
+import type { ScheduleChange, ScheduleId, LegacyScheduleRecord } from './types.ts'
 
 /** Persisted projection state: the immutable inherited cut plus the complete Schedule fold. */
 export interface ScheduleProjectionState extends FoldedSchedules {
@@ -29,7 +29,7 @@ const scheduleId = z.unknown().transform((value, context): ScheduleId => {
   }
 })
 
-const scheduleRecord = z.unknown().transform((value, context): ScheduleRecord => {
+const scheduleRecord = z.unknown().transform((value, context): LegacyScheduleRecord => {
   try {
     const change = decodeScheduleChange({ version: 1, operation: 'create', schedule: value }) as Extract<
       ScheduleChange,
@@ -42,9 +42,9 @@ const scheduleRecord = z.unknown().transform((value, context): ScheduleRecord =>
   }
 })
 
-const scheduleRecords = z.array(scheduleRecord) as unknown as z.ZodType<readonly ScheduleRecord[]>
+const scheduleRecords: z.ZodType<readonly LegacyScheduleRecord[]> = z.array(scheduleRecord)
 
-const scheduleProjectionStateSchema = z.object({
+const scheduleProjectionStateSchema: z.ZodType<ScheduleProjectionState> = z.object({
   inheritedEventCount: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).transform(SessionLogOffset),
   active: scheduleRecords,
   seenIds: z.array(scheduleId),
@@ -63,7 +63,7 @@ const scheduleProjectionStateSchema = z.object({
     }
     active.add(record.id)
   }
-}) as unknown as z.ZodType<ScheduleProjectionState>
+})
 
 /** Projection definition sharing the Schedule domain's strict transition authority. */
 export const scheduleProjectionDefinition = {
@@ -76,10 +76,6 @@ export const scheduleProjectionDefinition = {
       inheritedEventCount: state.inheritedEventCount,
       ...applyScheduleChanges(state, [decodeScheduleChange(event.data)]),
     }
-  },
-  wire: {
-    viewSchema: scheduleRecords,
-    view: state => state.active,
   },
   stateVersion: 2,
 } satisfies ProjectionDefinition<'schedule', ScheduleProjectionState>

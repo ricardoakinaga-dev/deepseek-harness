@@ -1029,6 +1029,7 @@ describe('provider-routed retry policy', () => {
     const ctx = new Context()
     // `apply` registers its projection unit first; the registry is a required
     // injection, so the direct-apply path must carry it too.
+    if (ctx.get('sessions') === undefined) new SessionStore(ctx)
     new SessionProjectionRegistry(ctx)
     expect(() => {
       retry.apply(ctx, { retryPolicy: { mode: 'always' } } as unknown as retry.Config)
@@ -1037,6 +1038,7 @@ describe('provider-routed retry policy', () => {
 
   it('rejects unknown executor config', () => {
     const ctx = new Context()
+    if (ctx.get('sessions') === undefined) new SessionStore(ctx)
     new SessionProjectionRegistry(ctx)
     expect(() => {
       retry.apply(ctx, { retryPolciy: {} } as unknown as retry.Config)

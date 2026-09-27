@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-21-canonical-audit-metrics-community-parity.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-21-canonical-audit-metrics-community-parity.md
-2026-09-21-canonical-audit-metrics-community-parity.md: 96cc21e43ea7efa8c1abedff0107be4519d59a4d
-2026-09-21-canonical-audit-metrics-community-parity.zh.md: 67617bf215e1e662bc374f222b9f687b4e1a9f81
+/agent-note-canonical-audit-metrics-and-english-canonical-community-parity:
+  en: f8ffa1bebac1a69c
+  zh: a36b251c039c1eb4
+/agent-note-canonical-audit-metrics-and-english-canonical-community-parity/problem:
+  en: a5b0845afebc28fb
+  zh: 3b40ef20e820ca07
+/agent-note-canonical-audit-metrics-and-english-canonical-community-parity/decision:
+  en: 208e9e70bfc4484b
+  zh: 9263c0159a82b5a2
+/agent-note-canonical-audit-metrics-and-english-canonical-community-parity/alternatives-considered:
+  en: 8bef9642a7081de4
+  zh: f742c900a4f4dade
+/agent-note-canonical-audit-metrics-and-english-canonical-community-parity/consequences:
+  en: 061c23e907e91166
+  zh: eb29486ec1c8f482
+/agent-note-canonical-audit-metrics-and-english-canonical-community-parity/testing:
+  en: 57bae142b16901fc
+  zh: 10f3f71ddbb17e8a

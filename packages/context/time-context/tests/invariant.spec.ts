@@ -48,12 +48,11 @@ function event(
       content: (content ?? [{ type: 'text', text }]) as ContentBlock[],
       source: plugin === 'time-context'
         ? {
-          kind: 'plugin',
-          plugin,
+          kind: 'time-context',
           form: 'snapshot',
           sections: [{ name: plugin, text }],
         }
-        : { kind: 'plugin', plugin },
+        : { kind: 'other' },
     }),
   }
 }
@@ -97,8 +96,7 @@ function appendReading(session: Session, text: string): void {
   session.append('user/message', createUserMessage({
     content: [{ type: 'text', text }],
     source: {
-      kind: 'plugin',
-      plugin: 'time-context',
+      kind: 'time-context',
       form: 'snapshot',
       sections: [{ name: 'time-context', text }],
     },
@@ -352,23 +350,20 @@ describe('time-context invariants', () => {
     const ctx = await setup()
     const base = event(reading())
     for (const source of [
-      { kind: 'plugin', plugin: 'time-context' },
+      { kind: 'time-context' },
       { ...base.data.source, authority: {} },
       {
-        kind: 'plugin',
-        plugin: 'time-context',
+        kind: 'time-context',
         form: 'snapshot',
         sections: [{ name: 'time-context', text: 'different' }],
       },
       {
-        kind: 'plugin',
-        plugin: 'time-context',
+        kind: 'time-context',
         form: 'snapshot',
         sections: { 0: { name: 'time-context', text: reading() }, length: 1 },
       },
       {
-        kind: 'plugin',
-        plugin: 'time-context',
+        kind: 'time-context',
         form: 'snapshot',
         sections: [{ name: 'time-context', text: reading(), extra: true }],
       },

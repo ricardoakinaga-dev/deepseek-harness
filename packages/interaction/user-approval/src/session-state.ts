@@ -57,7 +57,7 @@ const APPROVAL_POLICIES: readonly string[] = ['ask', 'never']
 
 /** Provider and companion entrypoints are bundled separately, so store their fold in the Cordis root. */
 function registryFor(ctx: Context): Registry {
-  const root = ctx.root as unknown as RegistryHost
+  const root = ctx.root as Context & RegistryHost
   let registry = root[registryKey]
   if (registry === undefined) {
     registry = { entries: new WeakMap<Session, Entry>() } satisfies Registry

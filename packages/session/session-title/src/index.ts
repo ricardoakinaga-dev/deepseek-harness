@@ -260,7 +260,7 @@ const titleInputStateSchema: ZodType<TitleInputState> = zod.object({
   }
 })
 
-const titleSourceSchema = zod.discriminatedUnion('kind', [
+const titleSourceSchema: ZodType<SessionTitleSource> = zod.discriminatedUnion('kind', [
   zod.object({ kind: zod.literal('fallback') }).strict(),
   zod.object({
     kind: zod.literal('provider'),
@@ -271,7 +271,11 @@ const titleSourceSchema = zod.discriminatedUnion('kind', [
     }).strict().optional(),
   }).strict(),
   zod.object({ kind: zod.literal('user') }).strict(),
-]) as unknown as ZodType<SessionTitleSource>
+]).transform((source): SessionTitleSource => {
+  if (source.kind !== 'provider') return source
+  if (source.model === undefined) return { kind: 'provider', provider: source.provider }
+  return { kind: 'provider', provider: source.provider, model: source.model }
+})
 
 const titleProjectionStateSchema: ZodType<TitleProjection | null> = zod.object({
   title: zod.string().min(1),

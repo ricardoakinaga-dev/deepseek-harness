@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-upstream-mirror-workflow-equality.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-upstream-mirror-workflow-equality.md
-2026-09-20-upstream-mirror-workflow-equality.md: 4fd5e0bf976e311ec8aa2f706fcf304787932d58
-2026-09-20-upstream-mirror-workflow-equality.zh.md: 5d467e089f65bcd5f49bd59b347ee40ad0001295
+/agent-note-enforce-official-mirror-equality-before-custom-delta-attribution:
+  en: 6ee4506d56448b19
+  zh: 1ca86706fae0be73
+/agent-note-enforce-official-mirror-equality-before-custom-delta-attribution/problem:
+  en: eaf472625c2f634a
+  zh: 345c6c2921be5002
+/agent-note-enforce-official-mirror-equality-before-custom-delta-attribution/decision:
+  en: cddb6d77888dcd34
+  zh: d5fbeb3fa90115b0
+/agent-note-enforce-official-mirror-equality-before-custom-delta-attribution/alternatives-considered:
+  en: 4864a7d1fbc75283
+  zh: 3fb820e9ba11329c
+/agent-note-enforce-official-mirror-equality-before-custom-delta-attribution/consequences:
+  en: 5092ace6e9127e8d
+  zh: f3d70e8e5b48c57c
+/agent-note-enforce-official-mirror-equality-before-custom-delta-attribution/testing:
+  en: 6709aa771c44179b
+  zh: a4935ed90e0d6893

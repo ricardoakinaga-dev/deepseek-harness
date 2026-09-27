@@ -1,13 +1,13 @@
 import { imageOffloadProjection } from '@deepseek-ai/dsh-compaction-image-offload/projection'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import {
-  LlmRuntime, LlmAdapter, createMessage, createUserMessage, projectFilesToText,
+  LlmRuntime, LlmAdapter, createMessage, createToolResultMessage, createUserMessage, projectFilesToText, ToolCallId,
 } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmImageRequestPricing, Message, StreamChunk, TokenUsage, UserMessage } from '@deepseek-ai/dsh-llm'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
-import { Session, SessionId, canonicalHeader } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId, canonicalHeader } from '@deepseek-ai/dsh-session'
 import type { EpochHeader } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import TokenMeter from '@deepseek-ai/dsh-token-meter'
@@ -74,19 +74,27 @@ interface Harness {
   session: Session
 }
 
+const contexts: Context[] = []
+afterEach(async () => {
+  await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
+})
+
 async function harness(pricing: (model: string) => LlmImageRequestPricing | undefined): Promise<Harness> {
   const ctx = new Context()
-  new SessionProjectionRegistry(ctx)
+  contexts.push(ctx)
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  ctx.sessions.registerMessageProjection(imageOffloadProjection)
   ctx.provide('attachments', {
     fileHostPath: (ref: FileAttachmentRef) => `/host/${ref.name}`,
   } as never)
   ctx.provide('fs', {
     processPathFromHostPath: (path: string) => path.replace('/host/', '/sandbox/'),
   } as never)
-  const llm = new LlmRuntime(ctx)
-  llm.registerAdapter(['mock'], new PricingAdapter(pricing))
-  const meter = new TokenMeter(ctx)
-  return { ctx, meter, session: Session.create(SessionId('route-priced'), undefined, undefined, undefined, [imageOffloadProjection]) }
+  await ctx.plugin(LlmRuntime)
+  ctx.llm.registerAdapter(['mock'], new PricingAdapter(pricing))
+  await ctx.plugin(TokenMeter)
+  return { ctx, meter: ctx.tokenMeter, session: ctx.sessions.create(SessionId('route-priced')) }
 }
 
 /** Route price of one image-bearing message under the fixed pricing double. */
@@ -274,29 +282,24 @@ describe('request projection pricing', () => {
     }
   })
 
-  it('prices nested tool-result images through the same route pricing', async () => {
+  it('prices tool-result images through the same route pricing', async () => {
     const { meter, session } = await harness(() => fixedPricing)
-    const nested = createUserMessage({
-      content: [{
-        type: 'tool-result',
-        toolCallId: 'call-1' as never,
-        content: [
-          { type: 'text', text: 'screenshot below' },
-          { type: 'image', attachment: imageRef('nested') },
-        ],
-      }],
-      source: { kind: 'user' },
+    const result = createToolResultMessage({
+      callId: ToolCallId('call-1'),
+      content: [
+        { type: 'text', text: 'screenshot below' },
+        { type: 'image', attachment: imageRef('nested') },
+      ],
+      isError: false,
     })
-    session.append('user/message', nested, { surfaceOp: 'append' })
+    session.append('tool/result', { turn: 1, step: 1, message: result }, { surfaceOp: 'append' })
     session.append('request/header', { header: header('vision'), reason: 'initial' })
     const measurement = meter.measure(session)
-    const imageFree = estimateMessage({
-      ...nested,
-      content: [{
-        ...nested.content[0] as Extract<Message['content'][number], { type: 'tool-result' }>,
-        content: [{ type: 'text', text: 'screenshot below' }],
-      }],
-    })
+    const imageFree = estimateMessage(createToolResultMessage({
+      callId: ToolCallId('call-1'),
+      content: [{ type: 'text', text: 'screenshot below' }],
+      isError: false,
+    }))
     expect(measurement.nodes[0]!.tokens)
       .toBe(imageFree + VISUAL_TOKENS + estimateContent([{ type: 'text', text: HANDLE_TEXT }]))
   })

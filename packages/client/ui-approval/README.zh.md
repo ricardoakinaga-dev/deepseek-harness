@@ -78,6 +78,8 @@ Host entry 是一个空的 browser-only loader body。Client entry 注册 `appro
 - [Web Client Slots](../../../docs/subsystems/slots.zh.md)——定义 Slot 声明、作用域、子项所有权与生命周期。
 - [Approval 子系统](../../../docs/subsystems/approval.zh.md)——说明 `approval/request` waterfall 与 outcome 词汇。
 
+聚焦审批详情区域后，Enter 批准，Esc 拒绝。插件挂载期间，这两个按键不能分配给可编辑快捷键。聚焦“拒绝”按钮后，Enter 保留按钮原生拒绝操作。输入控件与输入法候选保留各自的按键。键盘和指针操作共用同一待处理请求锁；已撤销或替换的请求不能再次作答，较早请求的失败也不会解锁替代请求。
+
 <a id="model-experience"></a>
 ## 模型体验
 
@@ -94,6 +96,9 @@ Host entry 是一个空的 browser-only loader body。Client entry 注册 `appro
 - **只提供一次性决定**——UI 返回 `allowed-once` 或 `rejected`；记住的授权、撤销与持久权限策略属于 Host 包。
 - **呈现受 Session 作用域限制且只存在于进程内**——没有 Session 的请求会 delegate，浏览器组合重启也不会从 Session log 重建旧的 pending panel。
 - **Tool detail 是可选的**——只有请求携带 `callId` 时才提供 detail child Slot；没有该 identity 时，审批包不能合成 Tool view。
+
+- **面板只提供临时决定**——它支持仅本次允许和拒绝；持久权限策略仍由 Host 侧审批包拥有。请求方提供的本地化展示文案跟随界面语言，不改写审计原因，也不翻译模型生成的文本。
+
 
 <a id="dev-note"></a>
 ### 开发备注

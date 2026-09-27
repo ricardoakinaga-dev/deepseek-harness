@@ -6,6 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { SandboxedFileSystem } from '@deepseek-ai/dsh-fs-sandbox'
 import { canonicalPath } from '@deepseek-ai/dsh-sandbox'
 import SandboxPolicyService from '@deepseek-ai/dsh-sandbox-policy'
+import SessionStore from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { describe, expect, it } from 'vitest'
 import { assertWorkspaceOutsideTemp, outsideTempWorkspaceParent } from './snapshot-workspace-parent.ts'
@@ -57,6 +58,7 @@ describe('snapshot workspace parent', () => {
       assertWorkspaceOutsideTemp(workspace)
       expect(dirname(workspace)).toBe(canonicalPath(base))
       expect((await stat(workspace)).dev).toBe((await stat(temporary)).dev)
+      fibers.push(await ctx.plugin(SessionStore))
       fibers.push(await ctx.plugin(SessionProjectionRegistry))
       fibers.push(await ctx.plugin(SandboxPolicyService, { mode: 'workspace-write', workspaceRoot: workspace }))
       fibers.push(await ctx.plugin(SandboxedFileSystem, { cwd: workspace }))

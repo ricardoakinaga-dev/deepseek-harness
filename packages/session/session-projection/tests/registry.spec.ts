@@ -692,12 +692,16 @@ describe('SessionProjectionRegistry drive', () => {
     expect(() => ctx.sessionProjections.register({ ...marksUnit(), stateVersion: 1.5 })).toThrow(/stateVersion/)
   })
 
-  it('register() disposer removes the key and requires a fresh baseline for re-registration', async () => {
+  it('register() restores an unloaded key only at its exact live cursor', async () => {
     const { ctx, session } = await harness()
     const dispose = ctx.sessionProjections.register(marksUnit())
     mark(session, ['cached'])
     dispose()
     expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
+    const reload = ctx.sessionProjections.register(marksUnit())
+    expect(ctx.sessionProjections.stateOf(session, 'test/marks')).toEqual({ marks: ['cached'] })
+    reload()
+    mark(session, ['unobserved'])
     expect(() => ctx.sessionProjections.register(marksUnit()))
       .toThrow(/requires an exact baseline/)
   })

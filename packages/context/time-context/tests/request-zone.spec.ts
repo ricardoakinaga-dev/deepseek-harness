@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
+import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import {
   browserTimeZoneInput,
   deriveBrowserTimeZoneContext,
   deriveBrowserTimeZoneContextFromInputs,
   renderBrowserTimeZoneContext,
 } from '../src/request-zone.ts'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'test': { kind: 'test' } & ContextFormed
+  }
+}
 
 function browserMessage(timeZone: string): UserMessage {
   return createUserMessage({
@@ -19,7 +26,7 @@ describe('browser request-zone context', () => {
   it('derives missing, unique, and sorted mixed zones from user-rpc messages only', () => {
     const plugin = createUserMessage({
       content: [{ type: 'text', text: 'plugin' }],
-      source: { kind: 'plugin', plugin: 'test' },
+      source: { kind: 'test' },
     })
     expect(deriveBrowserTimeZoneContext([plugin])).toEqual({ kind: 'missing' })
     expect(deriveBrowserTimeZoneContext([

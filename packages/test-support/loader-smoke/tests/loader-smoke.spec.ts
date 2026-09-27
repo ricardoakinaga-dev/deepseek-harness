@@ -1,8 +1,9 @@
 import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
 
@@ -21,11 +22,13 @@ describe('runLoaderSmoke', () => {
       configPath,
       tsconfigPath,
       mode: 'src',
+      sourceImport: 'tsx/esm',
       env: { LOADER_SMOKE_MARKER: 'present' },
     })
     const output = JSON.parse(result.stdout) as {
       configPath: string
       args: string[]
+      execArgv: string[]
       cwd: string
       dshHome: string
       agentsHome: string
@@ -35,6 +38,7 @@ describe('runLoaderSmoke', () => {
     expect(output).toMatchObject({
       configPath,
       args: [configPath],
+      execArgv: ['--import', pathToFileURL(createRequire(import.meta.url).resolve('tsx/esm')).href],
       marker: 'present',
       input: '',
     })

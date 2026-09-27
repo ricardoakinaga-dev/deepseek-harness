@@ -58,17 +58,13 @@ function installChecks(ctx: Context, fail: InvariantFailure): void {
   }, { global: true })
 }
 
-/** Defer check installation until its optional runtime services can be observed together. */
-const installDeferred: InvariantInstaller = (ctx: Context, fail: InvariantFailure) => {
-  ctx.inject(['sessions', 'sessionProjections'], (readyCtx) => {
-    installChecks(readyCtx, fail)
-  })
+/** Validate immediately when ready, or activate checks when both optional services arrive. */
+const install: InvariantInstaller = async (ctx: Context, fail: InvariantFailure) => {
+  const servicesReady = ctx.get('sessions') !== undefined
+    && ctx.get('sessionProjections') !== undefined
+  const child = ctx.inject(['sessions', 'sessionProjections'], (readyCtx) => { installChecks(readyCtx, fail) })
+  if (servicesReady) await child
 }
-
-/** Join immediate setup when both services already exist. */
-const installReady: InvariantInstaller = Object.assign(installChecks, {
-  inject: ['sessions', 'sessionProjections'],
-})
 
 /**
  * Register the time-context invariant companion.
@@ -76,10 +72,5 @@ const installReady: InvariantInstaller = Object.assign(installChecks, {
  * @returns the installed registration's disposer after setup succeeds.
  */
 export const apply = (ctx: Context): Promise<() => void> => {
-  const servicesReady = ctx.get('sessions') !== undefined
-    && ctx.get('sessionProjections') !== undefined
-  return Promise.resolve(ctx.invariants.register(
-    PACKAGE_NAME,
-    servicesReady ? installReady : installDeferred,
-  ))
+  return Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
 }

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-hygiene-prerequisite-preflight.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-20-hygiene-prerequisite-preflight.md
-2026-09-20-hygiene-prerequisite-preflight.md: 7865dff5232bae05ead65faa83e7b01b8bd82f00
-2026-09-20-hygiene-prerequisite-preflight.zh.md: 702f4acab39d60968409931f46cf4e9dae85b74d
+/agent-note-make-standalone-hygiene-prerequisites-explicit:
+  en: 70228afb3e7b83a0
+  zh: 258a2fa293f8446a
+/agent-note-make-standalone-hygiene-prerequisites-explicit/problem:
+  en: 2cc494d9817d954e
+  zh: b158e3693056b982
+/agent-note-make-standalone-hygiene-prerequisites-explicit/decision:
+  en: fe4b953bb9e2b313
+  zh: 77fbd24ab5cbd016
+/agent-note-make-standalone-hygiene-prerequisites-explicit/alternatives-considered:
+  en: 46df25aae8440159
+  zh: c359566136391aa3
+/agent-note-make-standalone-hygiene-prerequisites-explicit/consequences:
+  en: 1497a25e5d350d95
+  zh: 08841acae113488e
+/agent-note-make-standalone-hygiene-prerequisites-explicit/testing:
+  en: c272bde618c51733
+  zh: 02c56b61dbfe66df

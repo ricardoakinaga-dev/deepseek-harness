@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for aaa-quality-program.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/aaa-quality-program.md
-aaa-quality-program.md: 6104d37b47f8dcd0e0e6bdd585d2e151ec000745
-aaa-quality-program.zh.md: 9b93b6ea61b5d5132991526738ec758fa2aeb76c
+/triple-a-quality-program:
+  en: d744d88ac3a0fd60
+  zh: f610d79ba0f74e87
+/triple-a-quality-program/summary:
+  en: 18df827aeeb443a0
+  zh: 6b46b595830da694
+/triple-a-quality-program/table-of-contents:
+  en: 96429d6883bc962d
+  zh: f9a264e9cd660372
+/triple-a-quality-program/operating-model:
+  en: 68d0827d697e591c
+  zh: 1550860677265504
+/triple-a-quality-program/executive-priorities:
+  en: 2919fee6ddf59c8d
+  zh: 96ac718c0648ac74
+/triple-a-quality-program/roadmap:
+  en: a871ed16297588a0
+  zh: ea46d045a98f010e
+/triple-a-quality-program/solution-routing:
+  en: 84122ab198b4d145
+  zh: 85573745d0c21ccb
+/triple-a-quality-program/progress-updates:
+  en: 2c931852c04f37d3
+  zh: 80ff0e2c73ce548d
+/triple-a-quality-program/human-decisions:
+  en: 02f9df90eab62ef8
+  zh: 87e4ba0637908966
+/triple-a-quality-program/release-stop-conditions:
+  en: 216ce602ad79f96c
+  zh: ba6a1bfb8fb0da7a
+/triple-a-quality-program/further-exploration:
+  en: 8d91211daea4498f
+  zh: 8f798fba600f3f59
+/triple-a-quality-program/further-exploration/dev-note:
+  en: 61583e721a800f95
+  zh: d67472e2f47479b9

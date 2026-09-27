@@ -198,15 +198,13 @@ describe('TurnRecorder', () => {
 
   it('stays silent when a running git task fails after disposal', async () => {
     const cwd = await scratchDir('dsh-recorder-race-', cleanups)
-    const { ctx } = await runner()
+    const { ctx, git: gitRunner } = await runner()
     const started = Promise.withResolvers<undefined>()
     const failed = Promise.withResolvers<GitRunResult>()
-    const gitRunner = {
-      run: async (): Promise<GitRunResult> => {
-        started.resolve(undefined)
-        return await failed.promise
-      },
-    } as unknown as GitRunner
+    vi.spyOn(gitRunner, 'run').mockImplementation(async (): Promise<GitRunResult> => {
+      started.resolve(undefined)
+      return await failed.promise
+    })
     const warnings: string[] = []
     const recorder = new TurnRecorder(ctx.sessions.create(SessionId('recorder-race'), { meta: { cwd } }), cwd, {
       git: Promise.resolve(gitRunner),

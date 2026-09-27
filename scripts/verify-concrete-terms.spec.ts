@@ -64,6 +64,16 @@ describe('concrete terminology policy', () => {
     )).toEqual([{ file: '.agents/notes/implemented/process/current.md', line: 1 }])
   })
 
+  it('preserves exact sealed AAA records without exempting neighboring evidence', () => {
+    for (const file of [
+      '.agent/evidence/AAA-022/a27-customization-policy-candidate-002-20260924.json',
+      '.agent/evidence/AAA-023/upstream-diagnosis-a58.json',
+      '.agent/gates/implementation-ready-AAA-022-A19-task-scope.json',
+    ]) expect(findConcreteTermViolations(file, blockedTerm)).toEqual([])
+    expect(findConcreteTermViolations('.agent/evidence/AAA-023/new-record.json', blockedTerm))
+      .toEqual([{ file: '.agent/evidence/AAA-023/new-record.json', line: 1 }])
+  })
+
   it('preserves historical identifiers only in alpha and RC release schema snapshots', () => {
     for (const channel of ['alpha', 'rc']) {
       expect(findConcreteTermViolations(
@@ -89,12 +99,17 @@ describe('concrete terminology policy', () => {
     expect(findConcreteTermViolations(`docs/persistence-changes/historical-formats/v${version}.schema.json`, blockedTerm)).toEqual([])
   })
 
+  it('preserves historical identifiers in section keys of a canonical historical-format pairing record', () => {
+    expect(findConcreteTermViolations('docs/persistence-changes/historical-formats/v1.i18n.yaml', blockedTerm)).toEqual([])
+  })
+
   it.each([
     'docs/persistence-changes/historical-formats/v00.schema.json',
     'docs/persistence-changes/historical-formats/v01.schema.json',
     'docs/persistence-changes/historical-formats/v-1.schema.json',
     'docs/persistence-changes/historical-formats/v1.zh.schema.json',
     'docs/persistence-changes/historical-formats/v1.schema.json.backup',
+    'docs/persistence-changes/historical-formats/v1.zh.i18n.yaml',
     'docs/persistence-changes/historical-formats/V1.schema.json',
     'docs/persistence-changes/historical-formats/versions/v1.schema.json',
     'docs/persistence-changes/historical-formats-extra/v1.schema.json',

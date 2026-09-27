@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-03-purpose-scoped-compaction-resilience.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-03-purpose-scoped-compaction-resilience.md
-2026-09-03-purpose-scoped-compaction-resilience.md: b4d6704eb45c2ca15ba1439369cb4fe75a1feac4
-2026-09-03-purpose-scoped-compaction-resilience.zh.md: 3a72e559f3420a7e976c204bec4dde0bf75ad8e2
+/agent-note-purpose-scoped-compaction-resilience-outside-the-core-loop:
+  en: d0e7f577b59212b4
+  zh: b157859145829c95
+/agent-note-purpose-scoped-compaction-resilience-outside-the-core-loop/problem:
+  en: fa68768a8bd34b82
+  zh: f03e2b869fc0dc8a
+/agent-note-purpose-scoped-compaction-resilience-outside-the-core-loop/decision:
+  en: 912cdfe528267654
+  zh: 330a0acd3d223fec
+/agent-note-purpose-scoped-compaction-resilience-outside-the-core-loop/alternatives-considered:
+  en: bd5989f45c131efa
+  zh: 4d7b7d70144eeb24
+/agent-note-purpose-scoped-compaction-resilience-outside-the-core-loop/testing:
+  en: 7eca9e02f14faf8a
+  zh: 3f78056e55cf00c5
+/agent-note-purpose-scoped-compaction-resilience-outside-the-core-loop/consequences:
+  en: 1a0ef75a8f59858b
+  zh: f3c7158e921512ac

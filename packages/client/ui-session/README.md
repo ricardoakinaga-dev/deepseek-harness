@@ -10,6 +10,8 @@ English | [中文](README.zh.md)
 
 Mount this plugin to expose Session catalog, retain information, unified UI status, and Session-scoped sources through the standard Slot inputs. It connects `ClientSessions` to the renderer without putting React hooks on Session models, and lets domain plugins add typed sources or pending interactions. `SessionProvider` can inherit an outer binding or target an explicit `SessionReference`; Controller transport, history, and references remain owned by the Session Controller.
 
+Running status comes from Host list baselines or status events. Subagent catalog rows and retained subagent fallback rows do not establish running status; main view references still acknowledge completions.
+
 ## Table of Contents
 
 - [Use this package](#use-this-package)

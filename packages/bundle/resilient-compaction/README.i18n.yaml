@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/bundle/resilient-compaction/README.md
-README.md: d1c2a05a31612bb6b4517383700fe6786f7c547a
-README.zh.md: cd1f761d0761cdd4dfb6e0f3182d01746494ff56
+/:
+  en: b567fdcff2de0842
+  zh: 33f8ca46f0696736
+/deepseek-ai-dsh-resilient-compaction:
+  en: f6b99e825e7638f6
+  zh: 0ffb95eb4a35fa96
+/deepseek-ai-dsh-resilient-compaction/summary:
+  en: 8a49bccf9f90c7e0
+  zh: 34e47869730e18ed
+/deepseek-ai-dsh-resilient-compaction/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: be08589a8d2e121d
+/deepseek-ai-dsh-resilient-compaction/use-this-package:
+  en: bbff250eba0f1b89
+  zh: b20a47f82d8ab6e0
+/deepseek-ai-dsh-resilient-compaction/use-this-package/use-from-the-fork-checkout:
+  en: c090d06181d42f13
+  zh: 1640598b325e680a
+/deepseek-ai-dsh-resilient-compaction/use-this-package/what-you-get:
+  en: e3de9d3660a30d1b
+  zh: 2e5065e69611e887
+/deepseek-ai-dsh-resilient-compaction/understand-the-implementation:
+  en: 7aeff59c12f6aec5
+  zh: 6b237080646b7223
+/deepseek-ai-dsh-resilient-compaction/further-exploration:
+  en: ffca17e3257cfff3
+  zh: b8ae3c4fd60a4df7
+/deepseek-ai-dsh-resilient-compaction/model-experience:
+  en: f5ac0fd1440e4b5f
+  zh: 9053d2d1c89a164f
+/deepseek-ai-dsh-resilient-compaction/model-experience/kv-cache-effect:
+  en: bc510cb08c8f6263
+  zh: a1ff881fb2804288
+/deepseek-ai-dsh-resilient-compaction/known-limitations-and-deferred-work:
+  en: 51c159f890ece90c
+  zh: 4d76fc1063d8dce8
+/deepseek-ai-dsh-resilient-compaction/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 3bb0c20c93f16f98

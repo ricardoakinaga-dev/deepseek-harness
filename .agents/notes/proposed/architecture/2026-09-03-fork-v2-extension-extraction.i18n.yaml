@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-03-fork-v2-extension-extraction.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-09-03-fork-v2-extension-extraction.md
-2026-09-03-fork-v2-extension-extraction.md: 4313ea781b412e9c03aa6e7b69f5edb35e854838
-2026-09-03-fork-v2-extension-extraction.zh.md: fc2bc0bde67300dc1d1bb0cebaed8a25856849b6
+/agent-note-extract-fork-v2-experiments-as-independent-extensions:
+  en: cb356adff81a617e
+  zh: e24de41b5bbc3459
+/agent-note-extract-fork-v2-experiments-as-independent-extensions/problem:
+  en: b2348a968f863a57
+  zh: 94152fe25f085809
+/agent-note-extract-fork-v2-experiments-as-independent-extensions/proposal:
+  en: 6d8a5de4b1d3d202
+  zh: 955c8df9957d58f1
+/agent-note-extract-fork-v2-experiments-as-independent-extensions/alternatives-considered:
+  en: 91dc0fe3193a1c9c
+  zh: 7ff2b31b9dec50b8
+/agent-note-extract-fork-v2-experiments-as-independent-extensions/acceptance-criteria:
+  en: 22328c7795022f84
+  zh: 2acb0c4bd7d09bde
+/agent-note-extract-fork-v2-experiments-as-independent-extensions/risks:
+  en: 710c3758c53544d9
+  zh: 3d706884d18a1f7e

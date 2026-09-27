@@ -77,12 +77,16 @@ function policyEvents(events: readonly SessionEvent[]) {
   return events.filter(event => event.type === 'sandbox/mode' || event.type === 'approval/policy')
 }
 
+function restoredPolicySession(ctx: Context, id: SessionId, events: readonly SessionEvent[]): Session {
+  return ctx.sessions.get(id) ?? ctx.sessions.create(id, { seed: events })
+}
+
 function foldedSandboxMode(ctx: Context, id: SessionId, events: readonly SessionEvent[]): unknown {
-  return ctx.sessionProjections.stateOf(Session.create(id, events), 'sandboxMode')
+  return ctx.sessionProjections.stateOf(restoredPolicySession(ctx, id, events), 'sandboxMode')
 }
 
 function foldedApprovalPolicy(ctx: Context, id: SessionId, events: readonly SessionEvent[]): unknown {
-  return ctx.approval.overrideOf(Session.create(id, events))
+  return ctx.approval.overrideOf(restoredPolicySession(ctx, id, events))
 }
 
 describe('continuable policy inheritance', () => {
@@ -184,8 +188,7 @@ describe('continuable policy inheritance', () => {
     expect(ctx.approval.overrideOf(parent.session)).toBeUndefined()
     const runtimeContext = loaded.events.find(
       (event): event is SessionEvent<'user/message'> => event.type === 'user/message'
-        && event.data.source.kind === 'plugin'
-        && event.data.source.plugin === '@deepseek-ai/dsh-system-prompt',
+        && event.data.source.kind === 'runtime-context',
     )
     const contextText = runtimeContext?.data.content
       .flatMap(block => block.type === 'text' ? [block.text] : [])

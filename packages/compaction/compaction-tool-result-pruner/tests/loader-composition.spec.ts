@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
+import SessionStore from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import TokenMeter from '@deepseek-ai/dsh-token-meter'
 import ToolResultPruner from '@deepseek-ai/dsh-compaction-tool-result-pruner'
@@ -25,6 +26,7 @@ describe('compaction-tool-result-pruner real Loader composition', () => {
     root = await mkdtemp(join(tmpdir(), 'dsh-compact-tool-result-prune-loader-'))
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, [
+      "- name: '@deepseek-ai/dsh-session'",
       "- name: '@deepseek-ai/dsh-session-projection'",
       "- name: '@deepseek-ai/dsh-token-meter'",
       "- name: '@deepseek-ai/dsh-compaction-tool-result-pruner'",
@@ -39,15 +41,17 @@ describe('compaction-tool-result-pruner real Loader composition', () => {
     context.baseUrl = pathToFileURL(root).href + '/'
     await context.plugin(Loader)
     context.loader.builtins.include = Include
-    context.loader.internal = {
-      version: 'v2',
-      async import(specifier: string) {
-        if (specifier === '@deepseek-ai/dsh-session-projection') return SessionProjectionRegistry
-        if (specifier === '@deepseek-ai/dsh-token-meter') return TokenMeter
-        if (specifier === '@deepseek-ai/dsh-compaction-tool-result-pruner') return ToolResultPruner
-        throw new Error(`unexpected Loader import: ${specifier}`)
-      },
-    } as unknown as NonNullable<typeof context.loader.internal>
+    // This Loader path only calls import; the isolated fake omits Node's internal methods.
+    const internal = Object.create(null) as NonNullable<typeof context.loader.internal>
+    internal.version = 'v2'
+    internal.import = async (specifier: string) => {
+      if (specifier === '@deepseek-ai/dsh-session') return SessionStore
+      if (specifier === '@deepseek-ai/dsh-session-projection') return SessionProjectionRegistry
+      if (specifier === '@deepseek-ai/dsh-token-meter') return TokenMeter
+      if (specifier === '@deepseek-ai/dsh-compaction-tool-result-pruner') return ToolResultPruner
+      throw new Error(`unexpected Loader import: ${specifier}`)
+    }
+    context.loader.internal = internal
     await context.loader.create({
       name: 'cordis:include',
       config: { path: pathToFileURL(configPath).href },
@@ -64,6 +68,7 @@ describe('compaction-tool-result-pruner real Loader composition', () => {
 
   it('rejects stale config after plugin schema normalization', async () => {
     context = new Context()
+    await context.plugin(SessionStore)
     // Satisfy the declared injections first: config normalization runs in the
     // service constructor, which a pending fiber never reaches.
     await context.plugin(SessionProjectionRegistry)

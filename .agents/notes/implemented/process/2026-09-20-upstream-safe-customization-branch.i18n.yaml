@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-upstream-safe-customization-branch.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-20-upstream-safe-customization-branch.md
-2026-09-20-upstream-safe-customization-branch.md: 4cb4fc732f215cd5196de0b790de4fd416ffe44f
-2026-09-20-upstream-safe-customization-branch.zh.md: 00aa24beeb7f6919b087b200f1768f383486aea6
+/agent-note-keep-custom-work-on-an-upstream-fed-integration-branch:
+  en: 0ae3427afd4f81be
+  zh: c81bc408f35f7895
+/agent-note-keep-custom-work-on-an-upstream-fed-integration-branch/problem:
+  en: 93bce41489cdaf3d
+  zh: db6e68d289744c70
+/agent-note-keep-custom-work-on-an-upstream-fed-integration-branch/decision:
+  en: 298926282140b1dc
+  zh: 9d301de1ec28aafb
+/agent-note-keep-custom-work-on-an-upstream-fed-integration-branch/alternatives-considered:
+  en: 7d5bfad8f034148c
+  zh: 671630fede2874b9
+/agent-note-keep-custom-work-on-an-upstream-fed-integration-branch/consequences:
+  en: c28a857e23afa4a9
+  zh: 719fcc508fdff274

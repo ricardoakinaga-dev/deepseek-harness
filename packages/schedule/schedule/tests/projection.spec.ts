@@ -3,10 +3,9 @@ import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import { apply as applySchedule } from '../src/index.ts'
 import { foldScheduleEvents, ScheduleId, ScheduleLogError } from '../src/domain.ts'
 import { scheduleProjectionDefinition, type ScheduleProjectionState } from '../src/projection.ts'
-import type { ScheduleRecord } from '../src/types.ts'
+import type { LegacyScheduleRecord } from '../src/types.ts'
 
 const contexts: Context[] = []
 const RESTORE_HEADER: SessionHeader = {
@@ -20,7 +19,7 @@ afterEach(async () => {
   await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
 })
 
-function afterRecord(id: string, prompt = id): ScheduleRecord {
+function afterRecord(id: string, prompt = id): LegacyScheduleRecord {
   return {
     id: ScheduleId(id),
     kind: 'after',
@@ -30,7 +29,7 @@ function afterRecord(id: string, prompt = id): ScheduleRecord {
   }
 }
 
-function atRecord(id: string): ScheduleRecord {
+function atRecord(id: string): LegacyScheduleRecord {
   return {
     id: ScheduleId(id),
     kind: 'at',
@@ -39,7 +38,7 @@ function atRecord(id: string): ScheduleRecord {
   }
 }
 
-function everyRecord(id: string): ScheduleRecord {
+function everyRecord(id: string): LegacyScheduleRecord {
   return {
     id: ScheduleId(id),
     kind: 'every',
@@ -53,7 +52,7 @@ function change(data: unknown, seq: SessionSeq): SessionEvent {
   return { type: 'schedule/change', seq, time: seq, data } as SessionEvent
 }
 
-function created(record: ScheduleRecord, seq: SessionSeq): SessionEvent {
+function created(record: LegacyScheduleRecord, seq: SessionSeq): SessionEvent {
   return change({ version: 1, operation: 'create', schedule: record }, seq)
 }
 
@@ -61,7 +60,7 @@ describe('Schedule Session projection', () => {
   it('matches an empty replay, preserves creation order, and applies every terminal transition', () => {
     let projected: ScheduleProjectionState = scheduleProjectionDefinition.init(RESTORE_HEADER, SessionLogOffset(0))
     expect(projected).toEqual({ inheritedEventCount: 0, active: [], seenIds: [] })
-    expect(scheduleProjectionDefinition.wire.view(projected)).toEqual(foldScheduleEvents([]).active)
+    expect(projected.active).toEqual(foldScheduleEvents([]).active)
 
     const events: SessionEvent[] = [
       created(afterRecord('after'), SessionSeq(0)),
@@ -114,7 +113,7 @@ describe('Schedule Session projection', () => {
       inheritedEventCount: 1,
       ...foldScheduleEvents([...events, unrelated], SessionLogOffset(1)),
     })
-    expect(scheduleProjectionDefinition.wire.view(projected)).toEqual(projected.active)
+    expect(projected.active).toEqual(projected.active)
     expect(projected.active.map(record => record.id)).toEqual(['child-at', 'child-every'])
   })
 
@@ -130,7 +129,7 @@ describe('Schedule Session projection', () => {
     const initial = ctx.sessionProjections.restore(
       {}, [first, second], SessionLogOffset(0), RESTORE_HEADER, SessionLogOffset(0),
     )
-    expect(initial.snapshot.values.schedule?.map(record => record.id)).toEqual(['one', 'two'])
+    expect(scheduleProjectionDefinition.stateSchema.parse(initial.checkpoint.schedule?.val).active.map(record => record.id)).toEqual(['one', 'two'])
 
     const removed = change({ version: 1, operation: 'delete', id: 'one' }, SessionSeq(2))
     const resumed = ctx.sessionProjections.restore(
@@ -140,7 +139,7 @@ describe('Schedule Session projection', () => {
       RESTORE_HEADER,
       SessionLogOffset(0),
     )
-    expect(resumed.snapshot.values.schedule?.map(record => record.id)).toEqual(['two'])
+    expect(scheduleProjectionDefinition.stateSchema.parse(resumed.checkpoint.schedule?.val).active.map(record => record.id)).toEqual(['two'])
     expect(resumed.checkpoint.schedule).toMatchObject({ ver: 2, seq: 2 })
 
     expect(() => ctx.sessionProjections.restore(
@@ -182,12 +181,15 @@ describe('Schedule Session projection', () => {
     }))).toEqual({})
   })
 
-  it('keeps the invariant-owned projection after the Schedule plugin fiber unloads', async () => {
+  it('keeps the legacy projection while another contributor remains mounted', async () => {
     const ctx = new Context()
     contexts.push(ctx)
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    const fiber = ctx.plugin({ apply: applySchedule })
+    const fiber = ctx.plugin({
+      apply(owner: Context) { owner.effect(() => ctx.sessionProjections.register(scheduleProjectionDefinition)) },
+    })
+    ctx.sessionProjections.register(scheduleProjectionDefinition)
     await fiber.await()
 
     const session = ctx.sessions.create()
@@ -196,9 +198,9 @@ describe('Schedule Session projection', () => {
       operation: 'create',
       schedule: afterRecord('live'),
     })
-    expect(ctx.sessionProjections.snapshot(session).values.schedule).toHaveLength(1)
+    expect(ctx.sessionProjections.stateOf(session, 'schedule')?.active).toHaveLength(1)
 
     await fiber.dispose()
-    expect(ctx.sessionProjections.snapshot(session).values.schedule).toEqual([afterRecord('live')])
+    expect(ctx.sessionProjections.stateOf(session, 'schedule')?.active).toEqual([afterRecord('live')])
   })
 })

@@ -78,6 +78,8 @@ Read these pages for the Host decision, Session interaction registry, and compos
 - [Web Client Slots](../../../docs/subsystems/slots.md) — defines Slot declaration, scope, child ownership, and lifecycle.
 - [Approval subsystem](../../../docs/subsystems/approval.md) — documents the `approval/request` waterfall and outcome vocabulary.
 
+Focus the approval detail region to approve with Enter or reject with Escape. The mounted plugin reserves both keys against editable shortcuts. Enter on the focused Reject button retains its native reject action. Input controls and IME candidates keep their own keys. Keyboard and pointer actions share one pending-request lock; a withdrawn or replaced request cannot accept another answer, and an earlier failed answer cannot unlock its replacement.
+
 <a id="model-experience"></a>
 ## Model Experience
 
@@ -94,6 +96,9 @@ None; approval request and response rendering does not alter a model request.
 - **Only one-shot decisions are available** — the UI returns `allowed-once` or `rejected`; remembered grants, revocation, and persistent permission policy belong to Host packages.
 - **The presentation is Session-scoped and process-local** — a request without a Session delegates, and a browser composition restart does not reconstruct an old pending panel from the Session log.
 - **Tool detail is optional** — the detail child Slot is available only when the request carries a `callId`; the approval package cannot synthesize a Tool view for requests without that identity.
+
+- **The panel exposes transient decisions only** — it supports allow-once and reject; persistent permission policy remains owned by Host-side approval packages. Requester-supplied localized presentation copy follows the UI language without changing the audit reason or translating model-generated text.
+
 
 <a id="dev-note"></a>
 ### Dev Note

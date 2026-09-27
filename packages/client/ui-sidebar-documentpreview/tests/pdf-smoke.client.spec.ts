@@ -7,12 +7,10 @@ import { getDocument, PDFWorker } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import { renderPdfPage } from '../src/client/pdf/document.ts'
 import { pdfFixture } from './pdf-fixture.ts'
 
-const require = createRequire(import.meta.url)
-
 describe('PDF.js real-library smoke', () => {
   it('parses two pages and draws their distinct vector colors in a real worker', async () => {
     const thread = new Thread(new URL('./pdf-worker.fixture.mjs', import.meta.url), {
-      workerData: { workerUrl: pathToFileURL(require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')).href },
+      workerData: { workerUrl: pathToFileURL(createRequire(import.meta.url).resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')).href },
     })
     const ready = Promise.withResolvers<undefined>()
     const failed = Promise.withResolvers<never>()

@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for improvement-development-standard.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/improvement-development-standard.md
-improvement-development-standard.md: 7e4126b6cd11e80a1e2a61bb1bfb44996a8deeb0
-improvement-development-standard.zh.md: 27b8c34ca6478261240caa48efc6088659219dbe
+/improvement-development-standard:
+  en: 5272d4eb08cf9cb3
+  zh: f42ac07d881cbc3f
+/improvement-development-standard/summary:
+  en: c9fce13dfa76dac3
+  zh: 10f269f85062faaa
+/improvement-development-standard/table-of-contents:
+  en: 91a469191a8c8364
+  zh: ba983eb2d5b0cab0
+/improvement-development-standard/mandatory-design-sequence:
+  en: 7b3e7d7f9faa933b
+  zh: ebc6c6d6ea2f99f0
+/improvement-development-standard/solution-type-selection:
+  en: 995362b05ff77ee1
+  zh: 9165b0cf91ec9787
+/improvement-development-standard/improvement-record:
+  en: f82a7889c194e1ad
+  zh: e1d395907eecd301
+/improvement-development-standard/architecture-and-compatibility-rules:
+  en: 3eba2e5f09b87903
+  zh: 09e940b7ea0c44ad
+/improvement-development-standard/verification-by-solution-type:
+  en: b09af978a17c54fd
+  zh: c455393a45736925
+/improvement-development-standard/review-and-commit-requirements:
+  en: c970e5253d2111bc
+  zh: e5a9f6c27dc3746e
+/improvement-development-standard/current-examples:
+  en: 5e7338002439ee7e
+  zh: ebbb35a63a2363d3
+/improvement-development-standard/when-no-safe-extension-exists:
+  en: b65d2f0d192e1020
+  zh: 4463fe8fcd06a17f
+/improvement-development-standard/further-exploration:
+  en: bfff7441bbead959
+  zh: 0015bcf373ff6dfb
+/improvement-development-standard/dev-note:
+  en: b75c8458928b72b9
+  zh: 45e76642489dcc3c

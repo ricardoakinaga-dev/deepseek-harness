@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for repository-configuration-report.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/repository-configuration-report.md
-repository-configuration-report.md: d24a73651178d9ee3d91b2ca0d0b1e2d2b1675b6
-repository-configuration-report.zh.md: 97af349e566ff0e2ce4c4c0faf179d2c88cdd9c7
+/repository-configuration-report:
+  en: 3cf6fc231ca0fb39
+  zh: ea2cd3be8adafcfb
+/repository-configuration-report/summary:
+  en: 07b1705dcc91cf1d
+  zh: 8935f6cda17317dd
+/repository-configuration-report/table-of-contents:
+  en: cfd95832c0bfd201
+  zh: 06f841cf4677dc8e
+/repository-configuration-report/configured-topology:
+  en: d116a3dba959af42
+  zh: 759d18767ae1e14c
+/repository-configuration-report/protection-and-automation:
+  en: 93583f99be957a64
+  zh: 634c2ce64b442b6b
+/repository-configuration-report/registered-improvements:
+  en: c8fbc44a25c75bb5
+  zh: 8bd1784f67ef4c0b
+/repository-configuration-report/verification-evidence:
+  en: 6106adfd381e55ac
+  zh: 69dd9225a78fc770
+/repository-configuration-report/operational-limits:
+  en: 9eb1a16a25fc1134
+  zh: ebb27da9c5acf4fd
+/repository-configuration-report/further-exploration:
+  en: bb7a1a51ad51dde0
+  zh: 1795ca5d7130fc30
+/repository-configuration-report/dev-note:
+  en: b75c8458928b72b9
+  zh: 45e76642489dcc3c

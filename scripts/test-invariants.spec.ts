@@ -134,7 +134,8 @@ describe('global test invariant host', () => {
       expect(typeof installer).toBe('function')
       return () => {}
     })
-    const fakeContext = { invariants: { register } } as unknown as Context
+    const fakeContext = new Context()
+    fakeContext.provide('invariants', { register } as never)
     for (const [rawPath, load] of Object.entries(testInvariantCompanions)) {
       const companion = await load()
       const path = rawPath.replace(/^\.\.\//, '')

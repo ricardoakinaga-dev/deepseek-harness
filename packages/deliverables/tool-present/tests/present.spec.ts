@@ -9,7 +9,7 @@ import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
 import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import { createScope, type Scope } from '@deepseek-ai/dsh-scope'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
-import { SESSION_FORMAT_VERSION, Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -27,9 +27,7 @@ afterEach(async () => {
 async function agent(ctx: Context, cwd: string | undefined): Promise<Agent> {
   const id = SessionId(`present-owner-${++callNumber}`)
   let scope: Scope
-  const session = Session.create(id, [], {
-    version: SESSION_FORMAT_VERSION, id, createdAt: 0, ...cwd === undefined ? {} : { cwd }, isSeeded: false,
-  })
+  const session = ctx.sessions.create(id, { meta: { ...cwd === undefined ? {} : { cwd } } })
   const value: Agent = {
     id,
     options: {},
@@ -56,6 +54,7 @@ async function setup() {
   cleanups.push(() => rm(root, { recursive: true, force: true }))
   const ctx = new Context()
   cleanups.push(() => ctx.fiber.dispose())
+  await ctx.plugin(SessionStore)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(AgentRegistry)

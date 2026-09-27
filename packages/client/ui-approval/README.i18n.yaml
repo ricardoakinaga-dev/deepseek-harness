@@ -1,6 +1,49 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-approval/README.md
-README.md: f9bed4b3a6cce491131d82bc701ea8bdfaa92a39
-README.zh.md: 1b9ff3a5b72618588c54e7502df9247065928751
+/:
+  en: a16f3a25592b9a2d
+  zh: 6be5e99282ce23d9
+/deepseek-ai-dsh-client-ui-approval:
+  en: b2f2246f0d0ce69c
+  zh: e4919920818c09b5
+/deepseek-ai-dsh-client-ui-approval/summary:
+  en: 67f5ead9e320c325
+  zh: 6a71bf3f674d9371
+/deepseek-ai-dsh-client-ui-approval/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: bda879a892f240f0
+/deepseek-ai-dsh-client-ui-approval/use-this-package:
+  en: 9772a804e938f326
+  zh: 895027e3241df015
+/deepseek-ai-dsh-client-ui-approval/use-this-package/request-flow:
+  en: e9a23a358411ea0d
+  zh: dc5579aa888a6423
+/deepseek-ai-dsh-client-ui-approval/use-this-package/extending-the-detail:
+  en: 5c7dab5aa37d8817
+  zh: 21f13a45fa51be39
+/deepseek-ai-dsh-client-ui-approval/use-this-package/failure-and-lifecycle-behavior:
+  en: 58d49531cc34338c
+  zh: d026c7f8fb5adbc6
+/deepseek-ai-dsh-client-ui-approval/understand-the-implementation:
+  en: 42be1f7e7363f3c6
+  zh: 78a09c302417be83
+/deepseek-ai-dsh-client-ui-approval/understand-the-implementation/source-map:
+  en: d297b843be879fac
+  zh: d05795ecb997af1c
+/deepseek-ai-dsh-client-ui-approval/further-exploration:
+  en: 6b2c96f20ac8e7f7
+  zh: ea0c49d5da0ef553
+/deepseek-ai-dsh-client-ui-approval/model-experience:
+  en: 8161dce49e9f899c
+  zh: a17401e1e78ba6be
+/deepseek-ai-dsh-client-ui-approval/model-experience/kv-cache-effect:
+  en: adf7112e0691b89e
+  zh: 14eeddcff985119f
+/deepseek-ai-dsh-client-ui-approval/known-limitations-and-deferred-work:
+  en: 2f3a136ab8791aa3
+  zh: ce5973afd6048a67
+/deepseek-ai-dsh-client-ui-approval/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: e88aeb617ffb74ea

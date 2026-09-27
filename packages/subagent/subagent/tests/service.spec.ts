@@ -18,7 +18,7 @@ import SubagentRuntime, {
   type SubagentRunEndInfo,
   type SubagentStartRequest,
 } from '@deepseek-ai/dsh-subagent'
-import { Session, SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 
 function fakeParent(id = 'parent-1'): Agent {
@@ -65,6 +65,7 @@ class StubProvider implements SubagentProvider {
 
 async function service(): Promise<{ ctx: Context; subagents: SubagentRuntime }> {
   const ctx = new Context()
+  await ctx.plugin(SessionStore)
   // The registry is a required injection of SubagentRuntime (its projection
   // units register in the constructor).
   await ctx.plugin(SessionProjectionRegistry)
@@ -75,9 +76,10 @@ async function service(): Promise<{ ctx: Context; subagents: SubagentRuntime }> 
 describe('SubagentRuntime', () => {
   it('releases its catalog projection binding with the service fiber', async () => {
     const ctx = new Context()
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     const fiber = await ctx.plugin(SubagentRuntime)
-    const parent = Session.create(SessionId('catalog-parent'))
+    const parent = ctx.sessions.create(SessionId('catalog-parent'))
     parent.append('subagent/catalog', {
       version: 0,
       childId: SessionId('catalog-child'),
@@ -276,7 +278,7 @@ describe('SubagentRuntime', () => {
     const parentSession = Session.create(SessionId('catalog-parent'))
     const childSession = Session.create(SessionId('catalog-child'))
     const parent = { id: parentSession.id, session: parentSession } as Agent
-    const localAgent = { id: childSession.id, session: childSession } as Agent
+    const localAgent = { id: childSession.id, session: childSession, options: {} } as Agent
     const result = Promise.withResolvers<SubagentResult>()
     const cleanupFailure = new Error('dispose also failed')
     const warnings = vi.spyOn(ctx.logger, 'warn')

@@ -32,6 +32,7 @@ function service(config: ToolResultPruneConfig = SMALL): ToolResultPruner {
   const ctx = new Context()
   // Service constructors self-register, so `ctx.tokenMeter` resolves for the
   // shadow-price pricing without a full plugin boot.
+  if (ctx.get('sessions') === undefined) new SessionStore(ctx)
   new SessionProjectionRegistry(ctx)
   void new TokenMeter(ctx)
   return new ToolResultPruner(ctx, config)
@@ -39,6 +40,7 @@ function service(config: ToolResultPruneConfig = SMALL): ToolResultPruner {
 
 /** Pricing oracle mirroring the service's estimator for expectations. */
 const METER_CTX = new Context()
+new SessionStore(METER_CTX)
 new SessionProjectionRegistry(METER_CTX)
 const METER = new TokenMeter(METER_CTX)
 
@@ -212,10 +214,7 @@ describe('ToolResultPruner session transaction', () => {
       type: 'tool/result',
       data: {
         message: {
-          content: [{
-            type: 'tool-result',
-            content: [{ type: 'text', text: 'x'.repeat(100) }],
-          }],
+          content: [{ type: 'text', text: 'x'.repeat(100) }],
         },
       },
     })
@@ -227,7 +226,9 @@ describe('ToolResultPruner session transaction', () => {
         isError: true,
         message: {
           source: { kind: 'tool', callId: ToolCallId('one') },
-          content: [{ type: 'tool-result', isError: true }],
+          role: 'tool',
+          toolCallId: ToolCallId('one'),
+          isError: true,
         },
         error: { name: 'ExitError', code: 'EXIT_1' },
         meta: { diff: ['a', 'b'] },

@@ -55,7 +55,7 @@ const definition = {
 
 ### 注册与读取
 
-`register(definition)` 安装单元；具有相同 key、`stateVersion` 与可选 `cacheFingerprint` 的注册方共享其 cell，身份不兼容或 `stateVersion` 非法时会 throw。已定义的 fingerprint 用于标识 Intl 数据等进程相关的折叠输入；缺省本身也是身份的一部分。创建时从临时的 `session/created` baseline 初始化 cell；若已有事件的实时 Session 缺少新 key 所需的基线，注册会失败。注册是挂在调用方 fiber 上的 effect，因此最后一个注册方卸载后会移除 key 及其缓存 cell。载体用 `snapshot(session)` 对每个客户端可见单元读取一致的同步切面——`{ asOfSeq, values }`，其中 `asOfSeq` 是所有值共同反映到的最后一个事件的 seq——并用 `onChanged(listener)` 订阅逐变更通知。`stateOf(session, key)` 读取一个单元的实时只读 host 状态，不计算无关视图。
+`register(definition)` 安装单元；具有相同 key、`stateVersion` 与可选 `cacheFingerprint` 的注册方共享其 cell，身份不兼容或 `stateVersion` 非法时会 throw。已定义的 fingerprint 用于标识 Intl 数据等进程相关的折叠输入；缺省本身也是身份的一部分。创建时从临时的 `session/created` baseline 初始化 cell；若已有事件的实时 Session 缺少新 key 所需的基线，注册会失败。注册是挂在调用方 fiber 上的 effect，因此最后一个注册方卸载后会从读取与事件分发中移除该 key。若每个实时 Session 仍停留在原 cell 精确记录的 seq 水位，相同定义的重新注册可复用保留的 cell；若期间出现新事件，则需要新的创建或恢复基线。载体用 `snapshot(session)` 对每个客户端可见单元读取一致的同步切面——`{ asOfSeq, values }`，其中 `asOfSeq` 是所有值共同反映到的最后一个事件的 seq——并用 `onChanged(listener)` 订阅逐变更通知。`stateOf(session, key)` 读取一个单元的实时只读 host 状态，不计算无关视图。
 
 构造 Agent 前，`prepareSession(preparation)` 会从构造基线初始化已注册的 cell，并按顺序重放准备期间已接受的追加。每次新追加都会在 Session 接受事件前计算并校验所有下一状态；失败时，日志和所有投影 cell 都停留在原切面。Session 进入 store 时会封存 feed，live `session/event` 路由从相同 seq 水位继续推进。
 

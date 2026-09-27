@@ -193,6 +193,13 @@ interface Registration {
   refs: number
 }
 
+/** Exact cells retained while a key is unloaded, without retaining its plugin callbacks. */
+interface RetiredRegistration {
+  readonly stateVersion: number
+  readonly cacheFingerprint?: string
+  readonly cells: WeakMap<Session, UnitCell>
+}
+
 /** Convert a log offset to the inclusive cursor immediately before it. */
 function cursorBefore(offset: SessionLogOffset): SessionSeqCursor {
   return offset === 0 ? -1 : SessionSeq(offset - 1)
@@ -207,8 +214,9 @@ function cursorBefore(offset: SessionLogOffset): SessionSeqCursor {
  * creation baseline or an explicit restore/hydrate cut; a live cell is never
  * reconstructed by reading Session history. Registration is an effect
  * (disposer rides the calling fiber): an unloaded domain plugin's key
- * disappears from snapshots
- * and clients read it as capability absence. A host reader either declares
+ * disappears from snapshots and clients read it as capability absence. Its
+ * exact cells remain eligible for an identical registration only while each
+ * live Session stays at the cursor those cells observed. A host reader either declares
  * `sessionProjections` in its plugin `inject` or fails explicitly when the
  * registry or required key is absent. Contributors may preserve optional
  * registration through `ctx.inject(['sessionProjections'], ...)`. Registrants
@@ -222,6 +230,7 @@ export class SessionProjectionRegistry extends Service {
   static inject = ['sessions']
 
   private readonly registrations = new Map<string, Registration>()
+  private readonly retired = new Map<string, RetiredRegistration>()
   private readonly listeners = new Set<ProjectionChangeListener>()
   private readonly beforePrepareListeners = new Set<(preparation: SessionPreparation) => void>()
   private readonly preparedSessions = new WeakSet<Session>()
@@ -254,8 +263,9 @@ export class SessionProjectionRegistry extends Service {
    * only when both `stateVersion` and optional `cacheFingerprint` match exactly;
    * absent and defined fingerprints are incompatible. The registration is an
    * effect on the calling context's fiber: disposing the fiber (or calling the
-   * returned disposer) removes the key — and its cached cells — from subsequent
-   * drives and snapshots.
+   * returned disposer) removes the key from subsequent drives and snapshots.
+   * An identical later registration reuses retained cells only when every live
+   * Session still has the exact cursor those cells observed.
    * @param definition - key, state schema, pure unit functions, and cache identity.
    * @returns the exact disposer that unregisters this unit.
    */
@@ -314,9 +324,14 @@ export class SessionProjectionRegistry extends Service {
         + `refusing to share it with stateVersion ${String(erased.stateVersion)} and cacheFingerprint ${JSON.stringify(erased.cacheFingerprint)}`,
       )
     }
+    const retired = current === undefined ? this.retired.get(erased.key) : undefined
+    const reusable = retired !== undefined
+      && retired.stateVersion === erased.stateVersion
+      && retired.cacheFingerprint === erased.cacheFingerprint
     if (current === undefined) {
       for (const session of this.ctx.sessions.list()) {
-        if (session.seq !== 0) {
+        const cell = reusable ? retired.cells.get(session) : undefined
+        if (session.seq !== 0 && cell?.observedSeq !== cursorBefore(session.seq)) {
           throw missingProjectionBaseline(erased.key, session, 'registration requires a creation or restored baseline')
         }
       }
@@ -327,12 +342,14 @@ export class SessionProjectionRegistry extends Service {
       if (existing === undefined) {
         const cells = new WeakMap<Session, UnitCell>()
         for (const session of this.ctx.sessions.list()) {
-          cells.set(session, {
+          const retained = reusable ? retired.cells.get(session) : undefined
+          cells.set(session, retained ?? {
             state: erased.init(session.header, session.inheritedEventCount),
             observedSeq: -1,
             views: [undefined, undefined],
           })
         }
+        this.retired.delete(key)
         this.registrations.set(key, { def: erased, cells, refs: 1 })
       } else {
         if (existing.def.stateVersion !== erased.stateVersion
@@ -350,7 +367,14 @@ export class SessionProjectionRegistry extends Service {
         /*! v8 ignore next -- the disposer runs once per successful registration, so the entry it counted is still here */
         if (live === undefined) return
         live.refs -= 1
-        if (live.refs === 0) this.registrations.delete(key)
+        if (live.refs === 0) {
+          this.retired.set(key, {
+            stateVersion: live.def.stateVersion,
+            ...(live.def.cacheFingerprint === undefined ? {} : { cacheFingerprint: live.def.cacheFingerprint }),
+            cells: live.cells,
+          })
+          this.registrations.delete(key)
+        }
       }
     }.bind(this), 'sessionProjections.register()')
     return () => void dispose()

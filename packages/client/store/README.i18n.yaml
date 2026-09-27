@@ -1,6 +1,49 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/store/README.md
-README.md: dd90f8b528e2208b6610dcdc24396668d992b4e2
-README.zh.md: 742b5915d0105e0603dd35fc5a9861bb8b464ce7
+/:
+  en: f9e6c1b15e80658f
+  zh: 9127e32b7e5351d0
+/deepseek-ai-dsh-client-store:
+  en: 1b16aed0269bb07f
+  zh: e37d3ba40aa82baf
+/deepseek-ai-dsh-client-store/summary:
+  en: 08881f90059e5331
+  zh: 2414e30eafd3cd93
+/deepseek-ai-dsh-client-store/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: bda879a892f240f0
+/deepseek-ai-dsh-client-store/use-this-package:
+  en: ac7ea2902a486187
+  zh: e664b9cbaec72338
+/deepseek-ai-dsh-client-store/use-this-package/snapshot-stores:
+  en: 2f0053e30451e23f
+  zh: d51ed642ba98e240
+/deepseek-ai-dsh-client-store/use-this-package/declarative-stores:
+  en: b893ed395ad3e8f6
+  zh: a8467e30e7956d2a
+/deepseek-ai-dsh-client-store/use-this-package/failure-and-lifecycle-behavior:
+  en: 3fee034dcc1e01e8
+  zh: 1d8f67247c5779f4
+/deepseek-ai-dsh-client-store/understand-the-implementation:
+  en: 3121a0011249cf8d
+  zh: 9e7d3350f4872cbd
+/deepseek-ai-dsh-client-store/understand-the-implementation/source-map:
+  en: c869aec80de412c0
+  zh: 2ee97ccd92ea2c98
+/deepseek-ai-dsh-client-store/further-exploration:
+  en: d6f91fc475bcd822
+  zh: 8946d2f5099f03f2
+/deepseek-ai-dsh-client-store/model-experience:
+  en: 444c8fcde6e159d8
+  zh: dc855e149c636bb4
+/deepseek-ai-dsh-client-store/model-experience/kv-cache-effect:
+  en: ed7581186c5b5a33
+  zh: a0efffb2631c1eec
+/deepseek-ai-dsh-client-store/known-limitations-and-deferred-work:
+  en: ceb01f012935a37e
+  zh: 859aa9b9b1d5b89e
+/deepseek-ai-dsh-client-store/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: e88aeb617ffb74ea

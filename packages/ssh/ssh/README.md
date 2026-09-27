@@ -66,6 +66,8 @@ For terminals opting into shell activity observation, root exit retains the rese
 
 The helper starts with `--disable-sigusr1`, so a same-user process signal cannot open its Node debugger.
 
+The helper mounts the Session store before the projection registry and sandbox policy, so policy reads use the Session creation baseline.
+
 </details>
 
 -----

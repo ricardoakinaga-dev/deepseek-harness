@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-frontend-static-symlink-containment.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-frontend-static-symlink-containment.md
-2026-09-20-frontend-static-symlink-containment.md: 6cfb3aa1e1bab0fd4ea778b83e26d11a43e35e59
-2026-09-20-frontend-static-symlink-containment.zh.md: 4582738310d14b18ab9f308d60b2c455fd0f144a
+/agent-note-frontend-static-resolved-target-containment:
+  en: 8c4e1d71fc080b9f
+  zh: 85a6e1ba1d95eb6a
+/agent-note-frontend-static-resolved-target-containment/problem:
+  en: 7f91ffdc89195698
+  zh: 471025614365850c
+/agent-note-frontend-static-resolved-target-containment/decision:
+  en: 2d77b8ef0f8fde74
+  zh: 65fa07bf595ed227
+/agent-note-frontend-static-resolved-target-containment/alternatives-considered:
+  en: 73addd2cd5025f9c
+  zh: 14e648bd6ba2dab0
+/agent-note-frontend-static-resolved-target-containment/consequences:
+  en: 9d1b6c2cf5058d2e
+  zh: 255082b74edb07cc
+/agent-note-frontend-static-resolved-target-containment/testing:
+  en: 1837a1d7aa5a50f1
+  zh: f577745a38e60b52

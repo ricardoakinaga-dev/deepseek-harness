@@ -10,27 +10,22 @@ import { join, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { SESSION_FORMAT_VERSION, Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
 import SandboxPolicyService, { SANDBOX_MODES, setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt, { renderContextSnapshot, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 
 async function mounted(config: { mode?: 'read-only' | 'workspace-write' | 'danger-full-access'; workspaceRoot?: string } = {}) {
   const ctx = new Context()
+  await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(SandboxPolicyService, config)
   return ctx
 }
 
-function session(id: string, cwd?: string): Session {
+function session(ctx: Context, id: string, cwd?: string): Session {
   const sessionId = SessionId(id)
-  return Session.create(sessionId, undefined, {
-    version: SESSION_FORMAT_VERSION,
-    id: sessionId,
-    createdAt: 0,
-    isSeeded: false,
-    ...cwd === undefined ? {} : { cwd },
-  })
+  return ctx.sessions.create(sessionId, { meta: { createdAt: 0, ...cwd === undefined ? {} : { cwd } } })
 }
 
 function agentFor(activeSession: Session): Agent {
@@ -58,6 +53,7 @@ describe('SandboxPolicyService', () => {
   it('rejects a relative deployment workspace root at load', async () => {
     const ctx = new Context()
     try {
+      await ctx.plugin(SessionStore)
       await ctx.plugin(SessionProjectionRegistry)
       await expect(ctx.plugin(SandboxPolicyService, { workspaceRoot: 'relative/workspace' }))
         .rejects.toThrow('sandbox-policy: workspace root must be an absolute execution-world path')
@@ -77,8 +73,8 @@ describe('SandboxPolicyService', () => {
 
   it('resolves each session mode and cwd together without changing the fallback', async () => {
     const ctx = await mounted({ mode: 'workspace-write', workspaceRoot: '/fallback' })
-    const first = session('sess-first', '/projects/first')
-    const second = session('sess-second', '/projects/second')
+    const first = session(ctx, 'sess-first', '/projects/first')
+    const second = session(ctx, 'sess-second', '/projects/second')
     setSandboxMode(second, 'read-only')
 
     expect(ctx.sandboxPolicy.resolve({ session: first })).toEqual({
@@ -112,7 +108,7 @@ describe('SandboxPolicyService', () => {
       const cwd = `${link}${sep}..`
       const ctx = await mounted({ mode: 'workspace-write', workspaceRoot: '/fallback' })
 
-      expect(ctx.sandboxPolicy.resolve({ session: session('sess-symlink-parent', cwd) })).toEqual({
+      expect(ctx.sandboxPolicy.resolve({ session: session(ctx, 'sess-symlink-parent', cwd) })).toEqual({
         mode: 'workspace-write',
         workspaceRoot: cwd,
         sessionId: 'sess-symlink-parent',
@@ -124,7 +120,7 @@ describe('SandboxPolicyService', () => {
 
   it('lets an approved mode outrank the session mode while retaining its root', async () => {
     const ctx = await mounted({ workspaceRoot: '/fallback' })
-    const active = session('sess-approved', '/projects/approved')
+    const active = session(ctx, 'sess-approved', '/projects/approved')
     setSandboxMode(active, 'read-only')
     expect(ctx.sandboxPolicy.resolve({ session: active, mode: 'danger-full-access' })).toEqual({
       mode: 'danger-full-access',
@@ -135,13 +131,14 @@ describe('SandboxPolicyService', () => {
 
   it('uses the configured root when a session has no cwd', async () => {
     const ctx = await mounted({ workspaceRoot: '/fallback' })
-    expect(ctx.sandboxPolicy.resolve({ session: session('sess-no-cwd') }).workspaceRoot).toBe('/fallback')
+    expect(ctx.sandboxPolicy.resolve({ session: session(ctx, 'sess-no-cwd') }).workspaceRoot).toBe('/fallback')
   })
 
   it('rejects a mode outside the closed vocabulary at load', async () => {
     const ctx = new Context()
     // Config validation runs when the fiber activates, and the policy seam
     // requires the projection registry (mandatory injection) to activate.
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     // schemastery rejects the union violation when the plugin loads.
     await expect(ctx.plugin(SandboxPolicyService, { mode: 'yolo' as never })).rejects.toThrow()
@@ -150,10 +147,11 @@ describe('SandboxPolicyService', () => {
   it('disposes the service and context contribution from a child fiber (HMR safety)', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     const fiber = await ctx.plugin(SandboxPolicyService, {})
     expect(ctx.sandboxPolicy).toBeDefined()
-    expect(await policyContext(ctx, session('sess-hmr'))).toContain('read-only')
+    expect(await policyContext(ctx, session(ctx, 'sess-hmr'))).toContain('read-only')
     await fiber.dispose()
     expect(ctx.get('sandboxPolicy')).toBeUndefined()
     expect((await ctx.systemPrompt.assemble()).contexts.find(context => context.name === 'sandbox:policy')).toBeUndefined()
@@ -164,6 +162,7 @@ describe('sandbox:policy request context', () => {
   async function promptMounted(config: { mode?: 'read-only' | 'workspace-write' | 'danger-full-access'; workspaceRoot?: string } = {}): Promise<Context> {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
+    await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(SandboxPolicyService, config)
     return ctx
@@ -178,12 +177,12 @@ describe('sandbox:policy request context', () => {
       'danger-full-access': 'Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.',
     } as const
 
-    expect(await policyContext(ctx, session(`sess-${mode}`, '/projects/../projects/current'))).toBe(expected[mode])
+    expect(await policyContext(ctx, session(ctx, `sess-${mode}`, '/projects/../projects/current'))).toBe(expected[mode])
   })
 
   it('keeps the complete rendered prompt byte-stable across TMPDIR changes', async () => {
     const ctx = await promptMounted({ mode: 'workspace-write' })
-    const active = session('sess-tmpdir-stability', '/projects/current')
+    const active = session(ctx, 'sess-tmpdir-stability', '/projects/current')
     const previous = process.env.TMPDIR
     try {
       process.env.TMPDIR = '/tmp/first-host-temp'
@@ -203,7 +202,7 @@ describe('sandbox:policy request context', () => {
 
   it('reflects the latest durable switch on the next assembly and stays byte-stable otherwise', async () => {
     const ctx = await promptMounted()
-    const active = session('sess-switch', '/projects/current')
+    const active = session(ctx, 'sess-switch', '/projects/current')
     const first = await policyContext(ctx, active)
     expect(await policyContext(ctx, active)).toBe(first)
 
@@ -217,10 +216,13 @@ describe('sandbox:policy request context', () => {
   })
 
   it('reconstructs resumed policy from the session log and omits diagnostics without an agent', async () => {
-    const active = session('sess-resume', '/projects/current')
+    const sourceCtx = await mounted()
+    const active = session(sourceCtx, 'sess-resume', '/projects/current')
     setSandboxMode(active, 'workspace-write')
-    const resumed = Session.create(active.id, active.snapshotEvents(), active.header)
     const ctx = await promptMounted({ mode: 'read-only' })
+    const resumed = ctx.sessions.create(active.id, {
+      seed: active.snapshotEvents(), meta: { createdAt: active.header.createdAt, cwd: '/projects/current' },
+    })
 
     expect(await policyContext(ctx, resumed)).toContain('workspace-write')
     expect((await ctx.systemPrompt.assemble()).contexts.find(context => context.name === 'sandbox:policy')?.text).toBe('')
@@ -234,7 +236,7 @@ describe('the sandbox/mode session kit', () => {
 
   it('the sandboxMode projection folds to the last switch, or null without one', async () => {
     const ctx = await mounted()
-    const session = Session.create(SessionId('sess-fold'))
+    const session = ctx.sessions.create(SessionId('sess-fold'))
     expect(ctx.sessionProjections.stateOf(session, 'sandboxMode')).toBeNull()
     setSandboxMode(session, 'workspace-write')
     setSandboxMode(session, 'read-only')

@@ -31,7 +31,7 @@ describe('packHtml', () => {
 
   it('does not turn base-relative browser resources into local file reads', async () => {
     const read = vi.fn<ReadHtmlRelative>()
-    for (const base of ['https://example.invalid/assets/', './assets/', 'file:///assets/']) {
+    for (const base of ['https://example.invalid/assets/', './assets', 'file:///assets/']) {
       const bundle = await packHtml(utf8(`<base href="${base}">${source}`), read, new AbortController().signal)
       expect(bundle.assets).toEqual([])
     }

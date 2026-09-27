@@ -32,7 +32,7 @@ async function readPolicy(dir: string) {
 
 /** Read package names left undecided by pnpm 11, including after installation cleanup.
  * @param dir Current profile directory.
- * @returns Exact package names awaiting a build decision; wildcard rules are excluded.
+ * @returns Exact pnpm dependency selectors awaiting a build decision; wildcard rules are excluded.
  */
 export async function readPendingBuilds(dir: string): Promise<string[]> {
   return (await readPolicy(dir)).pending
@@ -41,14 +41,14 @@ export async function readPendingBuilds(dir: string): Promise<string[]> {
 /**
  * Extract package names from pnpm's successful install warning for ignored scripts.
  * @param output - Bounded pnpm output captured for one package operation.
- * @returns Unique package names that need an explicit build decision.
+ * @returns Unique pnpm dependency selectors that need an explicit build decision.
  */
 export function pendingBuildsFromOutput(output: string): string[] {
   const names = new Set<string>()
   for (const match of output.matchAll(/Ignored build scripts:\s*([^\r\n]+)/gu)) {
     const line = String(match[1]).replaceAll('│', '').trim()
     for (const rawName of line.split(',')) {
-      const name = rawName.trim().replace(/\.$/u, '').replace(/@(?:file|link|workspace):.*$/u, '')
+      const name = rawName.trim().replace(/\.$/u, '')
       if (name !== '') names.add(name)
     }
   }

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-aaa-quality-program.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-09-20-aaa-quality-program.md
-2026-09-20-aaa-quality-program.md: 0926c3dcf99155f05a25c13271c6c1132b7d5a60
-2026-09-20-aaa-quality-program.zh.md: 015a3e51fe1a2818d3b7924acda63c04ebb50d18
+/agent-note-govern-the-triple-a-quality-program-with-one-backlog-and-a-frozen-bar:
+  en: 0d83366d99de6ac4
+  zh: e11e12504ad02001
+/agent-note-govern-the-triple-a-quality-program-with-one-backlog-and-a-frozen-bar/problem:
+  en: e01bfa576e2c3a6d
+  zh: 668fe1862da55589
+/agent-note-govern-the-triple-a-quality-program-with-one-backlog-and-a-frozen-bar/proposal:
+  en: 3f6f141e1ea8ea31
+  zh: e74f7dce484b7da3
+/agent-note-govern-the-triple-a-quality-program-with-one-backlog-and-a-frozen-bar/alternatives-considered:
+  en: 882f68e21f4b313d
+  zh: c234e067c71d64c5
+/agent-note-govern-the-triple-a-quality-program-with-one-backlog-and-a-frozen-bar/acceptance-criteria:
+  en: 2dd643c380edc248
+  zh: 32bb1322992966d8
+/agent-note-govern-the-triple-a-quality-program-with-one-backlog-and-a-frozen-bar/risks:
+  en: e1e2ac70cbf62938
+  zh: 864a7a76da5ebf5a

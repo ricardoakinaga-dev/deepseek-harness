@@ -10,6 +10,7 @@ import { SubprocessExecutableNotFoundError } from '@deepseek-ai/dsh-subprocess'
 import { LocalSubprocessRuntime } from '@deepseek-ai/dsh-subprocess-local'
 import { LocalSandboxProvider } from '@deepseek-ai/dsh-sandbox-local'
 import { SandboxPolicyService } from '@deepseek-ai/dsh-sandbox-policy'
+import SessionStore from '@deepseek-ai/dsh-session'
 import { SessionProjectionRegistry } from '@deepseek-ai/dsh-session-projection'
 import type { SandboxExecutionPolicy, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
 import { z } from 'zod'
@@ -26,7 +27,8 @@ const textStreamIdRequest = z.object({ id: textStreamIdSchema }).strict()
 
 async function services() {
   const ctx = new Context()
-  const fibers = [await ctx.plugin(SessionProjectionRegistry)]
+  const fibers = [await ctx.plugin(SessionStore)]
+  fibers.push(await ctx.plugin(SessionProjectionRegistry))
   fibers.push(await ctx.plugin(SandboxPolicyService, { mode: 'read-only', workspaceRoot: process.cwd() }))
   fibers.push(await ctx.plugin(SandboxedFileSystem, { cwd: process.cwd() }))
   fibers.push(await ctx.plugin(LocalSubprocessRuntime))

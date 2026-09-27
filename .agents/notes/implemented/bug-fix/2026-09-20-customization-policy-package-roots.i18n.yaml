@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-customization-policy-package-roots.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-customization-policy-package-roots.md
-2026-09-20-customization-policy-package-roots.md: 2405af7c2995749d4253e51cc741362e0c4ec0d5
-2026-09-20-customization-policy-package-roots.zh.md: b151bef260ba8e51a3c0f1377bf523a03a4e64dd
+/agent-note-reject-package-roots-on-non-packaged-extension-records:
+  en: 61ee8cdbf904b444
+  zh: 057ec9ed7ad1b9f5
+/agent-note-reject-package-roots-on-non-packaged-extension-records/problem:
+  en: 3ef99e50b74027f9
+  zh: 88e83ad0299ca3a6
+/agent-note-reject-package-roots-on-non-packaged-extension-records/decision:
+  en: a4c0dc95cf443ae3
+  zh: 646152a24160d07c
+/agent-note-reject-package-roots-on-non-packaged-extension-records/alternatives-considered:
+  en: 1d86e25a96f4ee03
+  zh: 3fd8cc3d4aae468d
+/agent-note-reject-package-roots-on-non-packaged-extension-records/consequences:
+  en: 202f18783fd5de37
+  zh: e01a3227ebb8389d
+/agent-note-reject-package-roots-on-non-packaged-extension-records/testing:
+  en: f94d405008a25dcf
+  zh: f8585ad6a6f7936d

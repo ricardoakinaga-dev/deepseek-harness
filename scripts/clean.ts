@@ -123,6 +123,7 @@ export class RepositoryCleaner {
     const pending = [join(this.root, 'tsconfig.json')]
     const visited = new Set<string>()
     const nativeEntryOutput = join(this.root, 'native/system/packages/entry/lib')
+    const desktopKeyboardTestOutput = join(this.root, 'lib/desktop-keyboard-test-types')
 
     while (pending.length > 0) {
       const nextConfigPath = pending.pop()
@@ -138,7 +139,9 @@ export class RepositoryCleaner {
           ? dirname(typesDirectory)
           : typesDirectory === nativeEntryOutput
             ? typesDirectory
-            : undefined
+            : typesDirectory === desktopKeyboardTestOutput
+              ? typesDirectory
+              : undefined
         if (outputDirectory === undefined) {
           throw new Error(`clean: expected TypeScript outDir to end in /types: ${repositoryPath(this.root, typesDirectory)}`)
         }

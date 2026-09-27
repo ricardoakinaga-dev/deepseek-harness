@@ -7,20 +7,6 @@ import { createPackagingRun, packagingOutputRedactor } from '../scripts/packagin
 const environment = Object.fromEntries(Object.entries(process.env)
   .filter(([name]) => !/KEY|SECRET|TOKEN|PASSWORD|^NODE_OPTIONS$/iu.test(name)))
 
-/** Wait for a process-group member to be reaped after the supervisor kills its group. */
-async function waitForProcessExit(pid: number, timeoutMs = 2_000): Promise<void> {
-  const deadline = Date.now() + timeoutMs
-  while (true) {
-    try {
-      process.kill(pid, 0)
-    } catch {
-      return
-    }
-    if (Date.now() >= deadline) throw new Error(`process ${String(pid)} remained alive after ${String(timeoutMs)}ms`)
-    await new Promise<void>(resolve => setTimeout(resolve, 10))
-  }
-}
-
 describe('packaging run records', () => {
   it('redacts credential values across every byte split', () => {
     const secret = 'test-口令-!secret'
@@ -61,7 +47,20 @@ describe('packaging run records', () => {
         cwd: root, env: environment,
       })).rejects.toThrow('fatal failed')
       const descendant = JSON.parse(await readFile(join(run.directory, 'descendant.json'), 'utf8')) as { pid: number }
-      await waitForProcessExit(descendant.pid)
+      // Linux can retain a dead descendant as a zombie until its new parent reaps it.
+      await expect.poll(async () => {
+        try {
+          if (process.platform === 'linux') {
+            const status = await readFile(`/proc/${descendant.pid}/status`, 'utf8')
+            return /^State:\s+[ZXx]\b/m.test(status)
+          }
+          process.kill(descendant.pid, 0)
+          return false
+        } catch (error) {
+          if (['ENOENT', 'ESRCH'].includes((error as NodeJS.ErrnoException).code ?? '')) return true
+          throw error
+        }
+      }, { timeout: 5_000 }).toBe(true)
       const events = (await readFile(join(run.directory, 'events.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line) as { type: string; fatalObserved?: boolean; terminationError?: boolean })
       expect(events.at(-1)).toMatchObject({ type: 'stage-end', fatalObserved: true, terminationError: false })
       run.finish(false)
@@ -107,4 +106,30 @@ describe('packaging run records', () => {
       run.finish(false)
     } finally { await rm(root, { recursive: true, force: true }) }
   })
+})
+
+it('allows parallel Mac stages, attributes their output, and refuses finish until both settle', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-parallel-log-'))
+  try {
+    const run = createPackagingRun(root, { target: 'mac-fixture' }, { parallel: true, secrets: ['removed-p12-password'] })
+    const script = "process.stdout.write(process.argv[1]+' removed-p12-password')"
+    const first = run.run('app', process.execPath, ['-e', script, 'app'], { cwd: root, env: environment })
+    const second = run.run('dmg', process.execPath, ['-e', script, 'dmg'], { cwd: root, env: environment })
+    const settled = Promise.allSettled([first, second])
+    try { expect(() => { run.finish(true) }).toThrow('active run') } finally { await settled }
+    const results = await settled
+    expect(results.map(result => result.status)).toEqual(['fulfilled', 'fulfilled'])
+    run.finish(true)
+    const log = await readFile(join(run.directory, 'events.jsonl'), 'utf8')
+    const events = log.trim().split('\n').map(line => JSON.parse(line) as { type: string; stage: string; text?: string })
+    expect(events.filter(event => event.type === 'stage-start' || event.type === 'stage-end').slice(0, 2).map(event => event.type))
+      .toEqual(['stage-start', 'stage-start'])
+    expect(events.filter(event => event.type === 'output').map(event => event.stage).sort()).toEqual(['app', 'dmg'])
+    expect(log).not.toContain('removed-p12-password')
+    expect(events.filter(event => event.type === 'output').every(event => event.text?.includes('[REDACTED]'))).toBe(true)
+    const summary = JSON.parse(await readFile(join(run.directory, 'result.json'), 'utf8')) as { stages: unknown[]; elapsedMs: number }
+    expect(summary).toMatchObject({ success: true, proxy: 'not-used' })
+    expect(typeof summary.elapsedMs).toBe('number')
+    expect(summary.stages).toHaveLength(2)
+  } finally { await rm(root, { recursive: true, force: true }) }
 })

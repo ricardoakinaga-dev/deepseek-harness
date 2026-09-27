@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for fork-v2-extraction.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/customization/fork-v2-extraction.md
-fork-v2-extraction.md: 342d6a1fcbf7d2c194f7d6c842dd7bead6812b90
-fork-v2-extraction.zh.md: 24ac0d4ba76afdf196f91a92714cf9c4408b288c
+/extracting-deepseek-harness-v2-without-an-upstream-fork:
+  en: 318bc40f15c1da50
+  zh: 1be36c66dbb0dea8
+/extracting-deepseek-harness-v2-without-an-upstream-fork/summary:
+  en: 23f8189a77cb29cd
+  zh: a8e3a40367353ff2
+/extracting-deepseek-harness-v2-without-an-upstream-fork/table-of-contents:
+  en: fb60d4a16570ef71
+  zh: 97fc9babf7f68bc1
+/extracting-deepseek-harness-v2-without-an-upstream-fork/comparison-boundary:
+  en: 17166cb5e3598252
+  zh: ab7d847b7ecc7702
+/extracting-deepseek-harness-v2-without-an-upstream-fork/implemented-slice:
+  en: 4ddcf7b525eae7ab
+  zh: 270bfa38a6167fa9
+/extracting-deepseek-harness-v2-without-an-upstream-fork/extraction-matrix:
+  en: 98f2a3cd72900468
+  zh: 917fe07b88bb5538
+/extracting-deepseek-harness-v2-without-an-upstream-fork/upstream-safe-operating-model:
+  en: 412614d47c630eb5
+  zh: a1683d9e6c6c78b1
+/extracting-deepseek-harness-v2-without-an-upstream-fork/verification:
+  en: 7fb7055cdf677d38
+  zh: 92b9f480c2bb6593

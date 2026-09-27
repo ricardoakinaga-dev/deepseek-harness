@@ -15,13 +15,14 @@ import { Context } from '@deepseek-ai/cordis'
 import { z } from 'zod'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { AttachmentStore } from '@deepseek-ai/dsh-attachment'
-import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-presets'
+import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader, UserMessage } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 import SessionProjectionCache, { projectionCacheDomainSpec } from '@deepseek-ai/dsh-session-projection-cache'
+import { titleProjectionDefinition } from '@deepseek-ai/dsh-session-title'
 import Storage from '@deepseek-ai/dsh-storage'
 import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
 import * as StorageJson from '@deepseek-ai/dsh-storage-json'
@@ -30,7 +31,9 @@ import {
   mountAgentLoopTestDependencies,
   mountAgentLoopTestHarness,
 } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { createSessionTestRemote, testSessionPersistence, type TestSessionRemote } from './test-remote.ts'
+import { SessionHistoryController } from '../src/history.ts'
+import { ApiSessionList } from '../src/list.ts'
+import { createSessionTestRemote, TestSessionQuery, testSessionPersistence, type TestSessionRemote } from './test-remote.ts'
 
 const ownedContexts = new Set<Context>()
 afterEach(async () => {
@@ -118,7 +121,7 @@ const privatePromptUnit = () => ({
   stateVersion: 1,
 }) satisfies ProjectionDefinition<'test/private-prompt', string | null>
 
-async function harness(withRegistry: boolean): Promise<{
+async function harness(withRegistry: boolean, mountController = true, configure?: (ctx: Context) => Promise<void>): Promise<{
   ctx: Context
   session: Session
   readonly claim: (target: 'next-turn' | 'next-step') => UserMessage[]
@@ -136,6 +139,9 @@ async function harness(withRegistry: boolean): Promise<{
     }
   }
   await mountAgentLoopTestDependencies(ctx)
+  await configure?.(ctx)
+  if (mountController) remote(ctx)
+  await ctx.fiber.await()
   const loop = await mountAgentLoopTestHarness(ctx)
   const agent = await loop.create(
     SessionId(`session-projections-${String(nextHarnessSession++)}`),
@@ -167,6 +173,8 @@ describe('session.history projections block', () => {
     await ctx.plugin(SessionStore)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(SessionProjectionRegistry)
+    remote(ctx)
+    await ctx.fiber.await()
     const parent = ctx.sessions.create(SessionId('wire-seed-parent'), { meta: { cwd: '/workspace' } })
     parent.append('turn/start', { turn: 1 })
     parent.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
@@ -334,7 +342,6 @@ describe('session.history projections block', () => {
   })
 
   it('publishes the attachments imageLimits as a constant unit while both seams are composed', async () => {
-    const { ctx, session } = await harness(true)
     const limits = {
       maxImageBytes: 5 * 1024 * 1024,
       maxImagesPerMessage: 20,
@@ -343,11 +350,13 @@ describe('session.history projections block', () => {
       maxImageDimension: 2000,
       mediaTypes: ['image/png'] as const,
     }
-    await ctx.plugin(class extends AttachmentStore {
-      readonly imageLimits = limits
-      validateImage(): Promise<void> { return Promise.resolve() }
-      saveImage(): Promise<never> { return Promise.reject(new Error('unused')) }
-      readImage(): Promise<never> { return Promise.reject(new Error('unused')) }
+    const { ctx, session } = await harness(true, true, async (ctx) => {
+      await ctx.plugin(class extends AttachmentStore {
+        readonly imageLimits = limits
+        validateImage(): Promise<void> { return Promise.resolve() }
+        saveImage(): Promise<never> { return Promise.reject(new Error('unused')) }
+        readImage(): Promise<never> { return Promise.reject(new Error('unused')) }
+      })
     })
     const gateway = remote(ctx)
     await new Promise(resolve => setTimeout(resolve, 0))
@@ -377,10 +386,15 @@ describe('session.history projections block', () => {
   })
 
   it('leaves the imageLimits key absent while no attachment service is composed', async () => {
-    const { ctx, session } = await harness(true)
+    const ctx = new Context()
+    ownedContexts.add(ctx)
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(SessionProjectionRegistry)
+    const listing = new ApiSessionList(ctx)
+    const session = ctx.sessions.create(SessionId('without-attachments'), { meta: { cwd: '/workspace' } })
     seedMessages(session, 1)
-    const snapshot = await opening(remote(ctx), session.id)
-    expect('imageLimits' in snapshot.projections.values).toBe(false)
+    expect('imageLimits' in (listing.summaryFor(session).projections?.values ?? {})).toBe(false)
   })
 
   it('never carries the block on loadOlder pages (beforeSeq present)', async () => {
@@ -395,13 +409,15 @@ describe('session.history projections block', () => {
     expect('projections' in older.value).toBe(false)
   })
 
-  it('serves no block when the composition has no projection registry', async () => {
+  it('serves pages without a projection block when no registry is mounted', async () => {
     const { ctx, session } = await harness(false)
+    new TestSessionQuery(ctx)
+    const history = new SessionHistoryController(ctx, () => {})
     seedMessages(session, 2)
-    const response = await page(remote(ctx), request({ sessionId: session.id, throughSeq: session.seq - 1 }))
-    expect(response.ok).toBe(true)
-    if (!response.ok) throw new Error('unreachable')
-    expect('projections' in response.value).toBe(false)
+    const response = await history.page({
+      address: { kind: 'session', sessionId: session.id }, throughSeq: session.seq - 1,
+    }, new AbortController().signal)
+    expect('projections' in response).toBe(false)
   })
 
   it('never exposes a host-only unit through history, listing, or push frames', async () => {
@@ -456,7 +472,7 @@ describe('session.history projections block', () => {
   })
 
   it('removes the gateway-owned Session-list unit when the gateway fiber unloads', async () => {
-    const { ctx, session } = await harness(true)
+    const { ctx, session } = await harness(true, false)
     expect('sessionListMetadata' in ctx.sessionProjections.snapshot(session).values).toBe(false)
     const fiber = ctx.plugin(Object.assign((gatewayCtx: Context) => {
       createSessionTestRemote(gatewayCtx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
@@ -506,12 +522,13 @@ describe('session.list projections column', () => {
     expect(row?.projections?.values.agentPreset).toBe('minimal')
   })
 
-  it('omits an unmaterialized live projection instead of folding history for listing', async () => {
+  it('rejects late projection registration instead of folding live history for listing', async () => {
     const { ctx, session } = await harness(true)
     seedMessages(session, 1)
     const unit = lastUserUnit()
     const apply = vi.fn(unit.apply)
-    ctx.sessionProjections.register({ ...unit, apply })
+    expect(() => ctx.sessionProjections.register({ ...unit, apply }))
+      .toThrow(/requires an exact baseline/)
 
     const response = await remote(ctx).list(request({}))
     if (!response.ok) throw new Error('unreachable')
@@ -521,14 +538,17 @@ describe('session.list projections column', () => {
     expect(apply).not.toHaveBeenCalled()
   })
 
-  it('omits the column entirely when no registry is mounted', async () => {
+  it('installs the list projection before an eventful Session is listed', async () => {
     const { ctx, session } = await harness(false)
+    const gateway = remote(ctx)
+    await ctx.fiber.await()
     seedMessages(session, 1)
-    const response = await remote(ctx).list(request({}))
+    const response = await gateway.list(request({}))
     if (!response.ok) throw new Error('unreachable')
     const row = response.value.items.find(item => item.sessionId === session.id)
     expect(row).toBeDefined()
-    expect(row !== undefined && 'projections' in row).toBe(false)
+    expect(row?.projections?.values.sessionListMetadata).toBeDefined()
+    expect(row?.projections?.asOfSeq).toBe(session.seq - 1)
   })
 
   it('serves every available cold projection hint from the cache with zero log loads', async () => {
@@ -559,6 +579,7 @@ describe('session.list projections column', () => {
     const row = response.value.items.find(item => item.sessionId === coldId)
     expect(row?.running).toBe(false)
     expect(row?.projections).toEqual({
+      kind: 'cached',
       asOfSeq: 7,
       values: {
         'test/last-user': { text: 'cached' },
@@ -617,6 +638,89 @@ describe('session.list projections column', () => {
       expect(JSON.stringify(row)).not.toContain(secret)
     } finally {
       await ctx.fiber.dispose()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('lists a forked Session\'s cached title after a Host restart without opening its body', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-api-projcache-'))
+    const id = SessionId('session-cold-fork')
+    /** One Host process over `root`: storage stack, registry with the title unit, and the cache. */
+    const boot = async (): Promise<Context> => {
+      const ctx = new Context()
+      await ctx.plugin(Storage)
+      await ctx.plugin(StorageJson, { root })
+      await ctx.plugin(StorageDomain, { backend: 'json' })
+      await ctx.plugin(SessionStore)
+      await ctx.plugin(AgentRegistry)
+      await ctx.plugin(SessionProjectionRegistry)
+      ctx.sessionProjections.register(titleProjectionDefinition)
+      await ctx.plugin(SessionProjectionCache, { writeEveryEvents: 100, writeIntervalMs: 60_000 })
+      return ctx
+    }
+
+    // First process: a fork inherits its ancestor's prompt and title, the
+    // cache checkpoints the fold, and the process ends without ever listing.
+    const first = await boot()
+    let header: SessionHeader | undefined
+    let lastSeq: number | undefined
+    let promptTime: number | undefined
+    try {
+      remote(first)
+      await new Promise(resolve => setTimeout(resolve, 0))
+      let child: Session | undefined
+      const owner = await first.plugin(Object.assign((sessionCtx: Context) => {
+        const parent = sessionCtx.sessions.create(SessionId('session-cold-fork-parent'), {
+          meta: { createdAt: 5, cwd: '/workspace' },
+        })
+        parent.append('turn/start', { turn: 1 })
+        promptTime = parent.append('user/message', createUserMessage({
+          content: [{ type: 'text', text: 'ancestor prompt' }],
+          source: { kind: 'user' },
+        }), { surfaceOp: 'append' }).time
+        parent.append('session/title', { title: 'Forked title', messageSeqs: [], source: { kind: 'user' } })
+        parent.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+        child = sessionCtx.sessions.fork(parent, undefined, id)
+      }, { inject: ['sessions'] }))
+      if (child === undefined) throw new Error('child was not forked')
+      expect(child.header.isSeeded).toBe(true)
+      expect(child.inheritedEventCount).toBe(4)
+      await first.sessionProjectionCache.write(child)
+      header = child.header
+      lastSeq = child.seq - 1
+      await owner.dispose()
+    } finally {
+      await first.fiber.dispose()
+    }
+    if (header === undefined || lastSeq === undefined || promptTime === undefined) throw new Error('unreachable')
+
+    // Second process: persistence knows the header, the cache holds the
+    // record, and nothing opens the log.
+    const second = await boot()
+    try {
+      const gateway = remote(second)
+      await new Promise(resolve => setTimeout(resolve, 0))
+      const load = () => { throw new Error('a cold fork listing must not load the event log') }
+      second.provide('sessionPersistence', testSessionPersistence(second, {
+        list: async () => [header],
+        inspect: load,
+        open: load,
+      }) as never)
+
+      const response = await gateway.list(request({}))
+      if (!response.ok) throw new Error('unreachable')
+      const row = response.value.items.find(item => item.sessionId === id)
+      // Cold recency is the later of the header's creation time and the cached
+      // last prompt; the fork's creation time is wall-clock and may trail the
+      // inherited prompt by a tick.
+      expect(row).toMatchObject({ blank: false, updatedAt: Math.max(header.createdAt, promptTime) })
+      expect(row?.projections).toMatchObject({
+        kind: 'cached',
+        asOfSeq: lastSeq,
+        values: { title: 'Forked title', sessionListMetadata: { blank: false, lastPromptAt: promptTime } },
+      })
+    } finally {
+      await second.fiber.dispose()
       await rm(root, { recursive: true, force: true })
     }
   })
