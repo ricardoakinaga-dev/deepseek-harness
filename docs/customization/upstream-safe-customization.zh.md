@@ -24,6 +24,8 @@
 | `origin/custom/main` 和本地 `custom/main` | 定制集成 | 已评审的改进以及来自 `master` 的合并 |
 | `custom/<improvement-id>` | 单项改进 | 基于 `custom/main` 的临时主题分支 |
 
+此 fork 的 GitHub 默认分支是 `master`，因此默认比较和同步使用干净镜像。本地工作区应检出 `custom/main`；它比 `master` 多出的提交就是预期的定制差异。
+
 此 fork 继续使用单个仓库，因为定制包仍共享官方工作区、类型、测试和发布节奏。只有当一个包仅使用已发布 API、能够独立通过打包安装检查，并且无需编辑此工作区即可独立确定版本和发布时，才将其移至单独仓库。
 
 <a id="configure-a-clone"></a>
@@ -40,6 +42,7 @@ git config --local branch.master.remote deepseek-official
 git config --local branch.master.merge refs/heads/master
 git config --local branch.master.rebase false
 git config --local branch.custom/main.rebase false
+git switch custom/main
 ```
 
 如果 `deepseek-official` 已存在，请将 `git remote add` 替换为 `git remote set-url deepseek-official https://github.com/deepseek-ai/deepseek-harness.git`。Agent 只能从 `custom/main` 或基于它的主题分支进行产品修改。

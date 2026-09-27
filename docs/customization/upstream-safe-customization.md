@@ -24,6 +24,8 @@ This fork keeps the official repository easy to update by separating the clean m
 | `origin/custom/main` and local `custom/main` | Custom integration | Reviewed improvements plus merges from `master` |
 | `custom/<improvement-id>` | One improvement | Temporary topic branch based on `custom/main` |
 
+The fork's GitHub default branch is `master`, so the default comparison and synchronization use the clean mirror. Keep the local working checkout on `custom/main`; its commits ahead of `master` are the expected custom delta.
+
 The fork remains one repository because the custom packages still share the official workspace, types, tests, and release cadence. Move a package to a separate repository only after it consumes published APIs exclusively, passes a packed-install check independently, and can version and release without editing this workspace.
 
 <a id="configure-a-clone"></a>
@@ -40,6 +42,7 @@ git config --local branch.master.remote deepseek-official
 git config --local branch.master.merge refs/heads/master
 git config --local branch.master.rebase false
 git config --local branch.custom/main.rebase false
+git switch custom/main
 ```
 
 When `deepseek-official` already exists, replace `git remote add` with `git remote set-url deepseek-official https://github.com/deepseek-ai/deepseek-harness.git`. Agents make product changes only from `custom/main` or a topic branch based on it.

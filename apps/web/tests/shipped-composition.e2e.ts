@@ -525,7 +525,7 @@ afterEach(async () => {
 it('assembles the shipped Web transport, catalog, guidance, and defaults', async () => {
   scaffold = await launchWebScaffold({ deepSeekMissingCredential: true })
   const ctx = scaffold.ctx
-  expect(ctx.get('dynamicCordisRunner')).toBeUndefined()
+  expect(ctx.get('cordisInspect')).toBeDefined()
   const clientModules = ctx.get('clientModules')
   expect(clientModules).toBeDefined()
   expect(clientModules?.graph().entries.some(entry => entry.dynamic === true)).toBe(false)
@@ -605,6 +605,16 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
     setup: agentCtx => ctx.agentPresets.mount(agentCtx).then(() => undefined),
   })
   try {
+    const runner = ctx.dynamicCordisRunner
+    const definition = runner.define({
+      sessionId: handle.agent.id,
+      plugin: { kind: 'new', idPrefix: 'probe' },
+      name: 'shipped-disabled',
+      purpose: 'Verify that the shipped deployment denies dynamic execution',
+      code: { host: 'return { apply() {} }' },
+    })
+    await expect(runner.run(handle.agent, definition.pluginId, definition.packageId, 'run'))
+      .resolves.toMatchObject({ ok: false, reason: 'policy-denied' })
     const names = ctx.tools.schemas(handle.agent).map(schema => schema.name).sort()
     expect(names.filter(name => !RIPGREP_TOOLS.includes(name))).toEqual(EXPECTED_TOOLS)
     // The packaged ripgrep binary ships with the dependency, so the pair is a

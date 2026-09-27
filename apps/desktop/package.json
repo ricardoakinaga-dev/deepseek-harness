@@ -76,6 +76,7 @@
     "@deepseek-ai/dsh-client-shortcuts": "workspace:*",
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
     "yauzl": "^3.4.0",
-    "@types/yauzl": "^2.10.3"
+    "@types/yauzl": "^2.10.3",
+    "@deepseek-ai/dsh-client-product-analytics": "workspace:*"
   }
 }
