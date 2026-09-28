@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-28",
+  "provider": "local-benchmark",
+  "model": "local-llm",
+  "modelBackend": "qwen-gsq",
+  "promptSha256": "8003305fc1ab26fcc329f3cc7c3627d73d419366b620fee5f34913b7124023aa",
+  "sourceSha256": "dfea596b7f976c04ad945852c5c7734abb9bffa04b58e1f57d9f782119b6b017",
+  "toolCall": { "name": "read", "arguments": { "file_path": "audit-target.txt", "offset": 1 } },
+  "baseline": {
+    "sessionSha256": "f33a8da63f60b04c251b9349c94644f577028c309d719a4c0baf3c0f465cb83e",
+    "inputTokens": 27750,
+    "outputTokens": 422,
+    "toolResultChars": 56013,
+    "found": { "BUG_A": 20, "BUG_B": 130 }
+  },
+  "candidate": {
+    "sessionSha256": "7b3f7ed2d245966043e6faa027cc06ec0d8b4e135c29572937c2fada3218795e",
+    "inputTokens": 15420,
+    "outputTokens": 483,
+    "toolResultChars": 14313,
+    "found": { "BUG_A": 20, "BUG_B": 130 }
+  },
+  "inputReductionPercent": 44.432432432432435,
+  "limitation": "One synthetic 1000-line audit task with two required findings; this does not establish the reduction for every audit or model."
+}

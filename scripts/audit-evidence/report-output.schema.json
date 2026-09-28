@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "auditId": { "type": "string" },
+    "agentId": { "type": "string" },
+    "revision": { "type": "string" },
+    "observedAt": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "scope": { "type": "string", "enum": ["source", "test", "dependency", "runtime", "external"] },
+          "status": { "type": "string", "enum": ["RESOLVED", "OPEN", "PARTIAL", "UNVERIFIED", "BLOCKED"] },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "summary": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "kind": { "type": "string", "enum": ["source-read", "test-run", "advisory-read", "runtime-observation", "external-authority"] },
+                "outcome": { "type": "string", "enum": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"] },
+                "reference": { "type": "string" },
+                "observedAt": { "type": "string" },
+                "revision": { "type": "string" },
+                "command": { "type": "string" },
+                "exitCode": { "oneOf": [{ "type": "integer" }, { "type": "null" }] },
+                "note": { "type": "string" }
+              },
+              "required": ["id", "kind", "outcome", "reference", "observedAt", "revision"],
+              "additionalProperties": false
+            }
+          },
+          "limitations": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["id", "scope", "status", "confidence", "summary", "evidence", "limitations"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schemaVersion", "auditId", "agentId", "revision", "observedAt", "findings"],
+  "additionalProperties": false
+}

@@ -1,0 +1,13 @@
+{
+  "case": "planted R27-02 false PASS",
+  "sourceSha256": "6f1fbd4d1cbeff95f49ecafdd6c9f6e6bb9fd4bef5f7c104f055e28bb6010e02",
+  "reviewerContext": "fresh, read-only",
+  "findingId": "R27-02",
+  "scope": "source",
+  "status": "OPEN",
+  "reference": "scripts/audit-evidence/fixtures/r27-02-csrf.ts.txt:7-9",
+  "reason": "The check rejects a mismatched token only when one is supplied. A mutation request with no CSRF token reaches return true.",
+  "limitation": "The reviewer inspected this source file only; caller behavior was not assessed.",
+  "mutationSentinelBefore": "6f1fbd4d1cbeff95f49ecafdd6c9f6e6bb9fd4bef5f7c104f055e28bb6010e02",
+  "mutationSentinelAfter": "6f1fbd4d1cbeff95f49ecafdd6c9f6e6bb9fd4bef5f7c104f055e28bb6010e02"
+}

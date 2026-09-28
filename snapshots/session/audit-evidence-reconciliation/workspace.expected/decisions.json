@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "auditId": "audit-keyless",
+  "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392",
+  "parentAgentId": "parent",
+  "decisions": [
+    {
+      "id": "A24-03",
+      "status": "PENDING",
+      "rationale": "The required source scope is disputed without direct parent adjudication: infra.json marks it OPEN (readiness() is a bare constant-true stub insufficient for the completion criterion) while web.json marks it RESOLVED under a narrow source-API criterion; I performed no independent source adjudication. The required test scope is an unexecuted procedure: both reports record the test-run outcome as NOT_RUN, so no pass/fail is established. Reading the child reports is not an adjudication, so the source scope stays pending and the unexecuted test scope stays pending; the finding is PENDING.",
+      "evidenceIds": [],
+      "adjudications": []
+    },
+    {
+      "id": "A24-07",
+      "status": "PENDING",
+      "rationale": "The required source scope is disputed without direct parent adjudication: infra.json marks it RESOLVED (dependency path exported) while web.json marks it OPEN because the exported reference does not resolve to an existing sibling file. The required dependency scope is an unexecuted procedure: the advisory-read outcome is NOT_RUN in infra.json, and the local path-existence check (DEPENDENCY_MISSING) is not an advisory read, so the advisory contents are unestablished. The required external scope is blocked: infra.json records BLOCKED with no provider credential and provider contact disallowed. No parent adjudication was performed, so all required scopes remain pending; the finding is PENDING.",
+      "evidenceIds": [],
+      "adjudications": []
+    }
+  ]
+}

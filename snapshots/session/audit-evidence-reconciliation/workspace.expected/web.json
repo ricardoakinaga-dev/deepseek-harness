@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "auditId": "audit-keyless",
+  "agentId": "web",
+  "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392",
+  "observedAt": "2026-09-28T12:00:00Z",
+  "findings": [
+    {
+      "id": "A24-03",
+      "scope": "source",
+      "status": "RESOLVED",
+      "confidence": "medium",
+      "summary": "a24-03.ts declares `export function readiness(): boolean` returning the literal `true`; the exported function satisfies the narrow source API criterion of returning a boolean readiness signal, judged from the source declaration.",
+      "evidence": [
+        {
+          "id": "web-a24-03-source-read",
+          "kind": "source-read",
+          "outcome": "PASS",
+          "reference": "a24-03.ts",
+          "observedAt": "2026-09-28T12:00:00Z",
+          "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "A24-03",
+      "scope": "test",
+      "status": "UNVERIFIED",
+      "confidence": "medium",
+      "summary": "Reading a24-03.test.ts shows it imports `readiness` from `./a24-03.ts` and throws an error if `readiness()` is falsy; it establishes only the test's assertion structure. No test command was run, so no pass/fail outcome can be established from the source.",
+      "evidence": [
+        {
+          "id": "web-a24-03-test-run",
+          "kind": "test-run",
+          "outcome": "NOT_RUN",
+          "reference": "a24-03.test.ts",
+          "observedAt": "2026-09-28T12:00:00Z",
+          "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392"
+        }
+      ],
+      "limitations": [
+        "No test command was executed; the NOT_RUN outcome means the source read cannot establish that the test passed or failed."
+      ]
+    },
+    {
+      "id": "A24-07",
+      "scope": "source",
+      "status": "OPEN",
+      "confidence": "medium",
+      "summary": "a24-07.ts exports `dependency = './a24-07.dependency.ts'`, but the existence check reported DEPENDENCY_MISSING, so the exported reference does not resolve to a sibling source file and the integrated source path criterion is not satisfied.",
+      "evidence": [
+        {
+          "id": "web-a24-07-source-read",
+          "kind": "source-read",
+          "outcome": "FAIL",
+          "reference": "a24-07.ts",
+          "observedAt": "2026-09-28T12:00:00Z",
+          "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392"
+        }
+      ],
+      "limitations": [
+        "The sibling file a24-07.dependency.ts was reported missing by the existence check, so its contents could not be inspected and the reference could not be verified to resolve."
+      ]
+    }
+  ]
+}
