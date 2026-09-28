@@ -1,0 +1,5 @@
+# Apply to a profile based on dsh-base that mounts the shared tool-fs row (for example, headless).
+- id: tool-fs
+  config:
+    readLimit: 200
+    readMaxBytes: 16384

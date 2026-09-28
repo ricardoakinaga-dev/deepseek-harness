@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "reviewerSessionId": "01a0e814-137d-77b2-92c1-6fd0891a883a",
+  "rawSessionSha256": "377a66a6446754dcddd5caf3e335eb4d0fb3952f01f6a1bcdfbec3a4fd6ef030",
+  "rawSessionAvailability": "owner-local; not committed",
+  "taskPromptCount": 1,
+  "inheritedAuditConversation": false,
+  "sourceReadCommand": "nl -ba scripts/audit-evidence/fixtures/r27-02-csrf.ts.txt",
+  "sourceReadOutputSha256": "13611a7f3f43cc867395b24c71f6caf28ae9bbcbf555aa7967662fe7627e3a29",
+  "sourceSha256": "6f1fbd4d1cbeff95f49ecafdd6c9f6e6bb9fd4bef5f7c104f055e28bb6010e02",
+  "toolCallCount": 1,
+  "review": {
+    "findingId": "R27-02",
+    "scope": "source",
+    "status": "OPEN",
+    "reference": "scripts/audit-evidence/fixtures/r27-02-csrf.ts.txt:7-9",
+    "reason": "The check rejects a mismatched token only when one is supplied. A mutation request with no CSRF token reaches `return true`. This conclusion is limited to the inspected source; caller behavior was not assessed.",
+    "readOnly": true
+  },
+  "limitation": "The committed extract and raw-session hash attest this local review; external consumers cannot verify the raw session unless the owner supplies it.",
+  "taskPromptSha256": "20d7be3a781ebd26d8a18dc80b9ac9f98a92400c98e28268fd26a151fb917615",
+  "sourceReadOutput": "Script completed\nWall time 0.1 seconds\nOutput:\n     1\tinterface Request {\n     2\t  headers: Record<string, string | undefined>\n     3\t  session: { csrfToken: string }\n     4\t}\n     5\t\n     6\texport function permitsMutation(request: Request): boolean {\n     7\t  const supplied = request.headers['x-csrf-token']\n     8\t  if (supplied && supplied !== request.session.csrfToken) return false\n     9\t  return true\n    10\t}\n",
+  "priorAuditTurnCount": 0,
+  "rawSessionRelativePath": ".codex/sessions/2026/09/28/rollout-2026-09-28T09-53-44-01a0e814-137d-77b2-92c1-6fd0891a883a.jsonl"
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-28",
+  "provider": "local-benchmark",
+  "model": "local-llm",
+  "modelBackend": "qwen-gsq",
+  "promptSha256": "0f304f70b7cd87f0c8bd666b5b9ae308aad246fc46773c1d7f2af690e2f11509",
+  "sourceSha256": "8a4070a6d06cfd32d950bf39d4283a40136df8423a9fc65a938e33bb91f9c768",
+  "toolCall": { "name": "read", "arguments": { "file_path": "audit-corpus.txt", "offset": 1 } },
+  "baseline": {
+    "sessionSha256": "8a14feb48953a55a8c64dbcefad04f08bd260ede604b6af6e40a04e984ebb308",
+    "inputTokens": 20979,
+    "outputTokens": 1743,
+    "toolResultChars": 55588,
+    "citedRows": [20, 30, 75, 130, 140, 170]
+  },
+  "candidate": {
+    "sessionSha256": "479a6fd0e04496d7771044ff4833a84de8218cfd553082ed58113ca952940c4d",
+    "inputTokens": 10063,
+    "outputTokens": 1434,
+    "toolResultChars": 15541,
+    "citedRows": [20, 30, 75, 130, 140, 170]
+  },
+  "inputReductionPercent": 52.0329853663187,
+  "limitation": "One synthetic audit report section, not a rerun of the historical five-child audit."
+}

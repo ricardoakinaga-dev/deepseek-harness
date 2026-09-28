@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "auditId": "AUD-06",
+  "corpusKind": "synthetic-five-child-report",
+  "sessionFormatVersion": 4,
+  "profile": "headless",
+  "modelRoute": "local-benchmark/local-llm",
+  "modelBackend": "qwen-gsq",
+  "effectiveSourceRevisionKnown": false,
+  "sourceSha256": "0a86da3012f55dc976b5ba37562f0c29da64242bec110d22d7067f3bc990a313",
+  "sourceLineCount": 1200,
+  "reportEndRow": 260,
+  "promptSha256": "aefe4b88598b59068370869e815c2412250831d341170c87b9e4c141c50ff5ec",
+  "sharedModelPatchSha256": "2effa4d922473a24ce329a6147e204ac0b27ad35ba6f3bd3f38d455332a6b5ae",
+  "candidateReadPatchSha256": "f2c1f5e72c0d6698a324843a15aee269cf7e77d9e6e42f70a4bfb9ec0b543c3a",
+  "requiredCitationRows": [
+    8,
+    38,
+    68,
+    98,
+    128,
+    14,
+    44,
+    19,
+    50,
+    104,
+    79,
+    225,
+    109,
+    260
+  ],
+  "baseline": {
+    "sessionSha256": "a27fedcdf71b20221d974a24471b8756214f940b75837a2d6506d9f5eb4823ad",
+    "sessionEventCount": 28,
+    "modelCalls": 2,
+    "readOffsets": [
+      1
+    ],
+    "readLineCounts": [
+      575
+    ],
+    "readLastLines": [
+      575
+    ],
+    "readResultChars": [
+      54101
+    ],
+    "inputTokens": 27422,
+    "cacheReadTokens": 11904,
+    "outputTokens": 2369,
+    "totalTokens": 41695,
+    "answerSha256": "be95ed32fd4ecc8bc846cb5e9326f0b58bf8b357ad172945ee1650d871fe38f6",
+    "citedRequiredRows": [
+      8,
+      38,
+      68,
+      98,
+      128,
+      14,
+      44,
+      19,
+      50,
+      104,
+      79,
+      225,
+      109,
+      260
+    ],
+    "correctFindingCount": 2,
+    "correctChildContextCount": 5
+  },
+  "candidate": {
+    "sessionSha256": "c284e52f96ad4ca75840b4d46cdbe1674e1b92d1f3005b7d381662736252c8ef",
+    "sessionEventCount": 33,
+    "modelCalls": 3,
+    "readOffsets": [
+      1,
+      201
+    ],
+    "readLineCounts": [
+      200,
+      182
+    ],
+    "readLastLines": [
+      200,
+      382
+    ],
+    "readResultChars": [
+      16413,
+      17457
+    ],
+    "inputTokens": 16104,
+    "cacheReadTokens": 33508,
+    "outputTokens": 1358,
+    "totalTokens": 50970,
+    "answerSha256": "464941ba06dcc420a1a0233215e91765ad3c0e0bdfcb62afb79a31591fd42383",
+    "citedRequiredRows": [
+      8,
+      38,
+      68,
+      98,
+      128,
+      14,
+      44,
+      19,
+      50,
+      104,
+      79,
+      225,
+      109,
+      260
+    ],
+    "correctFindingCount": 2,
+    "correctChildContextCount": 5
+  },
+  "inputTokenReductionPercent": 41.273430092626356,
+  "cacheInclusiveInputReductionPercent": -26.155723948532778,
+  "totalTokenChangePercent": 22.2448734860295,
+  "candidateProgressiveReads": true,
+  "allRequiredCitationsRetained": true,
+  "requiredFindingCount": 2,
+  "requiredChildContextCount": 5
+}

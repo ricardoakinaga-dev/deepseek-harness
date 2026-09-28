@@ -1,0 +1,15 @@
+# Recorded through dsh --profile headless with the local llama.cpp route.
+# This model exceeded the harness's 30-second record deadline; replay is keyless.
+# Revision hashes sorted source filenames and bytes, each followed by a NUL separator.
+version: 1
+scenario: audit-evidence-reconciliation
+profile: headless
+composition: audit-evidence-local
+recording: live
+header:
+  class: audit-evidence-local
+  pin: true
+environment:
+  DSH_SNAPSHOT_LOCAL_TOKEN: local-loopback-snapshot
+workspace:
+  final: true

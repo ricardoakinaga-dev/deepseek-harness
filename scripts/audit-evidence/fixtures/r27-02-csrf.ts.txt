@@ -1,0 +1,10 @@
+interface Request {
+  headers: Record<string, string | undefined>
+  session: { csrfToken: string }
+}
+
+export function permitsMutation(request: Request): boolean {
+  const supplied = request.headers['x-csrf-token']
+  if (supplied && supplied !== request.session.csrfToken) return false
+  return true
+}

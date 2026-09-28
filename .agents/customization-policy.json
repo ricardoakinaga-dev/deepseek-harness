@@ -1462,6 +1462,39 @@
         "scripts/test-invariants.spec.ts",
         "scripts/no-unknown-casts.baseline.json"
       ]
+    },
+    {
+      "id": "audit-evidence-automation",
+      "kind": "governance",
+      "solutionType": "repository-automation",
+      "status": "active",
+      "summary": "Validate structured audit findings, reconcile independent reports, and measure sanitized session evidence without treating missing checks as a pass.",
+      "paths": [
+        "scripts/audit-evidence/",
+        "snapshots/session/audit-evidence-reconciliation/"
+      ]
+    },
+    {
+      "id": "audit-evidence-skill",
+      "kind": "extension",
+      "solutionType": "skill",
+      "status": "active",
+      "summary": "Guide delegated audits through evidence capture, tool preflight, progressive reads, conflict resolution, and independent review.",
+      "optIn": true,
+      "paths": [
+        ".agents/skills/audit-evidence/"
+      ]
+    },
+    {
+      "id": "audit-evidence-profile",
+      "kind": "extension",
+      "solutionType": "profile-patch",
+      "status": "active",
+      "summary": "Offer an opt-in profile patch with bounded read output for audit sessions.",
+      "optIn": true,
+      "paths": [
+        "configs/audit-evidence/"
+      ]
     }
   ]
 }

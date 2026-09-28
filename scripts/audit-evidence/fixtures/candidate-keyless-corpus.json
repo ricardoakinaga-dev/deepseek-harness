@@ -1,0 +1,391 @@
+{
+  "schemaVersion": 1,
+  "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392",
+  "revisionStatus": "known",
+  "revisionLimitation": null,
+  "sessions": [
+    {
+      "role": "child",
+      "sessionId": "69b54b07-a6d2-4e2a-8af1-3aaedb44954f",
+      "parentSessionId": "session-515e84fd-e8d6-4aa9-86a7-77d614886804",
+      "parentStatus": "linked",
+      "sha256": "b4016e464d4e368ea969cc71f3783784b4494f052a9190d9da3114151a6282d1",
+      "eventCounts": {
+        "agent/inbox/spliced": 2,
+        "approval/policy": 1,
+        "assistant/message": 3,
+        "permission/preset": 1,
+        "request/context": 1,
+        "request/header": 1,
+        "sandbox/mode": 1,
+        "session/title": 1,
+        "step/end": 3,
+        "step/start": 3,
+        "subagent/descriptor": 1,
+        "system/message": 1,
+        "tool/call": 6,
+        "tool/result": 6,
+        "turn/end": 1,
+        "turn/start": 1,
+        "user/message": 2
+      },
+      "eventCount": 35,
+      "toolPairing": {
+        "matched": 6,
+        "unmatchedCalls": 0,
+        "orphanResults": 0,
+        "duplicateResults": 0
+      },
+      "steps": [
+        {
+          "turn": 1,
+          "step": 1,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 5,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 282,
+            "outputTokens": 215,
+            "totalTokens": 5931,
+            "cacheReadTokens": 5434,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 2,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 1,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 1114,
+            "outputTokens": 2847,
+            "totalTokens": 9891,
+            "cacheReadTokens": 5930,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 3,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 0,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 55,
+            "outputTokens": 16,
+            "totalTokens": 9961,
+            "cacheReadTokens": 9890,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        }
+      ],
+      "totals": {
+        "modelCalls": 3,
+        "missingUsageCalls": 0,
+        "toolCalls": 6,
+        "toolErrors": 0,
+        "modelErrors": 0,
+        "tokens": {
+          "inputTokens": 1451,
+          "outputTokens": 3078,
+          "totalTokens": 25783,
+          "cacheReadTokens": 21254,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0
+        }
+      },
+      "createdAt": 1790610213706,
+      "firstEventAt": 1790610213709,
+      "lastEventAt": 1790610379157,
+      "durationMs": 165451
+    },
+    {
+      "role": "child",
+      "sessionId": "f7405b39-6abd-4b0c-b8a6-25587c2812cc",
+      "parentSessionId": "session-515e84fd-e8d6-4aa9-86a7-77d614886804",
+      "parentStatus": "linked",
+      "sha256": "0689dadf9546e306c03ba0776a4a6d83d7913e3fc523ec94a954d8ae0aa62f36",
+      "eventCounts": {
+        "agent/inbox/spliced": 2,
+        "approval/policy": 1,
+        "assistant/message": 4,
+        "permission/preset": 1,
+        "request/context": 1,
+        "request/header": 1,
+        "sandbox/mode": 1,
+        "session/title": 1,
+        "step/end": 4,
+        "step/start": 4,
+        "subagent/descriptor": 1,
+        "system/message": 1,
+        "tool/call": 7,
+        "tool/result": 7,
+        "turn/end": 1,
+        "turn/start": 1,
+        "user/message": 2
+      },
+      "eventCount": 40,
+      "toolPairing": {
+        "matched": 7,
+        "unmatchedCalls": 0,
+        "orphanResults": 0,
+        "duplicateResults": 0
+      },
+      "steps": [
+        {
+          "turn": 1,
+          "step": 1,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 5,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 302,
+            "outputTokens": 204,
+            "totalTokens": 5940,
+            "cacheReadTokens": 5434,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 2,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 1,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 1552,
+            "outputTokens": 114,
+            "totalTokens": 7605,
+            "cacheReadTokens": 5939,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 3,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 1,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 19,
+            "outputTokens": 4919,
+            "totalTokens": 12542,
+            "cacheReadTokens": 7604,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 4,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 0,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 56,
+            "outputTokens": 19,
+            "totalTokens": 12616,
+            "cacheReadTokens": 12541,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        }
+      ],
+      "totals": {
+        "modelCalls": 4,
+        "missingUsageCalls": 0,
+        "toolCalls": 7,
+        "toolErrors": 0,
+        "modelErrors": 0,
+        "tokens": {
+          "inputTokens": 1929,
+          "outputTokens": 5256,
+          "totalTokens": 38703,
+          "cacheReadTokens": 31518,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0
+        }
+      },
+      "createdAt": 1790609914515,
+      "firstEventAt": 1790609914518,
+      "lastEventAt": 1790610198299,
+      "durationMs": 283784
+    },
+    {
+      "role": "parent",
+      "sessionId": "session-515e84fd-e8d6-4aa9-86a7-77d614886804",
+      "parentSessionId": null,
+      "parentStatus": "none",
+      "sha256": "74c58a6a409bdb7e49edb8c6e8c33c5a60d8bb887720191f273239c893be7f03",
+      "eventCounts": {
+        "agent/inbox/spliced": 2,
+        "approval/policy": 1,
+        "assistant/message": 6,
+        "permission/preset": 1,
+        "request/context": 1,
+        "request/header": 1,
+        "sandbox/mode": 1,
+        "session/title": 1,
+        "step/end": 6,
+        "step/start": 6,
+        "subagent/catalog": 2,
+        "system/message": 1,
+        "tool/call": 8,
+        "tool/result": 8,
+        "turn/end": 1,
+        "turn/start": 1,
+        "user/message": 2
+      },
+      "eventCount": 49,
+      "toolPairing": {
+        "matched": 8,
+        "unmatchedCalls": 0,
+        "orphanResults": 0,
+        "duplicateResults": 0
+      },
+      "steps": [
+        {
+          "turn": 1,
+          "step": 1,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 1,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 6050,
+            "outputTokens": 1019,
+            "totalTokens": 7069,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 2,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 1,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 1652,
+            "outputTokens": 221,
+            "totalTokens": 7307,
+            "cacheReadTokens": 5434,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 3,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 4,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 1890,
+            "outputTokens": 153,
+            "totalTokens": 7477,
+            "cacheReadTokens": 5434,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 4,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 1,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 3811,
+            "outputTokens": 2038,
+            "totalTokens": 13325,
+            "cacheReadTokens": 7476,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 5,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 1,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 57,
+            "outputTokens": 124,
+            "totalTokens": 13505,
+            "cacheReadTokens": 13324,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        },
+        {
+          "turn": 1,
+          "step": 6,
+          "modelCalls": 1,
+          "missingUsageCalls": 0,
+          "toolCalls": 0,
+          "toolErrors": 0,
+          "modelErrors": 0,
+          "tokens": {
+            "inputTokens": 767,
+            "outputTokens": 275,
+            "totalTokens": 14546,
+            "cacheReadTokens": 13504,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 0
+          }
+        }
+      ],
+      "totals": {
+        "modelCalls": 6,
+        "missingUsageCalls": 0,
+        "toolCalls": 8,
+        "toolErrors": 0,
+        "modelErrors": 0,
+        "tokens": {
+          "inputTokens": 14227,
+          "outputTokens": 3830,
+          "totalTokens": 63229,
+          "cacheReadTokens": 45172,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0
+        }
+      },
+      "createdAt": 1790609851263,
+      "firstEventAt": 1790609851274,
+      "lastEventAt": 1790610532177,
+      "durationMs": 680914
+    }
+  ]
+}

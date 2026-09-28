@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "auditId": "audit-keyless",
+  "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392",
+  "independentReviewer": "infra",
+  "findings": [
+    { "id": "A24-03", "requiredScopes": ["source", "test"] },
+    { "id": "A24-07", "requiredScopes": ["source", "dependency", "external"] }
+  ]
+}

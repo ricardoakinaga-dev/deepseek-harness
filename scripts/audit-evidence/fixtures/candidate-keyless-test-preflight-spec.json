@@ -1,0 +1,11 @@
+{
+  "cwd": "../../../snapshots/session/audit-evidence-reconciliation/workspace",
+  "command": [
+    "node",
+    "--test",
+    "a24-03.test.ts"
+  ],
+  "dependencies": [
+    "a24-03.test.ts"
+  ]
+}

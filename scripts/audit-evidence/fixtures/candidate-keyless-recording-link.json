@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392",
+  "rawRecordingAvailability": "owner-local, outside repository",
+  "limitation": "Raw-session hashes require the owner-local recordings for external verification; the committed snapshot normalizes session IDs and paths.",
+  "sessions": [
+    {
+      "snapshotFile": "session.v4.jsonl",
+      "snapshotSha256": "71f9250d873afa3174d45ec46ac676f93a3fb3781767e18e1386c869f579ff9d",
+      "rawSessionId": "session-515e84fd-e8d6-4aa9-86a7-77d614886804",
+      "rawSessionSha256": "74c58a6a409bdb7e49edb8c6e8c33c5a60d8bb887720191f273239c893be7f03",
+      "createdAt": 1790609851263,
+      "role": "parent",
+      "write": {
+        "file": "decisions.json",
+        "contentSha256": "c08dab86111daa073ad64d52acc06c995f7b448b83b141114ec5a99eae5399f8"
+      }
+    },
+    {
+      "snapshotFile": "session.1.v4.jsonl",
+      "snapshotSha256": "ae94c2cbdfc167785fd0e11350e18df68469c922b7e1c4abd50cb39263fedada",
+      "rawSessionId": "f7405b39-6abd-4b0c-b8a6-25587c2812cc",
+      "rawSessionSha256": "0689dadf9546e306c03ba0776a4a6d83d7913e3fc523ec94a954d8ae0aa62f36",
+      "createdAt": 1790609914515,
+      "role": "child",
+      "write": {
+        "file": "infra.json",
+        "contentSha256": "923f3b59d9d409d28a18f0138b6fbabd973de2877794e5d2e80e27f1d084bcd7"
+      }
+    },
+    {
+      "snapshotFile": "session.2.v4.jsonl",
+      "snapshotSha256": "0964d5693c9a236821488f11c217cd1d84f49e4c94c2b446368fd62e40a205c1",
+      "rawSessionId": "69b54b07-a6d2-4e2a-8af1-3aaedb44954f",
+      "rawSessionSha256": "b4016e464d4e368ea969cc71f3783784b4494f052a9190d9da3114151a6282d1",
+      "createdAt": 1790610213706,
+      "role": "child",
+      "write": {
+        "file": "web.json",
+        "contentSha256": "7e1024a4b60b1226e5bd6a1822f91d8f2dfb0b22e3629c8be14880458a9444c5"
+      }
+    }
+  ]
+}

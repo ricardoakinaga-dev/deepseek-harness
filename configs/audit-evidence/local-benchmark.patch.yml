@@ -1,0 +1,25 @@
+# A local, keyless model route for an isolated read-limit comparison.
+- id: llm-deepseek
+  disabled: true
+
+- id: llm-pi-ai
+  config:
+    providers:
+      local-benchmark:
+        apiKeyEnv: DSH_LOCAL_BENCH_KEY
+        api: openai-completions
+        baseURL: !!js "process.env.DSH_AUDIT_BENCH_BASE_URL ?? 'http://127.0.0.1:8089/v1'"
+        models:
+          - id: local-llm
+            contextWindow: 131072
+            maxTokens: 2048
+
+- id: agent-default-model
+  config:
+    provider: local-benchmark
+    model: local-llm
+
+- id: session-persistence-jsonl
+  config:
+    root: !!js process.env.DSH_AUDIT_BENCH_SESSION_ROOT
+    compression: none

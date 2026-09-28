@@ -1,0 +1,21 @@
+{
+  "cwd": "../../..",
+  "command": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "packages/web/web-search-exa/tests/exa.e2e.ts"
+  ],
+  "dependencies": [
+    "packages/web/web-search-exa/src/provider.ts",
+    "packages/web/web-search-exa/tests/exa.e2e.ts"
+  ],
+  "search": {
+    "credentialEnv": "EXA_API_KEY",
+    "currentSources": [
+      "packages/web/web-search-exa/src/index.ts",
+      "packages/web/web-search-exa/tests/exa.e2e.ts"
+    ]
+  }
+}

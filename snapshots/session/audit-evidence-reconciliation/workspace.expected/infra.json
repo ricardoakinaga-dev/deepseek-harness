@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "auditId": "audit-keyless",
+  "agentId": "infra",
+  "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392",
+  "observedAt": "2026-09-28T12:00:00Z",
+  "findings": [
+    {
+      "id": "A24-03",
+      "scope": "source",
+      "status": "OPEN",
+      "confidence": "medium",
+      "summary": "readiness() in a24-03.ts is a bare constant-return stub that unconditionally returns true; it contains no readiness logic and is insufficient for the completion criterion.",
+      "evidence": [
+        {
+          "id": "infra-a24-03-source",
+          "kind": "source-read",
+          "outcome": "FAIL",
+          "reference": "a24-03.ts",
+          "observedAt": "2026-09-28T12:00:00Z",
+          "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "A24-03",
+      "scope": "test",
+      "status": "UNVERIFIED",
+      "confidence": "medium",
+      "summary": "Reading the test source establishes that it imports readiness from './a24-03.ts' and throws 'A24-03 is not ready' if readiness() is falsy; without executing it, no pass/fail result can be established.",
+      "evidence": [
+        {
+          "id": "infra-a24-03-test",
+          "kind": "test-run",
+          "outcome": "NOT_RUN",
+          "reference": "a24-03.test.ts",
+          "observedAt": "2026-09-28T12:00:00Z",
+          "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392"
+        }
+      ],
+      "limitations": [
+        "The test was not executed, so its outcome is unverified; only the test's structure and expected assertion were established by reading the source."
+      ]
+    },
+    {
+      "id": "A24-07",
+      "scope": "source",
+      "status": "RESOLVED",
+      "confidence": "medium",
+      "summary": "a24-07.ts exports the dependency path declaration: `export const dependency = './a24-07.dependency.ts'`.",
+      "evidence": [
+        {
+          "id": "infra-a24-07-source",
+          "kind": "source-read",
+          "outcome": "PASS",
+          "reference": "a24-07.ts",
+          "observedAt": "2026-09-28T12:00:00Z",
+          "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "A24-07",
+      "scope": "dependency",
+      "status": "UNVERIFIED",
+      "confidence": "medium",
+      "summary": "No independent dependency advisory was read. A local path-existence check reported DEPENDENCY_MISSING, which establishes that a24-07.dependency.ts is absent locally but does not establish any advisory's contents.",
+      "evidence": [
+        {
+          "id": "infra-a24-07-dependency",
+          "kind": "advisory-read",
+          "outcome": "NOT_RUN",
+          "reference": "a24-07.dependency.ts",
+          "observedAt": "2026-09-28T12:00:00Z",
+          "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392"
+        }
+      ],
+      "limitations": [
+        "The local path check returned DEPENDENCY_MISSING; a path-existence check is not an advisory read, so the advisory's contents remain unestablished."
+      ]
+    },
+    {
+      "id": "A24-07",
+      "scope": "external",
+      "status": "BLOCKED",
+      "confidence": "medium",
+      "summary": "No provider credential is supplied to this workspace and contacting the provider is disallowed, so no external authority check can be performed.",
+      "evidence": [
+        {
+          "id": "infra-a24-07-external",
+          "kind": "external-authority",
+          "outcome": "BLOCKED",
+          "reference": "unavailable provider credential",
+          "observedAt": "2026-09-28T12:00:00Z",
+          "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392"
+        }
+      ],
+      "limitations": [
+        "No provider credential is available and the provider must not be contacted; therefore nothing about the external authority can be established."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+# Local model recording through the shipped headless profile.
+- id: llm-deepseek
+  disabled: true
+
+- id: typert-loader
+  disabled: true
+
+- id: typert
+  disabled: true
+
+- id: typert-gateway
+  disabled: true
+
+- insert:
+    - id: audit-root-env
+      name: ./audit-root-env.mjs
+
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      llama-cpp:
+        displayName: Local llama.cpp
+        api: openai-completions
+        baseURL: http://127.0.0.1:8089/v1
+        apiKeyEnv: DSH_SNAPSHOT_LOCAL_TOKEN
+        models:
+          - id: local-llm
+            name: Local LLM
+            contextWindow: 32768
+            maxTokens: 8192
+            compat:
+              thinkingFormat: qwen-chat-template
+              chatTemplateKwargs:
+                enable_thinking: false

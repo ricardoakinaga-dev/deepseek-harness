@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "auditId": "audit-keyless",
+  "revision": "2c3281fed6df8416b60d8046ec59b5cb2cc62f06402d1c0e33beafa12ab8b392",
+  "checks": [
+    {
+      "id": "test",
+      "result": {
+        "status": "READY",
+        "category": "ready",
+        "executed": false,
+        "issues": [],
+        "currentSources": []
+      }
+    },
+    {
+      "id": "search",
+      "result": {
+        "status": "BLOCKED",
+        "category": "setup",
+        "executed": false,
+        "issues": [
+          {
+            "code": "SEARCH_CREDENTIAL_MISSING",
+            "subject": "EXA_API_KEY",
+            "remedy": "Set the declared search credential before checking external search."
+          }
+        ],
+        "currentSources": [
+          {
+            "path": "packages/web/web-search-exa/src/index.ts",
+            "sha256": "e4aa12c5475a942c2500b559ceb44ebb32478e3d97f38039837a9cb1aa00a5d4"
+          },
+          {
+            "path": "packages/web/web-search-exa/tests/exa.e2e.ts",
+            "sha256": "23a96e07dd4ed727bb2dc826724b20525b1b43fdfc8fcecf453aee0a0bf09131"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "parentSessionSha256": "951f195890a952d952473014b07b9a8d7eb826b8cacce95444a2caacd4cc3f18",
+  "observedBaseCommit": "b52f32c141916a2ea3af1a6b913bd91f380606e0",
+  "baseCommitObservation": { "callSeq": 86, "resultSeq": 87, "command": "git rev-parse HEAD" },
+  "dirtyWorkingTreeObservation": {
+    "callSeq": 93,
+    "resultSeq": 94,
+    "changedPathCount": 177,
+    "modifiedPathCount": 121,
+    "untrackedPathCount": 56
+  },
+  "effectiveRevisionStatus": "unknown",
+  "limitation": "No hash of the uncommitted working tree was recorded. The observed base commit cannot identify the exact audited source."
+}
