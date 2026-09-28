@@ -203,9 +203,17 @@ function reasoningInfo(
   }
 }
 
-/** Merge deployment headers while removing case-insensitive attribution collisions. */
-function requestHeaders(headers: Readonly<Record<string, string>> | undefined): Record<string, string> {
+/** OpenCode routes use the caller's Session ID; request-owned headers win case-insensitive collisions. */
+function requestHeaders(
+  headers: Readonly<Record<string, string>> | undefined,
+  model: Model<Api>,
+  sessionId: GenerateOptions['sessionId'],
+): Record<string, string> {
   const attribution = attributionHeaders()
+  if (sessionId !== undefined && (model.provider === 'opencode' || model.provider === 'opencode-go'
+    || URL.parse(model.baseUrl)?.hostname === 'opencode.ai')) {
+    attribution['x-opencode-session'] = String(sessionId)
+  }
   const reserved = new Set(Object.keys(attribution).map(name => name.toLowerCase()))
   return {
     ...Object.fromEntries(Object.entries(headers ?? {}).filter(([name]) => !reserved.has(name.toLowerCase()))),
@@ -385,9 +393,7 @@ export class PiAiAdapter extends LlmAdapter {
         ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },
         ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
         signal: watchdog.signal,
-        // Profile headers are deployment-owned; attribution names are
-        // Harness-owned and therefore win collisions.
-        headers: requestHeaders(profile.headers),
+        headers: requestHeaders(profile.headers, model, options.sessionId),
       })
       const iterator = toStreamChunks(events, model.contextWindow, options.signal, model.id)[Symbol.asyncIterator]()
       let exhausted = false

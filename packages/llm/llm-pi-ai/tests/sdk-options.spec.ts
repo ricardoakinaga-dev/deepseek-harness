@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { StreamChunk } from '@deepseek-ai/dsh-llm'
+import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { SessionId } from '@deepseek-ai/dsh-session'
 
 const streamSimple = vi.hoisted(() => vi.fn())
 
@@ -10,6 +11,12 @@ const streamSimple = vi.hoisted(() => vi.fn())
 vi.mock('@earendil-works/pi-ai/api/openai-completions.lazy', () => ({
   openAICompletionsApi: () => ({ stream: streamSimple, streamSimple }),
 }))
+vi.mock('@earendil-works/pi-ai/api/openai-responses.lazy', () => ({
+  openAIResponsesApi: () => ({ stream: streamSimple, streamSimple }),
+}))
+vi.mock('@earendil-works/pi-ai/api/anthropic-messages.lazy', () => ({
+  anthropicMessagesApi: () => ({ stream: streamSimple, streamSimple }),
+}))
 
 import { PiAiAdapter } from '../src/adapter.ts'
 import { resolveProfiles } from '../src/config.ts'
@@ -17,13 +24,13 @@ import { memoryAuth } from './auth-double.ts'
 
 afterEach(() => { streamSimple.mockReset() })
 
-/** A hand-declared OpenAI-compatible route with one fully described model. */
-function gatewayAdapter(): PiAiAdapter {
+/** A hand-declared route with one fully described model. */
+function gatewayAdapter(baseURL = 'http://127.0.0.1:9/v1', api = 'openai-completions'): PiAiAdapter {
   return new PiAiAdapter({
     profiles: () => resolveProfiles({
       'local-gateway': {
-        api: 'openai-completions',
-        baseURL: 'http://127.0.0.1:9/v1',
+        api,
+        baseURL,
         models: [{ id: 'local-model', contextWindow: 8192, maxTokens: 1024 }],
       },
     }),
@@ -32,12 +39,13 @@ function gatewayAdapter(): PiAiAdapter {
   })
 }
 
-async function drain(adapter: PiAiAdapter): Promise<StreamChunk[]> {
+async function drain(adapter: PiAiAdapter, sessionId?: GenerateOptions['sessionId']): Promise<StreamChunk[]> {
   const chunks: StreamChunk[] = []
   for await (const chunk of adapter.stream({
     provider: 'local-gateway',
     model: 'local-model',
     messages: [],
+    ...sessionId === undefined ? {} : { sessionId },
   })) chunks.push(chunk)
   return chunks
 }
@@ -71,5 +79,41 @@ describe('pi-ai SDK retry boundary', () => {
       contextWindow: 8192,
       maxTokens: 1024,
     })
+  })
+
+  it.each(['openai-completions', 'openai-responses', 'anthropic-messages'])(
+    'sends the conversation header through %s for an OpenCode endpoint alias',
+    async (api) => {
+      streamSimple.mockImplementation(() => { throw new Error('mock SDK boundary') })
+
+      await drain(gatewayAdapter('https://opencode.ai/zen/go/v1', api), SessionId('aliased-conversation'))
+
+      expect(streamSimple).toHaveBeenCalledOnce()
+      expect(streamSimple.mock.calls[0]?.[2]).toMatchObject({
+        sessionId: 'aliased-conversation',
+        headers: { 'x-opencode-session': 'aliased-conversation' },
+      })
+    },
+  )
+
+  it.each(['https://opencode.ai.example.com/v1', 'https://example.com/opencode.ai/v1'])(
+    'does not identify an unrelated endpoint as OpenCode: %s',
+    async (baseURL) => {
+      streamSimple.mockImplementation(() => { throw new Error('mock SDK boundary') })
+
+      await drain(gatewayAdapter(baseURL), SessionId('private-conversation'))
+
+      expect(streamSimple).toHaveBeenCalledOnce()
+      expect(streamSimple.mock.calls[0]?.[2]).not.toHaveProperty('headers.x-opencode-session')
+    },
+  )
+
+  it('does not invent an OpenCode conversation ID for a sessionless call', async () => {
+    streamSimple.mockImplementation(() => { throw new Error('mock SDK boundary') })
+
+    await drain(gatewayAdapter('https://opencode.ai/zen/go/v1'))
+
+    expect(streamSimple).toHaveBeenCalledOnce()
+    expect(streamSimple.mock.calls[0]?.[2]).not.toHaveProperty('headers.x-opencode-session')
   })
 })
