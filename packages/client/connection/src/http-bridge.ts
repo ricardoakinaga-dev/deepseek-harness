@@ -151,7 +151,8 @@ export async function bridge(
         )
         return
       }
-      reservation = limiter.tryReserve(declaredLength ?? maxRequestBodyBytes)
+      const initialBytes = declaredLength ?? (method === 'GET' || method === 'HEAD' ? 0 : maxRequestBodyBytes)
+      reservation = limiter.tryReserve(initialBytes)
       if (reservation === undefined) {
         await rejectBufferedRequest(
           req,
