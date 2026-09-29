@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for web-instance-lifecycle.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/customization/web-instance-lifecycle.md
+/web-instance-lifecycle-improvement:
+  en: a94db6bf6094821e
+  zh: 292b6f91bd442bb1
+/web-instance-lifecycle-improvement/summary:
+  en: fdc1072b12d0ae21
+  zh: ad9481c5b8badaae
+/web-instance-lifecycle-improvement/completion-boundary:
+  en: 6fd2c0af57460381
+  zh: 5ecd6703ee9118bd
+/web-instance-lifecycle-improvement/compatibility-and-verification:
+  en: 63a3a3f545c21fad
+  zh: f69ebde73fb058ca

@@ -1475,6 +1475,24 @@
       ]
     },
     {
+      "id": "web-instance-lifecycle",
+      "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
+      "status": "proposed",
+      "summary": "Give each default Web invocation an OS-assigned listening port and keep browser-window lifecycle evidence explicit.",
+      "upstreamPlan": "docs/customization/web-instance-lifecycle.md",
+      "paths": [
+        "packages/bundle/web-app/tests/startup.spec.ts",
+        "packages/bundle/web-app/README.md",
+        "packages/bundle/web-app/README.zh.md",
+        "packages/bundle/web-app/README.i18n.yaml",
+        "docs/customization/web-instance-lifecycle*",
+        "docs/user/guide/github-review*",
+        "docs/user/develop/basic/index*",
+        "docs/user/develop/basic/tool*"
+      ]
+    },
+    {
       "id": "audit-evidence-skill",
       "kind": "extension",
       "solutionType": "skill",
