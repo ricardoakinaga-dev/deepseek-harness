@@ -138,6 +138,8 @@ describe('bash tool through the agent loop', () => {
     const toolResult = findEvent(log, 'tool/result')
     expect(toolResult.data.message.isError).toBe(false)
     expect(resultText(toolResult)).toBe('integration-ok\n')
+    expect(toolResult.data.meta).toEqual({ kind: 'bash-foreground-exit', exitCode: 0,
+      signal: null, timedOut: false, aborted: false, stopped: false })
 
     // The second model call saw the tool result in its derived history.
     const lastRequest = adapter.requests.at(-1)
@@ -164,6 +166,8 @@ describe('bash tool through the agent loop', () => {
     const toolResult = findEvent(events(agent), 'tool/result')
     expect(toolResult.data.message.isError).toBe(false)
     expect(resultText(toolResult)).toContain('[exit code: 9]')
+    expect(toolResult.data.meta).toEqual({ kind: 'bash-foreground-exit', exitCode: 9,
+      signal: null, timedOut: false, aborted: false, stopped: false })
   })
 
   it('background: start ack → completion wakes the idle agent → job_output collects it', async () => {
@@ -197,6 +201,7 @@ describe('bash tool through the agent loop', () => {
     const firstResult = findEvent(events(agent), 'tool/result')
     expect(firstResult.data.message.isError).toBe(false)
     expect(resultText(firstResult)).toBe('started background job bash-1')
+    expect(firstResult.data.meta).toBeNull()
     // The turn closed with the task still running, so the notice cannot exist yet.
     const isNotice = (e: SessionEvent): e is SessionEvent<'user/message'> =>
       e.type === 'user/message' && e.data.source.kind !== 'user'

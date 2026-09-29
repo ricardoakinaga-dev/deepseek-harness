@@ -105,6 +105,8 @@ kind: "package-reference"
 
 结果文本为 stdout，然后是带标记的 `[stderr]` 区段，再是条件标记：截断通知、沙箱拒绝（组合声明升权时附带同轮次升权提示）、超时、信号与退出码——每个占一行。退出标记同时充当 UI 卡片的退出状态 pill：`dsh-shell` 共享的 `parseExitStatus` 会从输出体中消费它，因此回放显示 pill 而不重复标记。
 
+已完成的前台结果还会在 `tool/result.data.meta` 中持久化 `kind: "bash-foreground-exit"`、`exitCode`、`signal`、`timedOut`、`aborted` 以及布尔值 `stopped`。这些元数据不含命令输出或取消原因，即使结果文本没有退出标记，也能区分正常零退出与中断的命令。后台确认和转入后台的任务使用 `meta: null`。
+
 </details>
 
 -----
