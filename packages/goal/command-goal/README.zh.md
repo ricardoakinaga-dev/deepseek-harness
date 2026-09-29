@@ -33,16 +33,22 @@ kind: "package-reference"
 
 | 输入 | 结果 |
 |---|---|
-| `/goal` | 显示当前目标、持久 phase、Round 数量与上限、进程本地续行启用状态与有效的下一步命令；被阻塞的 goal 还会显示其策略代码与说明 |
-| `/goal <objective>` | 创建 goal 并启用续行，或用全新身份替换已完成 goal |
-| `/goal edit <objective>` | 编辑当前目标，不改变其 phase 或续行启用状态 |
+| `/goal` | 显示当前目标、持久 phase、Round 数量与上限、进程本地续行启用状态与有效的下一步命令；带清单的 goal 还显示原始标准、任务状态和显式范围修订 |
+| `/goal create {"objective":"...","requiredTasks":[{"id":"...","criterion":"..."}]}` | 使用显式必需 ID 和验收标准创建 goal |
+| `/goal accept <id>` | 记录人类对一个必需任务的验收 |
+| `/goal scope {"reason":"...","requiredTasks":[...]}` | 替换必需任务列表；对没有清单的已发布 goal，记录其首个显式范围 |
+| `/goal edit <objective>` | 编辑当前目标，不改变其 phase 或续行启用状态；所有任务重置为 `PENDING` |
 | `/goal pause` | 暂停 active goal 并停用续行 |
 | `/goal resume` | 恢复已停止 goal，或在会话 resume 或 fork 后重新启用 active goal；仍受剩余 Round 上限约束 |
 | `/goal clear` | 清除当前 goal，同时保留其持久历史 |
 
 ### 输入语法
 
-只有控制词（`clear`、`pause`、`resume`、`edit`）占据完整输入时才被识别；其他任何非空后缀都是目标，因此 `/goal pause after verification` 会创建该字面目标。`edit` 内联接收替换内容，并拒绝直接替换未完成的 goal。可预期的领域拒绝会变成稳定的直接命令错误，不暴露带品牌类型的 id 或 revision；意外实现失败仍会让分发失败，使适配器能将其报告为命令失败。
+创建只接受 `/goal create` 后接包含 `objective` 和非空 `requiredTasks` 数组的 JSON。自由文本创建会被拒绝；`accept` 和 `scope` 是显式的人类命令。`edit` 内联接收替换内容，并拒绝直接替换未完成的 goal。可预期的领域拒绝会变成稳定的直接命令错误，不暴露带品牌类型的 id 或 revision；意外实现失败仍会让分发失败，使适配器能将其报告为命令失败。
+
+修改目标会将所有带清单的任务重置为 `PENDING`；完成前，需再次对每个必需任务运行 `/goal accept <id>`。
+
+没有清单的已发布 goal 仍可读取。使用 `/goal scope` 设置它首次跟踪的任务列表；记录中的原始列表保持为空，提供的范围会连同原因一起保存，所有任务均从 `PENDING` 开始。
 
 ### 附件
 
@@ -75,7 +81,7 @@ kind: "package-reference"
 
 ### 设计
 
-- **语法，而非自由文本。** 解析器只在控制词（`clear`、`pause`、`resume`、`edit`）填满整个输入时识别它们；其他任何非空后缀都是目标。单独的 `edit` 无效，且 `edit` 拒绝直接替换未完成的 goal。
+- **显式命令语法。** 创建需要含目标和非空任务列表的 JSON；验收指定一个精确 ID，范围替换提供含原因与完整列表的 JSON。首次范围可为已发布且无清单的 goal 添加任务跟踪。单独的 `edit` 无效；编辑已完成 goal 须重新使用结构化 create。
 - **领域拒绝变成稳定错误。** `GoalError` 结果会转换为带固定消息的直接命令错误；意外失败会重新抛出，使适配器报告命令失败而非领域结果。渲染输出绝不暴露带品牌类型的 id 或 revision。
 - **附件随目标提交。** create 或 edit 成功时，命令提交一条用户 followup 消息，按选择顺序携带已准入的图片块与文件块，再附加固定文本 `Reference attachments for the goal objective.`。其他路径不提交消息，因此分发方 composer 保留草稿和附件卡。
 

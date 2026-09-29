@@ -262,6 +262,7 @@ function normalizeResult(command: string, value: unknown): CommandResult {
  * globals for that agent.
  */
 export class CommandRuntime extends TypertRemoteService {
+  private readonly activeInvocations = new WeakMap<object, CommandDefinitionId | undefined>()
   /** Session store required to seed exact command audit folds on creation. */
   static inject = ['sessions']
 
@@ -332,6 +333,17 @@ export class CommandRuntime extends TypertRemoteService {
    */
   find(agent: Agent, name: string): CommandDefinition | undefined {
     return this.view(agent).get(name)?.definition
+  }
+
+  /**
+   * Check that an invocation is active and, when supplied, belongs to one definition.
+   * @param invocation - exact object passed to a registered handler.
+   * @param definitionId - required registered definition identity.
+   * @returns whether the handler is still active and its request is not cancelled.
+   */
+  isActiveInvocation(invocation: { readonly agent: Agent; readonly signal: AbortSignal }, definitionId?: string): boolean {
+    return this.activeInvocations.has(invocation) && !invocation.signal.aborted
+      && (definitionId === undefined || this.activeInvocations.get(invocation) === definitionId)
   }
 
   /**
@@ -425,12 +437,15 @@ export class CommandRuntime extends TypertRemoteService {
     }
     const invocation = Object.freeze({ commandId, agent, rawInput: parsed.rawInput, attachments, signal })
     let result: CommandResult
+    this.activeInvocations.set(invocation, command.definition.definitionId)
     try {
       const output = command.definition.handler(invocation)
       result = normalizeResult(parsed.name, await withAbort(Promise.resolve(output), signal))
     } catch (error: unknown) {
       this.settleThrown(agent.session, parsed.name, commandId, error)
       throw error
+    } finally {
+      this.activeInvocations.delete(invocation)
     }
     return settle(result)
   }

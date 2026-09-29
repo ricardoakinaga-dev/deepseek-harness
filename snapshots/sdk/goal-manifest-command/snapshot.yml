@@ -1,0 +1,8 @@
+version: 1
+scenario: goal-manifest-command
+profile: sdk
+composition: default
+recording: authored
+header:
+  class: goal-manifest-command
+  pin: true

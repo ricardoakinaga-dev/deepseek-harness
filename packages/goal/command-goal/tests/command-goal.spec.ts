@@ -83,6 +83,11 @@ async function run(test: Harness, suffix = ''): Promise<NonNullable<Awaited<Retu
   return execution.result
 }
 
+/** Create a goal with a complete one-task manifest through the public command. */
+function runCreate(test: Harness, objective: string) {
+  return run(test, ` create ${JSON.stringify({ objective, requiredTasks: [{ id: 'done', criterion: objective }] })}`)
+}
+
 /** Current exact compare-and-set ref. */
 function ref(goal: NonNullable<ReturnType<GoalService['get']>>): GoalRef {
   return { id: goal.id, revision: goal.revision }
@@ -101,7 +106,7 @@ describe('@deepseek-ai/dsh-command-goal registration', () => {
       definitionId: '@deepseek-ai/dsh-command-goal',
       name: 'goal',
       description: 'Set or view the goal for a long-running task',
-      input: { hint: '[<objective>|clear|edit <objective>|pause|resume]', attachments: true },
+      input: { hint: '[create <JSON>|accept <id>|scope <JSON>|clear|edit <objective>|pause|resume]', attachments: true },
     })
     expect(test.ctx.commands.find(test.agent, 'goal')).toBeDefined()
 
@@ -111,18 +116,75 @@ describe('@deepseek-ai/dsh-command-goal registration', () => {
 })
 
 describe('/goal human command', () => {
+  it('accepts a structured manifest and changes scope only through explicit commands', async () => {
+    const test = await harness()
+    const tasks = Array.from({ length: 20 }, (_, index) => ({ id: `RA29-${index + 1}`, criterion: `Criterion ${index + 1}` }))
+    const created = await run(test, ` create ${JSON.stringify({ objective: 'Complete all 20 IDs', requiredTasks: tasks })}`)
+    expect(created.kind).toBe('success')
+    expect(created.text).toContain('/goal accept <id>')
+    expect(created.text).toContain('/goal scope <JSON>')
+    expect(test.ctx.goals.get(test.agent)?.taskManifest?.tasks).toHaveLength(20)
+    expect((await run(test, ' accept RA29-1')).kind).toBe('success')
+    expect(test.ctx.goals.get(test.agent)?.taskManifest?.tasks[0]?.status).toBe('ACCEPTED')
+    expect(() => test.ctx.goals.complete(test.agent, ref(test.ctx.goals.get(test.agent)!)))
+      .toThrow(expect.objectContaining({ code: 'GOAL_TASKS_INCOMPLETE' }))
+    const scope = await run(test, ` scope ${JSON.stringify({ reason: 'Human removed the other IDs', requiredTasks: [tasks[0]] })}`)
+    expect(scope.kind).toBe('success')
+    expect(test.ctx.goals.get(test.agent)?.taskManifest?.originalRequiredTasks).toHaveLength(20)
+    expect(test.ctx.goals.get(test.agent)?.taskManifest?.tasks).toHaveLength(1)
+    expect(test.ctx.goals.complete(test.agent, ref(test.ctx.goals.get(test.agent)!)).phase).toBe('complete')
+  })
+
+  it('shows and accepts a first explicit scope for a released manifestless goal', async () => {
+    const test = await harness()
+    await runCreate(test, 'Historical objective')
+    const source = test.session.snapshotEvents().find(event => event.type === 'goal/change')
+    if (source?.type !== 'goal/change' || source.data.operation !== 'create') {
+      throw new Error('expected a goal create event')
+    }
+    const historical = stubAgent(test.ctx, 'command-goal-historical')
+    historical.session.append('goal/change', {
+      kind: 'goal/change',
+      version: 1,
+      operation: 'create',
+      goal: {
+        id: source.data.goal.id,
+        revision: source.data.goal.revision,
+        objective: source.data.goal.objective,
+        phase: 'active',
+        maxGoalRounds: source.data.goal.maxGoalRounds,
+      },
+      roundsStarted: source.data.roundsStarted,
+      createdAt: source.data.createdAt,
+      updatedAt: source.data.updatedAt,
+    })
+    await test.ctx.agents.register(historical.agent)
+    const legacy: Harness = { ...test, agent: historical.agent, session: historical.session }
+    const before = await run(legacy)
+    expect(before.text).toContain('/goal scope <JSON>')
+    expect(before.text).not.toContain('/goal accept <id>')
+
+    const tasks = [{ id: 'legacy', criterion: 'Historical objective is complete' }]
+    expect((await run(legacy, ` scope ${JSON.stringify({ reason: 'Human set the initial tracked scope', requiredTasks: tasks })}`)).kind)
+      .toBe('success')
+    expect(test.ctx.goals.get(historical.agent)?.taskManifest?.tasks).toMatchObject([
+      { id: 'legacy', status: 'PENDING' },
+    ])
+    expect((await run(legacy)).text).toContain('/goal accept <id>')
+  })
+
   it('shows an empty status without mutating the session', async () => {
     const test = await harness()
     await expect(run(test)).resolves.toEqual({
       kind: 'success',
-      text: 'No goal is currently set.\nUsage: /goal [<objective>|clear|edit <objective>|pause|resume]',
+      text: 'No goal is currently set.\nUsage: /goal [create <JSON>|accept <id>|scope <JSON>|clear|edit <objective>|pause|resume]',
     })
     expect(domainEvents(test.session)).toEqual([])
   })
 
   it('creates a trimmed objective and refuses silent replacement of unfinished work', async () => {
     const test = await harness()
-    const created = await run(test, '\n  finish the release  ')
+    const created = await runCreate(test, 'finish the release')
     expect(created.kind).toBe('success')
     expect(created.text).toContain('Goal created\nStatus: active')
     expect(created.text).toContain('Objective: finish the release')
@@ -132,7 +194,7 @@ describe('/goal human command', () => {
     expect(domainEvents(test.session).map(event => event.type)).toEqual(['goal/change'])
 
     const count = domainEvents(test.session).length
-    await expect(run(test, ' replacement')).resolves.toEqual({
+    await expect(runCreate(test, 'replacement')).resolves.toEqual({
       kind: 'error',
       text: 'A goal is already active. Use /goal edit <objective> to change it or /goal clear before replacing it.',
     })
@@ -141,8 +203,9 @@ describe('/goal human command', () => {
 
   it('treats only exact control words as controls', async () => {
     const test = await harness()
-    await run(test, ' pause everything only after verification')
-    expect(test.ctx.goals.get(test.agent)?.objective).toBe('pause everything only after verification')
+    const rejected = await run(test, ' pause everything only after verification')
+    expect(rejected.kind).toBe('error')
+    expect(test.ctx.goals.get(test.agent)).toBeUndefined()
   })
 
   it('edits inline, requires an objective, and starts a new goal when the old one is complete', async () => {
@@ -155,16 +218,17 @@ describe('/goal human command', () => {
     expect(missingEdit.text).toContain('/goal edit requires one')
 
     const test = await harness()
-    await run(test, ' first')
+    await run(test, ' create {"objective":"first","requiredTasks":[{"id":"done","criterion":"First is complete"}]}')
     const first = test.ctx.goals.get(test.agent)!
     const updated = await run(test, ' EDIT\n  second  ')
     expect(updated.kind).toBe('success')
     expect(updated.text).toContain('Goal updated')
     expect(test.ctx.goals.get(test.agent)).toMatchObject({ id: first.id, objective: 'second', revision: 2 })
 
-    const current = test.ctx.goals.get(test.agent)!
-    test.ctx.goals.complete(test.agent, ref(current))
-    const replacement = await run(test, ' edit third')
+    await run(test, ' accept done')
+    test.ctx.goals.complete(test.agent, ref(test.ctx.goals.get(test.agent)!))
+    expect((await run(test, ' edit third')).kind).toBe('error')
+    const replacement = await runCreate(test, 'third')
     expect(replacement.kind).toBe('success')
     expect(replacement.text).toContain('Goal created')
     expect(test.ctx.goals.get(test.agent)).toMatchObject({ objective: 'third', revision: 1 })
@@ -184,7 +248,7 @@ describe('/goal human command', () => {
 
   it('pauses, resumes, clears, and converts expected domain rejections to command errors', async () => {
     const test = await harness()
-    await run(test, ' work')
+    await runCreate(test, 'work')
     const redundantResume = await run(test, ' RESUME')
     expect(redundantResume).toEqual({
       kind: 'error',
@@ -204,10 +268,13 @@ describe('/goal human command', () => {
 
   it('shows every durable phase and distinguishes disarmed active state', async () => {
     const test = await harness()
-    test.ctx.goals.create(test.agent, { objective: 'state matrix', maxGoalRounds: 1 })
+    test.ctx.goals.create(test.agent, { objective: 'state matrix', maxGoalRounds: 1,
+      requiredTasks: [{ id: 'done', criterion: 'Matrix complete' }] })
+    await run(test, ' accept done')
     test.ctx.goals.disarm(test.agent)
     expect((await run(test)).text)
-      .toContain('Status: active\nObjective: state matrix\nRounds: 0/1\nActivation: disarmed')
+      .toContain('Status: active\nObjective: state matrix\nOriginal objective: state matrix')
+    expect((await run(test)).text).toContain('Rounds: 0/1\nActivation: disarmed')
     expect((await run(test)).text).toContain('/goal resume')
 
     let goal = test.ctx.goals.get(test.agent)!
@@ -228,7 +295,7 @@ describe('/goal human command', () => {
     test.ctx.goals.complete(test.agent, ref(goal))
     const complete = await run(test)
     expect(complete.text).toContain('Status: complete')
-    expect(complete.text).toContain('Commands: /goal <objective>, /goal clear')
+    expect(complete.text).toContain('Commands: /goal create <JSON>, /goal clear')
   })
 
   it('does not turn unexpected implementation failures into expected command results', async () => {
@@ -291,7 +358,7 @@ describe('/goal attachments', () => {
     provideStore(test)
     const followup = vi.fn()
     ;(test.agent as unknown as { followup: typeof followup }).followup = followup
-    const result = await runWithAttachments(test, ' rebuild the cathedral')
+    const result = await runWithAttachments(test, ` create ${JSON.stringify({ objective: 'rebuild the cathedral', requiredTasks: [{ id: 'done', criterion: 'rebuild the cathedral' }] })}`)
     expect(result.kind).toBe('success')
     expect(followup).toHaveBeenCalledTimes(1)
     const message = followup.mock.calls[0]?.[0] as {
@@ -310,7 +377,7 @@ describe('/goal attachments', () => {
     provideStore(test)
     const followup = vi.fn()
     ;(test.agent as unknown as { followup: typeof followup }).followup = followup
-    test.ctx.goals.create(test.agent, { objective: 'initial objective' })
+    test.ctx.goals.create(test.agent, { objective: 'initial objective', requiredTasks: [{ id: 'done', criterion: 'initial objective' }] })
     const result = await runWithAttachments(test, ' edit refined objective')
     expect(result.kind).toBe('success')
     expect(followup).toHaveBeenCalledTimes(1)
@@ -321,12 +388,12 @@ describe('/goal attachments', () => {
     provideStore(test)
     const followup = vi.fn()
     ;(test.agent as unknown as { followup: typeof followup }).followup = followup
-    test.ctx.goals.create(test.agent, { objective: 'active objective' })
+    test.ctx.goals.create(test.agent, { objective: 'active objective', requiredTasks: [{ id: 'done', criterion: 'active objective' }] })
     for (const suffix of [' pause', '', ' clear']) {
       const result = await runWithAttachments(test, suffix, false)
       expect(result).toEqual({
         kind: 'error',
-        text: 'Attachments only accompany a goal objective: /goal <objective> or /goal edit <objective>.',
+        text: 'Attachments only accompany a goal objective: /goal create <JSON> or /goal edit <objective>.',
       })
     }
     expect(followup).not.toHaveBeenCalled()
@@ -338,7 +405,7 @@ describe('/goal attachments', () => {
     provideStore(test)
     const followup = vi.fn()
     ;(test.agent as unknown as { followup: typeof followup }).followup = followup
-    test.ctx.goals.create(test.agent, { objective: 'existing objective' })
+    test.ctx.goals.create(test.agent, { objective: 'existing objective', requiredTasks: [{ id: 'done', criterion: 'existing objective' }] })
     const result = await runWithAttachments(test, ' replacement objective')
     expect(result.kind).toBe('error')
     expect(followup).not.toHaveBeenCalled()

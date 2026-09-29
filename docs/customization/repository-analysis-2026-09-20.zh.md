@@ -56,7 +56,7 @@ AAA-019:A01 现在有一个关于 fork 包发布身份的只读决策包。清�
 
 AAA-020:A01 现在有一个关于公开源导出兼容性的只读决策包。清单发现 293 个 package manifest 中有 279 个导出 `./src/*`，而受影响的 `files` 数组省略源文件；`pnpm run publint` 退出码为 0，但带有未匹配源文件警告。维护者必须决定删除该导出、发布并支持源树，或将其隔离到单独授权的开发发行包中。证据位于 [`AAA-020/scout-a01.json`](../../.agent/evidence/AAA-020/scout-a01.json)。
 
-AAA-018:A03 已完成其范围内的验收。维护者确认 `README.md` 是规范社区频道来源；`README.zh.md` 现在包含相同的三个目标，`pnpm run verify-readme-community-parity` 通过，并以负向夹具覆盖缺少目标和仅本地化目标的情况。`pnpm run audit:metrics` 输出包含所需模式、版本标识、环境、语料摘要和五个命名计数的已验证 JSON。当前保留结果包含 4,436 个源文件，计数为 90 个 `deprecated_reader`、263 个 `lint_suppression`、53 个 `todo_marker`、1,625 个 `explicit_any` 和 7 个 `selected_skip`；结果保存在 [`AAA-018/metrics.json`](../../.artifacts/aaa-018/aaa-018-a03-2026-09-21/metrics.json)。这不会授权静态债务迁移或广泛规则/编译器改动。
+AAA-018:A03 已完成其范围内的验收。维护者确认 `README.md` 是规范社区频道来源；`README.zh.md` 现在包含相同的三个目标，`pnpm run verify-readme-community-parity` 通过，并以负向夹具覆盖缺少目标和仅本地化目标的情况。`pnpm run audit:metrics` 输出包含所需模式、版本标识、环境、语料摘要和五个命名计数的已验证 JSON。本报告记录了 4,436 个源文件，计数为 90 个 `deprecated_reader`、263 个 `lint_suppression`、53 个 `todo_marker`、1,625 个 `explicit_any` 和 7 个 `selected_skip`；当前检出版本不包含生成的 metrics JSON。这不会授权静态债务迁移或广泛规则/编译器改动。
 
 AAA-022:A01 现在有一个关于静态契约债务的只读决策包。规范的 AAA-018 命令已经定义受 Git 跟踪的源代码语料和计数语义；其当前值在上文保留，早期探索性清单仅作为历史证据。有效的 host 和 client TypeScript 程序分别列出 1,599/249 和 551/74 个文件/引用，选定所有者路径的 Oxlint 检查退出码为 0。尚未授权迁移波次或广泛规则/编译器改动。证据位于 [`AAA-022/scout-a01.json`](../../.agent/evidence/AAA-022/scout-a01.json)。
 

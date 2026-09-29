@@ -43,6 +43,8 @@ ctx.commands.register({
 })
 ```
 
+处理器运行期间，`isActiveInvocation(invocation)` 验证本运行时签发的确切对象；结算或取消后验证失败。传入 `definitionId` 时还会要求所选注册定义匹配。Goal 任务验收与范围替换在 goal 服务提交前要求活跃的 `/goal` 定义标识。
+
 处理器返回 `success` 或 `error`，并可附带由适配器渲染的 UI 文本。`recordInput` 默认为 true；若载荷由命令自己的权威领域事件持有，命令会将 `recordInput` 设为 false，避免会话日志重复记录该输入。同一作用域内重复注册同名命令会抛出异常。
 
 ### 命令语法

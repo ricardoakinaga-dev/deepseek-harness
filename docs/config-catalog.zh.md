@@ -1307,7 +1307,7 @@ export type Config = LocalConfig
 ## `@deepseek-ai/dsh-goal`
 
 - `inject`: `agents` · `sessionProjections`
-- `source`: [`packages/goal/goal/src/index.ts:172`](../packages/goal/goal/src/index.ts)
+- `source`: [`packages/goal/goal/src/index.ts:185`](../packages/goal/goal/src/index.ts)
 
 ```ts config-catalog
 /** Deployment defaults for goal creation. */
@@ -3624,7 +3624,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-goal`
 
 - `inject`: `agents` · `goals` · `tools` · `systemPrompt` · `sessionProjections`
-- `source`: [`packages/goal/tool-goal/src/index.ts:32`](../packages/goal/tool-goal/src/index.ts)
+- `source`: [`packages/goal/tool-goal/src/index.ts:33`](../packages/goal/tool-goal/src/index.ts)
 
 ```ts config-catalog
 /** Model policy and hard lower bounds for goal-state updates. */

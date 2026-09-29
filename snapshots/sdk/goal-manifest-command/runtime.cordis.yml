@@ -1,0 +1,3 @@
+- insert:
+    - id: snapshot-goal-command-producer
+      name: './goal-command-producer.mjs'

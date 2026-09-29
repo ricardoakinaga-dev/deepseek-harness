@@ -40,7 +40,7 @@
 | `event:feedback/message-delete` | event | `3ee93b06f3a125850337602bcdf155d2538c43a5c944ec55b1b3c365152d6796` | [`{ type: "feedback/message-delete" }`](#persistence-type-sha256-3ee93b06f3a125850337602bcdf155d2538c43a5c944ec55b1b3c365152d6796) |
 | `event:feedback/message-put` | event | `b5086d249e8502e9ead1d39156bb8d559bde7951cac0f14ce150345b4e42a2bf` | [`{ type: "feedback/message-put" }`](#persistence-type-sha256-b5086d249e8502e9ead1d39156bb8d559bde7951cac0f14ce150345b4e42a2bf) |
 | `event:feedback/record` | event | `b54940ff095c17e874c5be03815f4c2145a256cf3a1d34dae4ab2f7769dfffe8` | [`{ type: "feedback/record" }`](#persistence-type-sha256-b54940ff095c17e874c5be03815f4c2145a256cf3a1d34dae4ab2f7769dfffe8) |
-| `event:goal/change` | event | `763c8a20af487263a0080548274f7437ef4a86e0ba8769127d1ced10a72c664d` | [`{ type: "goal/change" }`](#persistence-type-sha256-763c8a20af487263a0080548274f7437ef4a86e0ba8769127d1ced10a72c664d) |
+| `event:goal/change` | event | `85a122f576169e68e7896fd5b8d78b6aad15fcd82ebc47fd493ad3a14f6aa041` | [`{ type: "goal/change" }`](#persistence-type-sha256-85a122f576169e68e7896fd5b8d78b6aad15fcd82ebc47fd493ad3a14f6aa041) |
 | `event:hook/invoked` | event | `8a6e1ec9e8db346b0e02f027db73c07a94f067a26d40c1aef1abd09c47ce7ba0` | [`{ type: "hook/invoked" }`](#persistence-type-sha256-8a6e1ec9e8db346b0e02f027db73c07a94f067a26d40c1aef1abd09c47ce7ba0) |
 | `event:hook/result` | event | `e75916628f3f10c2d50658bd143052a46285fbf1a9a700ba54947614603d26b4` | [`{ type: "hook/result" }`](#persistence-type-sha256-e75916628f3f10c2d50658bd143052a46285fbf1a9a700ba54947614603d26b4) |
 | `event:image/offload` | event | `b222069eea2d768065161c1147b1f2c78c1b54328c84b3586ae5c8f91b8ed35e` | [`{ type: "image/offload" }`](#persistence-type-sha256-b222069eea2d768065161c1147b1f2c78c1b54328c84b3586ae5c8f91b8ed35e) |
@@ -555,7 +555,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'goal/change': GoalChangeMeta
 ```
 
-来源：[`packages/goal/goal/src/domain.ts:66`](../packages/goal/goal/src/domain.ts)
+来源：[`packages/goal/goal/src/domain.ts:92`](../packages/goal/goal/src/domain.ts)
 
 ### `hook/*`
 
@@ -1286,6 +1286,38 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 ## 已解析的持久化类型
 
 每个类型定义仅列出一次。引用保留共享和递归关系；定义旁的摘要涵盖其完整可达结构。源码名称和位置标识声明来源，但不参与摘要计算。
+
+<a id="persistence-type-sha256-6449f9e5b6044a44cfd44684c98e7029ee6c0d17162a2a718718c9afb166b0ba"></a>
+
+### `"ACCEPTED"`
+
+SHA-256: `6449f9e5b6044a44cfd44684c98e7029ee6c0d17162a2a718718c9afb166b0ba`
+
+`"ACCEPTED"`
+
+<a id="persistence-type-sha256-a31089229d2ef177811a7552d900547393ad02eacf26576b8e6efb97a2801e7e"></a>
+
+### `"BLOCKED_EXTERNAL"`
+
+SHA-256: `a31089229d2ef177811a7552d900547393ad02eacf26576b8e6efb97a2801e7e`
+
+`"BLOCKED_EXTERNAL"`
+
+<a id="persistence-type-sha256-e8efb7f180280bfc57b3e46f7558b1aebc332c725a198e3259227bc2d2500418"></a>
+
+### `"PARCIAL"`
+
+SHA-256: `e8efb7f180280bfc57b3e46f7558b1aebc332c725a198e3259227bc2d2500418`
+
+`"PARCIAL"`
+
+<a id="persistence-type-sha256-fd8a8c30cfaa9e687ffee8a7a88db3e1e832a5dd3c0adb57f33ed5ef7bb75d97"></a>
+
+### `"PENDING"`
+
+SHA-256: `fd8a8c30cfaa9e687ffee8a7a88db3e1e832a5dd3c0adb57f33ed5ef7bb75d97`
+
+`"PENDING"`
 
 <a id="persistence-type-sha256-1e0b0b66b6f0c53fc72e52289d06b4708d776f1ca9df4c86a22bff621d403cf0"></a>
 
@@ -3352,14 +3384,14 @@ SHA-256: `5808e36c95355f0e745201b5db1b6bcec4ebf5adb75d3e82d7d59cc89635ab80`
 
 SHA-256: `84ac8c1a66ffc697262e181f42e851259eae14038c113ca329fb4700ccdb1f7c`
 
-来源：[`packages/goal/goal/src/types.ts:52`](../packages/goal/goal/src/types.ts)
+来源：[`packages/goal/goal/src/types.ts:87`](../packages/goal/goal/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
 | `code` | 必需 | `string` |
 | `message` | 必需 | `string` |
 
-<a id="persistence-type-sha256-7d226b9fd95b4ba213d4237c22e930a91c3c769c95ca7f92977b9d625ba13438"></a>
+<a id="persistence-type-sha256-bea62e2f2c13b384e302be751e9033f80322e18399bb3c70a0d3de0dd22f68f0"></a>
 
 <a id="persistence-type-goalchangemeta"></a>
 
@@ -3367,26 +3399,28 @@ SHA-256: `84ac8c1a66ffc697262e181f42e851259eae14038c113ca329fb4700ccdb1f7c`
 
 ### `GoalChangeMeta`
 
-SHA-256: `7d226b9fd95b4ba213d4237c22e930a91c3c769c95ca7f92977b9d625ba13438`
+SHA-256: `bea62e2f2c13b384e302be751e9033f80322e18399bb3c70a0d3de0dd22f68f0`
 
-来源：[`packages/goal/goal/src/domain.ts:44`](../packages/goal/goal/src/domain.ts)
+来源：[`packages/goal/goal/src/domain.ts:70`](../packages/goal/goal/src/domain.ts)
 
 | kind | form 属性 | 其他必需字段 | 完整定义 |
 |---|---|---|---|
-| `goal/change` | 未声明 | `createdAt`: `number`; `goal`: [`GoalSnapshot`](#persistence-type-sha256-6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25); `operation`: [`union (6 variants)`](#persistence-type-sha256-62e6a429ff3f390a46ac39fb468692032f42936ca0db19b53454184189401379); `roundsStarted`: `number`; `updatedAt`: `number`; `version`: `1` | [`GoalSnapshotChangeMeta`](#persistence-type-sha256-1df34a6c086866ffdc2dd9e8e5c581c3751a010cdf6b8538a7327f7a3237f0b4) |
-| `goal/change` | 未声明 | `cleared`: [`GoalRef`](#persistence-type-sha256-0b6d718c693fdf7f06dcccb0bcbbabe78cc63514eafc62d6b2a3899735279d6f); `clearedAt`: `number`; `operation`: `"clear"`; `version`: `1` | [`GoalClearChangeMeta`](#persistence-type-sha256-cffcdc19881ab61ec0a9ce18743996f7ac44ac8889f34dfac36ae745574aa22f) |
+| `goal/change` | 未声明 | `createdAt`: `number`; `goal`: [`GoalSnapshotV1`](#persistence-type-sha256-6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25); `operation`: [`union (6 variants)`](#persistence-type-sha256-62e6a429ff3f390a46ac39fb468692032f42936ca0db19b53454184189401379); `roundsStarted`: `number`; `updatedAt`: `number`; `version`: `1` | [`GoalSnapshotChangeV1`](#persistence-type-sha256-1df34a6c086866ffdc2dd9e8e5c581c3751a010cdf6b8538a7327f7a3237f0b4) |
+| `goal/change` | 未声明 | `createdAt`: `number`; `goal`: [`GoalSnapshot`](#persistence-type-sha256-26f4c1ba60adf6732931bb077c793bc3df0b2178b54ab567c293853f321404bd); `operation`: [`union (6 variants)`](#persistence-type-sha256-62e6a429ff3f390a46ac39fb468692032f42936ca0db19b53454184189401379); `roundsStarted`: `number`; `updatedAt`: `number`; `version`: `2` | [`GoalSnapshotChangeV2`](#persistence-type-sha256-6c0dc2e1170766599f0ad8776d34812acaf75b4b0d77226b6237d93794f1f2de) |
+| `goal/change` | 未声明 | `cleared`: [`GoalRef`](#persistence-type-sha256-0b6d718c693fdf7f06dcccb0bcbbabe78cc63514eafc62d6b2a3899735279d6f); `clearedAt`: `number`; `operation`: `"clear"`; `version`: `2` | [`GoalClearChangeV2`](#persistence-type-sha256-9dcb170c734b872d7adb8955f7754eae2d7f807b4950d882f77b2e41fd02cc6d) |
+| `goal/change` | 未声明 | `cleared`: [`GoalRef`](#persistence-type-sha256-0b6d718c693fdf7f06dcccb0bcbbabe78cc63514eafc62d6b2a3899735279d6f); `clearedAt`: `number`; `operation`: `"clear"`; `version`: `1` | [`GoalClearChangeV1`](#persistence-type-sha256-cffcdc19881ab61ec0a9ce18743996f7ac44ac8889f34dfac36ae745574aa22f) |
 
 <a id="persistence-type-sha256-cffcdc19881ab61ec0a9ce18743996f7ac44ac8889f34dfac36ae745574aa22f"></a>
 
-<a id="persistence-type-goalclearchangemeta"></a>
+<a id="persistence-type-goalclearchangev1"></a>
 
-<a id="persistence-type-packagesgoalgoalsrcdomaintsgoalclearchangemeta"></a>
+<a id="persistence-type-packagesgoalgoalsrcdomaintsgoalclearchangev1"></a>
 
-### `GoalClearChangeMeta`
+### `GoalClearChangeV1`
 
 SHA-256: `cffcdc19881ab61ec0a9ce18743996f7ac44ac8889f34dfac36ae745574aa22f`
 
-来源：[`packages/goal/goal/src/domain.ts:35`](../packages/goal/goal/src/domain.ts)
+来源：[`packages/goal/goal/src/domain.ts:49`](../packages/goal/goal/src/domain.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -3395,6 +3429,26 @@ SHA-256: `cffcdc19881ab61ec0a9ce18743996f7ac44ac8889f34dfac36ae745574aa22f`
 | `kind` | 必需 | `"goal/change"` |
 | `operation` | 必需 | `"clear"` |
 | `version` | 必需 | `1` |
+
+<a id="persistence-type-sha256-9dcb170c734b872d7adb8955f7754eae2d7f807b4950d882f77b2e41fd02cc6d"></a>
+
+<a id="persistence-type-goalclearchangev2"></a>
+
+<a id="persistence-type-packagesgoalgoalsrcdomaintsgoalclearchangev2"></a>
+
+### `GoalClearChangeV2`
+
+SHA-256: `9dcb170c734b872d7adb8955f7754eae2d7f807b4950d882f77b2e41fd02cc6d`
+
+来源：[`packages/goal/goal/src/domain.ts:58`](../packages/goal/goal/src/domain.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `cleared` | 必需 | [`GoalRef`](#persistence-type-sha256-0b6d718c693fdf7f06dcccb0bcbbabe78cc63514eafc62d6b2a3899735279d6f) |
+| `clearedAt` | 必需 | `number` |
+| `kind` | 必需 | `"goal/change"` |
+| `operation` | 必需 | `"clear"` |
+| `version` | 必需 | `2` |
 
 <a id="persistence-type-sha256-7f959241c24128b4983b559984811861dc59774b85905c8fa57c6cb0148a3dbc"></a>
 
@@ -3406,7 +3460,7 @@ SHA-256: `cffcdc19881ab61ec0a9ce18743996f7ac44ac8889f34dfac36ae745574aa22f`
 
 SHA-256: `7f959241c24128b4983b559984811861dc59774b85905c8fa57c6cb0148a3dbc`
 
-来源：[`packages/goal/goal/src/domain.ts:47`](../packages/goal/goal/src/domain.ts)
+来源：[`packages/goal/goal/src/domain.ts:73`](../packages/goal/goal/src/domain.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -3425,7 +3479,7 @@ SHA-256: `7f959241c24128b4983b559984811861dc59774b85905c8fa57c6cb0148a3dbc`
 
 SHA-256: `b8327af7ee5767952d1300cb4f03b7fc04197ae5ba275e13981c689ff7506172`
 
-来源：[`packages/goal/goal/src/types.ts:45`](../packages/goal/goal/src/types.ts)
+来源：[`packages/goal/goal/src/types.ts:80`](../packages/goal/goal/src/types.ts)
 
 以下类型之一：
 
@@ -3451,7 +3505,32 @@ SHA-256: `0b6d718c693fdf7f06dcccb0bcbbabe78cc63514eafc62d6b2a3899735279d6f`
 | `id` | 必需 | `string` |
 | `revision` | 必需 | `number` |
 
-<a id="persistence-type-sha256-6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25"></a>
+<a id="persistence-type-sha256-0287e235e04ca829cc4593c93c879d6efef431185bf3a25cd3eb35d50e6e0632"></a>
+
+<a id="persistence-type-goalscoperevision"></a>
+
+<a id="persistence-type-packagesgoalgoalsrctypestsgoalscoperevision"></a>
+
+### `GoalScopeRevision`
+
+SHA-256: `0287e235e04ca829cc4593c93c879d6efef431185bf3a25cd3eb35d50e6e0632`
+
+来源：[`packages/goal/goal/src/types.ts:50`](../packages/goal/goal/src/types.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `reason` | 必需 | `string` |
+| `requiredTasks` | 必需 | [`GoalTaskDefinition[]`](#persistence-type-sha256-3c63d8952d5a3d3ba26eb7e7bce35d5d0da2fdef2949170f2a34fe4db85d764e) |
+
+<a id="persistence-type-sha256-828f605f216618b26e395e7289a6168f113639d78c751fd78f142ab5ca17a079"></a>
+
+### `GoalScopeRevision[]`
+
+SHA-256: `828f605f216618b26e395e7289a6168f113639d78c751fd78f142ab5ca17a079`
+
+[`GoalScopeRevision`](#persistence-type-sha256-0287e235e04ca829cc4593c93c879d6efef431185bf3a25cd3eb35d50e6e0632) 的数组。
+
+<a id="persistence-type-sha256-26f4c1ba60adf6732931bb077c793bc3df0b2178b54ab567c293853f321404bd"></a>
 
 <a id="persistence-type-goalsnapshot"></a>
 
@@ -3459,9 +3538,75 @@ SHA-256: `0b6d718c693fdf7f06dcccb0bcbbabe78cc63514eafc62d6b2a3899735279d6f`
 
 ### `GoalSnapshot`
 
+SHA-256: `26f4c1ba60adf6732931bb077c793bc3df0b2178b54ab567c293853f321404bd`
+
+来源：[`packages/goal/goal/src/types.ts:107`](../packages/goal/goal/src/types.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `blockedReason` | 可选 | [`GoalBlockReason`](#persistence-type-sha256-84ac8c1a66ffc697262e181f42e851259eae14038c113ca329fb4700ccdb1f7c) |
+| `id` | 必需 | `string` |
+| `maxGoalRounds` | 必需 | `number` |
+| `objective` | 必需 | `string` |
+| `phase` | 必需 | [`GoalPhase`](#persistence-type-sha256-b8327af7ee5767952d1300cb4f03b7fc04197ae5ba275e13981c689ff7506172) |
+| `revision` | 必需 | `number` |
+| `taskManifest` | 可选 | [`GoalTaskManifest`](#persistence-type-sha256-ec8008c6c3b6d185dbd268a2fd07e73463181b4b0414d10a239f79a242f2ce39) |
+
+<a id="persistence-type-sha256-1df34a6c086866ffdc2dd9e8e5c581c3751a010cdf6b8538a7327f7a3237f0b4"></a>
+
+<a id="persistence-type-goalsnapshotchangev1"></a>
+
+<a id="persistence-type-packagesgoalgoalsrcdomaintsgoalsnapshotchangev1"></a>
+
+### `GoalSnapshotChangeV1`
+
+SHA-256: `1df34a6c086866ffdc2dd9e8e5c581c3751a010cdf6b8538a7327f7a3237f0b4`
+
+来源：[`packages/goal/goal/src/domain.ts:24`](../packages/goal/goal/src/domain.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `createdAt` | 必需 | `number` |
+| `goal` | 必需 | [`GoalSnapshotV1`](#persistence-type-sha256-6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25) |
+| `kind` | 必需 | `"goal/change"` |
+| `operation` | 必需 | [`union (6 variants)`](#persistence-type-sha256-62e6a429ff3f390a46ac39fb468692032f42936ca0db19b53454184189401379) |
+| `roundsStarted` | 必需 | `number` |
+| `updatedAt` | 必需 | `number` |
+| `version` | 必需 | `1` |
+
+<a id="persistence-type-sha256-6c0dc2e1170766599f0ad8776d34812acaf75b4b0d77226b6237d93794f1f2de"></a>
+
+<a id="persistence-type-goalsnapshotchangev2"></a>
+
+<a id="persistence-type-packagesgoalgoalsrcdomaintsgoalsnapshotchangev2"></a>
+
+### `GoalSnapshotChangeV2`
+
+SHA-256: `6c0dc2e1170766599f0ad8776d34812acaf75b4b0d77226b6237d93794f1f2de`
+
+来源：[`packages/goal/goal/src/domain.ts:35`](../packages/goal/goal/src/domain.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `createdAt` | 必需 | `number` |
+| `goal` | 必需 | [`GoalSnapshot`](#persistence-type-sha256-26f4c1ba60adf6732931bb077c793bc3df0b2178b54ab567c293853f321404bd) |
+| `kind` | 必需 | `"goal/change"` |
+| `operation` | 必需 | [`union (6 variants)`](#persistence-type-sha256-62e6a429ff3f390a46ac39fb468692032f42936ca0db19b53454184189401379) |
+| `roundsStarted` | 必需 | `number` |
+| `updatedAt` | 必需 | `number` |
+| `version` | 必需 | `2` |
+
+<a id="persistence-type-sha256-6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25"></a>
+
+<a id="persistence-type-goalsnapshotv1"></a>
+
+<a id="persistence-type-packagesgoalgoalsrctypestsgoalsnapshotv1"></a>
+
+### `GoalSnapshotV1`
+
 SHA-256: `6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25`
 
-来源：[`packages/goal/goal/src/types.ts:60`](../packages/goal/goal/src/types.ts)
+来源：[`packages/goal/goal/src/types.ts:95`](../packages/goal/goal/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -3472,27 +3617,94 @@ SHA-256: `6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25`
 | `phase` | 必需 | [`GoalPhase`](#persistence-type-sha256-b8327af7ee5767952d1300cb4f03b7fc04197ae5ba275e13981c689ff7506172) |
 | `revision` | 必需 | `number` |
 
-<a id="persistence-type-sha256-1df34a6c086866ffdc2dd9e8e5c581c3751a010cdf6b8538a7327f7a3237f0b4"></a>
+<a id="persistence-type-sha256-e2698187ffddbc5ee8c033be7185ec1b89c8de7288ea08eca2e50e1abb90cdc0"></a>
 
-<a id="persistence-type-goalsnapshotchangemeta"></a>
+<a id="persistence-type-goaltask"></a>
 
-<a id="persistence-type-packagesgoalgoalsrcdomaintsgoalsnapshotchangemeta"></a>
+<a id="persistence-type-packagesgoalgoalsrctypestsgoaltask"></a>
 
-### `GoalSnapshotChangeMeta`
+### `GoalTask`
 
-SHA-256: `1df34a6c086866ffdc2dd9e8e5c581c3751a010cdf6b8538a7327f7a3237f0b4`
+SHA-256: `e2698187ffddbc5ee8c033be7185ec1b89c8de7288ea08eca2e50e1abb90cdc0`
 
-来源：[`packages/goal/goal/src/domain.ts:24`](../packages/goal/goal/src/domain.ts)
+来源：[`packages/goal/goal/src/types.ts:45`](../packages/goal/goal/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
-| `createdAt` | 必需 | `number` |
-| `goal` | 必需 | [`GoalSnapshot`](#persistence-type-sha256-6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25) |
-| `kind` | 必需 | `"goal/change"` |
-| `operation` | 必需 | [`union (6 variants)`](#persistence-type-sha256-62e6a429ff3f390a46ac39fb468692032f42936ca0db19b53454184189401379) |
-| `roundsStarted` | 必需 | `number` |
-| `updatedAt` | 必需 | `number` |
-| `version` | 必需 | `1` |
+| `criterion` | 必需 | `string` |
+| `id` | 必需 | `string` |
+| `status` | 必需 | [`GoalTaskStatus`](#persistence-type-sha256-23f3fb2ad8d2670332e55c7b24fb0df475ca1caaa214e76a5303fb3be2b182fa) |
+
+<a id="persistence-type-sha256-98d886f603344315d081ece83e9239de02f5eb02a9693a4159b6dc5dd3b3ed40"></a>
+
+<a id="persistence-type-goaltaskdefinition"></a>
+
+<a id="persistence-type-packagesgoalgoalsrctypestsgoaltaskdefinition"></a>
+
+### `GoalTaskDefinition`
+
+SHA-256: `98d886f603344315d081ece83e9239de02f5eb02a9693a4159b6dc5dd3b3ed40`
+
+来源：[`packages/goal/goal/src/types.ts:36`](../packages/goal/goal/src/types.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `criterion` | 必需 | `string` |
+| `id` | 必需 | `string` |
+
+<a id="persistence-type-sha256-3c63d8952d5a3d3ba26eb7e7bce35d5d0da2fdef2949170f2a34fe4db85d764e"></a>
+
+### `GoalTaskDefinition[]`
+
+SHA-256: `3c63d8952d5a3d3ba26eb7e7bce35d5d0da2fdef2949170f2a34fe4db85d764e`
+
+[`GoalTaskDefinition`](#persistence-type-sha256-98d886f603344315d081ece83e9239de02f5eb02a9693a4159b6dc5dd3b3ed40) 的数组。
+
+<a id="persistence-type-sha256-ec8008c6c3b6d185dbd268a2fd07e73463181b4b0414d10a239f79a242f2ce39"></a>
+
+<a id="persistence-type-goaltaskmanifest"></a>
+
+<a id="persistence-type-packagesgoalgoalsrctypestsgoaltaskmanifest"></a>
+
+### `GoalTaskManifest`
+
+SHA-256: `ec8008c6c3b6d185dbd268a2fd07e73463181b4b0414d10a239f79a242f2ce39`
+
+来源：[`packages/goal/goal/src/types.ts:56`](../packages/goal/goal/src/types.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `originalObjective` | 必需 | `string` |
+| `originalRequiredTasks` | 必需 | [`GoalTaskDefinition[]`](#persistence-type-sha256-3c63d8952d5a3d3ba26eb7e7bce35d5d0da2fdef2949170f2a34fe4db85d764e) |
+| `scopeRevisions` | 必需 | [`GoalScopeRevision[]`](#persistence-type-sha256-828f605f216618b26e395e7289a6168f113639d78c751fd78f142ab5ca17a079) |
+| `tasks` | 必需 | [`GoalTask[]`](#persistence-type-sha256-ca2940f1674f5b896d69b9352e7f4072f539a79bb04b0e4853e1d5ca3ece0b86) |
+
+<a id="persistence-type-sha256-23f3fb2ad8d2670332e55c7b24fb0df475ca1caaa214e76a5303fb3be2b182fa"></a>
+
+<a id="persistence-type-goaltaskstatus"></a>
+
+<a id="persistence-type-packagesgoalgoalsrctypestsgoaltaskstatus"></a>
+
+### `GoalTaskStatus`
+
+SHA-256: `23f3fb2ad8d2670332e55c7b24fb0df475ca1caaa214e76a5303fb3be2b182fa`
+
+来源：[`packages/goal/goal/src/types.ts:42`](../packages/goal/goal/src/types.ts)
+
+以下类型之一：
+
+- `"ACCEPTED"`
+- `"BLOCKED_EXTERNAL"`
+- `"PARCIAL"`
+- `"PENDING"`
+
+<a id="persistence-type-sha256-ca2940f1674f5b896d69b9352e7f4072f539a79bb04b0e4853e1d5ca3ece0b86"></a>
+
+### `GoalTask[]`
+
+SHA-256: `ca2940f1674f5b896d69b9352e7f4072f539a79bb04b0e4853e1d5ca3ece0b86`
+
+[`GoalTask`](#persistence-type-sha256-e2698187ffddbc5ee8c033be7185ec1b89c8de7288ea08eca2e50e1abb90cdc0) 的数组。
 
 <a id="persistence-type-sha256-18ee62b8900a4c3d046700f05d7a4d49d6cab2a660a020c87481d1603dd8bd4f"></a>
 
@@ -7945,17 +8157,17 @@ SHA-256: `a2b49331716ba0a7078b026d145306a70eae64b7313c3e6204bd931e75ec3bb1`
 | `replayState` | 可选 | [`ReplayEnvelope`](#persistence-type-sha256-0acd94fe8794574c9ae72c7855ee16d29c546096d4af760d16d1225385764555) |
 | `type` | 必需 | `"finish"` |
 
-<a id="persistence-type-sha256-763c8a20af487263a0080548274f7437ef4a86e0ba8769127d1ced10a72c664d"></a>
+<a id="persistence-type-sha256-85a122f576169e68e7896fd5b8d78b6aad15fcd82ebc47fd493ad3a14f6aa041"></a>
 
 <a id="persistence-type-eventgoalchange"></a>
 
 ### `{ type: "goal/change" }`
 
-SHA-256: `763c8a20af487263a0080548274f7437ef4a86e0ba8769127d1ced10a72c664d`
+SHA-256: `85a122f576169e68e7896fd5b8d78b6aad15fcd82ebc47fd493ad3a14f6aa041`
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
-| `data` | 必需 | [`GoalChangeMeta`](#persistence-type-sha256-7d226b9fd95b4ba213d4237c22e930a91c3c769c95ca7f92977b9d625ba13438) |
+| `data` | 必需 | [`GoalChangeMeta`](#persistence-type-sha256-bea62e2f2c13b384e302be751e9033f80322e18399bb3c70a0d3de0dd22f68f0) |
 | `ignorable` | 可选 | `true` |
 | `seq` | 必需 | `number` |
 | `time` | 必需 | `number` |

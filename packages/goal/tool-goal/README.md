@@ -34,10 +34,12 @@ All three tools return the same compact JSON — `{ goal: null }` when no goal i
 | Tool | What it does |
 |---|---|
 | `get_goal()` | Reads the current goal, or `null` when none is current |
-| `create_goal(objective, max_goal_rounds?)` | Creates one goal from a direct top-level human turn |
-| `update_goal(goal_id, revision, action, objective?, max_goal_rounds?, blocked_reason?)` | `edit`, `pause`, `resume`, `complete`, or `blocked` on the exact goal revision |
+| `create_goal(objective, required_tasks, max_goal_rounds?)` | Creates one goal from a direct top-level human turn; explicit required IDs carry criteria |
+| `update_goal(goal_id, revision, action, ...)` | Updates the exact revision; `task_status` records non-accepted progress; scope replacement uses `/goal scope` |
 
 Call `get_goal` before `update_goal` and copy the exact `goal_id` and `revision`; all calls are exclusive, so a model-ordered batch observes earlier mutations and their new revisions. Replacements belong only to `edit`; `blocked_reason` is required only for `blocked` and is persisted with the stable code `model-reported`. Strict-schema empty-string and zero fillers count as omitted, while meaningful values remain limited to their action.
+
+The tool result includes the original objective, original required IDs and criteria, current task statuses, and every explicit scope revision when a manifest exists. `ACCEPTED` and `revise_scope` are absent from the model tool schema; use explicit human `/goal accept` and `/goal scope` commands. A manifest supplied to `create_goal` must exactly match JSON `objective` and `requiredTasks` in the current human turn. Creation rejects an absent or empty manifest; the model must not infer omitted IDs from prose. For a released goal without a manifest, ask the human to set its first required task list with `/goal scope` before tracking or completion.
 
 ### Configure it
 
@@ -84,7 +86,7 @@ This section explains how the tools enforce authority and render output; the obs
 
 ### Tool output
 
-All three tools share one canonical output: the compact JSON `{ goal: null }` or `{ goal: { id, revision, objective, phase, roundsStarted, maxGoalRounds, blockedReason? }, activation }`. `activation` in a result is a live observation and never becomes replay authority. UI clients receive pure generic cards — read for `get_goal`, other for mutations.
+All three tools share one canonical output: the compact JSON `{ goal: null }` or `{ goal: { id, revision, objective, phase, roundsStarted, maxGoalRounds, blockedReason?, taskManifest? }, activation }`. `activation` in a result is a live observation and never becomes replay authority. UI clients receive pure generic cards — read for `get_goal`, other for mutations.
 
 </details>
 
@@ -114,7 +116,7 @@ A fixed goal policy allows inferring goal intent in any language, explains rearm
 ##### Goal policy
 
 ```markdown
-create_goal may infer goal intent from a direct human request in any language. After session resume or fork, an active goal is disarmed: when a human asks to continue or resume in any wording or language, use update_goal action resume to rearm it. Mark complete only when the objective is actually achieved. Mark blocked only after the same blocking condition persists for at least 3 consecutive goal rounds, and report that concrete condition in blocked_reason; difficulty, uncertainty, or useful remaining work is not blocked.
+create_goal may infer goal intent from a direct human request in any language. After session resume or fork, an active goal is disarmed: when a human asks to continue or resume in any wording or language, use update_goal action resume to rearm it. Create a task manifest by copying every ID and criterion from exact human JSON objective and requiredTasks fields without inference. For a released goal without a manifest, ask the human to set its first requiredTasks with /goal scope; all adopted tasks start PENDING. Use task_status for progress. Human task acceptance and scope changes use explicit /goal commands. Completion requires a manifest with every task accepted. Mark complete only when the objective is actually achieved. Mark blocked only after the same blocking condition persists for at least 3 consecutive goal rounds, and report that concrete condition in blocked_reason; difficulty, uncertainty, or useful remaining work is not blocked.
 ```
 
 #### Token effect

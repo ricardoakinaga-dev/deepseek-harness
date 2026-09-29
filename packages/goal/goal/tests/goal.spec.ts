@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { agentEvents } from '@deepseek-ai/dsh-agent'
+import CommandRuntime, { CommandDefinitionId } from '@deepseek-ai/dsh-commands'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, HarnessError } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
@@ -12,7 +13,7 @@ import GoalService, {
   decodeGoalChange,
   foldGoal,
 } from '@deepseek-ai/dsh-goal'
-import type { GoalChangeMeta, GoalRef, GoalSnapshotChangeMeta } from '@deepseek-ai/dsh-goal'
+import type { CreateGoalRequest, EditGoalRequest, GoalChangeMeta, GoalRef, GoalSnapshotChangeMeta, GoalView } from '@deepseek-ai/dsh-goal'
 import { createInboxStub } from '@deepseek-ai/dsh-agent-loop-testkit'
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -92,11 +93,49 @@ async function harness(config: { defaultMaxGoalRounds?: number } = {}) {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(CommandRuntime)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(GoalService, config)
   const stub = stubAgent(`goal-test-${Math.random()}`, undefined, ctx)
   await ctx.agents.register(stub.agent)
   return { ctx, ...stub }
+}
+
+/** Supply an explicit criterion to lifecycle cases that do not inspect task status. */
+function createGoal(ctx: Context, agent: Agent, request: Omit<CreateGoalRequest, 'requiredTasks'> & { requiredTasks?: CreateGoalRequest['requiredTasks'] }): GoalView {
+  return ctx.goals.create(agent, {
+    ...request,
+    requiredTasks: request.requiredTasks ?? [{ id: 'done', criterion: 'The objective is met' }],
+  })
+}
+
+/** Exercise the service's accepted human command path through the real runtime. */
+async function humanEdit(ctx: Context, agent: Agent, ref: GoalRef, request: EditGoalRequest): Promise<GoalView> {
+  let edited: GoalView | undefined
+  const dispose = ctx.commands.register({
+    definitionId: CommandDefinitionId('@deepseek-ai/dsh-command-goal'),
+    name: 'goal', description: 'Test goal edit',
+    handler(invocation) {
+      edited = ctx.goals.editFromCommand(invocation, ref, request)
+      return { kind: 'success' }
+    },
+  })
+  try {
+    await ctx.commands.execute(agent, '/goal', [], new AbortController().signal)
+    if (edited === undefined) throw new Error('goal command did not edit')
+    return edited
+  } finally {
+    dispose()
+  }
+}
+
+/** Make one explicit criterion accepted before lifecycle-only assertions. */
+async function acceptedGoal(ctx: Context, agent: Agent, objective: string, maxGoalRounds?: number): Promise<GoalView> {
+  const created = createGoal(ctx, agent, {
+    objective, requiredTasks: [{ id: 'done', criterion: 'The objective is met' }],
+    ...maxGoalRounds === undefined ? {} : { maxGoalRounds },
+  })
+  return humanEdit(ctx, agent, created, { taskStatus: { taskId: 'done', status: 'ACCEPTED' } })
 }
 
 /** Append one admitted goal round as a balanced user-message turn. */
@@ -111,6 +150,142 @@ function appendRound(session: Session, ref: GoalRef, round: number): void {
 }
 
 describe('GoalService creation and replay', () => {
+  it('rejects an empty manifest instead of inferring tasks from the objective', async () => {
+    const { ctx, agent, session } = await harness()
+    const ids = Array.from({ length: 20 }, (_, index) => `RA29-${index + 1}`).join(', ')
+    expect(() => ctx.goals.create(agent, { objective: `Complete ${ids}`, requiredTasks: [] }))
+      .toThrow(expect.objectContaining({ code: 'GOAL_INVALID_TASK_MANIFEST' }))
+    expect(session.snapshotEvents()).toHaveLength(0)
+  })
+
+  it('adopts an explicit human scope before completing an existing manifestless goal', async () => {
+    const { ctx, agent, session } = await harness()
+    createGoal(ctx, agent, { objective: 'Historical work' })
+    const event = session.snapshotEvents()[0]
+    if (event?.type !== 'goal/change' || event.data.operation !== 'create') throw new Error('expected goal create')
+    const historical = {
+      id: event.data.goal.id,
+      revision: event.data.goal.revision,
+      objective: event.data.goal.objective,
+      phase: event.data.goal.phase,
+      maxGoalRounds: event.data.goal.maxGoalRounds,
+    }
+    const oldSession = ctx.sessions.create(SessionId(`historical-goal-${Math.random()}`))
+    const oldAgent = stubAgentForSession(oldSession, ctx).agent
+    await ctx.agents.register(oldAgent)
+    oldSession.append('goal/change', { ...event.data, version: 1, goal: historical })
+    const view = ctx.goals.get(oldAgent)
+    expect(view?.taskManifest).toBeUndefined()
+    expect(view?.objective).toBe('Historical work')
+    expect(() => ctx.goals.complete(oldAgent, view!)).toThrow(expect.objectContaining({ code: 'GOAL_TASKS_INCOMPLETE' }))
+    const scope = await humanEdit(ctx, oldAgent, view!, {
+      scopeRevision: { reason: 'Human supplied the remaining acceptance criteria', requiredTasks: [
+        { id: 'legacy-work', criterion: 'Historical work is complete' },
+      ] },
+    })
+    expect(scope.taskManifest).toMatchObject({
+      originalObjective: 'Historical work',
+      originalRequiredTasks: [],
+      scopeRevisions: [{ reason: 'Human supplied the remaining acceptance criteria' }],
+      tasks: [{ id: 'legacy-work', status: 'PENDING' }],
+    })
+    expect(() => ctx.goals.complete(oldAgent, scope)).toThrow(expect.objectContaining({ code: 'GOAL_TASKS_INCOMPLETE' }))
+    const accepted = await humanEdit(ctx, oldAgent, scope, {
+      taskStatus: { taskId: 'legacy-work', status: 'ACCEPTED' },
+    })
+    expect(ctx.goals.complete(oldAgent, accepted).phase).toBe('complete')
+  })
+
+  it('rejects direct and remote privileged edits without active command authority', async () => {
+    const { ctx, agent, session } = await harness()
+    const goal = createGoal(ctx, agent, {
+      objective: 'Complete A and B', requiredTasks: [
+        { id: 'A', criterion: 'A works' }, { id: 'B', criterion: 'B works' },
+      ],
+    })
+    const count = session.snapshotEvents().length
+    const accepted = { taskStatus: { taskId: 'A', status: 'ACCEPTED' as const } }
+    const scope = { scopeRevision: { reason: 'Remove B', requiredTasks: [{ id: 'A', criterion: 'A works' }] } }
+    expect(() => ctx.goals.edit(agent, goal, accepted)).toThrow(expect.objectContaining({ code: 'GOAL_HUMAN_AUTHORITY_REQUIRED' }))
+    expect(() => ctx.goals.edit(agent, goal, scope)).toThrow(expect.objectContaining({ code: 'GOAL_HUMAN_AUTHORITY_REQUIRED' }))
+    expect(() => ctx.goals.editFromCommand({ agent, signal: new AbortController().signal }, goal, accepted))
+      .toThrow(expect.objectContaining({ code: 'GOAL_HUMAN_AUTHORITY_REQUIRED' }))
+    expect(session.snapshotEvents()).toHaveLength(count)
+    let settledInvocation: Parameters<GoalService['editFromCommand']>[0] | undefined
+    const dispose = ctx.commands.register({
+      name: 'capture-goal', description: 'Capture a command invocation',
+      handler(invocation) { settledInvocation = invocation; return { kind: 'success' } },
+    })
+    await ctx.commands.execute(agent, '/capture-goal', [], new AbortController().signal)
+    dispose()
+    const capturedInvocation = settledInvocation
+    if (capturedInvocation === undefined) throw new Error('command invocation was not captured')
+    expect(() => ctx.goals.editFromCommand(capturedInvocation, goal, accepted))
+      .toThrow(expect.objectContaining({ code: 'GOAL_HUMAN_AUTHORITY_REQUIRED' }))
+    const revised = await humanEdit(ctx, agent, goal, scope)
+    expect(revised.taskManifest?.tasks.map(task => task.id)).toEqual(['A'])
+    const approved = await humanEdit(ctx, agent, revised, accepted)
+    expect(ctx.goals.complete(agent, approved).phase).toBe('complete')
+  })
+
+  it('keeps a 20-ID goal open until every required ID is accepted', async () => {
+    const { ctx, agent, session } = await harness()
+    const requiredTasks = Array.from({ length: 20 }, (_, index) => ({
+      id: `RA29-${String(index + 1).padStart(2, '0')}`,
+      criterion: `Criterion ${index + 1}`,
+    }))
+    let goal = createGoal(ctx, agent, { objective: 'Ship all required work', requiredTasks })
+    expect(goal.taskManifest?.originalRequiredTasks).toEqual(requiredTasks)
+    for (const task of requiredTasks.slice(0, -1)) {
+      goal = await humanEdit(ctx, agent, goal, { taskStatus: { taskId: task.id, status: 'ACCEPTED' } })
+    }
+    expect(() => ctx.goals.complete(agent, goal)).toThrow(expect.objectContaining({
+      code: 'GOAL_TASKS_INCOMPLETE',
+    }))
+    expect(ctx.goals.get(agent)?.phase).toBe('active')
+    expect(session.snapshotEvents().filter(event => event.type === 'goal/change')).toHaveLength(20)
+    goal = ctx.goals.edit(agent, goal, { taskStatus: { taskId: requiredTasks[19]!.id, status: 'PARCIAL' } })
+    expect(() => ctx.goals.complete(agent, goal)).toThrow(expect.objectContaining({ code: 'GOAL_TASKS_INCOMPLETE' }))
+    goal = await humanEdit(ctx, agent, goal, { taskStatus: { taskId: requiredTasks[19]!.id, status: 'ACCEPTED' } })
+    const completed = ctx.goals.complete(agent, goal)
+    expect(completed.phase).toBe('complete')
+    expect(foldGoal(session.snapshotEvents()).goal?.taskManifest?.tasks).toHaveLength(20)
+  })
+
+  it('retains original criteria when a user-visible scope revision replaces required IDs', async () => {
+    const { ctx, agent, session } = await harness()
+    const created = createGoal(ctx, agent, {
+      objective: 'Original objective', requiredTasks: [{ id: 'A', criterion: 'Original criterion' }],
+    })
+    const revised = await humanEdit(ctx, agent, created, {
+      scopeRevision: { requiredTasks: [{ id: 'B', criterion: 'New criterion' }], reason: 'User removed A' },
+    })
+    expect(revised.taskManifest).toMatchObject({
+      originalObjective: 'Original objective',
+      originalRequiredTasks: [{ id: 'A', criterion: 'Original criterion' }],
+      scopeRevisions: [{ reason: 'User removed A', requiredTasks: [{ id: 'B' }] }],
+      tasks: [{ id: 'B', status: 'PENDING' }],
+    })
+    expect(() => ctx.goals.complete(agent, revised)).toThrow(expect.objectContaining({ code: 'GOAL_TASKS_INCOMPLETE' }))
+    expect(foldGoal(session.snapshotEvents()).goal?.taskManifest).toEqual(revised.taskManifest)
+  })
+
+  it('rejects a forged complete event while a required ID is pending', async () => {
+    const { ctx, agent, session } = await harness()
+    const created = createGoal(ctx, agent, {
+      objective: 'Complete A', requiredTasks: [{ id: 'A', criterion: 'A works' }],
+    })
+    const original = session.snapshotEvents()[0]
+    if (original?.type !== 'goal/change' || original.data.operation === 'clear') {
+      throw new Error('expected create snapshot')
+    }
+    const snapshot = original.data
+    expect(() => session.append('goal/change', {
+      ...snapshot,
+      operation: 'complete',
+      goal: { ...snapshot.goal, revision: created.revision + 1, phase: 'complete' },
+    })).toThrow(/every required task to be ACCEPTED/)
+  })
   it('does not activate without the required projection registry', async () => {
     const ctx = new Context()
     await ctx.plugin(AgentRegistry)
@@ -125,7 +300,7 @@ describe('GoalService creation and replay', () => {
     const seen: string[] = []
     ctx.on('goal/changed', ({ change }) => { seen.push(change.operation) })
 
-    const goal = ctx.goals.create(agent, { objective: '  finish the feature  ' })
+    const goal = createGoal(ctx, agent, { objective: '  finish the feature  ' })
 
     expect(goal).toMatchObject({
       objective: 'finish the feature',
@@ -154,18 +329,18 @@ describe('GoalService creation and replay', () => {
 
   it('uses 256 rounds by default and validates create input inside create', async () => {
     const { ctx, agent } = await harness()
-    expect(() => ctx.goals.create(agent, { objective: '   ' })).toThrow(expect.objectContaining({
+    expect(() => createGoal(ctx, agent, { objective: '   ' })).toThrow(expect.objectContaining({
       code: 'GOAL_INVALID_OBJECTIVE',
     }))
-    expect(() => ctx.goals.create(agent, { objective: 'x', maxGoalRounds: 0 })).toThrow(expect.objectContaining({
+    expect(() => createGoal(ctx, agent, { objective: 'x', maxGoalRounds: 0 })).toThrow(expect.objectContaining({
       code: 'GOAL_INVALID_MAX_ROUNDS',
     }))
-    expect(() => ctx.goals.create(agent, { objective: 'x', maxGoalRounds: 1.5 })).toThrow(GoalError)
-    expect(() => ctx.goals.create(agent, { objective: 'x', maxGoalRounds: 1.5 })).toThrow(HarnessError)
-    expect(() => ctx.goals.create(agent, {
+    expect(() => createGoal(ctx, agent, { objective: 'x', maxGoalRounds: 1.5 })).toThrow(GoalError)
+    expect(() => createGoal(ctx, agent, { objective: 'x', maxGoalRounds: 1.5 })).toThrow(HarnessError)
+    expect(() => createGoal(ctx, agent, {
       objective: 'x', maxGoalRounds: Number.MAX_SAFE_INTEGER + 1,
     })).toThrow(GoalError)
-    expect(ctx.goals.create(agent, { objective: 'x' }).maxGoalRounds).toBe(256)
+    expect(createGoal(ctx, agent, { objective: 'x' }).maxGoalRounds).toBe(256)
   })
 
   it('also resolves the default when constructed directly without Cordis config normalization', async () => {
@@ -177,7 +352,7 @@ describe('GoalService creation and replay', () => {
     await ctx.agents.register(stub.agent)
     const goals = new GoalService(ctx)
     await new Promise(resolve => setImmediate(resolve))
-    expect(goals.create(stub.agent, { objective: 'direct' })).toMatchObject({
+    expect(goals.create(stub.agent, { objective: 'direct', requiredTasks: [{ id: 'done', criterion: 'direct' }] })).toMatchObject({
       objective: 'direct', maxGoalRounds: 256,
     })
   })
@@ -194,7 +369,7 @@ describe('GoalService creation and replay', () => {
 
   it('restores a seeded goal and rounds with activation disarmed', async () => {
     const first = await harness()
-    const created = first.ctx.goals.create(first.agent, { objective: 'seed me', maxGoalRounds: 9 })
+    const created = createGoal(first.ctx, first.agent, { objective: 'seed me', maxGoalRounds: 9 })
     appendRound(first.session, created, 1)
     appendRound(first.session, created, 2)
 
@@ -220,7 +395,7 @@ describe('GoalService creation and replay', () => {
     await ctx.plugin(GoalService)
     const parent = stubAgentForSession(ctx.sessions.create(SessionId('goal-fork-parent')), ctx)
     await ctx.agents.register(parent.agent)
-    const goal = ctx.goals.create(parent.agent, { objective: 'inherit through fork', maxGoalRounds: 5 })
+    const goal = createGoal(ctx, parent.agent, { objective: 'inherit through fork', maxGoalRounds: 5 })
     appendRound(parent.session, goal, 1)
 
     const child = stubAgentForSession(ctx.sessions.fork(parent.session), ctx)
@@ -242,7 +417,7 @@ describe('GoalService creation and replay', () => {
     ctx.on('goal/activation-changed', ({ goal }) => {
       activations.push({ activation: goal?.activation, id: goal?.id, revision: goal?.revision })
     })
-    let goal = ctx.goals.create(agent, { objective: 'stay stopped after resume' })
+    let goal = createGoal(ctx, agent, { objective: 'stay stopped after resume' })
     expect(goal.activation).toBe('armed')
     await agentEvents(ctx, agent).serial('agent/created', { source: 'resume' })
     expect(ctx.goals.get(agent)?.activation).toBe('disarmed')
@@ -256,7 +431,7 @@ describe('GoalService creation and replay', () => {
 
   it('lets a lifecycle owner disarm without writing a durable revision', async () => {
     const { ctx, agent, session } = await harness()
-    const goal = ctx.goals.create(agent, { objective: 'survive driver reload' })
+    const goal = createGoal(ctx, agent, { objective: 'survive driver reload' })
     const before = session.snapshotEvents().length
     expect(ctx.goals.disarm(agent)).toMatchObject({
       id: goal.id,
@@ -277,7 +452,7 @@ describe('GoalService creation and replay', () => {
     const first = ctx.goals
     const stub = stubAgent('goal-hmr', undefined, ctx)
     await ctx.agents.register(stub.agent)
-    const goal = ctx.goals.create(stub.agent, { objective: 'survive service reload' })
+    const goal = createGoal(ctx, stub.agent, { objective: 'survive service reload' })
 
     await fiber.dispose()
     expect(ctx.get('goals')).toBeUndefined()
@@ -295,7 +470,7 @@ describe('GoalService creation and replay', () => {
     // check must reject it even though the ids match.
     const impostor = { ...agent, session: Session.create(agent.id) } as Agent
     expect(() => ctx.goals.get(impostor)).toThrow(expect.objectContaining({ code: 'GOAL_AGENT_NOT_LIVE' }))
-    expect(() => ctx.goals.create(impostor, { objective: 'no' })).toThrow(expect.objectContaining({
+    expect(() => createGoal(ctx, impostor, { objective: 'no' })).toThrow(expect.objectContaining({
       code: 'GOAL_AGENT_NOT_LIVE',
     }))
   })
@@ -303,25 +478,62 @@ describe('GoalService creation and replay', () => {
 })
 
 describe('GoalService mutations', () => {
+  it('invalidates human task acceptance when the objective changes', async () => {
+    const { ctx, agent } = await harness()
+    const accepted = await acceptedGoal(ctx, agent, 'original objective')
+    const edited = ctx.goals.edit(agent, accepted, { objective: 'replacement objective' })
+
+    expect(edited.taskManifest?.tasks).toMatchObject([{ id: 'done', status: 'PENDING' }])
+    expect(() => ctx.goals.complete(agent, edited)).toThrow(expect.objectContaining({ code: 'GOAL_TASKS_INCOMPLETE' }))
+
+    const reaccepted = await humanEdit(ctx, agent, edited, { taskStatus: { taskId: 'done', status: 'ACCEPTED' } })
+    expect(ctx.goals.complete(agent, reaccepted)).toMatchObject({ phase: 'complete' })
+  })
+
+  it('rejects task acceptance from an unrelated active command', async () => {
+    const { ctx, agent } = await harness()
+    const created = createGoal(ctx, agent, {
+      objective: 'require the goal command',
+      requiredTasks: [{ id: 'done', criterion: 'Complete the stated goal' }],
+    })
+    const dispose = ctx.commands.register({
+      name: 'unrelated',
+      description: 'Unrelated command',
+      handler(invocation) {
+        expect(() => ctx.goals.editFromCommand(invocation, created, {
+          taskStatus: { taskId: 'done', status: 'ACCEPTED' },
+        })).toThrow(expect.objectContaining({ code: 'GOAL_HUMAN_AUTHORITY_REQUIRED' }))
+        return { kind: 'success' }
+      },
+    })
+    try {
+      await ctx.commands.execute(agent, '/unrelated', [], new AbortController().signal)
+    } finally {
+      dispose()
+    }
+    expect(ctx.goals.get(agent)?.taskManifest?.tasks).toMatchObject([{ id: 'done', status: 'PENDING' }])
+  })
+
   it('adapts Remote creation and reuses business methods for later mutations', async () => {
     const { ctx, agent } = await harness()
-    const created = ctx.goals.remoteExportCreate(agent, { objective: 'remote lifecycle' })
+    const created = ctx.goals.remoteExportCreate(agent, { objective: 'remote lifecycle', requiredTasks: [{ id: 'done', criterion: 'Complete lifecycle' }] })
     const edited = ctx.goals.edit(agent, created.ref, { objective: 'edited remotely' })
     const paused = ctx.goals.pause(agent, edited)
     const resumed = ctx.goals.resume(agent, paused)
-    const completed = ctx.goals.complete(agent, resumed)
+    const accepted = await humanEdit(ctx, agent, resumed, { taskStatus: { taskId: 'done', status: 'ACCEPTED' } })
+    const completed = ctx.goals.complete(agent, accepted)
     const cleared = ctx.goals.clear(agent, completed)
 
     expect(edited).toMatchObject({ objective: 'edited remotely', revision: 2 })
     expect(paused).toMatchObject({ phase: 'paused', revision: 3 })
     expect(resumed).toMatchObject({ phase: 'active', revision: 4 })
-    expect(completed).toMatchObject({ phase: 'complete', revision: 5 })
-    expect(cleared).toEqual({ id: created.ref.id, revision: 6 })
+    expect(completed).toMatchObject({ phase: 'complete', revision: 6 })
+    expect(cleared).toEqual({ id: created.ref.id, revision: 7 })
   })
 
   it('edits with compare-and-set revisions and rejects empty edits', async () => {
     const { ctx, agent } = await harness()
-    const created = ctx.goals.create(agent, { objective: 'old', maxGoalRounds: 4 })
+    const created = createGoal(ctx, agent, { objective: 'old', maxGoalRounds: 4 })
     expect(() => ctx.goals.edit(agent, created, {})).toThrow(expect.objectContaining({ code: 'GOAL_INVALID_EDIT' }))
     const objective = ctx.goals.edit(agent, created, { objective: ' new ' })
     expect(objective).toMatchObject({ objective: 'new', maxGoalRounds: 4, revision: 2, activation: 'armed' })
@@ -337,11 +549,11 @@ describe('GoalService mutations', () => {
 
   it('supports pause, resume, block, and completion transitions', async () => {
     const { ctx, agent } = await harness()
-    let goal = ctx.goals.create(agent, { objective: 'lifecycle' })
+    let goal = await acceptedGoal(ctx, agent, 'lifecycle')
     goal = ctx.goals.pause(agent, goal)
-    expect(goal).toMatchObject({ phase: 'paused', activation: 'disarmed', revision: 2 })
+    expect(goal).toMatchObject({ phase: 'paused', activation: 'disarmed', revision: 3 })
     goal = ctx.goals.resume(agent, goal)
-    expect(goal).toMatchObject({ phase: 'active', activation: 'armed', revision: 3 })
+    expect(goal).toMatchObject({ phase: 'active', activation: 'armed', revision: 4 })
     goal = ctx.goals.block(agent, goal, { code: 'needs-input', message: 'A choice is required.' })
     expect(goal).toMatchObject({
       phase: 'blocked',
@@ -359,12 +571,12 @@ describe('GoalService mutations', () => {
     const phases = ['paused', 'blocked'] as const
     for (const phase of phases) {
       const { ctx, agent } = await harness()
-      let goal = ctx.goals.create(agent, { objective: phase })
+      let goal = await acceptedGoal(ctx, agent, phase)
       goal = phase === 'paused'
         ? ctx.goals.pause(agent, goal)
         : ctx.goals.block(agent, goal, { code: 'test-blocker', message: 'Blocked for the test.' })
       const complete = ctx.goals.complete(agent, goal)
-      const replacement = ctx.goals.create(agent, { objective: `after ${phase}` })
+      const replacement = createGoal(ctx, agent, { objective: `after ${phase}` })
       expect(complete.phase).toBe('complete')
       expect(replacement.id).not.toBe(complete.id)
       expect(replacement.revision).toBe(1)
@@ -373,8 +585,8 @@ describe('GoalService mutations', () => {
 
   it('rejects replacement and invalid phase transitions while a resumable goal exists', async () => {
     const { ctx, agent } = await harness()
-    const goal = ctx.goals.create(agent, { objective: 'still active' })
-    expect(() => ctx.goals.create(agent, { objective: 'replacement' })).toThrow(expect.objectContaining({
+    const goal = createGoal(ctx, agent, { objective: 'still active' })
+    expect(() => createGoal(ctx, agent, { objective: 'replacement' })).toThrow(expect.objectContaining({
       code: 'GOAL_ALREADY_EXISTS',
     }))
     expect(() => ctx.goals.resume(agent, goal)).toThrow(expect.objectContaining({ code: 'GOAL_INVALID_TRANSITION' }))
@@ -389,7 +601,7 @@ describe('GoalService mutations', () => {
 
   it('records canonical blocker reasons and enforces the round cap on resume', async () => {
     const { ctx, agent, session } = await harness()
-    let goal = ctx.goals.create(agent, { objective: 'bounded', maxGoalRounds: 2 })
+    let goal = await acceptedGoal(ctx, agent, 'bounded', 2)
     for (const reason of [null, [], { code: 1, message: 'invalid code' }, { code: 'round-limit', message: 1 }]) {
       expect(() => ctx.goals.block(agent, goal, reason as never)).toThrow(expect.objectContaining({
         code: 'GOAL_INVALID_BLOCK_REASON',
@@ -424,13 +636,13 @@ describe('GoalService mutations', () => {
 
   it('clears through a revisioned tombstone and permits a fresh goal', async () => {
     const { ctx, agent, session } = await harness()
-    const goal = ctx.goals.create(agent, { objective: 'temporary' })
+    const goal = createGoal(ctx, agent, { objective: 'temporary' })
     const tombstone = ctx.goals.clear(agent, goal)
     expect(tombstone).toEqual({ id: goal.id, revision: 2 })
     expect(ctx.goals.get(agent)).toBeUndefined()
     expect(foldGoal(session.snapshotEvents())).toEqual({ roundsStarted: 0, lastRef: tombstone })
     expect(() => ctx.goals.clear(agent, goal)).toThrow(expect.objectContaining({ code: 'GOAL_NOT_FOUND' }))
-    const next = ctx.goals.create(agent, { objective: 'fresh' })
+    const next = createGoal(ctx, agent, { objective: 'fresh' })
     expect(next.id).not.toBe(goal.id)
   })
 
@@ -438,7 +650,7 @@ describe('GoalService mutations', () => {
     vi.useFakeTimers()
     vi.setSystemTime(100)
     const { ctx, agent, session } = await harness()
-    let goal = ctx.goals.create(agent, { objective: 'monotonic time' })
+    let goal = createGoal(ctx, agent, { objective: 'monotonic time' })
     vi.setSystemTime(90)
     goal = ctx.goals.pause(agent, goal)
     expect(goal.updatedAt).toBe(100)
@@ -459,14 +671,14 @@ describe('GoalService mutations', () => {
     const seen: string[] = []
     ctx.on('goal/changed', () => { throw new Error('broken observer') })
     ctx.on('goal/changed', ({ change }) => { seen.push(change.operation) })
-    expect(ctx.goals.create(agent, { objective: 'notify' }).phase).toBe('active')
+    expect(createGoal(ctx, agent, { objective: 'notify' }).phase).toBe('active')
     expect(seen).toEqual(['create'])
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('broken observer'))
   })
 
   it('commits consecutive revisions through durable goal events', async () => {
     const { ctx, agent, session } = await harness()
-    let goal = ctx.goals.create(agent, { objective: 'deferred', maxGoalRounds: 5 })
+    let goal = createGoal(ctx, agent, { objective: 'deferred', maxGoalRounds: 5 })
     goal = ctx.goals.edit(agent, goal, { objective: 'deferred edit' })
     goal = ctx.goals.pause(agent, goal)
     expect(goal).toMatchObject({ revision: 3, phase: 'paused', activation: 'disarmed' })
@@ -490,7 +702,7 @@ describe('GoalService mutations', () => {
       if (session === stub.session && event.type === 'goal/change') observed = ctx.goals.get(stub.agent)
     })
 
-    const created = ctx.goals.create(stub.agent, { objective: 'publish once' })
+    const created = createGoal(ctx, stub.agent, { objective: 'publish once' })
 
     expect(observed).toEqual(created)
     expect(ctx.goals.get(stub.agent)).toEqual(created)
@@ -507,7 +719,7 @@ describe('GoalService mutations', () => {
     stub.agent.inject = () => { throw new Error('injection must not be called') }
     await ctx.agents.register(stub.agent)
 
-    expect(ctx.goals.create(stub.agent, { objective: 'persist directly' })).toMatchObject({
+    expect(createGoal(ctx, stub.agent, { objective: 'persist directly' })).toMatchObject({
       objective: 'persist directly',
       revision: 1,
     })
@@ -517,11 +729,11 @@ describe('GoalService mutations', () => {
 
   it('observes an external goal change and disarms local activation', async () => {
     const { ctx, agent, session } = await harness()
-    const created = ctx.goals.create(agent, { objective: 'before external edit', maxGoalRounds: 4 })
+    const created = createGoal(ctx, agent, { objective: 'before external edit', maxGoalRounds: 4 })
     expect(created.activation).toBe('armed')
     const change: GoalSnapshotChangeMeta = {
       kind: 'goal/change',
-      version: 1,
+      version: 2,
       operation: 'edit',
       goal: {
         id: created.id,
@@ -529,6 +741,7 @@ describe('GoalService mutations', () => {
         objective: 'observe external append',
         phase: 'active',
         maxGoalRounds: 4,
+        taskManifest: created.taskManifest!,
       },
       roundsStarted: created.roundsStarted,
       createdAt: created.createdAt,
@@ -673,7 +886,20 @@ describe('goal replay validation', () => {
   })
 
   it('rejects unsupported versions, operations, and extra top-level fields', () => {
-    expect(() => decodeGoalChange({ ...snapshotChange(), version: 2 })).toThrow('unsupported goal change version')
+    expect(decodeGoalChange({ ...snapshotChange(), version: 1 })?.version).toBe(1)
+    expect(decodeGoalChange({ ...snapshotChange(), version: 2 })?.version).toBe(2)
+    expect(() => decodeGoalChange({ ...snapshotChange(), version: 3 })).toThrow('unsupported goal change version')
+    const versionOneWithManifest = {
+      ...snapshotChange(),
+      goal: {
+        ...snapshotChange().goal,
+        taskManifest: {
+          originalObjective: 'validate', originalRequiredTasks: [{ id: 'done', criterion: 'Complete' }],
+          scopeRevisions: [], tasks: [{ id: 'done', criterion: 'Complete', status: 'PENDING' }],
+        },
+      },
+    }
+    expect(() => decodeGoalChange(versionOneWithManifest)).toThrow('exactly')
     expect(() => decodeGoalChange({ ...snapshotChange(), operation: 'explode' })).toThrow('operation is invalid')
     expect(() => decodeGoalChange({ ...snapshotChange(), extra: true })).toThrow('snapshot change must have exactly')
     expect(() => decodeGoalChange({

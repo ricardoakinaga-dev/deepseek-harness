@@ -57,15 +57,21 @@ goal 经历四种持久 phase——`active`、`paused`、`blocked`、`complete`�
 
 | 操作 | 作用 |
 |---|---|
-| `create` | 以目标和 Round 上限启动一个 active goal |
+| `create` | 以目标、Round 上限和非空的显式必需任务清单启动 active goal |
 | `edit` | 修改目标和/或 Round 上限，不改变 phase |
+| `edit({ taskStatus })` | 记录一个必需 ID 的 `PENDING`、`PARCIAL`、`BLOCKED_EXTERNAL` 或 `ACCEPTED` 状态 |
+| `edit({ scopeRevision })` | 附加原因和完整替代 ID/验收标准列表；首个人类范围也会为没有清单的已发布 goal 启动任务跟踪 |
 | `pause` | 停止自动续行并保留状态 |
 | `resume` | 重新开始续行；也用于会话恢复或 fork 后重新启用 active goal |
-| `complete` | 标记 goal 已完成并停止续行 |
+| `complete` | 仅当清单存在且所有必需 ID 均为 `ACCEPTED` 时标记完成并停止续行 |
 | `block` | 记录稳定的 blocker 代码与说明 |
 | `clear` | 移除当前 goal；其历史保留在会话日志中 |
 
 pause、complete、block 和 clear 都会停用续行。block 是唯一保留策略自有 lower-kebab-case 代码与自由文本说明的 phase，因此提供方限制、预算耗尽、执行错误与请求人工输入共用一种持久 phase，而不是扩增生命周期状态。resume 只在 Round 上限仍有剩余容量时接受已停止的 goal，或 active 但已停用续行的 goal，并清除任何先前的 blocker reason。
+
+显式清单在创建时固定原始目标及必需 ID/验收标准列表。每次状态更新和经用户授权的范围修订都会推进 goal revision 并写入完整快照；修订记录原因及完整现行范围。只要清单中任一 ID 仍为 `PENDING`、`PARCIAL` 或 `BLOCKED_EXTERNAL`，完成操作就会被拒绝。没有清单的已发布 goal 仍可读取；用户可通过 `/goal scope` 建立首个跟踪范围，此时原始任务列表为空，所有新任务都从 `PENDING` 开始。服务不会从目标文本推断缺失 ID。直接或远程调用 `edit` 均不能设置 `ACCEPTED` 或替换范围。只有活跃的人类 `/goal` 命令能授权这些变更。`ACCEPTED` 记录人工决定，并非独立验证。
+
+修改带清单 goal 的目标会将所有现行任务重置为 `PENDING`，包括先前标记为 `ACCEPTED` 的任务。完成前，必须通过 `/goal accept <id>` 重新验收每个必需任务。
 
 ### 什么会保留，什么不会
 
@@ -94,7 +100,7 @@ view.activation                        // 'armed' | 'disarmed' — not persisted
 
 ### 设计
 
-- **事件溯源状态。** 每次变更都追加持久的 `goal/change` 事件（版本 1），携带变更后的完整快照；clear 写入带 revision 的 tombstone。会话日志是唯一的持久权威。
+- **事件溯源状态。** 每次变更都追加持久的 `goal/change` 事件（版本 2），携带变更后的完整快照；读取方仍严格支持版本 1。clear 写入带 revision 的 tombstone。会话日志是唯一的持久权威。
 - **比较并设置的变更。** `ctx.goals` 只接受以对应 id 注册的完全相同的活跃 `Agent` 实例。`get()` 返回脱离状态的 `GoalView`；变更携带 `GoalRef { id, revision }` 并拒绝陈旧引用。创建在提交前于内部解析部署默认值。
 - **续行启用状态是进程本地的。** `armed` 与 `disarmed` 保存在每会话缓存中，绝不持久化。新缓存与每次 `agent/created` 边界都会停用续行，即使回放发现持久 phase 为 active；`disarm()` 移除续行权限，不写入 revision 也不发出变更事件。
 - **严格回放。** 折叠只从 `goal/change` 派生生命周期变更，并拒绝形状错误、不连续 revision、非法 phase 转换、每目标时间戳非单调，以及不连续的已准入 Round。只有已准入的来源为 goal 的 `user/message` 事件会推进正数 Round；挂钟时间倒退时，变更时间戳会限制在不早于上一次更新的值。

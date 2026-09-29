@@ -59,7 +59,7 @@ describe.skipIf(!requiredArtifacts)('Goal Remote built LIB chain', () => {
       const { default: SessionProjectionRegistry } = await import(urls.sessionProjections)
       const { TYPERT } = await import(urls.goalTypert)
       const { default: TypertRegistry } = await import(urls.registryHost)
-      const { Session, SessionId } = await import(urls.session)
+      const { SessionId, default: SessionStore } = await import(urls.session)
 
       const routes = []
       const credentialRecords = new Map()
@@ -85,12 +85,13 @@ describe.skipIf(!requiredArtifacts)('Goal Remote built LIB chain', () => {
       await host.plugin(TypertRegistry)
       await host.plugin(AgentRegistry)
       await host.plugin(TypertRemoteService)
+      await host.plugin(SessionStore)
       await host.plugin(SessionProjectionRegistry)
       await host.plugin(GoalService)
       host.typert.register(TYPERT)
 
       const makeAgent = rawId => {
-        const session = new Session(SessionId(rawId))
+        const session = host.sessions.create(SessionId(rawId))
         return {
           id: session.id,
           options: {},
@@ -110,8 +111,11 @@ describe.skipIf(!requiredArtifacts)('Goal Remote built LIB chain', () => {
       }
       const rootAgent = makeAgent('built-root-agent')
       const scopedAgent = makeAgent('built-scoped-agent')
-      host.agents.register(rootAgent)
-      host.agents.register(scopedAgent)
+      if (host.get('goals') === undefined || rootAgent.ctx.get('goals') === undefined) {
+        throw new Error('Goal service must be active in Host and Agent Contexts')
+      }
+      await host.agents.register(rootAgent)
+      await host.agents.register(scopedAgent)
 
       if (routes.length !== 1 || routes[0].path !== '/api') {
         throw new Error('Connection did not register exactly one /api route')
@@ -184,14 +188,17 @@ describe.skipIf(!requiredArtifacts)('Goal Remote built LIB chain', () => {
         const invalidResult = await client.remote.goals.create(rootAgent.id, { objective: 1 })
         // Every generated method resolves to the RemoteResult envelope; the
         // business values below are what the assertions pin.
-        const rootResult = await client.remote.goals.create(rootAgent.id, { objective: 'root goal' })
+        const rootResult = await client.remote.goals.create(rootAgent.id, { objective: 'root goal', requiredTasks: [{ id: 'done', criterion: 'root goal' }] })
+        if (!rootResult.ok) throw new Error('root goal creation failed: ' + JSON.stringify(rootResult))
         const rootEdit = await client.remote.goals.edit(
           rootAgent.id,
           rootResult.value.ref,
           { objective: 'edited root goal' },
         )
         const agentContext = client.extend({ builtAgentId: scopedAgent.id })
-        const scopedResult = await agentContext.remote.goals.create({ objective: 'scoped goal', maxGoalRounds: 3 })
+        const scopedResult = await agentContext.remote.goals.create({ objective: 'scoped goal', maxGoalRounds: 3, requiredTasks: [{ id: 'done', criterion: 'scoped goal' }] })
+        if (!rootEdit.ok) throw new Error('root goal edit failed: ' + JSON.stringify(rootEdit))
+        if (!scopedResult.ok) throw new Error('scoped goal creation failed: ' + JSON.stringify(scopedResult))
         const result = {
           invalidResult,
           rootResult: rootResult.value,

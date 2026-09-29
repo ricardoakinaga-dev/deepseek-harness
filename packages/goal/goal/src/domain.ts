@@ -8,7 +8,7 @@
  */
 
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { GoalId, GoalRef, GoalSnapshot, GoalView } from './types.ts'
+import type { GoalId, GoalRef, GoalSnapshot, GoalSnapshotV1, GoalView } from './types.ts'
 
 /** Goal state-changing verbs recorded in the durable source change. */
 export type GoalOperation =
@@ -20,10 +20,21 @@ export type GoalOperation =
   | 'block'
   | 'clear'
 
-/** Full-snapshot goal mutation committed by a durable `goal/change` event. */
-export interface GoalSnapshotChangeMeta {
+/** Full-snapshot goal mutation retained from released `goal/change` version 1. */
+export interface GoalSnapshotChangeV1 {
   readonly kind: 'goal/change'
   readonly version: 1
+  readonly operation: Exclude<GoalOperation, 'clear'>
+  readonly goal: GoalSnapshotV1
+  readonly roundsStarted: number
+  readonly createdAt: number
+  readonly updatedAt: number
+}
+
+/** Full-snapshot goal mutation with current task-manifest support. */
+export interface GoalSnapshotChangeV2 {
+  readonly kind: 'goal/change'
+  readonly version: 2
   readonly operation: Exclude<GoalOperation, 'clear'>
   readonly goal: GoalSnapshot
   readonly roundsStarted: number
@@ -31,14 +42,29 @@ export interface GoalSnapshotChangeMeta {
   readonly updatedAt: number
 }
 
-/** Tombstone retained when the current goal is cleared. */
-export interface GoalClearChangeMeta {
+/** Full-snapshot mutation accepted by current readers. */
+export type GoalSnapshotChangeMeta = GoalSnapshotChangeV1 | GoalSnapshotChangeV2
+
+/** Tombstone retained from released `goal/change` version 1. */
+export interface GoalClearChangeV1 {
   readonly kind: 'goal/change'
   readonly version: 1
   readonly operation: 'clear'
   readonly cleared: GoalRef
   readonly clearedAt: number
 }
+
+/** Current clear tombstone version. */
+export interface GoalClearChangeV2 {
+  readonly kind: 'goal/change'
+  readonly version: 2
+  readonly operation: 'clear'
+  readonly cleared: GoalRef
+  readonly clearedAt: number
+}
+
+/** Clear tombstone accepted by current readers. */
+export type GoalClearChangeMeta = GoalClearChangeV1 | GoalClearChangeV2
 
 /** Durable change union carried by the goal domain's own session event. */
 export type GoalChangeMeta = GoalSnapshotChangeMeta | GoalClearChangeMeta
@@ -100,6 +126,10 @@ export type GoalErrorCode =
   | 'GOAL_INVALID_BLOCK_REASON'
   | 'GOAL_INVALID_EDIT'
   | 'GOAL_INVALID_TRANSITION'
+  | 'GOAL_INVALID_TASK_MANIFEST'
+  | 'GOAL_TASK_NOT_FOUND'
+  | 'GOAL_TASKS_INCOMPLETE'
+  | 'GOAL_HUMAN_AUTHORITY_REQUIRED'
 
 declare module '@deepseek-ai/cordis' {
   interface Events {

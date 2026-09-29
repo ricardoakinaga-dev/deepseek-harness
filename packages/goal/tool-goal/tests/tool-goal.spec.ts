@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import AgentRegistry, { agentEvents } from '@deepseek-ai/dsh-agent'
+import CommandRuntime, { CommandDefinitionId } from '@deepseek-ai/dsh-commands'
 import type { Agent, AgentStatus, Inbox } from '@deepseek-ai/dsh-agent'
 import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
 import GoalService, { GoalId } from '@deepseek-ai/dsh-goal'
@@ -100,6 +101,7 @@ async function harness(config: toolGoal.Config = {}) {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(CommandRuntime)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(ToolRuntime)
@@ -109,6 +111,48 @@ async function harness(config: toolGoal.Config = {}) {
   const root = stubAgent(`goal-tool-root-${Math.random()}`, undefined, ctx)
   await ctx.agents.register(root.agent)
   return { ctx, fiber, root }
+}
+
+/** Accept an explicit task through the command runtime before completion tests. */
+async function acceptedGoal(ctx: Context, agent: Agent, objective: string) {
+  const created = ctx.goals.create(agent, { objective, requiredTasks: [{ id: 'done', criterion: objective }] })
+  const dispose = ctx.commands.register({
+    definitionId: CommandDefinitionId('@deepseek-ai/dsh-command-goal'),
+    name: 'goal', description: 'Accept one task',
+    handler(invocation) {
+      ctx.goals.editFromCommand(invocation, created, { taskStatus: { taskId: 'done', status: 'ACCEPTED' } })
+      return { kind: 'success' }
+    },
+  })
+  try {
+    await ctx.commands.execute(agent, '/goal accept done', [], new AbortController().signal)
+  } finally {
+    dispose()
+  }
+  return ctx.goals.get(agent)!
+}
+
+/** Reaccept one task through the registered goal command identity. */
+async function acceptTask(ctx: Context, agent: Agent, ref: GoalRef, taskId: string): Promise<void> {
+  const dispose = ctx.commands.register({
+    definitionId: CommandDefinitionId('@deepseek-ai/dsh-command-goal'),
+    name: 'goal',
+    description: 'Accept one task',
+    handler(invocation) {
+      ctx.goals.editFromCommand(invocation, ref, { taskStatus: { taskId, status: 'ACCEPTED' } })
+      return { kind: 'success' }
+    },
+  })
+  try {
+    await ctx.commands.execute(agent, `/goal accept ${taskId}`, [], new AbortController().signal)
+  } finally {
+    dispose()
+  }
+}
+
+/** Supply an explicit criterion for non-completion tool cases. */
+function createGoal(ctx: Context, agent: Agent, objective: string) {
+  return ctx.goals.create(agent, { objective, requiredTasks: [{ id: 'done', criterion: objective }] })
 }
 
 /** Execute one registered tool under an optional driver initiator. */
@@ -170,7 +214,7 @@ describe('goal tool registration and presentation', () => {
     expect(ctx.tools.get('get_goal')?.presentCall?.({})).toEqual({
       card: 'generic', title: 'Read current goal', kind: 'read',
     })
-    expect(ctx.tools.get('create_goal')?.presentCall?.({ objective: 'ship' })).toEqual({
+    expect(ctx.tools.get('create_goal')?.presentCall?.({ objective: 'ship', required_tasks: [{ id: 'done', criterion: 'ship' }] })).toEqual({
       card: 'generic', title: 'Create goal', kind: 'other', rawInput: 'ship',
     })
     expect(ctx.tools.get('update_goal')?.presentCall?.({
@@ -188,6 +232,9 @@ describe('goal tool registration and presentation', () => {
       goal_id: 'goal-1', revision: 2, action: 'resume',
       objective: '', max_goal_rounds: 0, blocked_reason: '',
     })).toEqual({ card: 'generic', title: 'Resume goal', kind: 'other', rawInput: 'goal-1' })
+    expect(ctx.tools.get('update_goal')?.presentCall?.({
+      goal_id: 'goal-1', revision: 2, action: 'revise_scope', scope_reason: 'User removed A',
+    })).toBeUndefined()
     expect(ctx.tools.get('update_goal')?.presentCall?.({ wrong: true })).toBeUndefined()
   })
 
@@ -226,11 +273,47 @@ describe('goal tool registration and presentation', () => {
 })
 
 describe('goal tool execution authority', () => {
+  it('rejects a model-truncated manifest despite an ordinary human message', async () => {
+    const { ctx, root } = await harness()
+    const tasks = Array.from({ length: 20 }, (_, index) => ({ id: `RA29-${index + 1}`, criterion: `Criterion ${index + 1}` }))
+    openTurn(root, { kind: 'user' }, JSON.stringify({ objective: 'Complete all IDs', requiredTasks: tasks }))
+    const result = await execute(ctx, 'create_goal', { objective: 'Complete all IDs', required_tasks: tasks.slice(0, 1) }, root.agent)
+    expect(result.error?.info?.code).toBe('GOAL_TOOL_MANIFEST_REQUIRED')
+    expect(ctx.goals.get(root.agent)).toBeUndefined()
+  })
+
+  it('shows explicit task scope and requires a human turn to accept a task', async () => {
+    const { ctx, root } = await harness()
+    const turn = openTurn(root, { kind: 'user' }, JSON.stringify({ objective: 'Complete A and B', requiredTasks: [
+      { id: 'A', criterion: 'A works' }, { id: 'B', criterion: 'B works' },
+    ] }))
+    const created = resultGoal(await execute(ctx, 'create_goal', {
+      objective: 'Complete A and B', required_tasks: [
+        { id: 'A', criterion: 'A works' }, { id: 'B', criterion: 'B works' },
+      ],
+    }, root.agent))
+    expect(created['taskManifest']).toMatchObject({ tasks: [{ id: 'A', status: 'PENDING' }, { id: 'B', status: 'PENDING' }] })
+    const rejected = await execute(ctx, 'update_goal', {
+      goal_id: created['id'], revision: created['revision'], action: 'task_status',
+      task_id: 'A', task_status: 'ACCEPTED',
+    }, root.agent)
+    expect(rejected.error?.info?.code).toBe('INVALID_ARGS')
+    expect(ctx.goals.get(root.agent)?.taskManifest?.tasks[0]?.status).toBe('PENDING')
+    closeTurn(root, turn)
+    openTurn(root, { kind: 'test' })
+    const denied = await execute(ctx, 'update_goal', {
+      goal_id: created['id'], revision: created['revision'], action: 'task_status',
+      task_id: 'B', task_status: 'ACCEPTED',
+    }, root.agent)
+    expect(denied.error?.info?.code).toBe('INVALID_ARGS')
+    expect(ctx.goals.get(root.agent)?.taskManifest?.tasks[1]?.status).toBe('PENDING')
+  })
   it('lets a root model infer create intent from its accepted human turn', async () => {
     const { ctx, root } = await harness()
-    openTurn(root, { kind: 'user' }, '请持续工作直到这个功能完成')
+    openTurn(root, { kind: 'user' }, JSON.stringify({ objective: 'Finish the feature', requiredTasks: [{ id: 'done', criterion: 'The feature works' }] }))
     const result = await execute(ctx, 'create_goal', {
       objective: 'Finish the feature', max_goal_rounds: 9,
+      required_tasks: [{ id: 'done', criterion: 'The feature works' }],
     }, root.agent)
     expect(resultGoal(result)).toMatchObject({
       objective: 'Finish the feature', revision: 1, phase: 'active', maxGoalRounds: 9,
@@ -256,7 +339,7 @@ describe('goal tool execution authority', () => {
     closeTurn(root, 1)
 
     openTurn(root, { kind: 'test' })
-    const nonHuman = await execute(ctx, 'create_goal', { objective: 'forged' }, root.agent)
+    const nonHuman = await execute(ctx, 'create_goal', { objective: 'forged', required_tasks: [{ id: 'done', criterion: 'forged' }] }, root.agent)
     expect(nonHuman.error?.info?.code).toBe('GOAL_TOOL_AUTHORITY_REQUIRED')
     closeTurn(root, 2)
 
@@ -264,7 +347,7 @@ describe('goal tool execution authority', () => {
     ctx.agents.enter(child.agent, root.agent)
     await ctx.agents.announce(child.agent, 'startup')
     openTurn(child, { kind: 'user' })
-    const childResult = await execute(ctx, 'create_goal', { objective: 'child goal' }, child.agent)
+    const childResult = await execute(ctx, 'create_goal', { objective: 'child goal', required_tasks: [{ id: 'done', criterion: 'child goal' }] }, child.agent)
     expect(childResult.error?.info?.code).toBe('GOAL_TOOL_AUTHORITY_REQUIRED')
   })
 
@@ -285,7 +368,7 @@ describe('goal tool execution authority', () => {
   it('treats a fork resumed as a runtime root as direct-human authority', async () => {
     const { ctx, root } = await harness()
     const originalTurn = openTurn(root, { kind: 'user' })
-    const created = ctx.goals.create(root.agent, { objective: 'resume the fork' })
+    const created = createGoal(ctx, root.agent, 'resume the fork')
     closeTurn(root, originalTurn)
     const forkId = SessionId('goal-tool-resumed-fork')
     const forkSession = ctx.sessions.create(forkId, {
@@ -331,7 +414,7 @@ describe('goal tool execution authority', () => {
   it('accepts direct human steering in a goal-sourced root turn', async () => {
     const { ctx, root } = await harness()
     const humanTurn = openTurn(root, { kind: 'user' })
-    const created = ctx.goals.create(root.agent, { objective: 'steer me' })
+    const created = createGoal(ctx, root.agent, 'steer me')
     closeTurn(root, humanTurn)
     openTurn(root, {
       kind: 'goal', goalId: created.id, revision: created.revision, round: 1,
@@ -359,9 +442,9 @@ describe('goal tool execution authority', () => {
 describe('goal tool state transitions', () => {
   it('reads null, then edits and pauses by exact revision in one human turn', async () => {
     const { ctx, root } = await harness()
-    openTurn(root, { kind: 'user' })
+    openTurn(root, { kind: 'user' }, JSON.stringify({ objective: 'old', requiredTasks: [{ id: 'done', criterion: 'old' }] }))
     expect(resultJson(await execute(ctx, 'get_goal', {}, root.agent))).toEqual({ goal: null })
-    let goal = resultGoal(await execute(ctx, 'create_goal', { objective: 'old' }, root.agent))
+    let goal = resultGoal(await execute(ctx, 'create_goal', { objective: 'old', required_tasks: [{ id: 'done', criterion: 'old' }] }, root.agent))
     goal = resultGoal(await execute(ctx, 'update_goal', {
       goal_id: goal['id'], revision: goal['revision'], action: 'edit',
       objective: 'new', max_goal_rounds: 8,
@@ -383,8 +466,8 @@ describe('goal tool state transitions', () => {
 
   it('rejects update_goal resume of a durable paused goal in a later human turn', async () => {
     const { ctx, root } = await harness()
-    const firstTurn = openTurn(root, { kind: 'user' })
-    let goal = resultGoal(await execute(ctx, 'create_goal', { objective: 'pause me' }, root.agent))
+    const firstTurn = openTurn(root, { kind: 'user' }, JSON.stringify({ objective: 'pause me', requiredTasks: [{ id: 'done', criterion: 'pause me' }] }))
+    let goal = resultGoal(await execute(ctx, 'create_goal', { objective: 'pause me', required_tasks: [{ id: 'done', criterion: 'pause me' }] }, root.agent))
     goal = resultGoal(await execute(ctx, 'update_goal', {
       goal_id: goal['id'], revision: goal['revision'], action: 'pause',
     }, root.agent))
@@ -401,14 +484,14 @@ describe('goal tool state transitions', () => {
   it('injects one wrap-up instruction for an autonomous completion but leaves a human pause interactive', async () => {
     const { ctx, root } = await harness()
     const humanTurn = openTurn(root, { kind: 'user' })
-    const created = ctx.goals.create(root.agent, { objective: 'pause cleanly' })
+    const created = await acceptedGoal(ctx, root.agent, 'pause cleanly')
     const paused = await execute(ctx, 'update_goal', {
       goal_id: created.id, revision: created.revision, action: 'pause',
     }, root.agent)
     expect(resultGoal(paused)).toMatchObject({ phase: 'paused' })
     expect(paused.concludesTurn).toBeUndefined()
     expect(paused.additionalContexts).toBeUndefined()
-    const resumed = ctx.goals.resume(root.agent, { id: created.id, revision: 2 })
+    const resumed = ctx.goals.resume(root.agent, { id: created.id, revision: created.revision + 1 })
     closeTurn(root, humanTurn)
 
     openTurn(root, {
@@ -436,7 +519,7 @@ describe('goal tool state transitions', () => {
   it('completes without a wrap-up instruction under direct human authority', async () => {
     const { ctx, root } = await harness()
     openTurn(root, { kind: 'user' })
-    const created = ctx.goals.create(root.agent, { objective: 'finish now' })
+    const created = await acceptedGoal(ctx, root.agent, 'finish now')
     const complete = await execute(ctx, 'update_goal', {
       goal_id: created.id, revision: created.revision, action: 'complete',
     }, root.agent)
@@ -448,7 +531,7 @@ describe('goal tool state transitions', () => {
   it('rearms a restored active goal only after a new direct human prompt', async () => {
     const { ctx, root } = await harness()
     let turn = openTurn(root, { kind: 'user' })
-    const created = ctx.goals.create(root.agent, { objective: 'continue later' })
+    const created = createGoal(ctx, root.agent, 'continue later')
     closeTurn(root, turn)
     await agentEvents(ctx, root.agent).serial('agent/created', { source: 'resume' })
     expect(ctx.goals.get(root.agent)?.activation).toBe('disarmed')
@@ -465,8 +548,8 @@ describe('goal tool state transitions', () => {
     const { ctx, root } = await harness()
     openTurn(root, { kind: 'user' })
     const invalidCreate = await execute(ctx, 'create_goal', { objective: ' ' }, root.agent)
-    expect(invalidCreate.error?.info?.code).toBe('GOAL_INVALID_OBJECTIVE')
-    const created = ctx.goals.create(root.agent, { objective: 'valid' })
+    expect(invalidCreate.error?.info?.code).toBe('INVALID_ARGS')
+    const created = createGoal(ctx, root.agent, 'valid')
     const replacement = await execute(ctx, 'update_goal', {
       goal_id: created.id,
       revision: created.revision,
@@ -510,7 +593,7 @@ describe('goal tool state transitions', () => {
   it('accepts only empty fillers in fields unused by the selected action', async () => {
     const { ctx, root } = await harness()
     openTurn(root, { kind: 'user' })
-    let goal = ctx.goals.create(root.agent, { objective: 'valid' })
+    let goal = await acceptedGoal(ctx, root.agent, 'valid')
 
     const edited = await execute(ctx, 'update_goal', {
       goal_id: goal.id,
@@ -521,6 +604,14 @@ describe('goal tool state transitions', () => {
       blocked_reason: '',
     }, root.agent)
     expect(resultGoal(edited)).toMatchObject({ objective: 'edited' })
+    goal = ctx.goals.get(root.agent)!
+    expect(goal.taskManifest?.tasks).toMatchObject([{ id: 'done', status: 'PENDING' }])
+
+    const incomplete = await execute(ctx, 'update_goal', {
+      goal_id: goal.id, revision: goal.revision, action: 'complete',
+    }, root.agent)
+    expect(incomplete.error?.info?.code).toBe('GOAL_TASKS_INCOMPLETE')
+    await acceptTask(ctx, root.agent, goal, 'done')
     goal = ctx.goals.get(root.agent)!
 
     const capped = await execute(ctx, 'update_goal', {
@@ -583,7 +674,7 @@ describe('goal tool state transitions', () => {
   it('allows exact goal rounds to complete but not edit or pause', async () => {
     const { ctx, root } = await harness()
     const humanTurn = openTurn(root, { kind: 'user' })
-    const created = ctx.goals.create(root.agent, { objective: 'round-owned' })
+    const created = await acceptedGoal(ctx, root.agent, 'round-owned')
     closeTurn(root, humanTurn)
     openTurn(root, { kind: 'goal', goalId: created.id, revision: created.revision, round: 1 })
     const edit = await execute(ctx, 'update_goal', {
@@ -593,13 +684,13 @@ describe('goal tool state transitions', () => {
     const complete = await execute(ctx, 'update_goal', {
       goal_id: created.id, revision: created.revision, action: 'complete',
     }, root.agent)
-    expect(resultGoal(complete)).toMatchObject({ phase: 'complete', revision: 2, roundsStarted: 1 })
+    expect(resultGoal(complete)).toMatchObject({ phase: 'complete', revision: created.revision + 1, roundsStarted: 1 })
   })
 
   it('enforces the configured model self-block lower bound across admitted rounds', async () => {
     const { ctx, root } = await harness({ blockedAfterConsecutiveRounds: 3 })
     let turn = openTurn(root, { kind: 'user' })
-    const created = ctx.goals.create(root.agent, { objective: 'blocked eventually' })
+    const created = createGoal(ctx, root.agent, 'blocked eventually')
     closeTurn(root, turn)
     const ref: GoalRef = { id: GoalId(created.id), revision: created.revision }
 
@@ -639,7 +730,7 @@ describe('goal tool state transitions', () => {
   it('lets direct human authority block before the model threshold', async () => {
     const { ctx, root } = await harness({ blockedAfterConsecutiveRounds: 9 })
     openTurn(root, { kind: 'user' })
-    const created = ctx.goals.create(root.agent, { objective: 'human stop' })
+    const created = createGoal(ctx, root.agent, 'human stop')
     const blocked = await execute(ctx, 'update_goal', {
       goal_id: created.id,
       revision: created.revision,

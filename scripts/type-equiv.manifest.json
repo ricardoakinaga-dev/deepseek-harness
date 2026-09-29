@@ -214,6 +214,11 @@
     },
     {
       "doc": "docs/subsystems/goal.md",
+      "symbol": "GoalSnapshotV1",
+      "source": "packages/goal/goal/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/goal.md",
       "symbol": "GoalSnapshot",
       "source": "packages/goal/goal/src/types.ts"
     },
@@ -229,7 +234,27 @@
     },
     {
       "doc": "docs/subsystems/goal.md",
+      "symbol": "GoalSnapshotChangeV1",
+      "source": "packages/goal/goal/src/domain.ts"
+    },
+    {
+      "doc": "docs/subsystems/goal.md",
+      "symbol": "GoalSnapshotChangeV2",
+      "source": "packages/goal/goal/src/domain.ts"
+    },
+    {
+      "doc": "docs/subsystems/goal.md",
       "symbol": "GoalSnapshotChangeMeta",
+      "source": "packages/goal/goal/src/domain.ts"
+    },
+    {
+      "doc": "docs/subsystems/goal.md",
+      "symbol": "GoalClearChangeV1",
+      "source": "packages/goal/goal/src/domain.ts"
+    },
+    {
+      "doc": "docs/subsystems/goal.md",
+      "symbol": "GoalClearChangeV2",
       "source": "packages/goal/goal/src/domain.ts"
     },
     {

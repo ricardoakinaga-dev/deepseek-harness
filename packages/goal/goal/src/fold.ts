@@ -3,7 +3,7 @@
 import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { GOAL_CHANGE_VERSION, GoalId } from './runtime.ts'
-import type { GoalBlockReason, GoalPhase, GoalRef, GoalSnapshot } from './types.ts'
+import type { GoalBlockReason, GoalPhase, GoalRef, GoalSnapshot, GoalTaskDefinition, GoalTaskManifest, GoalTaskStatus } from './types.ts'
 import type {
   FoldedGoal,
   GoalChangeMeta,
@@ -11,7 +11,13 @@ import type {
   GoalMessageSource,
   GoalOperation,
   GoalSnapshotChangeMeta,
+  GoalSnapshotChangeV1,
+  GoalSnapshotChangeV2,
 } from './domain.ts'
+
+type NormalizedSnapshotChangeV1 = Omit<GoalSnapshotChangeV1, 'goal'> & { readonly goal: GoalSnapshot }
+type NormalizedSnapshotChange = NormalizedSnapshotChangeV1 | GoalSnapshotChangeV2
+type NormalizedGoalChange = NormalizedSnapshotChange | GoalClearChangeMeta
 
 const SNAPSHOT_OPERATIONS: ReadonlySet<Exclude<GoalOperation, 'clear'>> = new Set([
   'create',
@@ -22,6 +28,62 @@ const SNAPSHOT_OPERATIONS: ReadonlySet<Exclude<GoalOperation, 'clear'>> = new Se
   'block',
 ])
 const PHASES: ReadonlySet<GoalPhase> = new Set(['active', 'paused', 'blocked', 'complete'])
+const TASK_STATUSES: ReadonlySet<GoalTaskStatus> = new Set(['PENDING', 'PARCIAL', 'BLOCKED_EXTERNAL', 'ACCEPTED'])
+
+function decodeTaskDefinition(value: unknown): GoalTaskDefinition {
+  if (!isRecord(value) || Object.keys(value).sort().join(',') !== 'criterion,id'
+    || typeof value['id'] !== 'string' || value['id'].trim() !== value['id'] || value['id'].length === 0
+    || typeof value['criterion'] !== 'string' || value['criterion'].trim() !== value['criterion']
+    || value['criterion'].length === 0) throw new Error('goal task requires normalized id and criterion')
+  return { id: value['id'], criterion: value['criterion'] }
+}
+
+function decodeDefinitions(value: unknown): readonly GoalTaskDefinition[] {
+  if (!Array.isArray(value) || value.length === 0) throw new Error('goal required tasks must be a non-empty array')
+  const tasks: GoalTaskDefinition[] = value.map(decodeTaskDefinition)
+  if (new Set(tasks.map(task => task.id)).size !== tasks.length) throw new Error('goal required task IDs must be unique')
+  return tasks
+}
+
+function decodeManifest(value: unknown): GoalTaskManifest {
+  if (!isRecord(value) || Object.keys(value).sort().join(',') !== 'originalObjective,originalRequiredTasks,scopeRevisions,tasks') {
+    throw new Error('goal task manifest has invalid fields')
+  }
+  if (typeof value['originalObjective'] !== 'string' || value['originalObjective'].length === 0
+    || value['originalObjective'].trim() !== value['originalObjective']) throw new Error('goal original objective is invalid')
+  if (!Array.isArray(value['scopeRevisions'])) throw new Error('goal scope revisions must be an array')
+  const scopeRevisions = value['scopeRevisions'].map((item: unknown) => {
+    if (!isRecord(item) || Object.keys(item).sort().join(',') !== 'reason,requiredTasks'
+      || typeof item['reason'] !== 'string' || item['reason'].trim() !== item['reason'] || item['reason'].length === 0) {
+      throw new Error('goal scope revision requires a normalized reason')
+    }
+    return { reason: item['reason'], requiredTasks: decodeDefinitions(item['requiredTasks']) }
+  })
+  if (!Array.isArray(value['originalRequiredTasks'])) throw new Error('goal original required tasks must be an array')
+  const originalRequiredTasks = value['originalRequiredTasks'].length === 0
+    ? []
+    : decodeDefinitions(value['originalRequiredTasks'])
+  if (originalRequiredTasks.length === 0 && scopeRevisions.length === 0) {
+    throw new Error('goal original required tasks may be empty only after an explicit scope revision')
+  }
+  const effective = scopeRevisions.at(-1)?.requiredTasks ?? originalRequiredTasks
+  if (!Array.isArray(value['tasks']) || value['tasks'].length !== effective.length) {
+    throw new Error('goal current tasks must match required scope')
+  }
+  const tasks = value['tasks'].map((item: unknown, index: number) => {
+    if (!isRecord(item) || Object.keys(item).sort().join(',') !== 'criterion,id,status') {
+      throw new Error('goal task status has invalid fields')
+    }
+    const definition = decodeTaskDefinition({ id: item['id'], criterion: item['criterion'] })
+    const required = effective[index]
+    if (required === undefined || definition.id !== required.id || definition.criterion !== required.criterion
+      || typeof item['status'] !== 'string' || !TASK_STATUSES.has(item['status'] as GoalTaskStatus)) {
+      throw new Error('goal task status does not match required scope')
+    }
+    return { ...definition, status: item['status'] as GoalTaskStatus }
+  })
+  return { originalObjective: value['originalObjective'], originalRequiredTasks, scopeRevisions, tasks }
+}
 
 /** Mutable accumulator kept private to the pure fold. */
 export interface GoalFoldState {
@@ -85,7 +147,7 @@ function decodeBlockReason(value: unknown): GoalBlockReason {
 }
 
 /** Decode and validate one snapshot. */
-function decodeSnapshot(value: unknown): GoalSnapshot {
+function decodeSnapshot(value: unknown, allowTaskManifest: boolean): GoalSnapshot {
   if (!isRecord(value)) throw new Error('goal change goal must be a record')
   if (typeof value['id'] !== 'string' || value['id'].length === 0) {
     throw new Error('goal change goal.id must be a non-empty string')
@@ -98,9 +160,10 @@ function decodeSnapshot(value: unknown): GoalSnapshot {
     throw new Error('goal change goal.phase is invalid')
   }
   const phase = value['phase'] as GoalPhase
+  const manifestKey = allowTaskManifest && value['taskManifest'] !== undefined ? ',taskManifest' : ''
   const expectedKeys = phase === 'blocked'
-    ? 'blockedReason,id,maxGoalRounds,objective,phase,revision'
-    : 'id,maxGoalRounds,objective,phase,revision'
+    ? `blockedReason,id,maxGoalRounds,objective,phase,revision${manifestKey}`
+    : `id,maxGoalRounds,objective,phase,revision${manifestKey}`
   if (Object.keys(value).sort().join(',') !== expectedKeys) {
     throw new Error(`goal change goal for phase ${phase} must have exactly ${expectedKeys} fields`)
   }
@@ -110,6 +173,7 @@ function decodeSnapshot(value: unknown): GoalSnapshot {
     objective: value['objective'],
     phase,
     maxGoalRounds: positiveInteger(value['maxGoalRounds'], 'goal.maxGoalRounds'),
+    ...value['taskManifest'] === undefined ? {} : { taskManifest: decodeManifest(value['taskManifest']) },
     ...phase === 'blocked' ? { blockedReason: decodeBlockReason(value['blockedReason']) } : {},
   }
 }
@@ -133,7 +197,8 @@ function decodeRef(value: unknown): GoalRef {
  */
 export function decodeGoalChange(value: unknown): GoalChangeMeta | undefined {
   if (!isRecord(value) || value['kind'] !== 'goal/change') return undefined
-  if (value['version'] !== GOAL_CHANGE_VERSION) {
+  const version = value['version']
+  if (version !== 1 && version !== GOAL_CHANGE_VERSION) {
     throw new Error(`unsupported goal change version ${String(value['version'])}`)
   }
   if (value['operation'] === 'clear') {
@@ -143,7 +208,7 @@ export function decodeGoalChange(value: unknown): GoalChangeMeta | undefined {
     }
     return {
       kind: 'goal/change',
-      version: GOAL_CHANGE_VERSION,
+      version,
       operation: 'clear',
       cleared: decodeRef(value['cleared']),
       clearedAt: nonNegativeInteger(value['clearedAt'], 'clearedAt'),
@@ -162,9 +227,9 @@ export function decodeGoalChange(value: unknown): GoalChangeMeta | undefined {
   if (updatedAt < createdAt) throw new Error('goal change updatedAt cannot precede createdAt')
   return {
     kind: 'goal/change',
-    version: GOAL_CHANGE_VERSION,
+    version,
     operation: value['operation'] as Exclude<GoalOperation, 'clear'>,
-    goal: decodeSnapshot(value['goal']),
+    goal: decodeSnapshot(value['goal'], version === GOAL_CHANGE_VERSION),
     roundsStarted: nonNegativeInteger(value['roundsStarted'], 'roundsStarted'),
     createdAt,
     updatedAt,
@@ -184,8 +249,9 @@ function goalSource(source: MessageSource): GoalMessageSource | undefined {
 
 /** Require two snapshots to retain fields that only `edit` may replace. */
 function requireSameDefinition(current: GoalSnapshot, next: GoalSnapshot, operation: GoalOperation): void {
-  if (next.objective !== current.objective || next.maxGoalRounds !== current.maxGoalRounds) {
-    throw new Error(`goal ${operation} cannot change objective or maxGoalRounds`)
+  if (next.objective !== current.objective || next.maxGoalRounds !== current.maxGoalRounds
+    || JSON.stringify(next.taskManifest) !== JSON.stringify(current.taskManifest)) {
+    throw new Error(`goal ${operation} cannot change objective, maxGoalRounds, or task manifest`)
   }
 }
 
@@ -199,7 +265,7 @@ function requireNextRevision(current: GoalSnapshot, next: GoalRef, operation: Go
 /** Validate one non-create snapshot operation against the preceding projection. */
 function validateSnapshotTransition(
   state: GoalFoldState,
-  change: GoalSnapshotChangeMeta,
+  change: NormalizedSnapshotChange,
   current: GoalSnapshot,
 ): void {
   const next = change.goal
@@ -212,12 +278,60 @@ function validateSnapshotTransition(
     throw new Error(`goal ${change.operation} does not preserve the current counters and timestamps`)
   }
   switch (change.operation) {
-    case 'edit':
+    case 'edit': {
       if (next.phase !== current.phase
         || JSON.stringify(next.blockedReason) !== JSON.stringify(current.blockedReason)) {
         throw new Error('goal edit cannot change phase or blocked reason')
       }
+      if (JSON.stringify(next.taskManifest) === JSON.stringify(current.taskManifest)) break
+      const before = current.taskManifest
+      const after = next.taskManifest
+      if (current.phase === 'complete' || after === undefined
+        || next.maxGoalRounds !== current.maxGoalRounds) {
+        throw new Error('goal edit cannot remove or replace the original task manifest')
+      }
+      if (before === undefined) {
+        const firstScope = after.scopeRevisions[0]
+        if (next.objective !== current.objective || after.originalObjective !== current.objective
+          || after.originalRequiredTasks.length !== 0
+          || after.scopeRevisions.length !== 1 || firstScope === undefined
+          || after.tasks.some(task => task.status !== 'PENDING')) {
+          throw new Error('goal scope adoption must add one explicit pending scope to a historical goal')
+        }
+        break
+      }
+      if (before.originalObjective !== after.originalObjective
+        || JSON.stringify(before.originalRequiredTasks) !== JSON.stringify(after.originalRequiredTasks)) {
+        throw new Error('goal edit cannot replace the original task manifest')
+      }
+      if (next.objective !== current.objective) {
+        const beforeDefinitions = before.tasks.map(({ id, criterion }) => ({ id, criterion }))
+        const afterDefinitions = after.tasks.map(({ id, criterion }) => ({ id, criterion }))
+        if (JSON.stringify(before.scopeRevisions) !== JSON.stringify(after.scopeRevisions)
+          || JSON.stringify(beforeDefinitions) !== JSON.stringify(afterDefinitions)
+          || after.tasks.some(task => task.status !== 'PENDING')) {
+          throw new Error('goal objective edit must preserve task scope and reset every task to PENDING')
+        }
+        break
+      }
+      if (JSON.stringify(before.scopeRevisions) === JSON.stringify(after.scopeRevisions)) {
+        if (JSON.stringify({ ...before, tasks: [] }) !== JSON.stringify({ ...after, tasks: [] })
+          || after.tasks.filter((task, index) => task.status !== before.tasks[index]?.status).length !== 1) {
+          throw new Error('goal task status must change exactly one required task')
+        }
+        break
+      }
+      if (JSON.stringify(after.scopeRevisions.slice(0, -1)) !== JSON.stringify(before.scopeRevisions)
+        || after.scopeRevisions.length !== before.scopeRevisions.length + 1
+        || next.objective !== current.objective) {
+        throw new Error('goal scope revision must append to the original manifest')
+      }
+      for (const task of after.tasks) {
+        const previous = before.tasks.find(item => item.id === task.id && item.criterion === task.criterion)
+        if (task.status !== (previous?.status ?? 'PENDING')) throw new Error('goal scope revision changed a task status')
+      }
       break
+    }
     case 'pause':
       requireSameDefinition(current, next, change.operation)
       if (current.phase !== 'active' || next.phase !== 'paused') throw new Error('goal pause has an invalid phase transition')
@@ -236,6 +350,9 @@ function validateSnapshotTransition(
     }
     case 'complete':
       requireSameDefinition(current, next, change.operation)
+      if (current.taskManifest?.tasks.some(task => task.status !== 'ACCEPTED')) {
+        throw new Error('goal complete requires every required task to be ACCEPTED')
+      }
       if (current.phase === 'complete' || next.phase !== 'complete') throw new Error('goal complete has an invalid phase transition')
       break
     case 'block':
@@ -257,10 +374,26 @@ function validateSnapshotTransition(
  * @param change - decoded goal mutation.
  * @returns stable identity used to reconcile a deferred change with its log event.
  */
-export function goalChangeRef(change: GoalChangeMeta): GoalRef {
+function changeRef(change: GoalChangeMeta | NormalizedGoalChange): GoalRef {
   return change.operation === 'clear'
     ? change.cleared
     : { id: change.goal.id, revision: change.goal.revision }
+}
+
+/**
+ * Return the revision identity carried by a snapshot or tombstone.
+ * @param change - decoded goal mutation.
+ * @returns stable identity used to reconcile a deferred change with its log event.
+ */
+export function goalChangeRef(change: GoalChangeMeta): GoalRef {
+  return changeRef(change)
+}
+
+/** Normalize a released snapshot for transition checks without changing its wire type. */
+function normalizeGoalChange(change: GoalChangeMeta): NormalizedGoalChange {
+  if (change.operation === 'clear') return change
+  if (change.version === 1) return { ...change, goal: { ...change.goal } }
+  return change
 }
 
 /**
@@ -268,8 +401,8 @@ export function goalChangeRef(change: GoalChangeMeta): GoalRef {
  * @param state - preceding durable goal projection.
  * @param change - decoded full snapshot or clear tombstone.
  */
-export function applyGoalChange(state: GoalFoldState, change: GoalChangeMeta): void {
-  const ref = goalChangeRef(change)
+export function applyGoalChange(state: GoalFoldState, change: NormalizedGoalChange): void {
+  const ref = changeRef(change)
   if (change.operation === 'clear') {
     const current = state.goal
     if (current === undefined) throw new Error('goal clear requires a current goal')
@@ -293,6 +426,13 @@ export function applyGoalChange(state: GoalFoldState, change: GoalChangeMeta): v
       throw new Error('goal create requires a fresh active revision-one goal with zero rounds')
     }
     state.seenGoalIds.add(change.goal.id)
+    if (change.goal.taskManifest !== undefined
+      && (change.goal.taskManifest.originalObjective !== change.goal.objective
+        || change.goal.taskManifest.originalRequiredTasks.length === 0
+        || change.goal.taskManifest.scopeRevisions.length !== 0
+        || change.goal.taskManifest.tasks.some(task => task.status !== 'PENDING'))) {
+      throw new Error('goal create requires pending tasks and no scope revisions')
+    }
   } else {
     const current = state.goal
     if (current === undefined) throw new Error(`goal ${change.operation} requires a current goal`)
@@ -315,7 +455,7 @@ export function applyGoalEvent(state: GoalFoldState, event: SessionEvent): void 
     const change = decodeGoalChange(event.data)
     /*! v8 ignore next -- the event's declared payload always identifies itself as a goal change. */
     if (change === undefined) throw new Error(`goal change at session event ${event.seq} has an invalid kind`)
-    applyGoalChange(state, change)
+    applyGoalChange(state, normalizeGoalChange(change))
     return
   }
   if (event.type === 'user/message') {

@@ -177,8 +177,19 @@ describe('CommandRuntime', () => {
   it('passes exact invocation context and detaches valid handler results', async () => {
     const ctx = await mount()
     const { agent } = await mintAgentScope(ctx, 'a')
-    const seen = vi.fn(() => ({ kind: 'success' as const, text: 'ok' }))
-    ctx.commands.register({ name: 'run', description: 'Run it', handler: seen })
+    let invocationSeen: { readonly agent: Agent; readonly signal: AbortSignal } | undefined
+    ctx.commands.register({
+      definitionId: CommandDefinitionId('example/run'),
+      name: 'run',
+      description: 'Run it',
+      handler(invocation) {
+        invocationSeen = invocation
+        expect(ctx.commands.isActiveInvocation(invocation)).toBe(true)
+        expect(ctx.commands.isActiveInvocation(invocation, 'example/run')).toBe(true)
+        expect(ctx.commands.isActiveInvocation(invocation, 'example/other')).toBe(false)
+        return { kind: 'success', text: 'ok' }
+      },
+    })
     const controller = new AbortController()
 
     const execution = await ctx.commands.execute(agent, '/run  untouched ', [], controller.signal)
@@ -187,11 +198,9 @@ describe('CommandRuntime', () => {
     expect(execution?.commandId).toBeTruthy()
     expect(Object.isFrozen(execution)).toBe(true)
     expect(Object.isFrozen(execution?.result)).toBe(true)
-    expect(seen).toHaveBeenCalledWith(expect.objectContaining({
-      agent,
-      rawInput: '  untouched ',
-      signal: controller.signal,
-    }))
+    expect(invocationSeen).toMatchObject({ agent, rawInput: '  untouched ', signal: controller.signal })
+    if (invocationSeen === undefined) throw new Error('command invocation was not captured')
+    expect(ctx.commands.isActiveInvocation(invocationSeen)).toBe(false)
     await expect(ctx.commands.execute(agent, 'run', [], controller.signal)).resolves.toBeUndefined()
     await expect(ctx.commands.execute(agent, '/missing', [], controller.signal)).resolves.toBeUndefined()
   })

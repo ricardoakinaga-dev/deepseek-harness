@@ -43,6 +43,8 @@ ctx.commands.register({
 })
 ```
 
+While a handler runs, `isActiveInvocation(invocation)` verifies the exact object issued by this runtime and rejects it after settlement or cancellation. Supplying a `definitionId` also requires the selected registered definition to match. Goal task acceptance and scope replacement require the active `/goal` definition identity before the goal service commits.
+
 The handler returns `success` or `error` plus optional UI text that the adapter renders. `recordInput` defaults to true; a command whose own authoritative domain event already carries the payload sets it to false so the session log does not duplicate the input. Registering the same name twice in one scope throws.
 
 ### Command syntax

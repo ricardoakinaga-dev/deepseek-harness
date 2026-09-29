@@ -37,6 +37,7 @@ import type {
   GoalProjectionState,
   GoalRef,
   GoalSnapshot,
+  GoalTaskDefinition,
   GoalView,
 } from './types.ts'
 import type {
@@ -56,6 +57,8 @@ export type * from './domain.ts'
 export { GOAL_CHANGE_VERSION, GoalError, GoalId } from './runtime.ts'
 export { decodeGoalChange, foldGoal, goalChangeRef } from './fold.ts'
 
+const GOAL_COMMAND_DEFINITION_ID = '@deepseek-ai/dsh-command-goal'
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     goals: GoalService
@@ -72,6 +75,16 @@ const goalProjectionSchema: ZodType<GoalProjection | null> = zod.union([
       phase: zod.union([zod.literal('active'), zod.literal('paused'), zod.literal('blocked'), zod.literal('complete')]),
       blockedReason: zod.object({ code: zod.string(), message: zod.string() }).optional(),
       maxGoalRounds: zod.number().int().positive(),
+      taskManifest: zod.object({
+        originalObjective: zod.string().min(1),
+        originalRequiredTasks: zod.array(zod.object({ id: zod.string().min(1), criterion: zod.string().min(1) })),
+        scopeRevisions: zod.array(zod.object({
+          reason: zod.string().min(1),
+          requiredTasks: zod.array(zod.object({ id: zod.string().min(1), criterion: zod.string().min(1) })),
+        })),
+        tasks: zod.array(zod.object({ id: zod.string().min(1), criterion: zod.string().min(1),
+          status: zod.enum(['PENDING', 'PARCIAL', 'BLOCKED_EXTERNAL', 'ACCEPTED']) })),
+      }).optional(),
     }),
     roundsStarted: zod.number().int().nonnegative(),
     createdAt: zod.number(),
@@ -193,6 +206,7 @@ interface GoalRuntimeState {
 interface ResolvedCreateGoal {
   readonly objective: string
   readonly maxGoalRounds: number
+  readonly requiredTasks: readonly GoalTaskDefinition[]
 }
 
 /** Validate a caller-visible positive safe-integer round cap. */
@@ -211,11 +225,30 @@ function resolveObjective(value: string): string {
   return value.trim()
 }
 
+function resolveRequiredTasks(value: readonly GoalTaskDefinition[]): readonly GoalTaskDefinition[] {
+  if (value.length === 0) {
+    throw new GoalError('requiredTasks must contain explicit IDs and criteria', 'GOAL_INVALID_TASK_MANIFEST')
+  }
+  const tasks = value.map((task) => {
+    if (typeof task.id !== 'string' || task.id.trim() !== task.id || task.id.length === 0
+      || typeof task.criterion !== 'string' || task.criterion.trim() !== task.criterion
+      || task.criterion.length === 0) {
+      throw new GoalError('each required task needs a normalized ID and criterion', 'GOAL_INVALID_TASK_MANIFEST')
+    }
+    return { id: task.id, criterion: task.criterion }
+  })
+  if (new Set(tasks.map(task => task.id)).size !== tasks.length) {
+    throw new GoalError('required task IDs must be unique', 'GOAL_INVALID_TASK_MANIFEST')
+  }
+  return tasks
+}
+
 /** Materialize deployment defaults and validate one create request. */
 function resolveCreateGoal(request: CreateGoalRequest, defaultMaxGoalRounds: number): ResolvedCreateGoal {
   return {
     objective: resolveObjective(request.objective),
     maxGoalRounds: resolveMaxGoalRounds(request.maxGoalRounds ?? defaultMaxGoalRounds),
+    requiredTasks: resolveRequiredTasks(request.requiredTasks),
   }
 }
 
@@ -297,7 +330,7 @@ export class GoalService extends TypertRemoteService {
    * Create and arm a goal. A completed goal may be replaced; every other
    * current phase must be cleared or resumed instead.
    * @param agent - owning live agent.
-   * @param request - objective and optional round cap.
+   * @param request - objective, optional round cap, and explicit required IDs with criteria.
    * @returns the created live view.
    */
   create(agent: Agent, request: CreateGoalRequest): GoalView {
@@ -314,30 +347,116 @@ export class GoalService extends TypertRemoteService {
       objective: spec.objective,
       phase: 'active',
       maxGoalRounds: spec.maxGoalRounds,
+      taskManifest: {
+        originalObjective: spec.objective,
+        originalRequiredTasks: spec.requiredTasks,
+        scopeRevisions: [],
+        tasks: spec.requiredTasks.map(task => ({ ...task, status: 'PENDING' as const })),
+      },
     }
     return this.commitSnapshot(agent, runtime, 'create', goal, 0, now, now, 'armed')
   }
 
   /**
-   * Edit objective and/or round cap without changing phase.
+   * Edit the objective or report non-accepted task progress without changing phase.
+   * Changing an objective resets every manifested task to `PENDING`.
+   * Acceptance and scope replacement require an active command invocation.
    * @param agent - owning live agent.
    * @param ref - expected current revision.
-   * @param request - at least one replacement field.
+   * @param request - one edit mode, with objective and round cap combinable.
    * @returns the edited view.
    */
   @Remote('edit')
   edit(agent: Agent, ref: GoalRef, request: EditGoalRequest): GoalView {
+    return this.editWithAuthority(agent, ref, request, false)
+  }
+
+  /**
+   * Apply the registered human `/goal` command's task acceptance or scope replacement.
+   * A manifestless historical goal may receive its first explicit scope here.
+   * @param invocation - active command invocation issued by the command runtime.
+   * @param ref - expected current revision.
+   * @param request - one task acceptance or complete replacement scope.
+   * @returns the edited view.
+   */
+  editFromCommand(invocation: { readonly agent: Agent; readonly signal: AbortSignal }, ref: GoalRef, request: EditGoalRequest): GoalView {
+    const commands = this.ctx.get('commands') as { isActiveInvocation(value: object, definitionId?: string): boolean } | undefined
+    if (commands === undefined || !commands.isActiveInvocation(invocation, GOAL_COMMAND_DEFINITION_ID)) {
+      throw new GoalError('task acceptance and scope changes require an active human command', 'GOAL_HUMAN_AUTHORITY_REQUIRED')
+    }
+    return this.editWithAuthority(invocation.agent, ref, request, true)
+  }
+
+  private editWithAuthority(agent: Agent, ref: GoalRef, request: EditGoalRequest, humanCommand: boolean): GoalView {
+    if ((request.taskStatus?.status === 'ACCEPTED' || request.scopeRevision !== undefined) && !humanCommand) {
+      throw new GoalError('task acceptance and scope changes require an active human command', 'GOAL_HUMAN_AUTHORITY_REQUIRED')
+    }
     const [state, runtime] = this.prepareMutation(agent)
     const currentState = this.expectCurrent(state, ref)
     const current = currentState.goal
-    if (request.objective === undefined && request.maxGoalRounds === undefined) {
-      throw new GoalError('goal edit requires objective and/or maxGoalRounds', 'GOAL_INVALID_EDIT')
+    const definitionEdit = request.objective !== undefined || request.maxGoalRounds !== undefined
+    const statusEdit = request.taskStatus !== undefined
+    const scopeEdit = request.scopeRevision !== undefined
+    if (Number(definitionEdit) + Number(statusEdit) + Number(scopeEdit) !== 1) {
+      throw new GoalError('goal edit requires exactly one edit mode', 'GOAL_INVALID_EDIT')
     }
-    const goal: GoalSnapshot = {
-      ...current,
-      revision: current.revision + 1,
-      ...request.objective === undefined ? {} : { objective: resolveObjective(request.objective) },
-      ...request.maxGoalRounds === undefined ? {} : { maxGoalRounds: resolveMaxGoalRounds(request.maxGoalRounds) },
+    let goal: GoalSnapshot
+    if (definitionEdit) {
+      const objective = request.objective === undefined ? undefined : resolveObjective(request.objective)
+      const objectiveChanged = objective !== undefined && objective !== current.objective
+      goal = {
+        ...current, revision: current.revision + 1,
+        ...objective === undefined ? {} : { objective },
+        ...request.maxGoalRounds === undefined ? {} : { maxGoalRounds: resolveMaxGoalRounds(request.maxGoalRounds) },
+        ...objectiveChanged && current.taskManifest !== undefined ? { taskManifest: {
+          ...current.taskManifest,
+          tasks: current.taskManifest.tasks.map(task => ({ ...task, status: 'PENDING' as const })),
+        } } : {},
+      }
+    } else {
+      const manifest = current.taskManifest
+      if (current.phase === 'complete') {
+        throw new GoalError('current goal has no editable required-task manifest', 'GOAL_INVALID_TASK_MANIFEST')
+      }
+      if (request.taskStatus !== undefined) {
+        if (manifest === undefined) {
+          throw new GoalError('set an explicit task scope before reporting task progress', 'GOAL_INVALID_TASK_MANIFEST')
+        }
+        const { taskId, status } = request.taskStatus
+        if (!['PENDING', 'PARCIAL', 'BLOCKED_EXTERNAL', 'ACCEPTED'].includes(status)) {
+          throw new GoalError('invalid required task status', 'GOAL_INVALID_TASK_MANIFEST')
+        }
+        const task = manifest.tasks.find(item => item.id === taskId)
+        if (task === undefined) throw new GoalError(`required task "${taskId}" does not exist`, 'GOAL_TASK_NOT_FOUND')
+        if (task.status === status) throw new GoalError(`required task "${taskId}" already has status ${status}`, 'GOAL_INVALID_TASK_MANIFEST')
+        goal = {
+          ...current, revision: current.revision + 1,
+          taskManifest: { ...manifest, tasks: manifest.tasks.map(item => item.id === taskId ? { ...item, status } : item) },
+        }
+      } else {
+        const revision = request.scopeRevision
+        if (revision === undefined) throw new GoalError('goal edit requires a scope revision', 'GOAL_INVALID_EDIT')
+        const tasks = resolveRequiredTasks(revision.requiredTasks)
+        const reason = resolveObjective(revision.reason)
+        goal = {
+          ...current, revision: current.revision + 1,
+          taskManifest: manifest === undefined
+            ? {
+              originalObjective: current.objective,
+              originalRequiredTasks: [],
+              scopeRevisions: [{ reason, requiredTasks: tasks }],
+              tasks: tasks.map(task => ({ ...task, status: 'PENDING' as const })),
+            }
+            : {
+              ...manifest,
+              scopeRevisions: [...manifest.scopeRevisions, { reason, requiredTasks: tasks }],
+              tasks: tasks.map((task) => {
+                const previous = manifest.tasks.find(item => item.id === task.id && item.criterion === task.criterion)
+                return { ...task, status: previous?.status ?? 'PENDING' }
+              }),
+            },
+        }
+      }
     }
     return this.commitCurrent(agent, currentState, runtime, 'edit', goal, runtime.activation)
   }
@@ -382,13 +501,23 @@ export class GoalService extends TypertRemoteService {
   }
 
   /**
-   * Mark a current non-complete goal complete and disarm it.
+   * Mark a current non-complete goal complete only when an explicit manifest
+   * exists and every required task is ACCEPTED, then disarm it.
    * @param agent - owning live agent.
    * @param ref - expected current revision.
    * @returns the completed view.
    */
   @Remote('complete')
   complete(agent: Agent, ref: GoalRef): GoalView {
+    const [state] = this.prepareMutation(agent)
+    const current = this.expectCurrent(state, ref).goal
+    if (current.taskManifest === undefined) {
+      throw new GoalError('goal needs an explicit required-task manifest before completion', 'GOAL_TASKS_INCOMPLETE')
+    }
+    const pending = current.taskManifest.tasks.filter(task => task.status !== 'ACCEPTED')
+    if (pending.length > 0) {
+      throw new GoalError(`goal has unfinished required tasks: ${pending.map(task => task.id).join(', ')}`, 'GOAL_TASKS_INCOMPLETE')
+    }
     return this.transition(
       agent,
       ref,
@@ -522,6 +651,7 @@ export class GoalService extends TypertRemoteService {
       objective: current.objective,
       phase,
       maxGoalRounds: current.maxGoalRounds,
+      ...current.taskManifest === undefined ? {} : { taskManifest: current.taskManifest },
     }
   }
 
@@ -597,7 +727,7 @@ export class GoalService extends TypertRemoteService {
     }
     this.commit(agent, runtime, change, activation)
     return {
-      ...goal,
+      ...structuredClone(goal),
       roundsStarted,
       createdAt,
       updatedAt,
@@ -629,7 +759,7 @@ export class GoalService extends TypertRemoteService {
   private view(state: GoalProjection | null, runtime: GoalRuntimeState): GoalView | undefined {
     if (state === null) return undefined
     return {
-      ...state.goal,
+      ...structuredClone(state.goal),
       roundsStarted: state.roundsStarted,
       createdAt: state.createdAt,
       updatedAt: state.updatedAt,

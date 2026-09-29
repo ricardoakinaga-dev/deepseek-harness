@@ -444,7 +444,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolGoal)
     },
     note:
-      'create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds.',
+      'create requires a non-empty manifest matching structured human input. Edit, pause, and resume require a direct-human root turn; only explicit /goal commands accept tasks or revise scope. Complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds.',
   },
   {
     pkg: '@deepseek-ai/dsh-schedule',

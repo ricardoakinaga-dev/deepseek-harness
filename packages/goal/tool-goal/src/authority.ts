@@ -103,6 +103,49 @@ export function requireDirectHuman(ctx: Context, execution: GoalToolExecution): 
 }
 
 /**
+ * Require an exact machine-readable task manifest in the admitted human input.
+ * @param ctx - Context carrying the root-agent graph.
+ * @param execution - authenticated current tool execution.
+ * @param objective - requested objective.
+ * @param requiredTasks - requested required IDs and criteria.
+ */
+export function requireExplicitCreate(
+  ctx: Context,
+  execution: GoalToolExecution,
+  objective: string,
+  requiredTasks: readonly { id: string; criterion: string }[] | undefined,
+): readonly { id: string; criterion: string }[] {
+  requireDirectHuman(ctx, execution)
+  if (requiredTasks === undefined || requiredTasks.length === 0) {
+    reject('create_goal requires an explicit required_tasks manifest', 'GOAL_TOOL_MANIFEST_REQUIRED')
+  }
+  const matches = someOpenTurnEvent(execution, (event) => {
+    if (event.type !== 'user/message' || event.data.source.kind !== 'user') return false
+    return event.data.content.some((block) => {
+      if (block.type !== 'text') return false
+      try {
+        const parsed: unknown = JSON.parse(block.text)
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return false
+        const record = parsed as Record<string, unknown>
+        if (Object.keys(record).sort().join(',') !== 'objective,requiredTasks'
+          || record['objective'] !== objective || !Array.isArray(record['requiredTasks'])) return false
+        const tasks = record['requiredTasks'] as unknown[]
+        return tasks.length === requiredTasks.length && tasks.every((item, index) => {
+          if (typeof item !== 'object' || item === null || Array.isArray(item)) return false
+          const task = item as Record<string, unknown>
+          return Object.keys(task).sort().join(',') === 'criterion,id'
+            && task['id'] === requiredTasks[index]?.id && task['criterion'] === requiredTasks[index]?.criterion
+        })
+      } catch (_error: unknown) {
+        return false
+      }
+    })
+  })
+  if (!matches) reject('create_goal requires the exact JSON objective and requiredTasks from the human turn', 'GOAL_TOOL_MANIFEST_REQUIRED')
+  return requiredTasks
+}
+
+/**
  * Resolve completion authority from either direct human input or the exact goal round.
  * @param ctx - Context carrying live agents and goal state.
  * @param execution - Authenticated current tool execution.

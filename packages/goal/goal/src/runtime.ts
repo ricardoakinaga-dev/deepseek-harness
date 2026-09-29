@@ -4,8 +4,8 @@ import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type { GoalId as GoalIdType } from './types.ts'
 import type { GoalErrorCode } from './domain.ts'
 
-/** Version of the goal change embedded in a round-zero message source. */
-export const GOAL_CHANGE_VERSION = 1
+/** Current payload version of the durable goal change. */
+export const GOAL_CHANGE_VERSION = 2
 
 /**
  * Brand a string as a goal id.

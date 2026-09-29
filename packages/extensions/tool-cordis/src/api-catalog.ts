@@ -635,6 +635,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the scoped shadow or global definition.',
       },
       {
+        signature: 'isActiveInvocation(invocation: { readonly agent: Agent; readonly signal: AbortSignal }, definitionId?: string): boolean',
+        description: 'Check that an invocation is active and, when supplied, belongs to one definition.',
+        parameters: [{ name: 'invocation', description: 'exact object passed to a registered handler.' }, { name: 'definitionId', description: 'required registered definition identity.' }],
+        returns: 'whether the handler is still active and its request is not cancelled.',
+      },
+      {
         signature: '@Remote async execute( agent: Agent, line: string, submittedAttachments: readonly CommandSubmitAttachment[], signal: AbortSignal, ): Promise<CommandExecution | undefined>',
         description: 'Parse and execute a known command without sending it to the model.\n\nA resolved command\'s lifecycle is logged: `command/run` is appended before the handler is invoked and `command/done` after settlement (a thrown or aborted handler settles as `kind: \'error\'`). Both are direct log-only appends — no turn wraps them, and persistence drains them at ordinary checkpoints. Admission misses (syntax or unknown name) log nothing — they never entered a handler. A `command/run` append failure fails the execution loud; a `command/done` append failure on the handler-failure path is contained so the handler\'s own error stays the reported failure.\n\nAttachment admission is enforced here, not in the composer: attachments sent to a command that does not declare `input.attachments`, an absent attachment store, and an exceeded image limit each settle as an error result before the handler runs. Validation rejection starts no attachment writes; a storage failure can leave only unreachable content-addressed objects for deferred collection.',
         parameters: [{ name: 'agent', description: 'exact receiving agent.' }, { name: 'line', description: 'complete slash-command line.' }, { name: 'submittedAttachments', description: 'encoded images and staged file receipts accompanying the line, in submission order; empty for a plain invocation.' }, { name: 'signal', description: 'cancellation signal owned by the UI request.' }],
@@ -1159,13 +1165,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'create(agent: Agent, request: CreateGoalRequest): GoalView',
         description: 'Create and arm a goal. A completed goal may be replaced; every other current phase must be cleared or resumed instead.',
-        parameters: [{ name: 'agent', description: 'owning live agent.' }, { name: 'request', description: 'objective and optional round cap.' }],
+        parameters: [{ name: 'agent', description: 'owning live agent.' }, { name: 'request', description: 'objective, optional round cap, and explicit required IDs with criteria.' }],
         returns: 'the created live view.',
       },
       {
         signature: '@Remote(\'edit\') edit(agent: Agent, ref: GoalRef, request: EditGoalRequest): GoalView',
-        description: 'Edit objective and/or round cap without changing phase.',
-        parameters: [{ name: 'agent', description: 'owning live agent.' }, { name: 'ref', description: 'expected current revision.' }, { name: 'request', description: 'at least one replacement field.' }],
+        description: 'Edit the objective or report non-accepted task progress without changing phase. Changing an objective resets every manifested task to `PENDING`. Acceptance and scope replacement require an active command invocation.',
+        parameters: [{ name: 'agent', description: 'owning live agent.' }, { name: 'ref', description: 'expected current revision.' }, { name: 'request', description: 'one edit mode, with objective and round cap combinable.' }],
+        returns: 'the edited view.',
+      },
+      {
+        signature: 'editFromCommand(invocation: { readonly agent: Agent; readonly signal: AbortSignal }, ref: GoalRef, request: EditGoalRequest): GoalView',
+        description: 'Apply the registered human `/goal` command\'s task acceptance or scope replacement. A manifestless historical goal may receive its first explicit scope here.',
+        parameters: [{ name: 'invocation', description: 'active command invocation issued by the command runtime.' }, { name: 'ref', description: 'expected current revision.' }, { name: 'request', description: 'one task acceptance or complete replacement scope.' }],
         returns: 'the edited view.',
       },
       {
@@ -1182,7 +1194,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote(\'complete\') complete(agent: Agent, ref: GoalRef): GoalView',
-        description: 'Mark a current non-complete goal complete and disarm it.',
+        description: 'Mark a current non-complete goal complete only when an explicit manifest exists and every required task is ACCEPTED, then disarm it.',
         parameters: [{ name: 'agent', description: 'owning live agent.' }, { name: 'ref', description: 'expected current revision.' }],
         returns: 'the completed view.',
       },
@@ -4942,7 +4954,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CreateGoalRequest',
-    declaration: 'export interface CreateGoalRequest {\n    readonly objective: string;\n    readonly maxGoalRounds?: number;\n}',
+    declaration: 'export interface CreateGoalRequest {\n    readonly objective: string;\n    readonly maxGoalRounds?: number;\n    readonly requiredTasks: readonly GoalTaskDefinition[];\n}',
   },
   {
     name: 'CreateGoalResult',
@@ -5126,7 +5138,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'EditGoalRequest',
-    declaration: 'export interface EditGoalRequest {\n    readonly objective?: string;\n    readonly maxGoalRounds?: number;\n}',
+    declaration: 'export interface EditGoalRequest {\n    readonly objective?: string;\n    readonly maxGoalRounds?: number;\n    readonly taskStatus?: {\n        readonly taskId: string;\n        readonly status: GoalTaskStatus;\n    };\n    readonly scopeRevision?: GoalScopeRevision;\n}',
   },
   {
     name: 'EncodedFileAttachment',
@@ -5293,8 +5305,32 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface GoalRef {\n    readonly id: GoalId;\n    readonly revision: number;\n}',
   },
   {
+    name: 'GoalScopeRevision',
+    declaration: 'export interface GoalScopeRevision {\n    readonly reason: string;\n    readonly requiredTasks: readonly GoalTaskDefinition[];\n}',
+  },
+  {
     name: 'GoalSnapshot',
-    declaration: 'export interface GoalSnapshot extends GoalRef {\n    readonly objective: string;\n    readonly phase: GoalPhase;\n    readonly blockedReason?: GoalBlockReason;\n    readonly maxGoalRounds: number;\n}',
+    declaration: 'export interface GoalSnapshot extends GoalSnapshotV1 {\n    readonly taskManifest?: GoalTaskManifest;\n}',
+  },
+  {
+    name: 'GoalSnapshotV1',
+    declaration: 'export interface GoalSnapshotV1 extends GoalRef {\n    readonly objective: string;\n    readonly phase: GoalPhase;\n    readonly blockedReason?: GoalBlockReason;\n    readonly maxGoalRounds: number;\n}',
+  },
+  {
+    name: 'GoalTask',
+    declaration: 'export interface GoalTask extends GoalTaskDefinition {\n    readonly status: GoalTaskStatus;\n}',
+  },
+  {
+    name: 'GoalTaskDefinition',
+    declaration: 'export interface GoalTaskDefinition {\n    readonly id: string;\n    readonly criterion: string;\n}',
+  },
+  {
+    name: 'GoalTaskManifest',
+    declaration: 'export interface GoalTaskManifest {\n    readonly originalObjective: string;\n    readonly originalRequiredTasks: readonly GoalTaskDefinition[];\n    readonly scopeRevisions: readonly GoalScopeRevision[];\n    readonly tasks: readonly GoalTask[];\n}',
+  },
+  {
+    name: 'GoalTaskStatus',
+    declaration: 'export type GoalTaskStatus = \'PENDING\' | \'PARCIAL\' | \'BLOCKED_EXTERNAL\' | \'ACCEPTED\';',
   },
   {
     name: 'GoalView',

@@ -31,6 +31,8 @@ type GoalPhase =
 
 阻塞是唯一表示「因问题而停止」的持久状态。由策略负责的阻塞原因会携带一个用于路由、稳定且采用 lower-kebab-case 的代码，以及一段供人和模型阅读的自由文本说明。
 
+新 goal 必需的任务清单保留原始目标、显式必需 ID/验收标准列表、带用户可见原因的有序范围修订，以及每个现行任务的 `PENDING`、`PARCIAL`、`BLOCKED_EXTERNAL` 或 `ACCEPTED` 状态。没有该字段的已发布 goal 仍可读取；用户可以补充首个跟踪范围，该范围记录为一项范围修订，原始任务列表为空，且所有新任务均为 `PENDING`。此后完成要求每个现行任务都为 `ACCEPTED`。修改带清单 goal 的目标会将所有现行任务重置为 `PENDING`；完成前，每个任务都需要重新由用户验收。
+
 ```ts type-equiv
 /** Machine-routable and human-readable explanation for a blocked goal. */
 interface GoalBlockReason {
@@ -42,8 +44,8 @@ interface GoalBlockReason {
 ```
 
 ```ts type-equiv
-/** Full durable state written by every non-clear goal mutation. */
-interface GoalSnapshot extends GoalRef {
+/** Goal snapshot written by `goal/change` version 1. */
+interface GoalSnapshotV1 extends GoalRef {
   /** Human-requested completion objective. */
   readonly objective: string
   /** Durable lifecycle phase. */
@@ -52,6 +54,14 @@ interface GoalSnapshot extends GoalRef {
   readonly blockedReason?: GoalBlockReason
   /** Total admitted goal-round cap. */
   readonly maxGoalRounds: number
+}
+```
+
+```ts type-equiv
+/** Full durable state written by current non-clear goal mutations. */
+interface GoalSnapshot extends GoalSnapshotV1 {
+  /** Absent only when a version 2 mutation carries forward a historical goal. */
+  readonly taskManifest?: GoalTaskManifest
 }
 ```
 
@@ -90,13 +100,26 @@ interface GoalActivationChanged {
 
 ## 持久变更
 
-每次变更都是持久的 `goal/change` 会话事件，其载荷要么是变更后的完整快照，要么是清除墓碑。严格折叠与持久投影只从这些事件派生生命周期状态；inbox 变更不会影响 goal 状态。
+每次变更都是持久的 `goal/change` 会话事件，其载荷要么是变更后的完整快照，要么是清除墓碑。新写入方发出版本 2；当前读取器仍严格支持已发布的版本 1。版本 2 允许历史 goal 的变更省略任务清单；旧读取器可能拒绝版本 2。严格折叠与持久投影只从这些事件派生生命周期状态。
 
 ```ts type-equiv
-/** Full-snapshot goal mutation committed by a durable `goal/change` event. */
-interface GoalSnapshotChangeMeta {
+/** Full-snapshot goal mutation retained from released `goal/change` version 1. */
+interface GoalSnapshotChangeV1 {
   readonly kind: 'goal/change'
   readonly version: 1
+  readonly operation: Exclude<GoalOperation, 'clear'>
+  readonly goal: GoalSnapshotV1
+  readonly roundsStarted: number
+  readonly createdAt: number
+  readonly updatedAt: number
+}
+```
+
+```ts type-equiv
+/** Full-snapshot goal mutation with current task-manifest support. */
+interface GoalSnapshotChangeV2 {
+  readonly kind: 'goal/change'
+  readonly version: 2
   readonly operation: Exclude<GoalOperation, 'clear'>
   readonly goal: GoalSnapshot
   readonly roundsStarted: number
@@ -106,14 +129,35 @@ interface GoalSnapshotChangeMeta {
 ```
 
 ```ts type-equiv
-/** Tombstone retained when the current goal is cleared. */
-interface GoalClearChangeMeta {
+/** Full-snapshot mutation accepted by current readers. */
+type GoalSnapshotChangeMeta = GoalSnapshotChangeV1 | GoalSnapshotChangeV2
+```
+
+```ts type-equiv
+/** Tombstone retained from released `goal/change` version 1. */
+interface GoalClearChangeV1 {
   readonly kind: 'goal/change'
   readonly version: 1
   readonly operation: 'clear'
   readonly cleared: GoalRef
   readonly clearedAt: number
 }
+```
+
+```ts type-equiv
+/** Current clear tombstone version. */
+interface GoalClearChangeV2 {
+  readonly kind: 'goal/change'
+  readonly version: 2
+  readonly operation: 'clear'
+  readonly cleared: GoalRef
+  readonly clearedAt: number
+}
+```
+
+```ts type-equiv
+/** Clear tombstone accepted by current readers. */
+type GoalClearChangeMeta = GoalClearChangeV1 | GoalClearChangeV2
 ```
 
 续跑消费方会为每个获准的用户消息轮次标注正数且连续的 Round 编号和当前修订号；只有这些获准的 `user/message` 事件会推进 `roundsStarted`。回放会拒绝非正数 Round、编号缺口、陈旧修订号、已停止阶段和超出上限。
@@ -138,6 +182,8 @@ interface GoalMessageSource {
 interface CreateGoalRequest {
   readonly objective: string
   readonly maxGoalRounds?: number
+  /** Non-empty explicit required work; IDs are never inferred from the objective. */
+  readonly requiredTasks: readonly GoalTaskDefinition[]
 }
 ```
 
@@ -146,6 +192,10 @@ interface CreateGoalRequest {
 interface EditGoalRequest {
   readonly objective?: string
   readonly maxGoalRounds?: number
+  /** One required task disposition; exclusive with scope and objective edits. */
+  readonly taskStatus?: { readonly taskId: string; readonly status: GoalTaskStatus }
+  /** Complete replacement scope and user-visible reason; exclusive with other edits. */
+  readonly scopeRevision?: GoalScopeRevision
 }
 ```
 
@@ -199,19 +249,31 @@ disarm(agent: Agent): GoalView | undefined
  * Create and arm a goal. A completed goal may be replaced; every other
  * current phase must be cleared or resumed instead.
  * @param agent - owning live agent.
- * @param request - objective and optional round cap.
+ * @param request - objective, optional round cap, and explicit required IDs with criteria.
  * @returns the created live view.
  */
 create(agent: Agent, request: CreateGoalRequest): GoalView
 
 /**
- * Edit objective and/or round cap without changing phase.
+ * Edit the objective or report non-accepted task progress without changing phase.
+ * Changing an objective resets every manifested task to `PENDING`.
+ * Acceptance and scope replacement require an active command invocation.
  * @param agent - owning live agent.
  * @param ref - expected current revision.
- * @param request - at least one replacement field.
+ * @param request - one edit mode, with objective and round cap combinable.
  * @returns the edited view.
  */
 @Remote('edit') edit(agent: Agent, ref: GoalRef, request: EditGoalRequest): GoalView
+
+/**
+ * Apply the registered human `/goal` command's task acceptance or scope replacement.
+ * A manifestless historical goal may receive its first explicit scope here.
+ * @param invocation - active command invocation issued by the command runtime.
+ * @param ref - expected current revision.
+ * @param request - one task acceptance or complete replacement scope.
+ * @returns the edited view.
+ */
+editFromCommand(invocation: { readonly agent: Agent; readonly signal: AbortSignal }, ref: GoalRef, request: EditGoalRequest): GoalView
 
 /**
  * Pause an active goal and disarm automatic continuation.
@@ -231,7 +293,8 @@ create(agent: Agent, request: CreateGoalRequest): GoalView
 @Remote('resume') resume(agent: Agent, ref: GoalRef): GoalView
 
 /**
- * Mark a current non-complete goal complete and disarm it.
+ * Mark a current non-complete goal complete only when an explicit manifest
+ * exists and every required task is ACCEPTED, then disarm it.
  * @param agent - owning live agent.
  * @param ref - expected current revision.
  * @returns the completed view.

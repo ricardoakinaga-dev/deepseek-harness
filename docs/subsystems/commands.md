@@ -169,6 +169,14 @@ registerFileReceiptResolver(resolver: CommandFileReceiptResolver): () => void
 find(agent: Agent, name: string): CommandDefinition | undefined
 
 /**
+ * Check that an invocation is active and, when supplied, belongs to one definition.
+ * @param invocation - exact object passed to a registered handler.
+ * @param definitionId - required registered definition identity.
+ * @returns whether the handler is still active and its request is not cancelled.
+ */
+isActiveInvocation(invocation: { readonly agent: Agent; readonly signal: AbortSignal }, definitionId?: string): boolean
+
+/**
  * Parse and execute a known command without sending it to the model.
  *
  * A resolved command's lifecycle is logged: `command/run` is appended

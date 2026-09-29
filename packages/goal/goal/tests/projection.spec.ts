@@ -18,8 +18,16 @@ import SessionStore from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import GoalService, { GoalId, applyGoalProjection, foldGoal, goalProjectionDefinition } from '@deepseek-ai/dsh-goal'
-import type { GoalProjection, GoalProjectionState, GoalRef } from '@deepseek-ai/dsh-goal'
+import type { CreateGoalRequest, GoalProjection, GoalProjectionState, GoalRef } from '@deepseek-ai/dsh-goal'
 import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
+
+/** Supply explicit required work to a lifecycle fixture. */
+function createGoal(ctx: Context, agent: Agent, request: Omit<CreateGoalRequest, 'requiredTasks'> & { requiredTasks?: CreateGoalRequest['requiredTasks'] }) {
+  return ctx.goals.create(agent, {
+    ...request,
+    requiredTasks: request.requiredTasks ?? [{ id: 'done', criterion: 'The objective is met' }],
+  })
+}
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -98,7 +106,7 @@ describe('goal projection unit', () => {
     try {
       const bench = await harness(true)
       seedMessage(bench.session)
-      const created = bench.ctx.goals.create(bench.agent, { objective: 'ship the goal bar' })
+      const created = createGoal(bench.ctx, bench.agent, { objective: 'ship the goal bar' })
       const afterCreate = bench.tailValues().goal
       expect(afterCreate).toMatchObject({
         goal: { id: created.id, revision: 1, objective: 'ship the goal bar', phase: 'active' },
@@ -122,7 +130,7 @@ describe('goal projection unit', () => {
     try {
       const bench = await harness(true)
       seedMessage(bench.session)
-      const created = bench.ctx.goals.create(bench.agent, { objective: 'temporary' })
+      const created = createGoal(bench.ctx, bench.agent, { objective: 'temporary' })
       expect(bench.tailValues().goal).not.toBeNull()
       bench.ctx.goals.clear(bench.agent, { id: created.id, revision: created.revision })
       expect(bench.tailValues().goal).toBeNull()
@@ -133,7 +141,7 @@ describe('goal projection unit', () => {
 
   it('does not let inbox changes revive a cleared goal', async () => {
     const bench = await harness(true)
-    const created = bench.ctx.goals.create(bench.agent, { objective: 'stay cleared' })
+    const created = createGoal(bench.ctx, bench.agent, { objective: 'stay cleared' })
     bench.ctx.goals.clear(bench.agent, created)
 
     bench.session.append('agent/inbox/spliced', {
@@ -235,7 +243,7 @@ describe('goal projection unit', () => {
 
   it('fails host goal access when the projection retained a replay failure', async () => {
     const bench = await harness(true)
-    bench.ctx.goals.create(bench.agent, { objective: 'poisoned replay' })
+    createGoal(bench.ctx, bench.agent, { objective: 'poisoned replay' })
     const failure = 'goal replay failed at session event 0: invalid restored goal stream'
     const state = bench.ctx.sessionProjections.stateOf(bench.session, 'goal')
     expect(state).toBeDefined()

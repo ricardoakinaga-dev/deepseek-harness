@@ -34,10 +34,12 @@ kind: "package-reference"
 | 工具 | 作用 |
 |---|---|
 | `get_goal()` | 读取当前 goal；没有当前 goal 时返回 `null` |
-| `create_goal(objective, max_goal_rounds?)` | 根据人类直接发起的顶层轮次创建一个 goal |
-| `update_goal(goal_id, revision, action, objective?, max_goal_rounds?, blocked_reason?)` | 对精确 goal revision 执行 `edit`、`pause`、`resume`、`complete` 或 `blocked` |
+| `create_goal(objective, required_tasks, max_goal_rounds?)` | 根据人类直接发起的顶层轮次创建 goal；显式必需 ID 带有验收标准 |
+| `update_goal(goal_id, revision, action, ...)` | 更新精确 revision；`task_status` 记录非验收进度；范围替换使用 `/goal scope` |
 
 在 `update_goal` 之前调用 `get_goal`，并复制精确的 `goal_id` 与 `revision`；所有调用都互斥，因此模型排序的批次能观察到更早变更及其新 revision。替换值只属于 `edit`；`blocked_reason` 只有在 `blocked` 时才必填，并以稳定代码 `model-reported` 持久化。严格 schema 下的空字符串和零填充值视为省略，而有意义的值仍限定到各自 action。
+
+存在清单时，工具结果包含原始目标、原始必需 ID 和验收标准、当前任务状态，以及每次显式范围修订。模型工具的 schema 不提供 `ACCEPTED` 和 `revise_scope`；人类须使用显式 `/goal accept` 与 `/goal scope` 命令。传给 `create_goal` 的清单必须与当前人类轮次中的 JSON `objective` 和 `requiredTasks` 完全一致。创建时缺失或提供空清单会被拒绝；模型不得从文本推断遗漏的 ID。对于没有清单的已发布 goal，应先请用户通过 `/goal scope` 设置首个必需任务列表，再跟踪或完成。
 
 ### 配置
 
@@ -84,7 +86,7 @@ kind: "package-reference"
 
 ### 工具输出
 
-三个工具共用一种规范输出：紧凑 JSON `{ goal: null }`，或 `{ goal: { id, revision, objective, phase, roundsStarted, maxGoalRounds, blockedReason? }, activation }`。结果中的 `activation` 是实时观察值，绝不会成为回放权限依据。UI 客户端收到纯通用卡片——`get_goal` 为 read，变更使用 other。
+三个工具共用一种规范输出：紧凑 JSON `{ goal: null }`，或 `{ goal: { id, revision, objective, phase, roundsStarted, maxGoalRounds, blockedReason?, taskManifest? }, activation }`。结果中的 `activation` 是实时观察值，绝不会成为回放权限依据。UI 客户端收到纯通用卡片——`get_goal` 为 read，变更使用 other。
 
 </details>
 
@@ -114,7 +116,7 @@ kind: "package-reference"
 ##### Goal 策略
 
 ```markdown
-create_goal may infer goal intent from a direct human request in any language. After session resume or fork, an active goal is disarmed: when a human asks to continue or resume in any wording or language, use update_goal action resume to rearm it. Mark complete only when the objective is actually achieved. Mark blocked only after the same blocking condition persists for at least 3 consecutive goal rounds, and report that concrete condition in blocked_reason; difficulty, uncertainty, or useful remaining work is not blocked.
+create_goal may infer goal intent from a direct human request in any language. After session resume or fork, an active goal is disarmed: when a human asks to continue or resume in any wording or language, use update_goal action resume to rearm it. Create a task manifest by copying every ID and criterion from exact human JSON objective and requiredTasks fields without inference. For a released goal without a manifest, ask the human to set its first requiredTasks with /goal scope; all adopted tasks start PENDING. Use task_status for progress. Human task acceptance and scope changes use explicit /goal commands. Completion requires a manifest with every task accepted. Mark complete only when the objective is actually achieved. Mark blocked only after the same blocking condition persists for at least 3 consecutive goal rounds, and report that concrete condition in blocked_reason; difficulty, uncertainty, or useful remaining work is not blocked.
 ```
 
 #### Token 影响

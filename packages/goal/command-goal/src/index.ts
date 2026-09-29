@@ -13,11 +13,13 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 export const name = 'command-goal'
 export const inject = ['commands', 'goals']
 
-const USAGE = 'Usage: /goal [<objective>|clear|edit <objective>|pause|resume]'
+const USAGE = 'Usage: /goal [create <JSON>|accept <id>|scope <JSON>|clear|edit <objective>|pause|resume]'
 
 type GoalCommand =
   | { readonly kind: 'show' }
-  | { readonly kind: 'create'; readonly objective: string }
+  | { readonly kind: 'create'; readonly input: string }
+  | { readonly kind: 'accept'; readonly id: string }
+  | { readonly kind: 'scope'; readonly input: string }
   | { readonly kind: 'edit'; readonly objective: string }
   | { readonly kind: 'invalid-edit' }
   | { readonly kind: 'pause' }
@@ -31,7 +33,7 @@ function assertNever(value: never, label: string): never {
 }
 /*! v8 ignore stop */
 
-/** Parse only the grammar owned by `/goal`; arbitrary other input is an objective. */
+/** Parse only the grammar owned by `/goal`. */
 function parseGoalCommand(rawInput: string): GoalCommand {
   const input = rawInput.trim()
   if (input.length === 0) return { kind: 'show' }
@@ -41,7 +43,21 @@ function parseGoalCommand(rawInput: string): GoalCommand {
   if (control === 'resume') return { kind: 'resume' }
   if (control === 'edit') return { kind: 'invalid-edit' }
   if (/^edit(?=\s)/iu.test(input)) return { kind: 'edit', objective: input.slice(4).trim() }
-  return { kind: 'create', objective: input }
+  if (/^accept(?=\s)/iu.test(input)) return { kind: 'accept', id: input.slice(6).trim() }
+  if (/^scope(?=\s)/iu.test(input)) return { kind: 'scope', input: input.slice(5).trim() }
+  return { kind: 'create', input: /^create(?=\s)/iu.test(input) ? input.slice(6).trim() : '' }
+}
+
+/** Parse explicit command JSON without interpreting natural-language objective text. */
+function parseCommandJson(input: string, keys: string): Record<string, unknown> | undefined {
+  try {
+    const parsed: unknown = JSON.parse(input)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return undefined
+    const record = parsed as Record<string, unknown>
+    return Object.keys(record).sort().join(',') === keys ? record : undefined
+  } catch (_error: unknown) {
+    return undefined
+  }
 }
 
 /** Human label for one durable goal phase. */
@@ -58,20 +74,31 @@ function phaseLabel(phase: GoalPhase): string {
 
 /** Commands that are meaningful from one exact live state. */
 function commandHint(goal: GoalView): string {
-  if (goal.phase === 'active') {
-    return goal.activation === 'armed'
-      ? '/goal edit <objective>, /goal pause, /goal clear'
-      : '/goal edit <objective>, /goal resume, /goal clear'
-  }
+  let lifecycle: string[]
   switch (goal.phase) {
+    case 'active':
+      lifecycle = goal.activation === 'armed'
+        ? ['/goal edit <objective>', '/goal pause', '/goal clear']
+        : ['/goal edit <objective>', '/goal resume', '/goal clear']
+      break
     case 'paused':
     case 'blocked':
-      return '/goal edit <objective>, /goal resume, /goal clear'
+      lifecycle = ['/goal edit <objective>', '/goal resume', '/goal clear']
+      break
     case 'complete':
-      return '/goal <objective>, /goal clear'
-    /*! v8 ignore next 2 -- the active branch and every non-active phase are handled above */
+      lifecycle = ['/goal create <JSON>', '/goal clear']
+      break
+    /*! v8 ignore next 2 -- closed phase union is handled above */
     default: return assertNever(goal.phase, 'goal phase')
   }
+  if (goal.phase === 'complete') return lifecycle.join(', ')
+  const tasks = goal.taskManifest === undefined
+    ? ['/goal scope <JSON>']
+    : [
+      ...goal.taskManifest.tasks.some(task => task.status !== 'ACCEPTED') ? ['/goal accept <id>'] : [],
+      '/goal scope <JSON>',
+    ]
+  return [...lifecycle, ...tasks].join(', ')
 }
 
 /** Render direct UI output without exposing compare-and-set internals. */
@@ -80,6 +107,17 @@ function renderGoal(title: string, goal: GoalView): CommandResult {
   /*! v8 ignore next -- durable replay guarantees every blocked goal carries its validated reason */
   if (goal.phase === 'blocked' && reason === undefined) throw new TypeError('blocked goal is missing its reason')
   const blocker = reason === undefined ? [] : [`Blocker: ${reason.code}: ${reason.message}`]
+  const manifest = goal.taskManifest === undefined
+    ? []
+    : [
+      `Original objective: ${goal.taskManifest.originalObjective}`,
+      `Original required IDs: ${goal.taskManifest.originalRequiredTasks.length === 0
+        ? '(none recorded before scope adoption)'
+        : goal.taskManifest.originalRequiredTasks.map(task => task.id).join(', ')}`,
+      ...goal.taskManifest.scopeRevisions.map((revision, index) =>
+        `Scope revision ${index + 1}: ${revision.reason}; required IDs: ${revision.requiredTasks.map(task => task.id).join(', ')}`),
+      ...goal.taskManifest.tasks.map(task => `Required ${task.id}: ${task.status} — ${task.criterion}`),
+    ]
   return {
     kind: 'success',
     text: [
@@ -87,6 +125,7 @@ function renderGoal(title: string, goal: GoalView): CommandResult {
       `Status: ${phaseLabel(goal.phase)}`,
       ...blocker,
       `Objective: ${goal.objective}`,
+      ...manifest,
       `Rounds: ${goal.roundsStarted}/${goal.maxGoalRounds}`,
       `Activation: ${goal.activation}`,
       '',
@@ -128,7 +167,7 @@ function executeGoalCommand(ctx: Context, invocation: CommandInvocation): Comman
   if (invocation.attachments.length > 0 && command.kind !== 'create' && command.kind !== 'edit') {
     return {
       kind: 'error',
-      text: 'Attachments only accompany a goal objective: /goal <objective> or /goal edit <objective>.',
+      text: 'Attachments only accompany a goal objective: /goal create <JSON> or /goal edit <objective>.',
     }
   }
   try {
@@ -141,22 +180,44 @@ function executeGoalCommand(ctx: Context, invocation: CommandInvocation): Comman
       case 'invalid-edit':
         return { kind: 'error', text: `Goal editing requires a replacement objective.\n${USAGE}` }
       case 'create': {
+        const input = parseCommandJson(command.input, 'objective,requiredTasks')
+        if (input === undefined || typeof input['objective'] !== 'string' || !Array.isArray(input['requiredTasks'])) {
+          return { kind: 'error', text: `Goal creation requires JSON with objective and requiredTasks. ${USAGE}` }
+        }
         if (current !== undefined && current.phase !== 'complete') {
           return {
             kind: 'error',
             text: `A goal is already ${phaseLabel(current.phase)}. Use /goal edit <objective> to change it or /goal clear before replacing it.`,
           }
         }
-        const created = ctx.goals.create(invocation.agent, { objective: command.objective })
+        const created = ctx.goals.create(invocation.agent, {
+          objective: input['objective'],
+          requiredTasks: input['requiredTasks'] as { id: string; criterion: string }[],
+        })
         submitObjectiveAttachments(invocation)
         return renderGoal('Goal created', created)
+      }
+      case 'accept': {
+        if (current === undefined) return missingGoal('accept')
+        if (command.id.length === 0) return { kind: 'error', text: `Task ID is required. ${USAGE}` }
+        return renderGoal('Task accepted', ctx.goals.editFromCommand(invocation, goalRef(current), {
+          taskStatus: { taskId: command.id, status: 'ACCEPTED' },
+        }))
+      }
+      case 'scope': {
+        if (current === undefined) return missingGoal('scope')
+        const input = parseCommandJson(command.input, 'reason,requiredTasks')
+        if (input === undefined || typeof input['reason'] !== 'string' || !Array.isArray(input['requiredTasks'])) {
+          return { kind: 'error', text: `Scope revision requires JSON with reason and requiredTasks. ${USAGE}` }
+        }
+        return renderGoal('Scope revised', ctx.goals.editFromCommand(invocation, goalRef(current), {
+          scopeRevision: { reason: input['reason'], requiredTasks: input['requiredTasks'] as { id: string; criterion: string }[] },
+        }))
       }
       case 'edit': {
         if (current === undefined) return missingGoal('edit')
         if (current.phase === 'complete') {
-          const replaced = ctx.goals.create(invocation.agent, { objective: command.objective })
-          submitObjectiveAttachments(invocation)
-          return renderGoal('Goal created', replaced)
+          return { kind: 'error', text: `Use /goal create with an explicit task manifest. ${USAGE}` }
         }
         const edited = ctx.goals.edit(invocation.agent, goalRef(current), { objective: command.objective })
         submitObjectiveAttachments(invocation)
@@ -192,7 +253,7 @@ export function apply(ctx: Context): void {
     definitionId: CommandDefinitionId('@deepseek-ai/dsh-command-goal'),
     name: 'goal',
     description: 'Set or view the goal for a long-running task',
-    input: { hint: '[<objective>|clear|edit <objective>|pause|resume]', attachments: true },
+    input: { hint: '[create <JSON>|accept <id>|scope <JSON>|clear|edit <objective>|pause|resume]', attachments: true },
     handler: invocation => executeGoalCommand(ctx, invocation),
   })
 }

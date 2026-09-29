@@ -33,16 +33,22 @@ Every sub-command runs against the current goal of the invoking agent; a bare `/
 
 | Input | Result |
 |---|---|
-| `/goal` | Shows the current objective, durable phase, round count and cap, process-local activation, and valid next commands; a blocked goal also shows its policy code and explanation |
-| `/goal <objective>` | Creates and arms a goal, or replaces a completed goal with a fresh identity |
-| `/goal edit <objective>` | Edits the current objective without changing its phase or activation |
+| `/goal` | Shows the current objective, durable phase, round count and cap, process-local activation, and valid next commands; a manifested goal also shows original criteria, task statuses, and explicit scope revisions |
+| `/goal create {"objective":"...","requiredTasks":[{"id":"...","criterion":"..."}]}` | Creates a goal with explicit required IDs and criteria |
+| `/goal accept <id>` | Records human acceptance of one required task |
+| `/goal scope {"reason":"...","requiredTasks":[...]}` | Replaces the required task list; for a released goal without a manifest, records its first explicit scope |
+| `/goal edit <objective>` | Edits the current objective without changing its phase or activation; every task returns to `PENDING` |
 | `/goal pause` | Pauses an active goal and disarms continuation |
 | `/goal resume` | Resumes a stopped goal, or rearms an active goal after session resume or fork, subject to its remaining round cap |
 | `/goal clear` | Clears the current goal while retaining its durable history |
 
 ### Input grammar
 
-Control words (`clear`, `pause`, `resume`, `edit`) are recognized only when they occupy the complete input; any other non-empty suffix is an objective, so `/goal pause after verification` creates that literal objective. `edit` takes its replacement inline and refuses to replace an unfinished goal directly. Expected domain rejections become stable, direct command errors without exposing branded ids or revisions; unexpected implementation failures still fail dispatch so adapters can report them as command failures.
+Creation accepts only `/goal create` followed by JSON containing `objective` and a non-empty `requiredTasks` array. Free-text creation is rejected; `accept` and `scope` are explicit human commands. `edit` takes its replacement inline and refuses to replace an unfinished goal directly. Expected domain rejections become stable, direct command errors without exposing branded ids or revisions; unexpected implementation failures still fail dispatch so adapters can report them as command failures.
+
+Changing the objective resets every manifested task to `PENDING`; use `/goal accept <id>` again for each required task before completion.
+
+A released goal without a manifest remains readable. Set its first tracked task list with `/goal scope`; the recorded original list stays empty, the supplied scope is recorded with its reason, and every task starts `PENDING`.
 
 ### Attachments
 
@@ -75,7 +81,7 @@ This section explains how the command parses input and renders output; the obser
 
 ### Design
 
-- **Grammar, not free text.** The parser recognizes only the exact control words (`clear`, `pause`, `resume`, `edit`) when they fill the whole input; every other non-empty suffix is an objective. `edit` alone is invalid, and `edit` refuses to replace an unfinished goal directly.
+- **Explicit command grammar.** Creation requires JSON with an objective and non-empty task list; acceptance names one exact ID, and scope replacement supplies JSON with a reason and complete list. The first scope can add task tracking to a released manifestless goal. `edit` alone is invalid, and editing a completed goal requires a new structured create.
 - **Domain rejections become stable errors.** `GoalError` outcomes are converted into direct command errors with a fixed message; unexpected failures rethrow so adapters report a command failure rather than a domain result. Rendered output never exposes branded ids or revisions.
 - **Attachments accompany the objective.** On a successful create or edit, the command submits one user followup carrying the admitted image and file blocks in selection order plus the fixed text `Reference attachments for the goal objective.` Every other path submits nothing, so the dispatching composer keeps the draft and cards.
 

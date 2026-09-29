@@ -28,6 +28,37 @@ export interface GoalRef {
 export interface CreateGoalRequest {
   readonly objective: string
   readonly maxGoalRounds?: number
+  /** Non-empty explicit required work; IDs are never inferred from the objective. */
+  readonly requiredTasks: readonly GoalTaskDefinition[]
+}
+
+/** One explicitly named completion criterion. IDs are never inferred from prose. */
+export interface GoalTaskDefinition {
+  readonly id: string
+  readonly criterion: string
+}
+
+/** Durable disposition of one required task. Only an authorized human may accept it. */
+export type GoalTaskStatus = 'PENDING' | 'PARCIAL' | 'BLOCKED_EXTERNAL' | 'ACCEPTED'
+
+/** Current disposition, retained in every full goal snapshot. */
+export interface GoalTask extends GoalTaskDefinition {
+  readonly status: GoalTaskStatus
+}
+
+/** Explicit, user-visible replacement of the current required-task scope. */
+export interface GoalScopeRevision {
+  readonly reason: string
+  readonly requiredTasks: readonly GoalTaskDefinition[]
+}
+
+/** Original request and all explicit scope revisions remain durable. */
+export interface GoalTaskManifest {
+  readonly originalObjective: string
+  /** Empty only when an explicit scope was added to a historical manifestless goal. */
+  readonly originalRequiredTasks: readonly GoalTaskDefinition[]
+  readonly scopeRevisions: readonly GoalScopeRevision[]
+  readonly tasks: readonly GoalTask[]
 }
 
 /** Wire-safe acknowledgement of one created goal. */
@@ -39,6 +70,10 @@ export interface CreateGoalResult {
 export interface EditGoalRequest {
   readonly objective?: string
   readonly maxGoalRounds?: number
+  /** One required task disposition; exclusive with scope and objective edits. */
+  readonly taskStatus?: { readonly taskId: string; readonly status: GoalTaskStatus }
+  /** Complete replacement scope and user-visible reason; exclusive with other edits. */
+  readonly scopeRevision?: GoalScopeRevision
 }
 
 /** Durable continuation phase. Activation is process-local and separate. */
@@ -56,8 +91,8 @@ export interface GoalBlockReason {
   readonly message: string
 }
 
-/** Full durable state written by every non-clear goal mutation. */
-export interface GoalSnapshot extends GoalRef {
+/** Goal snapshot written by `goal/change` version 1. */
+export interface GoalSnapshotV1 extends GoalRef {
   /** Human-requested completion objective. */
   readonly objective: string
   /** Durable lifecycle phase. */
@@ -66,6 +101,12 @@ export interface GoalSnapshot extends GoalRef {
   readonly blockedReason?: GoalBlockReason
   /** Total admitted goal-round cap. */
   readonly maxGoalRounds: number
+}
+
+/** Full durable state written by current non-clear goal mutations. */
+export interface GoalSnapshot extends GoalSnapshotV1 {
+  /** Absent only when a version 2 mutation carries forward a historical goal. */
+  readonly taskManifest?: GoalTaskManifest
 }
 
 /** Whether this live process may automatically continue an active goal. */

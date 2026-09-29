@@ -5,13 +5,14 @@ const candidate = 'a'.repeat(64)
 const requiredIds = Array.from({ length: 20 }, (_, index) => `RA29-${String(index + 1).padStart(2, '0')}`)
 const requirements = { schemaVersion: 1, objective: 'Implement all 20 improvements', candidate, requiredIds,
   liveRequiredIds: ['RA29-03'] }
+const successfulExitCode: number | null = 0
 
 function accepted() {
   return { schemaVersion: 1, objective: requirements.objective, candidate, requiredIds: [...requiredIds],
     items: requiredIds.map(id => ({ id, state: 'ACCEPTED', liveRequired: id === 'RA29-03', limitation: null as string | null,
-      evidence: [{ scope: 'local', candidate, command: 'make validate', exitCode: 0 as number | null,
+      evidence: [{ scope: 'local', candidate, command: 'make validate', exitCode: successfulExitCode,
         outcome: 'PASS', reference: `checks/${id}.json` },
-      ...id === 'RA29-03' ? [{ scope: 'live', candidate, command: 'make postgres-runtime', exitCode: 0,
+      ...id === 'RA29-03' ? [{ scope: 'live', candidate, command: 'make postgres-runtime', exitCode: successfulExitCode,
         outcome: 'PASS', reference: `checks/${id}-live.json` }] : []] })) }
 }
 

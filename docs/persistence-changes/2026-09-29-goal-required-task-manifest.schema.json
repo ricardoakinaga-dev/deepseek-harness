@@ -1,0 +1,511 @@
+{
+  "formatVersion": 2,
+  "roots": [
+    {
+      "key": "event:goal/change",
+      "kind": "event",
+      "event": "goal/change",
+      "surface": false,
+      "digest": "85a122f576169e68e7896fd5b8d78b6aad15fcd82ebc47fd493ad3a14f6aa041",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 39,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              2,
+              9,
+              11,
+              37
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "cleared",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "clearedAt",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "kind",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "id",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "goal/change"
+          },
+          {
+            "kind": "literal",
+            "value": "clear"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "cleared",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "clearedAt",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "kind",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 10,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": 2
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "goal",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "kind",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 31,
+                "optional": false
+              },
+              {
+                "name": "roundsStarted",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "updatedAt",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 10,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "blockedReason",
+                "type": 13,
+                "optional": true
+              },
+              {
+                "name": "id",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "maxGoalRounds",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "phase",
+                "type": 14,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "taskManifest",
+                "type": 19,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "code",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "message",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              15,
+              16,
+              17,
+              18
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "active"
+          },
+          {
+            "kind": "literal",
+            "value": "blocked"
+          },
+          {
+            "kind": "literal",
+            "value": "complete"
+          },
+          {
+            "kind": "literal",
+            "value": "paused"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "originalObjective",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "originalRequiredTasks",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "scopeRevisions",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "tasks",
+                "type": 24,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 21
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "criterion",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 23
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "reason",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "requiredTasks",
+                "type": 20,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 25
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "criterion",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 26,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              27,
+              28,
+              29,
+              30
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED_EXTERNAL"
+          },
+          {
+            "kind": "literal",
+            "value": "PARCIAL"
+          },
+          {
+            "kind": "literal",
+            "value": "ACCEPTED"
+          },
+          {
+            "kind": "literal",
+            "value": "PENDING"
+          },
+          {
+            "kind": "union",
+            "types": [
+              17,
+              32,
+              33,
+              34,
+              35,
+              36
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "block"
+          },
+          {
+            "kind": "literal",
+            "value": "create"
+          },
+          {
+            "kind": "literal",
+            "value": "edit"
+          },
+          {
+            "kind": "literal",
+            "value": "pause"
+          },
+          {
+            "kind": "literal",
+            "value": "resume"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "goal",
+                "type": 38,
+                "optional": false
+              },
+              {
+                "name": "kind",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 31,
+                "optional": false
+              },
+              {
+                "name": "roundsStarted",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "updatedAt",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "blockedReason",
+                "type": 13,
+                "optional": true
+              },
+              {
+                "name": "id",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "maxGoalRounds",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "phase",
+                "type": 14,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
+  "types": []
+}

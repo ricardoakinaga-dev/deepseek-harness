@@ -125,6 +125,10 @@ interface SdkAssertions {
 }
 
 const SDK_ASSERTIONS: Readonly<Record<string, SdkAssertions>> = {
+  'goal-manifest-command': {
+    patches: [fileURLToPath(new URL('./goal-manifest-command/runtime.cordis.yml', import.meta.url))],
+    expectedFinalResponse: 'Goal commands recorded.',
+  },
   'dynamic-tool-updates': {
     expectedFinalResponse: 'DONE',
   },
@@ -848,6 +852,29 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
       )
       reconcileCatalogCreationTimes(ordered.map(log => log.content), 'validate')
       const actualContext = contextOf(ordered, cwd)
+      if (scenario.name === 'goal-manifest-command') {
+        const changes = records(ordered[0]!.content).filter(event => event.type === 'goal/change')
+        expect(changes.map(event => (event.data as JsonObject)['operation'])).toEqual([
+          'create', 'edit', 'edit', 'edit', 'pause',
+        ])
+        expect(changes[0]).toMatchObject({ data: { goal: { taskManifest: {
+          originalObjective: 'Deliver A and B',
+          originalRequiredTasks: [{ id: 'A', criterion: 'A works' }, { id: 'B', criterion: 'B works' }],
+          tasks: [{ id: 'A', status: 'PENDING' }, { id: 'B', status: 'PENDING' }],
+        } } } })
+        expect(changes[1]).toMatchObject({ data: { goal: { taskManifest: {
+          tasks: [{ id: 'A', status: 'PARCIAL' }, { id: 'B', status: 'PENDING' }],
+        } } } })
+        expect(changes[2]).toMatchObject({ data: { goal: { taskManifest: {
+          tasks: [{ id: 'A', status: 'ACCEPTED' }, { id: 'B', status: 'PENDING' }],
+        } } } })
+        expect(changes[3]).toMatchObject({ data: { goal: { taskManifest: {
+          originalRequiredTasks: [{ id: 'A' }, { id: 'B' }],
+          scopeRevisions: [{ reason: 'B removed by human', requiredTasks: [{ id: 'A', criterion: 'A works' }] }],
+          tasks: [{ id: 'A', status: 'ACCEPTED' }],
+        } } } })
+        expect(changes[4]).toMatchObject({ data: { goal: { phase: 'paused' } } })
+      }
       if (scenario.name === 'dynamic-tool-updates') {
         const selectedTypes = new Set(['request/header', 'request/context', 'developer/message', 'tool/call', 'tool/result'])
         const events = results.flatMap(result => result.events).filter(event => selectedTypes.has(event.type))

@@ -12,6 +12,7 @@ export function apply(ctx: Context): void {
       ctx.goals.create(agent, {
         objective: 'Prove the composed goal survives in the session log',
         maxGoalRounds: 7,
+        requiredTasks: [{ id: 'done', criterion: 'The composed goal survives in the session log' }],
       })
     }
     return next()

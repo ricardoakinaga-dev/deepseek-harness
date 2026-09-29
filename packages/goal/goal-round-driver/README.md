@@ -106,11 +106,11 @@ The driver consumes the goal state and defers policy to the goal tools; read the
 
 #### What the model sees
 
-Each admitted round is one retained user-role `<goal_round>` block naming the full objective and positive round number. Earlier human messages, goal-state snapshots, assistant output, and tool records remain in the same session history.
+Each admitted round is one retained user-role `<goal_round>` block naming the full objective, positive round number, and the durable required-task manifest when present. Earlier human messages, goal-state snapshots, assistant output, and tool records remain in the same session history.
 
 #### Token effect
 
-One fixed instruction block plus the objective is added per admitted round. Later requests resend retained rounds until compaction shadows them; no fresh agent or copied conversation prefix is created.
+One fixed instruction block plus the objective and any required-task manifest is added per admitted round. Later requests resend retained rounds until compaction shadows them; no fresh agent or copied conversation prefix is created.
 
 #### KV Cache effect
 

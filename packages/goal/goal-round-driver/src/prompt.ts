@@ -14,6 +14,8 @@ export function renderGoalRoundPrompt(goal: GoalView, round: number): ContentBlo
     type: 'text',
     text: '<goal_round>\n'
       + `Objective: ${JSON.stringify(goal.objective)}\n`
+      + (goal.taskManifest === undefined ? ''
+        : `Required task manifest: ${JSON.stringify(goal.taskManifest)}\n`)
       + `Round: ${round}/${goal.maxGoalRounds}\n\n`
       + 'Continue working toward the objective in this same session. Treat the current workspace, '
       + 'tool results, and durable session state as authoritative; inspect them instead of assuming '

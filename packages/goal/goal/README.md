@@ -57,15 +57,21 @@ A goal moves through four durable phases — `active`, `paused`, `blocked`, `com
 
 | Operation | What it does |
 |---|---|
-| `create` | Starts an active goal with an objective and round cap |
+| `create` | Starts an active goal with an objective, round cap, and non-empty explicit required-task manifest |
 | `edit` | Changes the objective and/or round cap without changing the phase |
+| `edit({ taskStatus })` | Records one required ID's `PENDING`, `PARCIAL`, `BLOCKED_EXTERNAL`, or `ACCEPTED` status |
+| `edit({ scopeRevision })` | Appends a reason and complete replacement ID/criterion list; the first human scope also starts task tracking for a released manifestless goal |
 | `pause` | Stops automatic continuation and keeps the state |
 | `resume` | Restarts continuation; also rearms an active goal after session resume or fork |
-| `complete` | Marks the goal achieved and stops continuation |
+| `complete` | Marks the goal achieved only when a manifest exists and every required ID is `ACCEPTED`, then stops continuation |
 | `block` | Records a stable blocker code and explanation |
 | `clear` | Removes the current goal; its history stays in the session log |
 
 Pause, completion, blocking, and clear all disarm continuation. Blocking is the one phase that keeps a policy-owned lower-kebab-case code and a free-form explanation, so provider limits, exhausted budgets, execution errors, and requests for human input share a single durable phase instead of multiplying lifecycle states. Resume accepts a stopped goal, or an active but disarmed one, only while the round cap has remaining capacity, and it clears any former blocker reason.
+
+An explicit manifest freezes the original objective and required ID/criterion list at create. Each status update and human-authorized scope revision advances the goal revision and writes a full snapshot; a revision lists its reason and complete current scope. Completion rejects any manifested ID still `PENDING`, `PARCIAL`, or `BLOCKED_EXTERNAL`. Released goals without a manifest remain readable; a human can establish their first tracked scope with `/goal scope`, which records an empty original task list and starts every supplied task as `PENDING`. The service never derives missing IDs from objective prose. Direct and remote `edit` calls reject `ACCEPTED` and scope replacement. An active human `/goal` command supplies authority for those mutations. `ACCEPTED` records a human decision, not independent verification.
+
+Changing a manifested goal's objective resets every current task to `PENDING`, including tasks previously marked `ACCEPTED`. Each required task must be accepted again through `/goal accept <id>` before completion.
 
 ### What survives and what does not
 
@@ -94,7 +100,7 @@ This section explains how the service realizes the behavior above; the observabl
 
 ### Design
 
-- **Event-sourced state.** Every mutation appends a durable `goal/change` event (version 1) carrying the complete post-mutation snapshot; `clear` writes a revisioned tombstone. The session log is the only durable authority.
+- **Event-sourced state.** Every mutation appends a durable `goal/change` event (version 2) carrying the complete post-mutation snapshot; readers retain strict version 1 support. `clear` writes a revisioned tombstone. The session log is the only durable authority.
 - **Compare-and-set mutations.** `ctx.goals` accepts only the exact live `Agent` registered under its id. `get()` returns a detached `GoalView`; mutations take a `GoalRef { id, revision }` and reject stale refs. Creation resolves the deployment default internally before committing.
 - **Activation is process-local.** `armed` and `disarmed` live in a per-session cache and are never persisted. A fresh cache and every `agent/created` edge disarm continuation even when replay finds an active durable phase; `disarm()` removes authority without writing a revision or emitting a mutation.
 - **Strict replay.** The fold derives lifecycle mutations only from `goal/change` and rejects malformed shapes, discontinuous revisions, illegal phase transitions, non-monotonic per-goal timestamps, and non-sequential admitted rounds. Positive rounds advance only on admitted goal-sourced `user/message` events, and mutation timestamps clamp against the preceding update when wall time moves backward.

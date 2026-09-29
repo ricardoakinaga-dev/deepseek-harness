@@ -31,6 +31,8 @@ type GoalPhase =
 
 Blocking is the single durable stopped-by-a-problem state. Its policy-owned reason carries a stable lower-kebab-case code for routing and a free-form explanation for humans and models.
 
+A required task manifest on new goals retains the original objective and explicit required ID/criterion list, ordered scope revisions with user-visible reasons, and each current task's `PENDING`, `PARCIAL`, `BLOCKED_EXTERNAL`, or `ACCEPTED` status. A released goal without that field remains readable; a human can add its first tracked scope, recorded as one scope revision with an empty original task list and all tasks `PENDING`. Completion then requires every current task to be `ACCEPTED`. Changing a manifested goal's objective resets every current task to `PENDING`; each task needs new human acceptance before completion.
+
 ```ts type-equiv
 /** Machine-routable and human-readable explanation for a blocked goal. */
 interface GoalBlockReason {
@@ -42,8 +44,8 @@ interface GoalBlockReason {
 ```
 
 ```ts type-equiv
-/** Full durable state written by every non-clear goal mutation. */
-interface GoalSnapshot extends GoalRef {
+/** Goal snapshot written by `goal/change` version 1. */
+interface GoalSnapshotV1 extends GoalRef {
   /** Human-requested completion objective. */
   readonly objective: string
   /** Durable lifecycle phase. */
@@ -52,6 +54,14 @@ interface GoalSnapshot extends GoalRef {
   readonly blockedReason?: GoalBlockReason
   /** Total admitted goal-round cap. */
   readonly maxGoalRounds: number
+}
+```
+
+```ts type-equiv
+/** Full durable state written by current non-clear goal mutations. */
+interface GoalSnapshot extends GoalSnapshotV1 {
+  /** Absent only when a version 2 mutation carries forward a historical goal. */
+  readonly taskManifest?: GoalTaskManifest
 }
 ```
 
@@ -90,13 +100,26 @@ interface GoalActivationChanged {
 
 ## Durable changes
 
-Every mutation is a durable `goal/change` session event whose payload is either a complete post-mutation snapshot or a clear tombstone. The strict fold and persisted projection derive lifecycle state only from these events; inbox mutations do not affect goal state.
+Every mutation is a durable `goal/change` session event whose payload is either a complete post-mutation snapshot or a clear tombstone. New writers emit version 2, while current readers retain strict support for released version 1. Version 2 permits an optional task manifest for changes to historical goals; older readers may reject version 2. The strict fold and persisted projection derive lifecycle state only from these events.
 
 ```ts type-equiv
-/** Full-snapshot goal mutation committed by a durable `goal/change` event. */
-interface GoalSnapshotChangeMeta {
+/** Full-snapshot goal mutation retained from released `goal/change` version 1. */
+interface GoalSnapshotChangeV1 {
   readonly kind: 'goal/change'
   readonly version: 1
+  readonly operation: Exclude<GoalOperation, 'clear'>
+  readonly goal: GoalSnapshotV1
+  readonly roundsStarted: number
+  readonly createdAt: number
+  readonly updatedAt: number
+}
+```
+
+```ts type-equiv
+/** Full-snapshot goal mutation with current task-manifest support. */
+interface GoalSnapshotChangeV2 {
+  readonly kind: 'goal/change'
+  readonly version: 2
   readonly operation: Exclude<GoalOperation, 'clear'>
   readonly goal: GoalSnapshot
   readonly roundsStarted: number
@@ -106,14 +129,35 @@ interface GoalSnapshotChangeMeta {
 ```
 
 ```ts type-equiv
-/** Tombstone retained when the current goal is cleared. */
-interface GoalClearChangeMeta {
+/** Full-snapshot mutation accepted by current readers. */
+type GoalSnapshotChangeMeta = GoalSnapshotChangeV1 | GoalSnapshotChangeV2
+```
+
+```ts type-equiv
+/** Tombstone retained from released `goal/change` version 1. */
+interface GoalClearChangeV1 {
   readonly kind: 'goal/change'
   readonly version: 1
   readonly operation: 'clear'
   readonly cleared: GoalRef
   readonly clearedAt: number
 }
+```
+
+```ts type-equiv
+/** Current clear tombstone version. */
+interface GoalClearChangeV2 {
+  readonly kind: 'goal/change'
+  readonly version: 2
+  readonly operation: 'clear'
+  readonly cleared: GoalRef
+  readonly clearedAt: number
+}
+```
+
+```ts type-equiv
+/** Clear tombstone accepted by current readers. */
+type GoalClearChangeMeta = GoalClearChangeV1 | GoalClearChangeV2
 ```
 
 A continuation consumer attributes each admitted user-message turn with a positive, sequential round number and the current revision; only these admitted `user/message` events advance `roundsStarted`. Replay rejects non-positive rounds, gaps, stale revisions, stopped phases, and cap overflow.
@@ -138,6 +182,8 @@ Creation separates caller omission from the deployment choice, which `create()` 
 interface CreateGoalRequest {
   readonly objective: string
   readonly maxGoalRounds?: number
+  /** Non-empty explicit required work; IDs are never inferred from the objective. */
+  readonly requiredTasks: readonly GoalTaskDefinition[]
 }
 ```
 
@@ -146,6 +192,10 @@ interface CreateGoalRequest {
 interface EditGoalRequest {
   readonly objective?: string
   readonly maxGoalRounds?: number
+  /** One required task disposition; exclusive with scope and objective edits. */
+  readonly taskStatus?: { readonly taskId: string; readonly status: GoalTaskStatus }
+  /** Complete replacement scope and user-visible reason; exclusive with other edits. */
+  readonly scopeRevision?: GoalScopeRevision
 }
 ```
 
@@ -199,19 +249,31 @@ disarm(agent: Agent): GoalView | undefined
  * Create and arm a goal. A completed goal may be replaced; every other
  * current phase must be cleared or resumed instead.
  * @param agent - owning live agent.
- * @param request - objective and optional round cap.
+ * @param request - objective, optional round cap, and explicit required IDs with criteria.
  * @returns the created live view.
  */
 create(agent: Agent, request: CreateGoalRequest): GoalView
 
 /**
- * Edit objective and/or round cap without changing phase.
+ * Edit the objective or report non-accepted task progress without changing phase.
+ * Changing an objective resets every manifested task to `PENDING`.
+ * Acceptance and scope replacement require an active command invocation.
  * @param agent - owning live agent.
  * @param ref - expected current revision.
- * @param request - at least one replacement field.
+ * @param request - one edit mode, with objective and round cap combinable.
  * @returns the edited view.
  */
 @Remote('edit') edit(agent: Agent, ref: GoalRef, request: EditGoalRequest): GoalView
+
+/**
+ * Apply the registered human `/goal` command's task acceptance or scope replacement.
+ * A manifestless historical goal may receive its first explicit scope here.
+ * @param invocation - active command invocation issued by the command runtime.
+ * @param ref - expected current revision.
+ * @param request - one task acceptance or complete replacement scope.
+ * @returns the edited view.
+ */
+editFromCommand(invocation: { readonly agent: Agent; readonly signal: AbortSignal }, ref: GoalRef, request: EditGoalRequest): GoalView
 
 /**
  * Pause an active goal and disarm automatic continuation.
@@ -231,7 +293,8 @@ create(agent: Agent, request: CreateGoalRequest): GoalView
 @Remote('resume') resume(agent: Agent, ref: GoalRef): GoalView
 
 /**
- * Mark a current non-complete goal complete and disarm it.
+ * Mark a current non-complete goal complete only when an explicit manifest
+ * exists and every required task is ACCEPTED, then disarm it.
  * @param agent - owning live agent.
  * @param ref - expected current revision.
  * @returns the completed view.

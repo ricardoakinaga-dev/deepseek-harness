@@ -21,6 +21,7 @@ import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import {
   completionAuthority,
   goalToolExecution,
+  requireExplicitCreate,
   requireDirectHuman,
 } from './authority.ts'
 import { renderWrapupContext } from './wrapup.ts'
@@ -44,9 +45,35 @@ interface ResolvedConfig {
   readonly blockedAfterConsecutiveRounds: number
 }
 
-type UpdateAction = 'edit' | 'pause' | 'resume' | 'complete' | 'blocked'
+type UpdateAction = 'edit' | 'pause' | 'resume' | 'complete' | 'blocked' | 'task_status'
 
-const UPDATE_ACTIONS: UpdateAction[] = ['edit', 'pause', 'resume', 'complete', 'blocked']
+const UPDATE_ACTIONS: UpdateAction[] = ['edit', 'pause', 'resume', 'complete', 'blocked', 'task_status']
+
+const REQUIRED_TASKS_PARAMETER = {
+  type: 'array',
+  items: { type: 'object', additionalProperties: false, properties: {
+    id: { type: 'string', required: true }, criterion: { type: 'string', required: true },
+  } },
+} as const
+
+const TASK_MANIFEST_SCHEMA = {
+  type: 'object', additionalProperties: false, properties: {
+    originalObjective: { type: 'string', required: true },
+    originalRequiredTasks: { ...REQUIRED_TASKS_PARAMETER, required: true },
+    scopeRevisions: { type: 'array', required: true, items: {
+      type: 'object', additionalProperties: false, properties: {
+        reason: { type: 'string', required: true },
+        requiredTasks: { ...REQUIRED_TASKS_PARAMETER, required: true },
+      },
+    } },
+    tasks: { type: 'array', required: true, items: {
+      type: 'object', additionalProperties: false, properties: {
+        id: { type: 'string', required: true }, criterion: { type: 'string', required: true },
+        status: { type: 'string', required: true, enum: ['PENDING', 'PARCIAL', 'BLOCKED_EXTERNAL', 'ACCEPTED'] },
+      },
+    } },
+  },
+} as const
 
 const CREATE_DESCRIPTION =
   'Create a persisted goal that keeps this session working across automatic continuation rounds. '
@@ -67,6 +94,12 @@ type GoalToolValue =
       roundsStarted: number
       maxGoalRounds: number
       blockedReason?: { code: string; message: string }
+      taskManifest?: {
+        originalObjective: string
+        originalRequiredTasks: { id: string; criterion: string }[]
+        scopeRevisions: { reason: string; requiredTasks: { id: string; criterion: string }[] }[]
+        tasks: { id: string; criterion: string; status: 'PENDING' | 'PARCIAL' | 'BLOCKED_EXTERNAL' | 'ACCEPTED' }[]
+      }
     }
     activation: GoalView['activation']
   }
@@ -103,6 +136,7 @@ const GOAL_VALUE_SCHEMA = {
                 message: { type: 'string', required: true },
               },
             },
+            taskManifest: TASK_MANIFEST_SCHEMA,
           },
         },
         activation: { type: 'string', required: true, enum: ['armed', 'disarmed'] },
@@ -116,7 +150,11 @@ function guidance(blockedAfter: number): string {
   return 'create_goal may infer goal intent from a direct human request in any language. '
     + 'After session resume or fork, an active goal is disarmed: when '
     + 'a human asks to continue or resume in any wording or language, use update_goal action '
-    + 'resume to rearm it. Mark complete only when the objective is actually achieved. Mark '
+    + 'resume to rearm it. Create a task manifest by copying every ID and criterion from exact human JSON objective and requiredTasks fields without inference. '
+    + 'For a released goal without a manifest, ask the human to set its first requiredTasks with /goal scope; all adopted tasks start PENDING. '
+    + 'Use task_status for progress. Human task acceptance and scope changes use explicit /goal commands. '
+    + 'Completion requires a manifest with every task accepted. '
+    + 'Mark complete only when the objective is actually achieved. Mark '
     + `blocked only after the same blocking condition persists for at least ${blockedAfter} `
     + 'consecutive goal rounds, and report that concrete condition in blocked_reason; difficulty, uncertainty, '
     + 'or useful remaining work is not blocked.'
@@ -167,6 +205,15 @@ function goalValue(goal: GoalView | undefined): GoalToolValue {
       ...goal.blockedReason === undefined ? {} : {
         blockedReason: { code: goal.blockedReason.code, message: goal.blockedReason.message },
       },
+      ...goal.taskManifest === undefined ? {} : { taskManifest: {
+        originalObjective: goal.taskManifest.originalObjective,
+        originalRequiredTasks: goal.taskManifest.originalRequiredTasks.map(task => ({ ...task })),
+        scopeRevisions: goal.taskManifest.scopeRevisions.map(revision => ({
+          reason: revision.reason,
+          requiredTasks: revision.requiredTasks.map(task => ({ ...task })),
+        })),
+        tasks: goal.taskManifest.tasks.map(task => ({ ...task })),
+      } },
     },
     activation: goal.activation,
   }
@@ -217,14 +264,20 @@ export function apply(ctx: Context, config: Config): void {
         type: 'number',
         description: 'Optional positive safe-integer limit on automatic continuation rounds.',
       },
+      required_tasks: {
+        ...REQUIRED_TASKS_PARAMETER,
+        required: true,
+        description: 'Copy every ID and criterion from the human message JSON requiredTasks array. The objective and array must match exactly.',
+      },
     },
     output: GOAL_OUTPUT,
     execute(args, exec) {
       const execution = goalToolExecution(ctx, exec)
-      requireDirectHuman(ctx, execution)
+      const requiredTasks = requireExplicitCreate(ctx, execution, args.objective, args.required_tasks)
       const goal = ctx.goals.create(execution.agent, {
         objective: args.objective,
         ...args.max_goal_rounds === undefined ? {} : { maxGoalRounds: args.max_goal_rounds },
+        requiredTasks,
       })
       return Promise.resolve(goalValue(goal))
     },
@@ -241,8 +294,9 @@ export function apply(ctx: Context, config: Config): void {
         type: 'string',
         required: true,
         enum: UPDATE_ACTIONS,
-        description: 'edit, pause, and resume require a direct top-level human request. complete and blocked are also allowed '
-          + 'during an automatic continuation of this goal; blocked is rejected before the configured minimum round count.',
+        description: 'edit, pause, and resume require a direct top-level human request. task_status records progress; /goal accept records human acceptance. '
+          + 'complete and blocked are also allowed during an automatic continuation of this goal; '
+          + 'blocked is rejected before the configured minimum round count.',
       },
       objective: { type: 'string', description: 'Replacement objective; valid only with action edit.' },
       max_goal_rounds: { type: 'number', description: 'Replacement cap; valid only with action edit.' },
@@ -250,6 +304,9 @@ export function apply(ctx: Context, config: Config): void {
         type: 'string',
         description: 'Required only with action blocked: the concrete condition that persisted across rounds and blocks progress.',
       },
+      task_id: { type: 'string', description: 'Exact required ID; valid only with task_status.' },
+      task_status: { type: 'string', enum: ['PENDING', 'PARCIAL', 'BLOCKED_EXTERNAL'],
+        description: 'New progress status. Human acceptance uses /goal accept.' },
     },
     output: GOAL_OUTPUT,
     execute(args, exec) {
@@ -258,6 +315,21 @@ export function apply(ctx: Context, config: Config): void {
       const replacements = {
         ...hasText(args.objective) ? { objective: args.objective } : {},
         ...hasRoundCap(args.max_goal_rounds) ? { maxGoalRounds: args.max_goal_rounds } : {},
+      }
+      if (args.action !== 'task_status'
+        && (args.task_id !== undefined || args.task_status !== undefined)) {
+        throw new HarnessError('task fields require task_status action', 'GOAL_TOOL_INVALID_UPDATE')
+      }
+      if (args.action === 'task_status') {
+        if (args.task_id === undefined || args.task_status === undefined) {
+          throw new HarnessError('task_status requires task_id and task_status', 'GOAL_TOOL_INVALID_UPDATE')
+        }
+        if (hasText(args.objective) || hasRoundCap(args.max_goal_rounds) || hasText(args.blocked_reason)) {
+          throw new HarnessError('task_status accepts only task_id and task_status', 'GOAL_TOOL_INVALID_UPDATE')
+        }
+        return Promise.resolve(goalValue(ctx.goals.edit(execution.agent, ref, {
+          taskStatus: { taskId: args.task_id, status: args.task_status },
+        })))
       }
       if (args.action === 'edit') {
         requireDirectHuman(ctx, execution)
@@ -331,13 +403,13 @@ export function apply(ctx: Context, config: Config): void {
       return Promise.resolve(goalValue(goal))
     },
     presentCall: args => present(
-      `${args.action === 'blocked' ? 'Mark' : args.action.charAt(0).toUpperCase() + args.action.slice(1)} goal`,
+      args.action === 'task_status' ? 'Update goal task'
+        : `${args.action === 'blocked' ? 'Mark' : args.action.charAt(0).toUpperCase() + args.action.slice(1)} goal`,
       'other',
-      hasText(args.blocked_reason)
-        ? args.blocked_reason
-        : hasText(args.objective)
-          ? args.objective
-          : hasRoundCap(args.max_goal_rounds) ? args.max_goal_rounds : args.goal_id,
+      hasText(args.blocked_reason) ? args.blocked_reason
+        : hasText(args.objective) ? args.objective
+          : hasRoundCap(args.max_goal_rounds) ? args.max_goal_rounds
+            : hasText(args.task_id) ? `${args.task_id}: ${args.task_status ?? 'unknown'}` : args.goal_id,
     ),
   }))
 }
