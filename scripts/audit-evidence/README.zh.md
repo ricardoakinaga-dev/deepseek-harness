@@ -14,6 +14,10 @@
 
 [无密钥候选质量报告](fixtures/candidate-keyless-quality.json)根据回放中两个子代理生成的报告、父代理决定、[原始录制语料清单](fixtures/candidate-keyless-corpus.json)和[实际预检结果](fixtures/candidate-keyless-preflight.json)重新计算得出。其修订版与三个快照源文件的 SHA-256 摘要一致；回放断言会重新计算该摘要。报告记录了两个冲突、两个待处理发现、一个未执行测试而标为 `READY` 的预检，以及一个在依赖环境变量的真实 API 测试路径上因缺少 `EXA_API_KEY` 而标为 `BLOCKED` 的 Exa 搜索预检。[搜索声明](fixtures/candidate-keyless-search-preflight-spec.json)指定该测试命令，并对其源码及实际读取此变量的 Exa 提供方源码取哈希；若配置了字面密钥，则须使用另一份声明。不加 `--run`，分别对[测试声明](fixtures/candidate-keyless-test-preflight-spec.json)和搜索声明执行 `preflight.ts --spec`，并在后者执行前取消设置 `EXA_API_KEY`，即可重现结果。[录制关联记录](fixtures/candidate-keyless-recording-link.json)将每份原始会话哈希与标准化快照哈希、创建时间及确切写入内容哈希对应起来；质量测试会检查这些关联。原始录制文件仍由所有者保留在本地，外部验证其哈希需要所有者提供这些文件。
 
+## 任务交付清单
+
+在声称多 ID 目标完成前，运行 `pnpm exec tsx scripts/audit-evidence/task-ledger.ts REQUIREMENTS.json LEDGER.json --require-complete`。经审查的要求文件包含 `schemaVersion: 1`、`objective`、`requiredIds` 和 `liveRequiredIds`；独立的交付清单包含相同的目标和必需 ID、64 字符候选版本指纹，以及每个 ID 对应的一行 `items`。每行记录 `state`（`PENDING`、`CODE_DONE`、`LOCAL_VERIFIED`、`LIVE_VERIFIED`、`BLOCKED_EXTERNAL` 或 `ACCEPTED`）、`liveRequired`、`limitation`，以及包含 `scope`、候选版本、命令、退出码、结果和引用的证据。只有全部必需 ID 都有绑定同一候选版本的本地证据及所需的实时证据并被接受时，命令才返回 0；有效但未完成的清单返回 1，格式错误或自相矛盾的记录返回 2。经审查的要求必须与代理编写的清单分开保存，避免缩小清单范围时遗漏 ID。通过验证只表示记录内部一致，并不证明所引用命令的真实性或批准要求的权限。
+
 ## 受控读取限制测量
 
 [本地读取基准结果](fixtures/local-read-benchmark.json)记录了通过随附 `headless` profile 进行的一次同模型比较。输入是[包含 1,000 行的合成文件](fixtures/read-benchmark.txt)，其中 BUG_A 位于第 20 行，BUG_B 位于第 130 行。两个会话使用同一模型路由、提示词、源文件哈希和参数相同的一次 `read` 调用。基线使用随附的读取限制；候选配置另外应用了[200 行补丁](../../configs/audit-evidence/cordis.patch.yml)。记录的输入 token 从 27,750 降至 15,420（44.4%）。两份最终回答都识别并引用了这两个错误。基线工具结果为 56,013 个字符，候选结果为 14,313 个字符。这一项合成任务不能预测其他任务或模型的节省幅度。
