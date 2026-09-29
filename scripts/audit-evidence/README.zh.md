@@ -16,7 +16,7 @@
 
 ## 任务交付清单
 
-在声称多 ID 目标完成前，运行 `pnpm exec tsx scripts/audit-evidence/task-ledger.ts REQUIREMENTS.json LEDGER.json --require-complete`。经审查的要求文件包含 `schemaVersion: 1`、`objective`、`requiredIds` 和 `liveRequiredIds`；独立的交付清单包含相同的目标和必需 ID、64 字符候选版本指纹，以及每个 ID 对应的一行 `items`。每行记录 `state`（`PENDING`、`CODE_DONE`、`LOCAL_VERIFIED`、`LIVE_VERIFIED`、`BLOCKED_EXTERNAL` 或 `ACCEPTED`）、`liveRequired`、`limitation`，以及包含 `scope`、候选版本、命令、退出码、结果和引用的证据。只有全部必需 ID 都有绑定同一候选版本的本地证据及所需的实时证据并被接受时，命令才返回 0；有效但未完成的清单返回 1，格式错误或自相矛盾的记录返回 2。经审查的要求必须与代理编写的清单分开保存，避免缩小清单范围时遗漏 ID。通过验证只表示记录内部一致，并不证明所引用命令的真实性或批准要求的权限。
+在声称多 ID 目标完成前，运行 `pnpm exec tsx scripts/audit-evidence/task-ledger.ts REQUIREMENTS.json LEDGER.json --require-complete`。经审查的要求文件包含 `schemaVersion: 1`、`objective`、`candidate`、`requiredIds` 和 `liveRequiredIds`；独立的交付清单包含相同的目标、候选版本指纹和必需 ID，以及每个 ID 对应的一行 `items`。每行记录 `state`（`PENDING`、`CODE_DONE`、`LOCAL_VERIFIED`、`LIVE_VERIFIED`、`BLOCKED_EXTERNAL` 或 `ACCEPTED`）、`liveRequired`、`limitation`，以及包含 `scope`、候选版本、命令、退出码、结果和引用的证据。只有全部必需 ID 都有绑定同一候选版本的本地证据及所需的实时证据并被接受时，命令才返回 0；有效但未完成的清单返回 1，格式错误或自相矛盾的记录返回 2。经审查的要求必须与代理编写的清单分开保存，避免缩小清单范围或改写候选版本来掩盖未完成工作。通过验证只表示记录内部一致，并不证明所引用命令的真实性或批准要求的权限。
 
 ## 受控读取限制测量
 

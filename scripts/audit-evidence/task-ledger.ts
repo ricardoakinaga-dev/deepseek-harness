@@ -38,6 +38,7 @@ export interface TaskLedger {
 export interface TaskRequirements {
   readonly schemaVersion: 1
   readonly objective: string
+  readonly candidate: string
   readonly requiredIds: readonly string[]
   readonly liveRequiredIds: readonly string[]
 }
@@ -70,10 +71,14 @@ export function validateTaskLedger(value: unknown, requirements: unknown): TaskL
   const errors: string[] = []
   if (!record(value)) return { valid: false, complete: false, accepted: 0, total: 0, errors: ['ledger: expected object'] }
   if (!record(requirements)) return { valid: false, complete: false, accepted: 0, total: 0, errors: ['requirements: expected object'] }
-  keys(requirements, ['schemaVersion', 'objective', 'requiredIds', 'liveRequiredIds'], 'requirements', errors)
+  keys(requirements, ['schemaVersion', 'objective', 'candidate', 'requiredIds', 'liveRequiredIds'], 'requirements', errors)
   if (requirements['schemaVersion'] !== 1) errors.push('requirements.schemaVersion: expected 1')
   if (!nonempty(requirements['objective'])) errors.push('requirements.objective: required')
   if (value['objective'] !== requirements['objective']) errors.push('ledger.objective: differs from reviewed requirements')
+  if (typeof requirements['candidate'] !== 'string' || !/^[0-9a-f]{64}$/.test(requirements['candidate'])) {
+    errors.push('requirements.candidate: expected SHA-256 fingerprint')
+  }
+  if (value['candidate'] !== requirements['candidate']) errors.push('ledger.candidate: differs from reviewed requirements')
   const expected = requirements['requiredIds']
   if (!Array.isArray(expected) || expected.length === 0) errors.push('requirements.requiredIds: expected non-empty array')
   const expectedIds = new Set<string>(Array.isArray(expected) ? expected.filter(nonempty) : [])

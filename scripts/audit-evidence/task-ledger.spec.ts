@@ -3,7 +3,7 @@ import { validateTaskLedger } from './task-ledger.ts'
 
 const candidate = 'a'.repeat(64)
 const requiredIds = Array.from({ length: 20 }, (_, index) => `RA29-${String(index + 1).padStart(2, '0')}`)
-const requirements = { schemaVersion: 1, objective: 'Implement all 20 improvements', requiredIds,
+const requirements = { schemaVersion: 1, objective: 'Implement all 20 improvements', candidate, requiredIds,
   liveRequiredIds: ['RA29-03'] }
 
 function accepted() {
@@ -41,6 +41,14 @@ describe('task delivery ledger', () => {
     expect(result.valid).toBe(false)
     expect(result.errors).toContain('RA29-01.evidence[0]: PASS requires exitCode 0')
     expect(result.errors).toContain('RA29-02.evidence[0]: candidate fingerprint differs from ledger')
+  })
+
+  it('rejects a ledger whose agent rewrites every observation to a different candidate', () => {
+    const ledger = accepted()
+    const forged = 'b'.repeat(64)
+    ledger.candidate = forged
+    for (const item of ledger.items) for (const observation of item.evidence) observation.candidate = forged
+    expect(validateTaskLedger(ledger, requirements).errors).toContain('ledger.candidate: differs from reviewed requirements')
   })
 
   it('rejects a locally verified live requirement and a partial browser matrix', () => {
