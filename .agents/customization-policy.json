@@ -1510,6 +1510,21 @@
       ]
     },
     {
+      "id": "bash-exit-evidence",
+      "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
+      "status": "active",
+      "summary": "Persist foreground Bash completion status as structured tool-result metadata for audit verification.",
+      "upstreamPlan": "docs/customization/fork-v2-extraction.md#extraction-matrix",
+      "paths": [
+        "packages/shell/tool-bash/src/index.ts",
+        "packages/shell/tool-bash/tests/integration.spec.ts",
+        "packages/shell/tool-bash/README.md",
+        "packages/shell/tool-bash/README.zh.md",
+        "packages/shell/tool-bash/README.i18n.yaml"
+      ]
+    },
+    {
       "id": "web-instance-lifecycle",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",

@@ -105,6 +105,8 @@ The tool resolves the workdir before `ctx.shell.resolve()` runs: an explicit rel
 
 The result text is stdout, then a marked `[stderr]` section, then conditional markers: truncation notice, sandbox denial (plus the same-turn escalation hint when the composition advertises escalation), timeout, signal, and exit code — each on its own line. The exit marker doubles as the UI card's exit-status pill: the shared `parseExitStatus` from `dsh-shell` consumes it from the output body, so replay shows the pill without duplicating the marker.
 
+Completed foreground results also persist `tool/result.data.meta` with `kind: "bash-foreground-exit"`, `exitCode`, `signal`, `timedOut`, `aborted`, and a boolean `stopped`. This metadata contains no command output or cancellation reason and distinguishes a clean zero exit from an interrupted command even when the result text has no exit marker. Background acknowledgements and promoted jobs have `meta: null`.
+
 </details>
 
 -----

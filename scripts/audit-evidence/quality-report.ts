@@ -4,7 +4,8 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { decisionsSchema, reportSchema, requirementsSchema } from './contracts.ts'
 import type { PreflightResult } from './preflight.ts'
-import { reconcileAudit } from './reconcile.ts'
+import { attachSessionChecks, reconcileAudit } from './reconcile.ts'
+import { aliasesInput } from './file-paths.ts'
 import type { ReconciliationResult } from './reconcile.ts'
 import type { CorpusManifest, SessionMetrics } from './session-corpus.ts'
 
@@ -60,16 +61,17 @@ export interface QualityReport {
     parentCount: number
     missingParentCount: number
     sessionHashes: Array<{ sessionId: string; sha256: string }>
-    hashVerification: 'manifest-only'
+    hashVerification: 'manifest-only' | 'verified-required-sessions'
     limitation: string
   }
   tokens: { children: Tokens; parents: Tokens; total: Tokens; missingUsageCalls: number }
   calls: { model: number; tool: number }
   reconciliation: {
     valid: boolean
-    closureStatus: 'invalid' | 'pending' | 'open' | 'resolved'
+    closureStatus: 'invalid' | 'pending' | 'open' | 'unverified' | 'resolved'
     errorCount: number
     resolved: number
+    claimedResolved?: number
     open: number
     pending: number
     conflicts: number
@@ -219,10 +221,19 @@ function parseCorpus(value: unknown): { revision: string | null; revisionStatus:
       throw new Error('available parent marked unavailable')
     }
   }
+  const parentIds = [...parents]
+  if (parentIds.length === 1) {
+    for (const session of sessions.filter(item => item.role === 'child')) {
+      if (session.parentStatus !== 'linked' || session.parentSessionId !== parentIds[0]) {
+        throw new Error('child parent lineage differs from available corpus parent')
+      }
+    }
+  }
   return { revision, revisionStatus, revisionLimitation, sessions }
 }
 
 type ReconcileView = Pick<ReconciliationResult, 'auditId' | 'revision' | 'valid' | 'totals' | 'errors'> & {
+  sessionChecks?: NonNullable<ReconciliationResult['sessionChecks']>
   findings: Array<{
     id: string
     status: 'RESOLVED' | 'OPEN' | 'PENDING'
@@ -303,8 +314,25 @@ function parseReconciliation(value: unknown): ReconcileView {
     parsedTotals.open !== findings.filter(item => item.status === 'OPEN').length ||
     parsedTotals.pending !== findings.filter(item => item.status === 'PENDING').length ||
     parsedTotals.conflicts !== findings.filter(item => item.conflict).length) throw new Error('reconciliation totals contradict findings')
+  const sessionChecks = source.sessionChecks === undefined ? undefined
+    : array(source.sessionChecks, 'reconciliation.sessionChecks').map((entry, index) => {
+      const check = object(entry, `reconciliation.sessionChecks[${index}]`)
+      const sha256 = string(check.sha256, `reconciliation.sessionChecks[${index}].sha256`)
+      if (!/^[0-9a-f]{64}$/.test(sha256)) throw new Error('invalid Session SHA-256 in reconciliation')
+      return { agentId: safeId(check.agentId, `reconciliation.sessionChecks[${index}].agentId`),
+        sessionId: safeId(check.sessionId, `reconciliation.sessionChecks[${index}].sessionId`), sha256,
+        role: option(check.role, `reconciliation.sessionChecks[${index}].role`, ['child', 'parent'] as const),
+        parentSessionId: check.parentSessionId === null ? null
+          : safeId(check.parentSessionId, `reconciliation.sessionChecks[${index}].parentSessionId`),
+        errors: array(check.errors, `reconciliation.sessionChecks[${index}].errors`)
+          .map((error, errorIndex) => string(error, `reconciliation.sessionChecks[${index}].errors[${errorIndex}]`)) }
+    })
+  if (sessionChecks && (new Set(sessionChecks.map(check => check.sessionId)).size !== sessionChecks.length ||
+    new Set(sessionChecks.map(check => check.agentId)).size !== sessionChecks.length)) {
+    throw new Error('duplicate Session check identity')
+  }
   return { auditId: safeId(source.auditId, 'reconciliation.auditId'), revision: safeId(source.revision, 'reconciliation.revision'),
-    valid: source.valid, findings, errors, totals: parsedTotals }
+    valid: source.valid, findings, errors, totals: parsedTotals, ...sessionChecks === undefined ? {} : { sessionChecks } }
 }
 
 function parsePreflightResult(value: unknown, path: string): PreflightResult {
@@ -377,7 +405,7 @@ function unsupportedClaim(error: string): boolean {
 
 /** Validate input records and aggregate measurements without inferring model performance. */
 export function buildQualityReport(corpusInput: unknown, reconciliationInput: unknown, preflightInput?: unknown,
-  options: { recomputedFromRecords?: boolean } = {}): QualityReport {
+  options: { recomputedFromRecords?: boolean; rawSessionVerified?: boolean; parentAgentId?: string } = {}): QualityReport {
   const corpus = parseCorpus(corpusInput)
   const reconciliation = parseReconciliation(reconciliationInput)
   const preflight = preflightInput === undefined ? undefined : parsePreflight(preflightInput)
@@ -390,12 +418,29 @@ export function buildQualityReport(corpusInput: unknown, reconciliationInput: un
   const children = { ...emptyCounts(), tokens: emptyTokens() }
   const parents = { ...emptyCounts(), tokens: emptyTokens() }
   for (const session of corpus.sessions) addTotals(session.role === 'child' ? children : parents, session.totals, 'corpus total')
+  if (reconciliation.sessionChecks !== undefined) {
+    const childSessions = corpus.sessions.filter(session => session.role === 'child')
+    if (childSessions.some(session => !reconciliation.sessionChecks?.some(check =>
+      check.sessionId === session.sessionId && check.sha256 === session.sha256 &&
+      check.role === 'child' && check.parentSessionId === session.parentSessionId)) ||
+      reconciliation.sessionChecks.some(check => check.errors.length > 0 || !corpus.sessions.some(session =>
+        session.sessionId === check.sessionId && session.sha256 === check.sha256 &&
+        session.role === check.role && session.parentSessionId === check.parentSessionId &&
+        check.role === (check.agentId === options.parentAgentId ? 'parent' : 'child')))) {
+      throw new Error('Session checks differ from the corpus hashes')
+    }
+  }
+  if (options.rawSessionVerified && reconciliation.sessionChecks === undefined) {
+    throw new Error('raw Session verification requires Session checks')
+  }
   const total = { ...emptyCounts(), tokens: emptyTokens() }
   addTotals(total, children, 'corpus total')
   addTotals(total, parents, 'corpus total')
   const failures = preflight?.checks.filter(check => check.result.status === 'FAIL' || check.result.status === 'BLOCKED')
     .map(check => ({ id: check.id, status: check.result.status as 'FAIL' | 'BLOCKED', category: check.result.category }))
     .sort((a, b) => compareIds(a.id, b.id)) ?? []
+  const unverifiedTest = !options.rawSessionVerified && reconciliation.findings.some(finding =>
+    finding.scopes.some(scope => scope.scope === 'test' && scope.outcome !== 'PENDING'))
   return {
     schemaVersion: 1,
     auditId: reconciliation.auditId,
@@ -415,18 +460,26 @@ export function buildQualityReport(corpusInput: unknown, reconciliationInput: un
       missingParentCount: corpus.sessions.filter(session => session.parentStatus === 'unavailable').length,
       sessionHashes: corpus.sessions.map(session => ({ sessionId: session.sessionId, sha256: session.sha256 }))
         .sort((a, b) => compareIds(a.sessionId, b.sessionId)),
-      hashVerification: 'manifest-only',
-      limitation: 'Session SHA-256 values came from the corpus manifest; raw session files were not rehashed.',
+      hashVerification: options.rawSessionVerified ? 'verified-required-sessions' : 'manifest-only',
+      limitation: options.rawSessionVerified
+        ? 'Required child Sessions and a parent Session for any resolved scope or parent test adjudication were rehashed; other corpus Sessions remain manifest-only.'
+        : 'Session SHA-256 values came from the corpus manifest; raw session files were not rehashed.',
     },
     tokens: { children: children.tokens, parents: parents.tokens, total: total.tokens, missingUsageCalls: total.missingUsageCalls },
     calls: { model: total.modelCalls, tool: total.toolCalls },
     reconciliation: {
       valid: reconciliation.valid,
       closureStatus: !reconciliation.valid ? 'invalid'
-        : reconciliation.totals.pending > 0 ? 'pending'
-          : reconciliation.totals.open > 0 ? 'open' : 'resolved',
+        : unverifiedTest ? 'unverified'
+          : reconciliation.totals.pending > 0 ? 'pending'
+            : reconciliation.totals.open > 0 ? 'open'
+              : !options.rawSessionVerified || revisionStatus !== 'matched' ? 'unverified' : 'resolved',
       errorCount: reconciliation.errors.length,
-      resolved: reconciliation.totals.resolved,
+      resolved: options.rawSessionVerified && reconciliation.valid && revisionStatus === 'matched'
+        ? reconciliation.totals.resolved : 0,
+      ...!options.rawSessionVerified || !reconciliation.valid || revisionStatus !== 'matched'
+        ? reconciliation.totals.resolved > 0 ? { claimedResolved: reconciliation.totals.resolved } : {}
+        : {},
       open: reconciliation.totals.open,
       pending: reconciliation.totals.pending,
       conflicts: reconciliation.totals.conflicts,
@@ -462,13 +515,14 @@ interface QualityArgs {
   reconciliation?: string
   requirements?: string
   reports: string[]
+  sessions: Map<string, string>
   decisions?: string
   preflight?: string
   output?: string
 }
 
 function argsOf(argv: string[]): QualityArgs {
-  const result: QualityArgs = { corpus: '', reports: [] }
+  const result: QualityArgs = { corpus: '', reports: [], sessions: new Map() }
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index]
     const value = argv[index + 1]
@@ -477,6 +531,13 @@ function argsOf(argv: string[]): QualityArgs {
     else if (flag === '--reconcile' && !result.reconciliation) result.reconciliation = value
     else if (flag === '--requirements' && result.requirements === undefined) result.requirements = value
     else if (flag === '--report') result.reports.push(value)
+    else if (flag === '--session') {
+      const separator = value.indexOf('=')
+      if (separator < 1 || separator === value.length - 1) throw new Error('session requires AGENT_ID=PATH')
+      const agentId = value.slice(0, separator)
+      if (result.sessions.has(agentId)) throw new Error('duplicate Session agent ID')
+      result.sessions.set(agentId, value.slice(separator + 1))
+    }
     else if (flag === '--decisions' && result.decisions === undefined) result.decisions = value
     else if (flag === '--preflight' && result.preflight === undefined) result.preflight = value
     else if (flag === '--output' && result.output === undefined) result.output = value
@@ -487,11 +548,12 @@ function argsOf(argv: string[]): QualityArgs {
     !result.decisions || result.reports.length === 0 : !result.reconciliation)) {
     throw new Error('corpus and either reconciliation or complete source records are required')
   }
+  if (!recordMode && result.sessions.size > 0) throw new Error('raw Session checks require source reports')
   const output = result.output
   if (output !== undefined) {
     const inputs = [result.corpus, result.reconciliation, result.requirements, ...result.reports,
-      result.decisions, result.preflight]
-    if (inputs.some(path => path !== undefined && resolve(path) === resolve(output))) {
+      ...result.sessions.values(), result.decisions, result.preflight]
+    if (inputs.some(path => path !== undefined && aliasesInput(output, path))) {
       throw new Error('output must differ from input files')
     }
   }
@@ -503,17 +565,26 @@ export function runQualityReport(argv: string[]): number {
   try {
     const args = argsOf(argv)
     const read = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'))
-    const reconciliation = args.requirements && args.decisions
-      ? reconcileAudit(requirementsSchema.parse(read(args.requirements)),
-        args.reports.map(path => reportSchema.parse(read(path))), decisionsSchema.parse(read(args.decisions)))
-      : args.reconciliation ? read(args.reconciliation) : undefined
+    const reports = args.reports.map(path => reportSchema.parse(read(path)))
+    const decisions = args.decisions ? decisionsSchema.parse(read(args.decisions)) : undefined
+    const recordReconciliation = args.requirements && decisions
+      ? reconcileAudit(requirementsSchema.parse(read(args.requirements)), reports, decisions)
+      : undefined
+    if (args.sessions.size > 0 && recordReconciliation && decisions) {
+      attachSessionChecks(recordReconciliation, reports, args.sessions, decisions)
+    }
+    const reconciliation = recordReconciliation ?? (args.reconciliation ? read(args.reconciliation) : undefined)
     if (reconciliation === undefined) throw new Error('missing reconciliation input')
     const report = buildQualityReport(read(args.corpus), reconciliation,
-      args.preflight ? read(args.preflight) : undefined, { recomputedFromRecords: Boolean(args.requirements) })
+      args.preflight ? read(args.preflight) : undefined,
+      { recomputedFromRecords: Boolean(args.requirements), rawSessionVerified: args.sessions.size > 0,
+        ...decisions === undefined ? {} : { parentAgentId: decisions.parentAgentId } })
     const json = `${JSON.stringify(report, null, 2)}\n`
     if (args.output) writeFileSync(args.output, json)
     else process.stdout.write(json)
-    return 0
+    if (args.sessions.size > 0 && recordReconciliation && !recordReconciliation.valid) return 2
+    if (report.reconciliation.closureStatus === 'invalid') return 2
+    return report.reconciliation.closureStatus === 'resolved' ? 0 : 1
   } catch {
     process.stderr.write('audit-evidence: invalid quality report input\n')
     return 2

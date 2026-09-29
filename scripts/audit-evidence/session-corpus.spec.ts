@@ -36,7 +36,7 @@ async function fixture(name: string, records: object[]): Promise<{ path: string;
 
 const header = (id: string, parentSession?: string) => ({
   type: 'session', version: 4, id, createdAt: 1000, isSeeded: false,
-  ...(parentSession ? { parentSession } : {}), cwd: '/private/secret/workspace',
+  ...(parentSession ? { parentSession, origin: 'subagent' } : {}), cwd: '/private/secret/workspace',
 })
 const event = (seq: number, type: string, data: object, extra: object = {}) => ({ type, seq, time: 1010 + seq * 10, data, ...extra })
 const usage = (inputTokens: number, outputTokens: number) => ({ inputTokens, outputTokens, totalTokens: inputTokens + outputTokens })
@@ -156,8 +156,8 @@ describe('session corpus', () => {
   })
 
   it('sorts child sessions and compares signed metrics only for matching ids', async () => {
-    const a = await fixture('a', [header('a-child'), event(0, 'assistant/message', { turn: 0, step: 0, stream: [], usage: usage(1, 2) })])
-    const b = await fixture('b', [header('b-child')])
+    const a = await fixture('a', [header('a-child', 'parent-a'), event(0, 'assistant/message', { turn: 0, step: 0, stream: [], usage: usage(1, 2) })])
+    const b = await fixture('b', [header('b-child', 'parent-b')])
     const left = await buildManifest(REVISION, [b.path, a.path])
     expect(left.sessions.map(session => session.sessionId)).toEqual(['a-child', 'b-child'])
     const right = structuredClone(left)
@@ -219,7 +219,7 @@ describe('session corpus', () => {
   })
 
   it('never matches unknown revisions and rejects invalid known revision claims', async () => {
-    const child = await fixture('child', [header('child-unknown')])
+    const child = await fixture('child', [header('child-unknown', 'parent-unknown')])
     const unknown = await buildManifest('unknown', [child.path])
     const known = await buildManifest(REVISION, [child.path])
     expect(compareManifests(unknown, unknown).revisionMatch).toBe(false)
@@ -235,14 +235,20 @@ describe('session corpus', () => {
     const malformed = await fixture('bad-json', [header('bad')])
     await writeFile(malformed.path, '{broken\n')
     await expect(readSession(malformed.path, 'child')).rejects.toThrow()
-    const gap = await fixture('gap', [header('child-3'), event(1, 'step/start', { turn: 0, step: 0 })])
+    const gap = await fixture('gap', [header('child-3', 'parent-3'), event(1, 'step/start', { turn: 0, step: 0 })])
     await expect(readSession(gap.path, 'child')).rejects.toThrow(/sequence/)
-    const badUsage = await fixture('usage', [header('child-4'), event(0, 'assistant/message', { turn: 0, step: 0, stream: [], usage: { inputTokens: -1, outputTokens: 2 } })])
+    const badUsage = await fixture('usage', [header('child-4', 'parent-4'), event(0, 'assistant/message', { turn: 0, step: 0, stream: [], usage: { inputTokens: -1, outputTokens: 2 } })])
     await expect(readSession(badUsage.path, 'child')).rejects.toThrow(/integer/)
     const child = await fixture('child', [header('child-5', 'parent-5')])
     const parent = await fixture('parent', [header('other-parent')])
     await expect(buildManifest(REVISION, [child.path], parent.path)).rejects.toThrow(/parent session id mismatch/)
     await expect(buildManifest('short', [child.path])).rejects.toThrow(/revision/)
+  })
+
+  it('requires child role and parent lineage in the v4 header', async () => {
+    const standalone = await fixture('standalone', [header('standalone-child')])
+
+    await expect(readSession(standalone.path, 'child')).rejects.toThrow(/subagent origin and parent session/)
   })
 
   it('returns a nonzero CLI exit without leaking malformed input or its path', async () => {

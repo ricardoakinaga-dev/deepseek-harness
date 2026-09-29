@@ -40,6 +40,10 @@ export interface AuditReport {
   agentId: string
   revision: string
   observedAt: string
+  taskScope?: string
+  files?: string[]
+  sessionId?: string
+  sessionSha256?: string
   findings: AuditFinding[]
 }
 
@@ -74,6 +78,8 @@ export interface AuditDecisions {
   auditId: string
   parentAgentId: string
   revision: string
+  sessionId?: string
+  sessionSha256?: string
   decisions: AuditDecision[]
 }
 
@@ -189,15 +195,23 @@ function parseFinding(value: unknown, path: string): AuditFinding {
 }
 
 function parseReport(value: unknown): AuditReport {
-  const item = record(value, 'report', ['schemaVersion', 'auditId', 'agentId', 'revision', 'observedAt', 'findings'])
+  const item = record(value, 'report', ['schemaVersion', 'auditId', 'agentId', 'revision', 'observedAt',
+    'taskScope', 'files', 'sessionId', 'sessionSha256', 'findings'])
   const report: AuditReport = {
     schemaVersion: version(item.schemaVersion, 'report.schemaVersion'),
     auditId: string(item.auditId, 'report.auditId'),
     agentId: string(item.agentId, 'report.agentId'),
     revision: string(item.revision, 'report.revision'),
     observedAt: timestamp(item.observedAt, 'report.observedAt'),
+    ...item.taskScope === undefined ? {} : { taskScope: string(item.taskScope, 'report.taskScope') },
+    ...item.files === undefined ? {} : { files: list(item.files, 'report.files')
+      .map((entry, index) => string(entry, `report.files[${index}]`)) },
+    ...item.sessionId === undefined ? {} : { sessionId: string(item.sessionId, 'report.sessionId') },
+    ...item.sessionSha256 === undefined ? {} : { sessionSha256: string(item.sessionSha256, 'report.sessionSha256') },
     findings: list(item.findings, 'report.findings').map((entry, index) => parseFinding(entry, `report.findings[${index}]`)),
   }
+  if (report.files && new Set(report.files).size !== report.files.length) throw new Error('report.files has duplicates')
+  if (report.sessionSha256 && !/^[0-9a-f]{64}$/.test(report.sessionSha256)) throw new Error('report.sessionSha256 must be SHA-256')
   const seen = new Set<string>()
   for (const finding of report.findings) {
     const key = `${finding.id}:${finding.scope}`
@@ -227,7 +241,8 @@ function parseRequirements(value: unknown): AuditRequirements {
 }
 
 function parseDecisions(value: unknown): AuditDecisions {
-  const item = record(value, 'decisions', ['schemaVersion', 'auditId', 'parentAgentId', 'revision', 'decisions'])
+  const item = record(value, 'decisions', ['schemaVersion', 'auditId', 'parentAgentId', 'revision',
+    'sessionId', 'sessionSha256', 'decisions'])
   const decisions = list(item.decisions, 'decisions.decisions').map((entry, index): AuditDecision => {
     const path = `decisions.decisions[${index}]`
     const decision = record(entry, path, ['id', 'status', 'rationale', 'evidenceIds', 'adjudications'])
@@ -245,9 +260,16 @@ function parseDecisions(value: unknown): AuditDecisions {
       }),
     }
   })
-  return { schemaVersion: version(item.schemaVersion, 'decisions.schemaVersion'),
+  const parsed: AuditDecisions = { schemaVersion: version(item.schemaVersion, 'decisions.schemaVersion'),
     auditId: string(item.auditId, 'decisions.auditId'), parentAgentId: string(item.parentAgentId, 'decisions.parentAgentId'),
-    revision: string(item.revision, 'decisions.revision'), decisions }
+    revision: string(item.revision, 'decisions.revision'),
+    ...item.sessionId === undefined ? {} : { sessionId: string(item.sessionId, 'decisions.sessionId') },
+    ...item.sessionSha256 === undefined ? {} : { sessionSha256: string(item.sessionSha256, 'decisions.sessionSha256') },
+    decisions }
+  if (parsed.sessionSha256 && !/^[0-9a-f]{64}$/.test(parsed.sessionSha256)) {
+    throw new Error('decisions.sessionSha256 must be SHA-256')
+  }
+  return parsed
 }
 
 /** Parse untrusted report JSON into a versioned, internally consistent record. */

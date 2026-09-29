@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -8,7 +8,7 @@ import { decisionsSchema, reportSchema, requirementsSchema } from './contracts.t
 import { parsePreflightSpec, preflightAudit } from './preflight.ts'
 import { reconcileAudit } from './reconcile.ts'
 import type { ReconciliationResult } from './reconcile.ts'
-import type { CorpusManifest, SessionMetrics } from './session-corpus.ts'
+import { buildManifest, type CorpusManifest, type SessionMetrics } from './session-corpus.ts'
 import { buildQualityReport, type QualityPreflight, type QualityReport } from './quality-report.ts'
 
 const revision = 'a'.repeat(40)
@@ -67,6 +67,169 @@ afterEach(() => {
 })
 
 describe('AUD-09 quality report', () => {
+  it('requires raw child Sessions before a closed report becomes resolved', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-quality-raw-'))
+    directories.push(directory)
+    const reports: string[] = []
+    const sessions: string[] = []
+    for (const agentId of ['builder', 'reviewer']) {
+      const sessionId = `session-${agentId}`
+      const events = [
+        { type: 'session', version: 4, id: sessionId, createdAt: 0, origin: 'subagent', parentSession: 'session-parent' },
+        { type: 'tool/call', seq: 0, time: 1, data: { turn: 1, step: 1, callId: 'call-1', name: 'bash',
+          arguments: JSON.stringify({ command: 'pnpm test' }) } },
+        { type: 'tool/result', seq: 1, time: 2, surfaceOp: 'append', data: { turn: 1, step: 1,
+          meta: { kind: 'bash-foreground-exit', exitCode: 0, signal: null, timedOut: false, aborted: false, stopped: false },
+          message: { toolCallId: 'call-1', isError: false, content: [{ type: 'text', text: 'passed' }] } } },
+      ]
+      const bytes = `${events.map(event => JSON.stringify(event)).join('\n')}\n`
+      const sessionPath = join(directory, `${agentId}.v4.jsonl`)
+      writeFileSync(sessionPath, bytes)
+      sessions.push(sessionPath)
+      const sessionSha256 = createHash('sha256').update(bytes).digest('hex')
+      const report = { schemaVersion: 1, auditId: 'audit-1', agentId, revision,
+        observedAt: '2026-09-29T00:00:00Z', taskScope: 'Run focused test', files: ['src/check.ts'], sessionId, sessionSha256,
+        findings: [{ id: 'F1', scope: 'test', status: 'RESOLVED', confidence: 'high', summary: 'test passed', limitations: [],
+          evidence: [{ id: `${agentId}-e`, kind: 'test-run', outcome: 'PASS', reference: `session:${sessionSha256}#call-1`,
+            observedAt: '2026-09-29T00:00:00Z', revision, command: 'pnpm test', exitCode: 0 }] }] }
+      const reportPath = join(directory, `${agentId}.json`)
+      writeFileSync(reportPath, JSON.stringify(report))
+      reports.push(reportPath)
+    }
+    const parentEvents = [
+      { type: 'session', version: 4, id: 'session-parent', createdAt: 0 },
+      { type: 'tool/call', seq: 0, time: 1, data: { turn: 1, step: 1, callId: 'parent-call', name: 'bash',
+        arguments: JSON.stringify({ command: 'pnpm test' }) } },
+      { type: 'tool/result', seq: 1, time: 2, surfaceOp: 'append', data: { turn: 1, step: 1,
+        meta: { kind: 'bash-foreground-exit', exitCode: 0, signal: null, timedOut: false, aborted: false, stopped: false },
+        message: { toolCallId: 'parent-call', isError: false, content: [{ type: 'text', text: 'passed' }] } } },
+    ]
+    const parentPath = join(directory, 'parent.v4.jsonl')
+    const parentBytes = `${parentEvents.map(event => JSON.stringify(event)).join('\n')}\n`
+    writeFileSync(parentPath, parentBytes)
+    const parentSha256 = createHash('sha256').update(parentBytes).digest('hex')
+    const corpusPath = fixture('raw-corpus', await buildManifest(revision, sessions, parentPath))
+    const requirementsPath = fixture('raw-requirements', { schemaVersion: 1, auditId: 'audit-1', revision,
+      independentReviewer: 'reviewer', findings: [{ id: 'F1', requiredScopes: ['test'] }] })
+    const decisionsPath = fixture('raw-decisions', { schemaVersion: 1, auditId: 'audit-1', parentAgentId: 'parent', revision,
+      sessionId: 'session-parent', sessionSha256: parentSha256,
+      decisions: [{ id: 'F1', status: 'RESOLVED', rationale: 'both passed', evidenceIds: ['builder-e'], adjudications: [] }] })
+    const args = ['exec', 'tsx', resolve('scripts/audit-evidence/quality-report.ts'), '--corpus', corpusPath,
+      '--requirements', requirementsPath, '--report', reports[0] ?? '', '--report', reports[1] ?? '', '--decisions', decisionsPath]
+    const unverified = spawnSync('pnpm', args, { encoding: 'utf8' })
+    expect(unverified.status).toBe(1)
+    expect((JSON.parse(unverified.stdout) as QualityReport).reconciliation).toMatchObject(
+      { closureStatus: 'unverified', resolved: 0, claimedResolved: 1 })
+    const verified = spawnSync('pnpm', [...args, '--session', `builder=${sessions[0]}`,
+      '--session', `reviewer=${sessions[1]}`, '--session', `parent=${parentPath}`], { encoding: 'utf8' })
+    expect(verified.status).toBe(0)
+    const verifiedReport = JSON.parse(verified.stdout) as QualityReport
+    expect(verifiedReport.reconciliation.closureStatus).toBe('resolved')
+    expect(verifiedReport.corpus.hashVerification).toBe('verified-required-sessions')
+    const mismatchedCorpusPath = fixture('raw-corpus-mismatched-revision',
+      await buildManifest('b'.repeat(40), sessions, parentPath))
+    const mismatchedArgs = [...args]
+    mismatchedArgs[mismatchedArgs.indexOf('--corpus') + 1] = mismatchedCorpusPath
+    const mismatchedRevision = spawnSync('pnpm', [...mismatchedArgs,
+      '--session', `builder=${sessions[0]}`, '--session', `reviewer=${sessions[1]}`,
+      '--session', `parent=${parentPath}`], { encoding: 'utf8' })
+    expect(mismatchedRevision.status).toBe(1)
+    expect((JSON.parse(mismatchedRevision.stdout) as QualityReport)).toMatchObject({
+      revisionIdentity: { status: 'mismatch' },
+      reconciliation: { closureStatus: 'unverified', resolved: 0, claimedResolved: 1 },
+    })
+    const unknownCorpus = await buildManifest(revision, sessions, parentPath)
+    unknownCorpus.revision = null
+    unknownCorpus.revisionStatus = 'unknown'
+    unknownCorpus.revisionLimitation = 'Historical audited revision is not established; file hashes identify only the supplied bytes.'
+    const unknownCorpusPath = fixture('raw-corpus-unknown-revision', unknownCorpus)
+    const unknownRevisionArgs = [...args]
+    unknownRevisionArgs[unknownRevisionArgs.indexOf('--corpus') + 1] = unknownCorpusPath
+    const unknownRevision = spawnSync('pnpm', [...unknownRevisionArgs,
+      '--session', `builder=${sessions[0]}`, '--session', `reviewer=${sessions[1]}`,
+      '--session', `parent=${parentPath}`], { encoding: 'utf8' })
+    expect(unknownRevision.status).toBe(1)
+    expect((JSON.parse(unknownRevision.stdout) as QualityReport)).toMatchObject({
+      revisionIdentity: { status: 'unknown' },
+      reconciliation: { closureStatus: 'unverified', resolved: 0, claimedResolved: 1 },
+    })
+    writeFileSync(decisionsPath, JSON.stringify({ schemaVersion: 1, auditId: 'audit-1', parentAgentId: 'parent', revision,
+      sessionId: 'session-parent', sessionSha256: parentSha256,
+      decisions: [{ id: 'F1', status: 'RESOLVED', rationale: 'parent reran test', evidenceIds: ['parent-e'],
+        adjudications: [{ scope: 'test', rationale: 'parent reran test', evidence: { id: 'parent-e', kind: 'test-run',
+          outcome: 'PASS', reference: `session:${parentSha256}#parent-call`,
+          observedAt: '2026-09-29T00:00:00Z', revision, command: 'pnpm test', exitCode: 0 } }] }] }))
+    const parentVerified = spawnSync('pnpm', [...args, '--session', `builder=${sessions[0]}`,
+      '--session', `reviewer=${sessions[1]}`, '--session', `parent=${parentPath}`], { encoding: 'utf8' })
+    expect(parentVerified.status).toBe(0)
+    const missingParent = spawnSync('pnpm', [...args, '--session', `builder=${sessions[0]}`,
+      '--session', `reviewer=${sessions[1]}`], { encoding: 'utf8' })
+    expect(missingParent.status).toBe(2)
+    expect((JSON.parse(missingParent.stdout) as QualityReport).reconciliation.closureStatus).toBe('invalid')
+  })
+
+  it('marks an executed failed test unverified until its raw Session is supplied', () => {
+    const observedAt = '2026-09-29T00:00:00Z'
+    const reports = ['builder', 'reviewer'].map(agentId => reportSchema.parse({
+      schemaVersion: 1, auditId: 'audit-1', agentId, revision, observedAt,
+      findings: [{ id: 'F1', scope: 'test', status: 'OPEN', confidence: 'high', summary: 'test failed', limitations: [],
+        evidence: [{ id: `${agentId}-e`, kind: 'test-run', outcome: 'FAIL', reference: 'declared-output',
+          observedAt, revision, command: 'pnpm test', exitCode: 7 }] }],
+    }))
+    const requirements = requirementsSchema.parse({ schemaVersion: 1, auditId: 'audit-1', revision,
+      independentReviewer: 'reviewer', findings: [{ id: 'F1', requiredScopes: ['test'] }] })
+    const decisions = decisionsSchema.parse({ schemaVersion: 1, auditId: 'audit-1', parentAgentId: 'parent', revision,
+      decisions: [{ id: 'F1', status: 'OPEN', rationale: 'failed test', evidenceIds: ['builder-e'], adjudications: [] }] })
+    const reconciled = reconcileAudit(requirements, reports, decisions)
+    expect(reconciled.valid).toBe(true)
+    expect(buildQualityReport(corpus(), reconciled).reconciliation.closureStatus).toBe('unverified')
+    const cli = spawnSync('pnpm', ['exec', 'tsx', resolve('scripts/audit-evidence/quality-report.ts'),
+      '--corpus', fixture('open-corpus', corpus()), '--reconcile', fixture('open-reconciliation', reconciled)],
+    { encoding: 'utf8' })
+    expect(cli.status).toBe(1)
+    expect((JSON.parse(cli.stdout) as QualityReport).reconciliation.closureStatus).toBe('unverified')
+  })
+
+  it('returns nonzero for open and invalid quality reports', () => {
+    const observedAt = '2026-09-29T00:00:00Z'
+    const reports = ['builder', 'reviewer'].map(agentId => reportSchema.parse({
+      schemaVersion: 1, auditId: 'audit-1', agentId, revision, observedAt,
+      findings: [{ id: 'F1', scope: 'source', status: 'OPEN', confidence: 'high', summary: 'source issue', limitations: [],
+        evidence: [{ id: `${agentId}-e`, kind: 'source-read', outcome: 'FAIL', reference: 'source.ts:1', observedAt, revision }] }],
+    }))
+    const requirements = requirementsSchema.parse({ schemaVersion: 1, auditId: 'audit-1', revision,
+      independentReviewer: 'reviewer', findings: [{ id: 'F1', requiredScopes: ['source'] }] })
+    const decisions = decisionsSchema.parse({ schemaVersion: 1, auditId: 'audit-1', parentAgentId: 'parent', revision,
+      decisions: [{ id: 'F1', status: 'OPEN', rationale: 'source remains open', evidenceIds: ['builder-e'], adjudications: [] }] })
+    const open = reconcileAudit(requirements, reports, decisions)
+    expect(open).toMatchObject({ valid: true, totals: { resolved: 0, open: 1, pending: 0 } })
+    const script = resolve('scripts/audit-evidence/quality-report.ts')
+    const openCli = spawnSync('pnpm', ['exec', 'tsx', script, '--corpus', fixture('open-corpus', corpus()),
+      '--reconcile', fixture('open-reconciliation', open)], { encoding: 'utf8' })
+    expect(openCli.status).toBe(1)
+    expect((JSON.parse(openCli.stdout) as QualityReport).reconciliation.closureStatus).toBe('open')
+
+    const invalidCli = spawnSync('pnpm', ['exec', 'tsx', script, '--corpus', fixture('invalid-corpus', corpus()),
+      '--reconcile', fixture('invalid-reconciliation', reconciliation())], { encoding: 'utf8' })
+    expect(invalidCli.status).toBe(2)
+    expect((JSON.parse(invalidCli.stdout) as QualityReport).reconciliation.closureStatus).toBe('invalid')
+  })
+
+  it('rejects a parent test Session cataloged as a child', () => {
+    const manifest = corpus()
+    const disguised = session('pretend-parent', 'child', 5, 'parent-1')
+    manifest.sessions.push(disguised)
+    const checked = reconciliation()
+    checked.sessionChecks = [
+      { agentId: 'builder', sessionId: manifest.sessions[1]!.sessionId,
+        sha256: manifest.sessions[1]!.sha256, role: 'child', parentSessionId: 'parent-1', errors: [] },
+      { agentId: 'parent', sessionId: disguised.sessionId, sha256: disguised.sha256,
+        role: 'parent', parentSessionId: 'parent-1', errors: [] },
+    ]
+    expect(() => buildQualityReport(manifest, checked, undefined,
+      { rawSessionVerified: true, parentAgentId: 'parent' })).toThrow(/corpus hashes/)
+  })
+
   it('recomputes the recorded keyless candidate from child reports and preflight results', () => {
     const root = resolve('snapshots/session/audit-evidence-reconciliation')
     const records = resolve('scripts/audit-evidence/fixtures')
@@ -228,7 +391,7 @@ describe('AUD-09 quality report', () => {
       '--corpus', fixture('record-corpus', corpus()), '--requirements', fixture('record-requirements', requirements),
       '--report', fixture('record-builder', builder), '--report', fixture('record-reviewer', reviewer),
       '--decisions', fixture('record-decisions', decisions)], { encoding: 'utf8' })
-    expect(cli.status).toBe(0)
+    expect(cli.status).toBe(2)
     expect((JSON.parse(cli.stdout) as QualityReport).reconciliation).toMatchObject({
       valid: false, closureStatus: 'invalid', unsupportedClaims: 2,
       evidenceVerification: 'recomputed-from-records',
@@ -256,16 +419,31 @@ describe('AUD-09 quality report', () => {
     const clean = reconcileAudit(requirements, [builder, reviewer], decisions)
     expect(clean.valid).toBe(true)
     expect(buildQualityReport(corpus(), clean).reconciliation).toMatchObject({
-      resolved: 1, closureStatus: 'resolved', unsupportedClaims: 0,
+      resolved: 0, claimedResolved: 1, closureStatus: 'unverified', unsupportedClaims: 0,
     })
     const rawCli = spawnSync('pnpm', ['exec', 'tsx', resolve('scripts/audit-evidence/quality-report.ts'),
       '--corpus', fixture('closed-corpus', corpus()), '--requirements', fixture('closed-requirements', requirements),
       '--report', fixture('closed-builder', builder), '--report', fixture('closed-reviewer', reviewer),
       '--decisions', fixture('closed-decisions', decisions)], { encoding: 'utf8' })
-    expect(rawCli.status).toBe(0)
+    expect(rawCli.status).toBe(1)
     expect((JSON.parse(rawCli.stdout) as QualityReport).reconciliation).toMatchObject({
-      valid: true, closureStatus: 'resolved', evidenceVerification: 'recomputed-from-records',
+      valid: true, closureStatus: 'unverified', evidenceVerification: 'recomputed-from-records',
     })
+
+    const checkedCorpus = corpus()
+    checkedCorpus.sessions.push(session('child-2', 'child', 5, 'parent-1'))
+    const checked = { ...clean, sessionChecks: checkedCorpus.sessions.filter(item => item.role === 'child')
+      .map((item, index) => ({ agentId: index === 0 ? 'builder' : 'reviewer', sessionId: item.sessionId,
+        sha256: item.sha256, role: 'child' as const, parentSessionId: item.parentSessionId, errors: [] })) }
+    expect(buildQualityReport(checkedCorpus, checked, undefined, { rawSessionVerified: true }).reconciliation.closureStatus)
+      .toBe('resolved')
+    const firstCheck = checked.sessionChecks[0]
+    if (!firstCheck) throw new Error('missing checked child')
+    firstCheck.sha256 = '0'.repeat(64)
+    expect(() => buildQualityReport(checkedCorpus, checked)).toThrow(/Session checks differ/)
+    const wrongLineage = structuredClone(checked)
+    wrongLineage.sessionChecks[0]!.parentSessionId = 'unrelated-parent'
+    expect(() => buildQualityReport(checkedCorpus, wrongLineage)).toThrow(/Session checks differ/)
 
     const missingReviewer = reconcileAudit(requirements, [builder], decisions)
     expect(missingReviewer.errors).toContain('missing independent reviewer report reviewer')
@@ -282,14 +460,14 @@ describe('AUD-09 quality report', () => {
     for (const result of [missingReviewer, omittedFinding, undeclaredScope]) {
       expect(result.totals.resolved).toBe(1)
       expect(buildQualityReport(corpus(), result).reconciliation).toMatchObject({
-        valid: false, closureStatus: 'invalid', resolved: 1, unsupportedClaims: 1,
+        valid: false, closureStatus: 'invalid', resolved: 0, claimedResolved: 1, unsupportedClaims: 1,
       })
     }
     const corpusPath = fixture('coverage-corpus', corpus())
     const reconciliationPath = fixture('coverage-reconciliation', missingReviewer)
     const cli = spawnSync('pnpm', ['exec', 'tsx', resolve('scripts/audit-evidence/quality-report.ts'),
       '--corpus', corpusPath, '--reconcile', reconciliationPath], { encoding: 'utf8' })
-    expect(cli.status).toBe(0)
+    expect(cli.status).toBe(2)
     expect((JSON.parse(cli.stdout) as QualityReport).reconciliation.closureStatus).toBe('invalid')
   })
 
@@ -345,7 +523,8 @@ describe('AUD-09 quality report', () => {
     finding.recommendedStatus = 'RESOLVED'
     finding.conflict = false
     closed.totals = { resolved: 1, open: 0, pending: 0, conflicts: 0 }
-    expect(buildQualityReport(corpus(), closed).reconciliation.resolved).toBe(1)
+    expect(buildQualityReport(corpus(), closed).reconciliation).toMatchObject(
+      { resolved: 0, claimedResolved: 1, closureStatus: 'unverified' })
   })
 
   it('labels manifest hashes as unverified when raw JSONL bytes are unavailable', () => {
@@ -378,6 +557,15 @@ describe('AUD-09 quality report', () => {
     const differentPreflight = preflight()
     differentPreflight.revision = 'b'.repeat(40)
     expect(buildQualityReport(unknown, reconciliation(), differentPreflight).revisionIdentity.status).toBe('mismatch')
+  })
+
+  it('rejects child lineage that points away from an available corpus parent', () => {
+    const mismatched = corpus()
+    const child = mismatched.sessions.find(item => item.role === 'child')!
+    child.parentSessionId = 'parent-unavailable'
+    child.parentStatus = 'unavailable'
+    expect(() => buildQualityReport(mismatched, reconciliation()))
+      .toThrow('child parent lineage differs from available corpus parent')
   })
 
   it('rejects contradictory totals, duplicate sessions, invalid known hashes, and preflight claims without reasons', () => {
@@ -429,7 +617,7 @@ describe('AUD-09 quality report', () => {
     const reconciliationPath = fixture('reconciliation-real', reconciliation())
     const cli = spawnSync('pnpm', ['exec', 'tsx', resolve('scripts/audit-evidence/quality-report.ts'),
       '--corpus', corpusPath, '--reconcile', reconciliationPath, '--preflight', preflightPath], { encoding: 'utf8' })
-    expect(cli.status).toBe(0)
+    expect(cli.status).toBe(2)
     const report = JSON.parse(cli.stdout) as QualityReport
     expect(report.preflight).toEqual({ status: 'provided', checkCount: 3, failureCount: 2, failedCount: 1, blockedCount: 1,
       readyCount: 1, passedCount: 0,
@@ -443,11 +631,11 @@ describe('AUD-09 quality report', () => {
     const preflightPath = fixture('preflight', preflight())
     const script = resolve('scripts/audit-evidence/quality-report.ts')
     const cli = spawnSync('pnpm', ['exec', 'tsx', script, '--corpus', corpusPath, '--reconcile', reconciliationPath, '--preflight', preflightPath], { encoding: 'utf8' })
-    expect(cli.status).toBe(0)
+    expect(cli.status).toBe(2)
     expect(JSON.parse(cli.stdout)).toEqual(buildQualityReport(corpus(), reconciliation(), preflight()))
     const outputPath = join(resolve(corpusPath, '..'), 'quality.json')
     const saved = spawnSync('pnpm', ['exec', 'tsx', script, '--corpus', corpusPath, '--reconcile', reconciliationPath, '--preflight', preflightPath, '--output', outputPath], { encoding: 'utf8' })
-    expect(saved.status).toBe(0)
+    expect(saved.status).toBe(2)
     expect(saved.stdout).toBe('')
     expect(JSON.parse(readFileSync(outputPath, 'utf8'))).toEqual(JSON.parse(cli.stdout))
     const bad = fixture('bad', { schemaVersion: 2 })
@@ -455,6 +643,18 @@ describe('AUD-09 quality report', () => {
     expect(invalid.status).toBe(2)
     expect(invalid.stdout).toBe('')
     expect(invalid.stderr).toBe('audit-evidence: invalid quality report input\n')
+  })
+
+  it('refuses an output symlink that aliases the corpus input', () => {
+    const corpusPath = fixture('corpus-alias', corpus())
+    const reconciliationPath = fixture('reconciliation-alias', reconciliation())
+    const aliasPath = join(resolve(corpusPath, '..'), 'output-alias.json')
+    symlinkSync(corpusPath, aliasPath)
+    const original = readFileSync(corpusPath, 'utf8')
+    const cli = spawnSync('pnpm', ['exec', 'tsx', resolve('scripts/audit-evidence/quality-report.ts'),
+      '--corpus', corpusPath, '--reconcile', reconciliationPath, '--output', aliasPath], { encoding: 'utf8' })
+    expect(cli.status).toBe(2)
+    expect(readFileSync(corpusPath, 'utf8')).toBe(original)
   })
 
   it('produces stable candidate output on two public record-mode runs', () => {
@@ -469,8 +669,8 @@ describe('AUD-09 quality report', () => {
       '--preflight', join(records, 'candidate-keyless-preflight.json')]
     const first = spawnSync('pnpm', args, { encoding: 'utf8' })
     const second = spawnSync('pnpm', args, { encoding: 'utf8' })
-    expect(first.status).toBe(0)
-    expect(second.status).toBe(0)
+    expect(first.status).toBe(1)
+    expect(second.status).toBe(1)
     const expected = readFileSync(join(records, 'candidate-keyless-quality.json'), 'utf8')
     expect(first.stdout).toBe(second.stdout)
     expect(first.stdout).toBe(expected)
