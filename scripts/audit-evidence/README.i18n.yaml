@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write scripts/audit-evidence/README.md
 /audit-evidence-automation:
-  en: 71c85ba3b76a48ca
-  zh: 2f4ac873ef1e6617
+  en: 6577d3fddf16d8f2
+  zh: 619e7f6a2ef5018b
 /audit-evidence-automation/task-delivery-ledger:
   en: 48e200f58103f037
   zh: 5c8f199507483f2f

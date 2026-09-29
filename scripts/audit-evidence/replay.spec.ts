@@ -1,5 +1,6 @@
 /** The reconciler's public CLI persists JSON; it does not create a Session or emit Session events. */
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -90,14 +91,35 @@ describe('audit evidence through the public reconciliation CLI', () => {
         web: join(directory, 'web.json'),
         infra: join(directory, 'infra.json'),
         decisions: join(directory, 'decisions.json'),
+        webSession: join(directory, 'web.session.v4.jsonl'),
+        infraSession: join(directory, 'infra.session.v4.jsonl'),
+        parentSession: join(directory, 'parent.session.v4.jsonl'),
         output: join(directory, 'result.json'),
       }
+      const bindChildSession = async (report: AuditReport, agentId: string, path: string): Promise<void> => {
+        const sessionId = `session-${agentId}`
+        const bytes = `${JSON.stringify({ type: 'session', version: 4, id: sessionId, createdAt: 0,
+          origin: 'subagent', parentSession: 'session-parent' })}\n`
+        await writeFile(path, bytes)
+        report.taskScope = `Inspect ${agentId} audit scopes`
+        report.files = []
+        report.sessionId = sessionId
+        report.sessionSha256 = createHash('sha256').update(bytes).digest('hex')
+      }
+      const parentBytes = `${JSON.stringify({ type: 'session', version: 4, id: 'session-parent', createdAt: 0 })}\n`
+      await Promise.all([
+        bindChildSession(positive, 'web', paths.webSession),
+        bindChildSession(negative, 'infra', paths.infraSession),
+      ])
       await Promise.all([
         writeJson(paths.requirements, requirements), writeJson(paths.web, positive),
         writeJson(paths.infra, negative), writeJson(paths.decisions, decisions),
+        writeFile(paths.parentSession, parentBytes),
       ])
       const args = ['--requirements', paths.requirements, '--reports', paths.web, paths.infra,
-        '--decisions', paths.decisions, '--output', paths.output]
+        '--decisions', paths.decisions, '--output', paths.output,
+        '--session', `web=${paths.webSession}`, '--session', `infra=${paths.infraSession}`,
+        '--session', `parent=${paths.parentSession}`]
 
       const pending = runCli([...args, '--require-closed'])
       expect(pending.status).toBe(1)
@@ -139,7 +161,7 @@ describe('audit evidence through the public reconciliation CLI', () => {
       expect(persisted.findings[0]?.scopes[0]?.evidenceIds).toEqual(decisions.decisions[0]?.evidenceIds)
 
       const optionalClosure = runCli(args)
-      expect(optionalClosure.status).toBe(0)
+      expect(optionalClosure.status).toBe(1)
       expect(JSON.parse(await readFile(paths.output, 'utf8'))).toEqual(persisted)
 
       decisions.decisions[0]!.status = 'RESOLVED'

@@ -137,6 +137,9 @@ export async function readSession(path: string, role: 'child' | 'parent'): Promi
   if (header.type !== 'session' || header.version !== 4) throw new Error('expected v4 session header')
   const sessionId = identifier(header.id)
   const parentSessionId = header.parentSession === undefined ? null : identifier(header.parentSession)
+  if (role === 'child' && (header.origin !== 'subagent' || parentSessionId === null)) {
+    throw new Error('child session must declare subagent origin and parent session')
+  }
   const createdAt = integer(header.createdAt)
   const eventCounts = new Map<string, number>()
   const steps = new Map<string, StepMetrics>()

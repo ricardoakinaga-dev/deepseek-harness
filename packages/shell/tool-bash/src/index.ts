@@ -474,6 +474,16 @@ export function apply(ctx: Context, config: Config = {}): void {
               ? renderPromoted(value)
               : renderResult(value as { kind: 'foreground' } & ShellRunResult, escalationModes),
         }],
+        presentationMeta: (_args, value) => value.kind === 'foreground'
+          ? {
+            kind: 'bash-foreground-exit',
+            exitCode: value.exitCode,
+            signal: value.signal,
+            timedOut: value.timedOut,
+            aborted: value.aborted,
+            stopped: value.stopped !== undefined,
+          }
+          : null,
       },
       async execute(args: BashToolArgs, exec) {
         // Description is display metadata; workdir defaults to the caller's session.

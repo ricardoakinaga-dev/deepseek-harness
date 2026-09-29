@@ -6,6 +6,10 @@
     "agentId": { "type": "string" },
     "revision": { "type": "string" },
     "observedAt": { "type": "string" },
+    "taskScope": { "type": "string" },
+    "files": { "type": "array", "items": { "type": "string" } },
+    "sessionId": { "type": "string" },
+    "sessionSha256": { "type": "string" },
     "findings": {
       "type": "array",
       "items": {

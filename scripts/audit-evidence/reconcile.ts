@@ -12,6 +12,8 @@ import {
   type AuditReport,
   type AuditRequirements,
 } from './contracts.ts'
+import { aliasesInput } from './file-paths.ts'
+import { verifyChildSession, type ChildSessionCheck } from './session-checks.ts'
 
 type Scope = typeof AUDIT_SCOPES[number]
 type Outcome = 'RESOLVED' | 'OPEN' | 'PENDING'
@@ -43,6 +45,7 @@ export interface ReconciliationResult {
   valid: boolean
   findings: FindingResult[]
   errors: string[]
+  sessionChecks?: ChildSessionCheck[]
   totals: { resolved: number; open: number; pending: number; conflicts: number }
 }
 
@@ -247,12 +250,13 @@ function parseArgs(argv: string[]): {
   reports: string[]
   decisions: string
   output: string | undefined
-  requireClosed: boolean
+  sessions: Map<string, string>
 } {
-  const parsed = { requirements: '', reports: [] as string[], decisions: '', output: undefined as string | undefined, requireClosed: false }
+  const parsed = { requirements: '', reports: [] as string[], decisions: '', output: undefined as string | undefined,
+    sessions: new Map<string, string>() }
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index]
-    if (flag === '--require-closed') { parsed.requireClosed = true; continue }
+    if (flag === '--require-closed') continue
     if (flag === '--reports') {
       while (true) {
         const next = argv[index + 1]
@@ -268,6 +272,13 @@ function parseArgs(argv: string[]): {
     else if (flag === '--report') parsed.reports.push(value)
     else if (flag === '--decisions') parsed.decisions = value
     else if (flag === '--output') parsed.output = value
+    else if (flag === '--session') {
+      const separator = value.indexOf('=')
+      if (separator < 1 || separator === value.length - 1) throw new Error('--session requires AGENT_ID=PATH')
+      const agentId = value.slice(0, separator)
+      if (parsed.sessions.has(agentId)) throw new Error(`duplicate Session for ${agentId}`)
+      parsed.sessions.set(agentId, value.slice(separator + 1))
+    }
     else throw new Error(`unknown option ${flag}`)
   }
   if (!parsed.requirements || !parsed.decisions || parsed.reports.length === 0) {
@@ -280,27 +291,129 @@ function readJson(path: string): unknown {
   return JSON.parse(readFileSync(path, 'utf8'))
 }
 
+/** Demote resolved evidence after verification errors and keep finding totals consistent. */
+function demoteUnverifiedScopes(result: ReconciliationResult): void {
+  for (const finding of result.findings) {
+    for (const scope of finding.scopes) {
+      if (scope.outcome === 'RESOLVED') scope.outcome = 'PENDING'
+    }
+    finding.recommendedStatus = finding.scopes.some(scope => scope.outcome === 'PENDING') ? 'PENDING'
+      : finding.scopes.some(scope => scope.outcome === 'OPEN') ? 'OPEN' : 'RESOLVED'
+    if (finding.status === 'RESOLVED' || finding.recommendedStatus === 'PENDING') finding.status = 'PENDING'
+  }
+  result.totals = {
+    resolved: result.findings.filter(finding => finding.status === 'RESOLVED').length,
+    open: result.findings.filter(finding => finding.status === 'OPEN').length,
+    pending: result.findings.filter(finding => finding.status === 'PENDING').length,
+    conflicts: result.findings.filter(finding => finding.conflict).length,
+  }
+}
+
+/**
+ * Verify every child report against one distinct raw Session generation.
+ * @param result - Reconciliation to update with Session errors and open dispositions.
+ * @param reports - Parsed child reports.
+ * @param sessions - Raw Session paths keyed by report agent ID.
+ * @param decisions - Parent observations and the identity binding for parent Session verification.
+ */
+export function attachSessionChecks(result: ReconciliationResult, reports: AuditReport[], sessions: ReadonlyMap<string, string>,
+  decisions: AuditDecisions): void {
+  result.sessionChecks = []
+  const observedSessions = new Set<string>()
+  const expectedAgents = new Set(reports.map(report => report.agentId))
+  for (const report of reports) {
+    if (!report.taskScope || !report.files || !report.sessionId || !report.sessionSha256) {
+      result.errors.push(`${report.agentId}: Session verification requires taskScope, files, sessionId, and sessionSha256`)
+    }
+    const sessionPath = sessions.get(report.agentId)
+    if (sessionPath === undefined) {
+      result.errors.push(`missing Session log for ${report.agentId}`)
+      continue
+    }
+    const check = verifyChildSession(report, sessionPath, 'child')
+    result.sessionChecks.push(check)
+    result.errors.push(...check.errors)
+    if (observedSessions.has(check.sessionId)) result.errors.push(`${report.agentId}: Session ID is reused by another child report`)
+    observedSessions.add(check.sessionId)
+  }
+  const adjudications = decisions.decisions.flatMap(decision => decision.adjudications)
+    .filter(item => item.evidence.kind === 'test-run' &&
+      (item.evidence.outcome === 'PASS' || item.evidence.outcome === 'FAIL'))
+  const parentRequired = adjudications.length > 0 || result.findings.some(finding =>
+    finding.scopes.some(scope => scope.outcome === 'RESOLVED'))
+  if (parentRequired) expectedAgents.add(decisions.parentAgentId)
+  const parentSessionPath = sessions.get(decisions.parentAgentId)
+  if (parentRequired && parentSessionPath === undefined) {
+    result.errors.push(`missing Session log for ${decisions.parentAgentId}`)
+  }
+  if (adjudications.length > 0 && (!decisions.sessionId || !decisions.sessionSha256)) {
+    result.errors.push(`${decisions.parentAgentId}: parent test adjudication requires sessionId and sessionSha256`)
+  }
+  if (parentSessionPath !== undefined) {
+    expectedAgents.add(decisions.parentAgentId)
+    const findings: AuditReport['findings'] = adjudications.map(item => ({
+      id: item.evidence.id, scope: item.scope,
+      status: item.evidence.outcome === 'PASS' ? 'RESOLVED' : 'OPEN',
+      confidence: 'high', summary: item.rationale, evidence: [item.evidence], limitations: [],
+    }))
+    const check = verifyChildSession({ agentId: decisions.parentAgentId,
+      ...decisions.sessionId === undefined ? {} : { sessionId: decisions.sessionId },
+      ...decisions.sessionSha256 === undefined ? {} : { sessionSha256: decisions.sessionSha256 },
+      findings }, parentSessionPath, 'parent')
+    result.sessionChecks.push(check)
+    result.errors.push(...check.errors)
+    for (const child of result.sessionChecks.filter(item => item.role === 'child')) {
+      if (child.parentSessionId !== check.sessionId) {
+        result.errors.push(`${child.agentId}: parent Session ID differs from child-declared parent lineage`)
+      }
+    }
+    if (observedSessions.has(check.sessionId)) {
+      result.errors.push(`${decisions.parentAgentId}: Session ID is reused by another report`)
+    }
+    observedSessions.add(check.sessionId)
+  }
+  for (const agentId of sessions.keys()) {
+    if (!expectedAgents.has(agentId)) result.errors.push(`Session log has no report or test adjudication for ${agentId}`)
+  }
+  result.valid = result.errors.length === 0
+  if (!result.valid) demoteUnverifiedScopes(result)
+}
+
 /**
  * Run the file-backed reconciliation command without changing source reports.
  * @param argv - CLI arguments after the script name.
- * @returns Process exit status: 0 valid, 1 pending when required closed, 2 invalid input.
+ * @returns Process exit status: 0 closed, 1 open or pending, 2 invalid input.
  */
 export function runReconciliation(argv: string[]): number {
   try {
     const args = parseArgs(argv)
     const output = args.output
-    if (output && [args.requirements, args.decisions, ...args.reports].some(path => resolve(path) === resolve(output))) {
+    if (output && [args.requirements, args.decisions, ...args.reports, ...args.sessions.values()]
+      .some(path => aliasesInput(output, path))) {
       throw new Error('--output must differ from every input file')
     }
     const requirements = requirementsSchema.parse(readJson(args.requirements))
     const reports = args.reports.map(path => reportSchema.parse(readJson(path)))
     const decisions = decisionsSchema.parse(readJson(args.decisions))
     const result = reconcileAudit(requirements, reports, decisions)
+    const executedTests = reports.some(report => report.findings.some(finding => finding.evidence.some(evidence =>
+      evidence.kind === 'test-run' && (evidence.outcome === 'PASS' || evidence.outcome === 'FAIL')))) ||
+      decisions.decisions.some(decision => decision.adjudications.some(item => item.evidence.kind === 'test-run' &&
+        (item.evidence.outcome === 'PASS' || item.evidence.outcome === 'FAIL')))
+    const resolvedScopes = result.findings.some(finding => finding.scopes.some(scope => scope.outcome === 'RESOLVED'))
+    if (args.sessions.size === 0 && (resolvedScopes || executedTests)) {
+      result.errors.push('Session verification NOT_RUN for resolved claims or executed tests; provide --session for every child report')
+    }
+    if (args.sessions.size > 0) {
+      attachSessionChecks(result, reports, args.sessions, decisions)
+    }
+    result.valid = result.errors.length === 0
+    if (!result.valid && args.sessions.size === 0) demoteUnverifiedScopes(result)
     const serialized = `${JSON.stringify(result, null, 2)}\n`
     if (args.output) writeFileSync(args.output, serialized)
     else process.stdout.write(serialized)
     if (!result.valid) return 2
-    return args.requireClosed && result.totals.pending > 0 ? 1 : 0
+    return result.totals.pending > 0 || result.totals.open > 0 ? 1 : 0
   } catch (error) {
     process.stderr.write(`audit-evidence: ${error instanceof Error ? error.message : String(error)}\n`)
     return 2
