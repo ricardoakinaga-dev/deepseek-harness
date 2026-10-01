@@ -61,6 +61,10 @@ AccountDetails.balance 将充值钱包投影为 value、赠送钱包投影为 bo
 
 赠金通知查询返回 AccountBonusBatch，包含当前 Platform 账号 id 和按服务端顺序排列的可通知订单。AccountBonusNotification 保留服务端消息与到期时间，不投影凭证。确认请求携带预期账号 id 和订单 id；账号变化后 Host 拒绝该请求。两项通知操作都通过 x-client-locale 传递发起界面的语言，不使用语言查询参数。
 
+## OpenAI Codex 登录
+
+可选的 [Codex 登录组合包](../../packages/experimental/codex-login/README.zh.md)为 `llm-pi-ai/openai-codex` 授权流程增加 Web 控件。`CodexLoginStatus` 报告 OAuth 是否可用、是否保存了授权记录、凭据存储是否可写，以及是否正在登录；它不包含令牌。`CodexLoginFrame` 只向发起登录的浏览器发送进度通知、手动代码提示和最终结果。`CodexLoginReply` 通过同一浏览器的 Remote 流返回提示答案或拒绝。关闭流会撤销该次尝试；退出登录只删除授权记录。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -129,6 +133,35 @@ async begin(request: AuthorizationRequest): Promise<AuthorizationOutcome>
 ```
 
 Source: [`packages/credentials/authorization/src/index.ts`](../../packages/credentials/authorization/src/index.ts)
+
+<a id="ctxcodexlogincontroller--codexlogincontroller"></a>
+
+### `ctx.codexLoginController` — `CodexLoginController`
+
+Remote service installed only by the optional Codex login bundle.
+
+```ts cordis-catalog
+/** Report whether Codex OAuth is installed and its grant is stored.
+ * @returns availability, grant presence, writability, and attempt state.
+ */
+@Remote async status(): Promise<CodexLoginStatus>
+
+/**
+ * Start the installed Codex OAuth flow on this browser's private stream.
+ * @param signal - carrier lifetime; closing the page withdraws the attempt.
+ * @returns progress, prompts, and settlement for the initiating browser.
+ */
+@Remote({ mode: 'stream' }) login(signal: AbortSignal): RemoteStream<CodexLoginFrame, CodexLoginReply>
+
+/** Remove the stored Codex grant while preserving any API-key record.
+ * @returns after the credential store acknowledges removal.
+ */
+@Remote async signOut(): Promise<void>
+```
+
+Types: [RemoteStream](typert.zh.md)
+
+Source: [`packages/experimental/codex-login/src/index.ts`](../../packages/experimental/codex-login/src/index.ts)
 
 <a id="ctxcredentials--credentialprovider-abstract-seam"></a>
 

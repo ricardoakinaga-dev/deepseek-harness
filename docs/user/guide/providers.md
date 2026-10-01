@@ -16,7 +16,7 @@ Keys are write-only. The page receives a redacted descriptor after saving, never
 
 Choose **Add model provider**. The card opens on **Third-party model provider**: pick a provider dsh ships with — the list shows provider ids such as `anthropic`, `openai`, `moonshotai` for Kimi, or `zai` for GLM — enter its API key, and save. The installed catalog supplies the endpoint, protocol, and model list.
 
-Providers that sign in with OAuth, such as Codex, are not supported here yet.
+For `openai-codex`, the optional [Codex login bundle](../../../packages/experimental/codex-login/README.md) adds **Sign in with ChatGPT** to its provider card. Save the provider without an API key, then sign in. Other OAuth providers require their own login UI extension.
 
 ## Add a custom model API
 

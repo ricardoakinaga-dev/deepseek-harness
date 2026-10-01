@@ -1,0 +1,3 @@
+- insert:
+    - id: experimental-codex-login
+      name: '@deepseek-ai/dsh-experimental-codex-login'

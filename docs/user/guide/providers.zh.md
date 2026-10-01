@@ -16,7 +16,7 @@
 
 选择**添加模型提供商**。卡片默认打开在**第三方模型提供商**：选取 dsh 自带的提供商——列表显示的是提供商 id，例如 `anthropic`、`openai`、Kimi 对应的 `moonshotai`、GLM 对应的 `zai`——输入其 API 密钥并保存。已安装目录会提供端点、协议和模型列表。
 
-通过 OAuth 登录的提供商（例如 Codex）暂不支持。
+对于 `openai-codex`，可选的 [Codex 登录组合包](../../../packages/experimental/codex-login/README.zh.md)会在提供方卡片中增加**使用 ChatGPT 登录**。不填写 API 密钥并保存提供方，然后登录。其他 OAuth 提供方需要各自的登录界面扩展。
 
 ## 添加自定义模型 API
 

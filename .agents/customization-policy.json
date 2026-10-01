@@ -1416,6 +1416,32 @@
       ]
     },
     {
+      "id": "openai-codex-login",
+      "kind": "extension",
+      "solutionType": "plugin-and-bundle",
+      "status": "active",
+      "summary": "Offer OpenAI Codex account login in the Models page through the existing authorization flow and an optional Web bundle.",
+      "optIn": true,
+      "packageRoots": [
+        "packages/experimental/codex-login/"
+      ],
+      "paths": [
+        "packages/experimental/codex-login/",
+        "docs/user/guide/providers.md",
+        "docs/user/guide/providers.zh.md",
+        "docs/user/guide/providers.i18n.yaml",
+        "docs/subsystems/credentials.md",
+        "docs/subsystems/credentials.zh.md",
+        "docs/subsystems/credentials.i18n.yaml",
+        "docs/capability-seams.md",
+        "docs/capability-seams.zh.md",
+        "docs/capability-seams.i18n.yaml",
+        "scripts/gen-doc-graphs.ts",
+        "apps/web/tests/codex-login.e2e.ts",
+        "apps/web/tests/expected/codex-login/"
+      ]
+    },
+    {
       "id": "upstream-master-integration-2026-09-27",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",

@@ -606,6 +606,31 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'codexLoginController',
+    summary: 'Remote service installed only by the optional Codex login bundle.',
+    description: 'Remote service installed only by the optional Codex login bundle.',
+    methods: [
+      {
+        signature: '@Remote async status(): Promise<CodexLoginStatus>',
+        description: 'Report whether Codex OAuth is installed and its grant is stored.',
+        parameters: [],
+        returns: 'availability, grant presence, writability, and attempt state.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) login(signal: AbortSignal): RemoteStream<CodexLoginFrame, CodexLoginReply>',
+        description: 'Start the installed Codex OAuth flow on this browser\'s private stream.',
+        parameters: [{ name: 'signal', description: 'carrier lifetime; closing the page withdraws the attempt.' }],
+        returns: 'progress, prompts, and settlement for the initiating browser.',
+      },
+      {
+        signature: '@Remote async signOut(): Promise<void>',
+        description: 'Remove the stored Codex grant while preserving any API-key record.',
+        parameters: [],
+        returns: 'after the credential store acknowledges removal.',
+      },
+    ],
+  },
+  {
     key: 'commands',
     summary: 'Human-command registry.',
     description: 'Human-command registry. Plain-context definitions are global; definitions registered through a command-injected child of an agent context shadow globals for that agent.',
@@ -4709,6 +4734,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly ctimeMs: number;\n    readonly size: number;\n}',
   },
   {
+    name: 'CodexLoginFrame',
+    declaration: 'export type CodexLoginFrame = {\n    type: \'notice\';\n    message: string;\n    url?: string;\n    code?: string;\n} | {\n    type: \'prompt\';\n    id: string;\n    kind: \'text\' | \'secret\' | \'select\';\n    message: string;\n    placeholder?: string;\n    options?: readonly {\n        id: string;\n        label: string;\n        description?: string;\n    }[];\n} | {\n    type: \'settled\';\n    status: \'authorized\' | \'cancelled\';\n} | {\n    type: \'failed\';\n    reason: \'callback-busy\' | \'failed\';\n};',
+  },
+  {
+    name: 'CodexLoginReply',
+    declaration: 'export type CodexLoginReply = {\n    type: \'answer\';\n    id: string;\n    value: string;\n} | {\n    type: \'decline\';\n    id: string;\n};',
+  },
+  {
+    name: 'CodexLoginStatus',
+    declaration: 'export interface CodexLoginStatus {\n    available: boolean;\n    configured: boolean;\n    writable: boolean;\n    inFlight: boolean;\n}',
+  },
+  {
     name: 'CollectedOutput',
     declaration: 'export interface CollectedOutput {\n    text: string;\n    truncated: boolean;\n    spillPath?: string;\n}',
   },
@@ -6179,6 +6216,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RemoteEventHostInfo',
     declaration: 'export interface RemoteEventHostInfo {\n    readonly home: string;\n}',
+  },
+  {
+    name: 'RemoteStream',
+    declaration: 'export type RemoteStream<Out, In = never> = AsyncIterable<Out> & {\n    readonly [STREAM_UPLINK]?: In;\n};',
   },
   {
     name: 'RenderedDocumentBytes',
