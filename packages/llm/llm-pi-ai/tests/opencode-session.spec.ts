@@ -68,7 +68,7 @@ describe('OpenCode conversation routing', () => {
     })
 
     await consume(adapter, {
-      provider: 'deepseek', model: 'deepseek-v4-flash', sessionId: SessionId('conversation-a'), messages: [],
+      provider: 'deepseek', model: 'deepseek-flash', sessionId: SessionId('conversation-a'), messages: [],
     })
 
     expect(server.headers[0]).not.toHaveProperty('x-opencode-session')
