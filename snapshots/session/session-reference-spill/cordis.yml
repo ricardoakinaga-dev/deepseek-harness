@@ -11,6 +11,8 @@
         maxReferenceBytes: 360
     - id: reference-source-fixture
       name: ../../../packages/context/session-reference/tests/fixtures/source-session.ts
+      config:
+        deferUntilAgentCreated: true
 
 - insert:
     - id: snapshot-spill-locators

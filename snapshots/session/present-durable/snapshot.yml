@@ -1,0 +1,11 @@
+version: 1
+scenario: present-durable
+profile: headless
+composition: present-durable
+recording: authored
+platform: posix
+header:
+  class: present-durable
+  pin: true
+workspace:
+  final: true

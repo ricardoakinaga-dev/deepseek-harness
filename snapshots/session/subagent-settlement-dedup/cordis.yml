@@ -1,0 +1,16 @@
+# Exercise the local confinement provider instead of the corpus passthrough runner.
+- id: sandbox
+  name: '@deepseek-ai/dsh-sandbox-local'
+  config: {}
+
+- id: tool-subagent
+  name: '@deepseek-ai/dsh-tool-subagent'
+  config:
+    provider: spawn
+    toolName: subagent
+    backgroundMode: continuable
+    maxDepth: 1
+
+- insert:
+    - id: settlement-dedup-fence
+      name: ./fence.ts

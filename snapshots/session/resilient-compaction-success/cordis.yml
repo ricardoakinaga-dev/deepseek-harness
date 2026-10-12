@@ -1,0 +1,27 @@
+# Proactive compaction with a bounded message budget.
+
+- id: llm-deepseek
+  config:
+    models:
+      - id: deepseek-v4-flash
+        contextWindow: 9000
+        maxTokens: 1000
+
+- id: compaction-basic
+  config:
+    thresholdRatio: 0.8
+    headroomTokens: 1800
+    retainTokens: 20
+    maxTokens: 32
+
+# The opt-in resilient-compaction bundle policy with its shipped defaults.
+# This authored scenario uses local replay, not a live-provider acceptance run.
+- insert:
+    - id: compaction-resilience-policy
+      name: '@deepseek-ai/dsh-compaction-resilience-policy'
+      config:
+        compactionMaxTokens: 4096
+        compactionTimeoutMs: 480000
+        requestPreflight: true
+        requestSafetyMarginTokens: 256
+        requestOutputReserveTokens: 1024

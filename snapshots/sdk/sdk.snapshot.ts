@@ -10,7 +10,7 @@
  */
 
 import { existsSync } from 'node:fs'
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, delimiter, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -568,6 +568,14 @@ async function runScenario(scenario: CorpusScenario): Promise<{
   let childSessionsRoot: string | undefined
   let childEnvironment: Record<string, string> = {}
   if (assertions.dshSdkChild !== undefined) {
+    // This optional backend is not a dependency of the shipped SDK profile.
+    const providerModules = join(dshHome, 'profiles', 'sdk', 'node_modules', '@deepseek-ai')
+    await mkdir(providerModules, { recursive: true })
+    await symlink(
+      fileURLToPath(new URL('../../packages/subagent/subagent-dsh-sdk/', import.meta.url)),
+      join(providerModules, 'dsh-subagent-dsh-sdk'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    )
     const childHome = join(cwd, '.child-dsh')
     const childPatch = materializeProfilePatch(assertions.dshSdkChild.config, cwd, 'sdk', patchRoot, patches.length)
     await mkdir(childHome, { recursive: true })
@@ -672,6 +680,13 @@ async function runScenario(scenario: CorpusScenario): Promise<{
       subscription.close()
     }
     await harness.close()
+    if (childSessionsRoot !== undefined && !existsSync(childSessionsRoot)) {
+      const parent = results.map(result => ({
+        finalResponse: result.finalResponse,
+        events: result.events.filter(event => event.type === 'tool/result' || event.type === 'turn/end'),
+      }))
+      throw new Error(`${scenario.name}: SDK child produced no session log; parent outcomes: ${JSON.stringify(parent)}`)
+    }
     const logs = (await Promise.all([
       persistedLogs(sessionsRoot),
       ...(childSessionsRoot === undefined ? [] : [persistedLogs(childSessionsRoot)]),

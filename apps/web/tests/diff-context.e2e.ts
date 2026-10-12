@@ -5,7 +5,7 @@ import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { expandTurnProcesses, newEnglishPage, saveFailureShot } from './support.ts'
 
@@ -25,7 +25,8 @@ describe.skipIf(MODE === 'record').each(CASES)('web e2e: $name', (scenario) => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
-    await seedSession(scaffold, await readFile(`${ROOT}/${scenario.source}`, 'utf8'), scenario.name)
+    const fixture = await selectedSessionFixture(`${ROOT}/${scenario.source}`)
+    await seedSession(scaffold, await readFile(fixture, 'utf8'), scenario.name)
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)

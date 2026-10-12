@@ -1,0 +1,5 @@
+{"type":"session","version":4,"id":"{{session:2}}","createdAt":1786358409171,"cwd":"{{cwd}}","parentSession":"{{session:1}}","isSeeded":false,"origin":"subagent","delegationDepth":1}
+{"type":"sandbox/mode","data":{"mode":"danger-full-access","source":"delegation"}}
+{"type":"approval/policy","data":{"policy":"never","source":"delegation"}}
+{"type":"permission/preset","data":{"preset":"danger-full-access"}}
+{"type":"runtime/audit","data":{"reason":"initial","runtime":{"version":"{{runtime:version}}","nodeVersion":"{{runtime:nodeVersion}}","platform":"{{runtime:platform}}","arch":"{{runtime:arch}}","launcher":{"kind":"source","sha256":"{{runtime:launcherSha256}}"},"source":{"revision":"{{runtime:sourceRevision}}","dirty":false}},"profile":"headless","startedBundles":["@deepseek-ai/dsh-base","@deepseek-ai/dsh-headless"],"configuration":[{"id":"include:llm-pi-ai","plugin":"@deepseek-ai/dsh-llm-pi-ai","values":{"providers":{}}},{"id":"include:tool-result-pruner","plugin":"@deepseek-ai/dsh-compaction-tool-result-pruner","values":{"exemptTools":["skill"]}}]}}

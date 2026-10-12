@@ -1,0 +1,10 @@
+version: 1
+scenario: subagent-settlement-dedup
+profile: headless
+composition: subagent-settlement-dedup
+recording: authored
+header:
+  class: subagent-settlement-dedup
+  pin: true
+  childSystemPrompts: [1]
+  childToolSchemas: [1]

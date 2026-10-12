@@ -1,5 +1,5 @@
-# Keyless counterpart: the summary route still names a provider with no
-# adapter, so every compaction request fails with NO_ADAPTER.
+# Keyless summary failure followed by deterministic pruning of a new result.
+# The absent summary adapter produces one NO_ADAPTER failure in this turn.
 
 - id: llm-deepseek
   name: '@deepseek-ai/dsh-llm-deepseek-api-key'
@@ -32,3 +32,9 @@
               - id: deepseek-v4-flash
                 contextWindow: 8382
                 defaultMaxTokens: 1000
+
+- id: tool-result-pruner
+  config:
+    thresholdChars: 100
+    headChars: 20
+    tailChars: 10

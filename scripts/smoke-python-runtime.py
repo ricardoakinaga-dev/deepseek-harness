@@ -1753,13 +1753,14 @@ def smoke_sdk_scheduler_recovery(base_url: str, executable: Path, update_snapsho
             "model": request.get("model"),
             "messages": restart_request_messages(request),
         } for request in requests]
+        runtime_tokens: dict[tuple[str, str], str] = {}
         normalized_records = project_session_snapshot([
-            normalize_snapshot_value(record, replacements) for record in records
+            normalize_snapshot_value(record, replacements, runtime_tokens) for record in records
         ])
         content = render_jsonl(normalized_records)
         files = {
-            "result.json": json.dumps(normalize_snapshot_value(result_value, replacements), indent=2) + "\n",
-            "requests.json": json.dumps(normalize_snapshot_value(request_value, replacements), indent=2) + "\n",
+            "result.json": json.dumps(normalize_snapshot_value(result_value, replacements, runtime_tokens), indent=2) + "\n",
+            "requests.json": json.dumps(normalize_snapshot_value(request_value, replacements, runtime_tokens), indent=2) + "\n",
             snapshot_session_filename(0, session_header_version(content, "scheduler recovery")): content,
         }
         compare_snapshot_files(
@@ -2388,9 +2389,10 @@ def build_snapshot_files(
             for notification in result.notifications
         ],
     }
-    normalized_result = normalize_snapshot_value(result_value, replacements)
+    runtime_tokens: dict[tuple[str, str], str] = {}
+    normalized_result = normalize_snapshot_value(result_value, replacements, runtime_tokens)
     parent_records = project_session_snapshot([
-        normalize_snapshot_value(record, replacements) for record in logs[SNAPSHOT_SESSION_ID]
+        normalize_snapshot_value(record, replacements, runtime_tokens) for record in logs[SNAPSHOT_SESSION_ID]
     ])
     files = {
         "result.json": json.dumps(normalized_result, indent=2, ensure_ascii=False) + "\n",
@@ -2400,7 +2402,7 @@ def build_snapshot_files(
     }
     for index, child_id in enumerate(child_ids, start=1):
         child_records = project_session_snapshot([
-            normalize_snapshot_value(record, replacements) for record in logs[child_id]
+            normalize_snapshot_value(record, replacements, runtime_tokens) for record in logs[child_id]
         ])
         child_content = render_jsonl(child_records)
         files[snapshot_session_filename(
@@ -2449,20 +2451,21 @@ def build_restart_snapshot_files(
         }
         for request in requests
     ]
+    runtime_tokens: dict[tuple[str, str], str] = {}
     first_records = project_session_snapshot([
-        normalize_snapshot_value(record, replacements) for record in logs[RESTART_FIRST_SESSION_ID]
+        normalize_snapshot_value(record, replacements, runtime_tokens) for record in logs[RESTART_FIRST_SESSION_ID]
     ])
     second_records = project_session_snapshot([
-        normalize_snapshot_value(record, replacements) for record in logs[RESTART_SECOND_SESSION_ID]
+        normalize_snapshot_value(record, replacements, runtime_tokens) for record in logs[RESTART_SECOND_SESSION_ID]
     ])
     first_content = render_jsonl(first_records)
     second_content = render_jsonl(second_records)
     return {
         "result.json": json.dumps(
-            normalize_snapshot_value(result_value, replacements), indent=2, ensure_ascii=False,
+            normalize_snapshot_value(result_value, replacements, runtime_tokens), indent=2, ensure_ascii=False,
         ) + "\n",
         "requests.json": json.dumps(
-            normalize_snapshot_value(request_value, replacements), indent=2, ensure_ascii=False,
+            normalize_snapshot_value(request_value, replacements, runtime_tokens), indent=2, ensure_ascii=False,
         ) + "\n",
         snapshot_session_filename(
             1, session_header_version(first_content, "restart Session 1"),
@@ -2520,20 +2523,23 @@ def snapshot_agent_id(result: "RunResult", child_id: str) -> str:
 def normalize_snapshot_value(
     value: object,
     replacements: list[tuple[str, str]],
+    runtime_tokens: dict[tuple[str, str], str] | None = None,
 ) -> object:
     """Scrub volatile values and bulky request headers without losing behavior."""
+    if runtime_tokens is None:
+        runtime_tokens = {}
     if isinstance(value, str):
         normalized = value
         for actual, token in replacements:
             normalized = normalized.replace(actual, token)
         return normalized
     if isinstance(value, list):
-        return [normalize_snapshot_value(item, replacements) for item in value]
+        return [normalize_snapshot_value(item, replacements, runtime_tokens) for item in value]
     if not isinstance(value, dict):
         return value
 
     normalized = {
-        key: normalize_snapshot_value(item, replacements)
+        key: normalize_snapshot_value(item, replacements, runtime_tokens)
         for key, item in value.items()
     }
     if normalized.get("type") == "session" and "createdAt" in normalized:
@@ -2583,7 +2589,40 @@ def normalize_snapshot_value(
                     item["updatedAt"] = 0
     scrub_snapshot_header(normalized)
     scrub_snapshot_system_message(normalized)
+    normalize_runtime_audit(normalized, runtime_tokens)
     return normalized
+
+
+def normalize_runtime_audit(
+    value: dict[object, object],
+    tokens: dict[tuple[str, str], str],
+) -> None:
+    """Tokenize initial launcher identity while retaining relations across SDK events and logs."""
+    if value.get("type") != "runtime/audit":
+        return
+    data = value.get("data")
+    if not isinstance(data, dict) or data.get("reason") != "initial":
+        return
+    runtime = data.get("runtime")
+    if not isinstance(runtime, dict):
+        return
+
+    def replace(container: object, key: str, field: str) -> None:
+        if not isinstance(container, dict) or not isinstance(container.get(key), str):
+            return
+        raw = container[key]
+        if re.fullmatch(r"\{\{runtime:" + field + r":[1-9]\d*\}\}", raw):
+            return
+        identity = (field, raw)
+        if identity not in tokens:
+            ordinal = sum(namespace == field for namespace, _ in tokens) + 1
+            tokens[identity] = f"{{{{runtime:{field}:{ordinal}}}}}"
+        container[key] = tokens[identity]
+
+    for field in ("version", "nodeVersion", "platform", "arch"):
+        replace(runtime, field, field)
+    replace(runtime.get("launcher"), "sha256", "launcherSha256")
+    replace(runtime.get("source"), "revision", "sourceRevision")
 
 
 def scrub_snapshot_header(value: dict[object, object]) -> None:

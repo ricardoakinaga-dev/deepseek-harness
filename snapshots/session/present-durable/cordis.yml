@@ -1,0 +1,8 @@
+# Capture exact-limit and empty files; keep an explicit oversized outcome.
+
+- insert:
+    - id: present-durable-tool
+      name: '@deepseek-ai/dsh-tool-present'
+      config:
+        maxFiles: 3
+        maxFileBytes: 4

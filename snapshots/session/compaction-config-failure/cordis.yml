@@ -1,5 +1,5 @@
 # Proactive compaction whose summary route has no adapter: the first failure
-# suspends step-pressure compaction for the routed target until the turn ends.
+# suspends automatic summaries while later tool results remain prunable.
 
 - id: llm-deepseek
   config:
@@ -16,3 +16,9 @@
     maxTokens: 32
     summarizationProvider: unconfigured-summarizer
     summarizationModel: unconfigured-model
+
+- id: tool-result-pruner
+  config:
+    thresholdChars: 100
+    headChars: 20
+    tailChars: 10

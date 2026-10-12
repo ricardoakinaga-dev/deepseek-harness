@@ -7,4 +7,5 @@ header:
   class: compaction-config-failure
   pin: true
   systemPromptSource: text-turn
-  toolSchemasSource: text-turn
+  toolSchemasSource: compaction-recovery
+  changes: 1

@@ -266,6 +266,85 @@ function tokenizeFixtureValue(
   return value
 }
 
+function objectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown> : undefined
+}
+
+function skillLoadMeta(record: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (record.type !== 'tool/result') return undefined
+  const meta = objectRecord(objectRecord(record.data)?.meta)
+  return meta?.kind === 'skill-load' ? meta : undefined
+}
+
+function skillResultText(record: Record<string, unknown>): string | undefined {
+  const message = objectRecord(objectRecord(record.data)?.message)
+  if (message?.isError === true || !Array.isArray(message?.content)) return undefined
+  const parts: string[] = []
+  for (const block of message.content) {
+    const text = objectRecord(block)
+    if (text?.type !== 'text' || typeof text.text !== 'string') return undefined
+    parts.push(text.text)
+  }
+  return parts.join('')
+}
+
+/**
+ * Adjust only measured complete instruction counts; mismatches remain evidence.
+ * @param original - raw event before any fixture string replacements.
+ * @param normalized - corresponding event whose text has been rewritten; updated in place.
+ * @internal
+ */
+export function normalizeSkillCharacters(original: Record<string, unknown>, normalized: Record<string, unknown>): void {
+  const meta = skillLoadMeta(original)
+  const outputMeta = skillLoadMeta(normalized)
+  if (meta?.alreadyActive !== false || outputMeta === undefined) return
+  const text = skillResultText(original)
+  const outputText = skillResultText(normalized)
+  if (text !== undefined && outputText !== undefined && meta.instructionCharacters === Array.from(text).length) {
+    outputMeta.instructionCharacters = Array.from(outputText).length
+  }
+}
+
+/** One digest namespace spans parent and child logs without rewriting ordinary strings. */
+function skillDigestTokens(rawLogs: readonly string[]): (digest: string) => string {
+  const tokenPattern = /^\{\{skillDigest:[1-9]\d*\}\}$/
+  const reserved = new Set<string>()
+  for (const log of rawLogs) {
+    for (const line of log.split('\n').filter(line => line.trim().length > 0)) {
+      const digest = skillLoadMeta(JSON.parse(line) as Record<string, unknown>)?.digest
+      if (typeof digest === 'string' && tokenPattern.test(digest)) reserved.add(digest)
+    }
+  }
+  const tokens = new Map<string, string>()
+  let ordinal = 0
+  return (digest) => {
+    if (tokenPattern.test(digest) || !/^[0-9a-f]{64}$/.test(digest)) return digest
+    let token = tokens.get(digest)
+    if (token === undefined) {
+      do { token = `{{skillDigest:${++ordinal}}}` } while (reserved.has(token))
+      tokens.set(digest, token)
+    }
+    return token
+  }
+}
+
+/** Only initial audit identity is volatile; availability, kind and configuration remain observable. */
+function normalizeRuntimeAudit(record: Record<string, unknown>): void {
+  if (record.type !== 'runtime/audit') return
+  const data = objectRecord(record.data)
+  const runtime = objectRecord(data?.runtime)
+  if (data?.reason !== 'initial' || runtime === undefined) return
+  for (const field of ['version', 'nodeVersion', 'platform', 'arch']) {
+    if (typeof runtime[field] === 'string') runtime[field] = `{{runtime:${field}}}`
+  }
+  const launcher = objectRecord(runtime.launcher)
+  if (typeof launcher?.sha256 === 'string') launcher.sha256 = '{{runtime:launcherSha256}}'
+  const source = objectRecord(runtime.source)
+  if (typeof source?.revision === 'string') source.revision = '{{runtime:sourceRevision}}'
+  if (typeof source?.dirty === 'boolean') source.dirty = false
+}
+
 /**
  * Store one generated workspace as `{{cwd}}` while retaining every other
  * session value. The caller opts in only for workspaces created under a
@@ -273,7 +352,7 @@ function tokenizeFixtureValue(
  * path.
  *
  * @param rawLog The raw or refresh-stabilized session JSONL fixture.
- * @returns Compact JSONL whose known cwd spellings become `{{cwd}}`.
+ * @returns Compact JSONL whose known cwd spellings become `{{cwd}}`; measured skill counts follow the new text.
  * @throws If a non-empty line is invalid JSON or the session cwd has no basename.
  */
 export function tokenizeSessionFixtureCwd(rawLog: string): string {
@@ -288,7 +367,10 @@ export function tokenizeSessionFixtureCwd(rawLog: string): string {
   const ctx: NormalizeContext = { sessionIds: [], cwd }
   return lines.map((line) => {
     if (line.trim().length === 0) return line
-    return JSON.stringify(tokenizeFixtureValue(JSON.parse(line), ctx, basename))
+    const original = JSON.parse(line) as Record<string, unknown>
+    const normalized = tokenizeFixtureValue(original, ctx, basename) as Record<string, unknown>
+    normalizeSkillCharacters(original, normalized)
+    return JSON.stringify(normalized)
   }).join('\n')
 }
 
@@ -339,7 +421,9 @@ export function normalizeStdout(
  * projected. Packed `data.dt` gaps are normalized even when the projected row
  * omits its `time0` anchor.
  * Output is JSONL in the same shape as the input — one compact record per
- * line.
+ * line. Initial runtime identity fields become typed tokens; skill-load digests
+ * retain equality through first-seen tokens. Verified skill character counts
+ * follow normalized text, while incorrect counts remain unchanged.
  *
  * @param rawLog The raw session `.jsonl` content.
  * @param ctx The run's volatile values to scrub.
@@ -350,6 +434,15 @@ export function normalizeSessionLog(
   rawLog: string,
   ctx: NormalizeContext,
   options: NormalizeOptions = {},
+): string {
+  return normalizeSessionLogWithDigests(rawLog, ctx, options, skillDigestTokens([rawLog]))
+}
+
+function normalizeSessionLogWithDigests(
+  rawLog: string,
+  ctx: NormalizeContext,
+  options: NormalizeOptions,
+  digestToken: (digest: string) => string,
 ): string {
   const cwdPathMode = options.cwdPathMode ?? 'canonical'
   const identityMode = options.identityMode ?? 'legacy'
@@ -397,7 +490,12 @@ export function normalizeSessionLog(
     if (Object.hasOwn(record, 'sourceEventSeqs')) {
       record.sourceEventSeqs = decodeSeqRanges(record.sourceEventSeqs)
     }
-    return scrubValue(record, ctx, cwdPathMode, identityMode) as Record<string, unknown>
+    const normalized = scrubValue(record, ctx, cwdPathMode, identityMode) as Record<string, unknown>
+    normalizeRuntimeAudit(normalized)
+    normalizeSkillCharacters(record, normalized)
+    const meta = skillLoadMeta(normalized)
+    if (typeof meta?.digest === 'string') meta.digest = digestToken(meta.digest)
+    return normalized
   })
   return records.map(r => JSON.stringify(r)).join('\n') + '\n'
 }
@@ -458,11 +556,13 @@ export function normalizeSessionSnapshots(
     return normalizeSessionFormatMetadata(currentLog, nativeWriterOutput
       ? sessionHeaderVersion(log, 'source Session snapshot') : undefined)
   })
+  const digestToken = skillDigestTokens(comparableLogs)
   return redactSessionSnapshotIds(comparableLogs).map(log => projectSessionSnapshot(
-    scrubSessionSnapshot(normalizeSessionLog(
+    scrubSessionSnapshot(normalizeSessionLogWithDigests(
       log,
       { ...ctx, sessionIds: [] },
       { ...normalizeOptions, identityMode: 'preserve' },
+      digestToken,
     )),
   ))
 }
@@ -551,7 +651,8 @@ export function scrubModelRequestBulk(rawLog: string): string {
  * Project a persisted session log while tokenizing prompt text and schema
  * bulk. Each non-empty line is parsed at most once; the session header stays
  * byte-identical. Body records omit their persistence-only envelopes and expand
- * source-event ranges without changing reference order.
+ * source-event ranges without changing reference order. Initial runtime audit
+ * identities use portable tokens in canonical fixtures and retained writer oracles.
  *
  * @param rawLog - persisted or already-projected session JSONL.
  * @returns committed snapshot JSONL with prompt text and tool schemas tokenized.
@@ -571,6 +672,7 @@ export function scrubSessionSnapshot(rawLog: string): string {
       record.sourceEventSeqs = decodeSeqRanges(record.sourceEventSeqs)
     }
     normalizeFeedbackClocks(record)
+    normalizeRuntimeAudit(record)
     return JSON.stringify(record)
   }).join('\n')
 }

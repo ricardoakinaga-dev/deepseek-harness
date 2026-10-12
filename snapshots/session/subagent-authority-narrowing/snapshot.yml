@@ -1,0 +1,12 @@
+version: 1
+scenario: subagent-authority-narrowing
+profile: headless
+composition: subagent-authority-narrowing
+recording: authored
+header:
+  class: subagent-authority-narrowing
+  pin: true
+  childSystemPrompts: [1]
+  childToolSchemas: [1]
+workspace:
+  final: true

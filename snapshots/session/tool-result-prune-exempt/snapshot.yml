@@ -6,7 +6,8 @@ recording: authored
 header:
   class: tool-result-prune-exempt
   pin: true
-  systemPromptSource: text-turn
-  toolSchemasSource: text-turn
+  systemPromptSource: compaction-recovery
+  toolSchemasSource: compaction-recovery
+  changes: 1
 workspace:
   setup: editing-cordis-skill
