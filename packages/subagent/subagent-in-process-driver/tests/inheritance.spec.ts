@@ -255,7 +255,7 @@ describe('in-process policy inheritance', () => {
     }
   })
 
-  it('leaves an unswitched sandbox on the deployment default while still pinning approval', async () => {
+  it('records the effective deployment sandbox default and pins approval', async () => {
     const script: Script = []
     const { parent } = await setupWalled(script)
     const allowed = join(workspace, 'default-allowed.txt')
@@ -269,9 +269,11 @@ describe('in-process policy inheritance', () => {
       await run.result
       const child = run.localAgent as Agent
       expect(await readFile(allowed, 'utf8')).toBe('fine')
-      expect(child.session.snapshotEvents().some(event => event.type === 'sandbox/mode')).toBe(false)
+      expect(child.session.snapshotEvents().filter(event => event.type === 'sandbox/mode')).toMatchObject([
+        { data: { mode: 'workspace-write', source: 'delegation' } },
+      ])
       expect(child.session.snapshotEvents().filter(event => event.type === 'approval/policy')).toMatchObject([
-        { seq: 0, data: { policy: 'never', source: 'delegation' } },
+        { seq: 1, data: { policy: 'never', source: 'delegation' } },
       ])
       expect(child.session.firstLiveSeq).toBe(0)
     } finally {

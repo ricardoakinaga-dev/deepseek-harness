@@ -123,7 +123,8 @@ export interface SubagentRunEndInfo {
  * degradation" rule). These flags describe the ONE-SHOT
  * {@link SubagentProvider.start} path, where the provider composes the child;
  * continuable children are composed by the continuation manager itself and are
- * gated by {@link SubagentProvider.prepareContinuable} instead. Each flag
+ * gated by {@link SubagentProvider.prepareContinuable} instead, with explicit
+ * sandbox requests also requiring `sandboxMode` support. Each flag
  * corresponds one-to-one to a {@link SubagentStartRequest} option: `depthLimit`
  * to `maxDepth`; the other names match.
  */
@@ -131,6 +132,7 @@ export interface SubagentCapabilities {
   readonly agentOptions: boolean
   readonly outputSchema: boolean
   readonly depthLimit: boolean
+  readonly sandboxMode: boolean
   readonly toolFilter: boolean
   readonly persona: boolean
 }
@@ -190,6 +192,8 @@ export interface SubagentStartRequest {
    * unknown-name validation.
    */
   readonly toolFilter?: ToolRestriction
+  /** Optional file mode, limited to the effective parent policy. Requires sandboxMode support. */
+  readonly sandboxMode?: 'read-only' | 'workspace-write'
   /**
    * Optional per-child persona. Requires {@link SubagentCapabilities.persona};
    * rejected at start otherwise. In-process backends register it as a scoped

@@ -72,7 +72,7 @@ async function setup(script: Script, options: SetupOptions = {}) {
   await ctx.plugin(SubagentRuntime)
   const disposeProvider = ctx.subagents.registerProvider({
     name: 'spawn',
-    capabilities: { agentOptions: true, outputSchema: true, depthLimit: true, toolFilter: false, persona: false },
+    capabilities: { agentOptions: true, outputSchema: true, depthLimit: true, sandboxMode: false, toolFilter: false, persona: false },
     inheritsParentContext: false,
     start: (request: ResolvedSubagentStartRequest) => startInProcessRun(request, {}),
   })
@@ -118,6 +118,9 @@ describe('in-process structured output', () => {
     expect(result.stopReason).toBe('completed')
     expect(result.structured).toEqual({ answer: 42, note: 'done' })
     expect(acknowledgement).toEqual({ recorded: true })
+    const authority = parent.session.snapshotEvents().find(event => event.type === 'subagent/authority')
+    expect(authority?.data.childId).toBe(run.id)
+    expect(authority?.data.toolFilter.allow).toContain(STRUCTURED_OUTPUT_TOOL)
     await run.dispose()
   })
 

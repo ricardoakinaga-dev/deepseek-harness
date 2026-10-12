@@ -140,7 +140,7 @@ function resolveCwd(configured: string | undefined, request: SubagentStartReques
 
 /**
  * The ACP provider. Advertises NO start-time capabilities: an out-of-process
- * child cannot honor `agentOptions`/`outputSchema`/`maxDepth`/`toolFilter`/
+ * child cannot honor `agentOptions`/`outputSchema`/`maxDepth`/`toolFilter`/`sandboxMode`/
  * `persona` (the service rejects a request needing any before `start` runs).
  */
 class AcpProvider implements SubagentProvider {
@@ -148,6 +148,7 @@ class AcpProvider implements SubagentProvider {
     agentOptions: false,
     outputSchema: false,
     depthLimit: false,
+    sandboxMode: false,
     toolFilter: false,
     persona: false,
   }

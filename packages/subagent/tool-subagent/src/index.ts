@@ -12,6 +12,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { scopeChainOf, scopeOf } from '@deepseek-ai/dsh-scope'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { ToolRestriction } from '@deepseek-ai/dsh-tools'
 import type { Agent, AgentOptions } from '@deepseek-ai/dsh-agent'
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
@@ -20,6 +21,7 @@ import { SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
 import {
   assertSubagentMaxDepth,
+  intersectToolFilters,
   parentAgentOptionsForDelegation,
   settleRun,
 } from '@deepseek-ai/dsh-subagent'
@@ -126,7 +128,7 @@ export const Config: z<Config> = z.object({
   toolFilter: z.object({
     allow: z.array(z.string()).default(undefined as unknown as string[]),
     deny: z.array(z.string()).default(undefined as unknown as string[]),
-  }).default(undefined as unknown as { allow: string[]; deny: string[] }),
+  }).default(undefined as unknown as { allow: string[]; deny: string[] }).extra('extra', { audit: true }),
   maxDepth: z.union([z.natural().max(Number.MAX_SAFE_INTEGER), z.const('provider-managed' as const)]),
 })
 
@@ -397,6 +399,24 @@ export function apply(ctx: Context, config: Config, session?: Session): void {
             required: true,
             description: wording.promptDescription,
           },
+          ...subagentProvider.capabilities.sandboxMode ? {
+            sandboxMode: {
+              type: 'string' as const,
+              enum: ['read-only', 'workspace-write'],
+              description: 'File access for this child. Omit to inherit the effective parent policy; a supplied mode may only narrow it. Approval remains disabled.',
+            },
+          } : {},
+          ...subagentProvider.capabilities.toolFilter ? {
+            toolFilter: {
+              type: 'object' as const,
+              description: 'Additional tool restrictions for this child, intersected with deployment and parent permissions. An empty allow list removes all inherited tools.',
+              properties: {
+                allow: { type: 'array' as const, items: { type: 'string' as const } },
+                deny: { type: 'array' as const, items: { type: 'string' as const } },
+              },
+              additionalProperties: false,
+            },
+          } : {},
           ...modelSelectionEnabled ? {
             provider: {
               type: 'string' as const,
@@ -475,6 +495,14 @@ export function apply(ctx: Context, config: Config, session?: Session): void {
             throw new Error('subagent tool requires a calling agent (exec.agent was undefined)')
           }
 
+          const authorityRequest = args as { sandboxMode?: 'read-only' | 'workspace-write'; toolFilter?: ToolRestriction }
+          if (authorityRequest.sandboxMode !== undefined && !subagentProvider.capabilities.sandboxMode) {
+            throw new Error(`subagent provider "${config.provider}" does not support sandboxMode`)
+          }
+          if (authorityRequest.toolFilter !== undefined && !subagentProvider.capabilities.toolFilter) {
+            throw new Error(`subagent provider "${config.provider}" does not support toolFilter`)
+          }
+          const toolFilter = intersectToolFilters(config.toolFilter, authorityRequest.toolFilter)
           const modelRequest = args as DelegationModelRequest
           const parentOptions = parentAgentOptionsForDelegation(parent)
           const requiresRoutePreflight = hasDelegationModelRequest(modelRequest)
@@ -518,7 +546,8 @@ export function apply(ctx: Context, config: Config, session?: Session): void {
             parent,
             ...requestedChildAgentOptions !== undefined ? { agentOptions: requestedChildAgentOptions } : {},
             ...config.persona !== undefined ? { persona: config.persona } : {},
-            ...config.toolFilter !== undefined ? { toolFilter: config.toolFilter } : {},
+            ...toolFilter !== undefined ? { toolFilter } : {},
+            ...authorityRequest.sandboxMode !== undefined ? { sandboxMode: authorityRequest.sandboxMode } : {},
             ...maxDepth !== undefined ? { maxDepth } : {},
           }
 

@@ -424,6 +424,7 @@ describe('task admission and package contracts', () => {
       capabilities: {
         outputSchema: false,
         depthLimit: false,
+        sandboxMode: false,
         toolFilter: false,
         persona: false,
       },

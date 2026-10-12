@@ -126,11 +126,14 @@ describe('SubagentRuntime.listChildren', () => {
     const observeSession = vi.spyOn(ctx.sessionQuery, 'observeSession')
 
     const children = await ctx.subagents.listChildren(parent.id)
-    expect(children.map(({ createdAt: _createdAt, ...child }) => child)).toEqual([
+    expect(children.map(({ createdAt: _createdAt, authority: _authority, ...child }) => child)).toEqual([
       { id: oneShotId, mode: 'one-shot' },
       { id: continuableId, label: 'continuable child', mode: 'continuable' },
     ])
     expect(children.every(child => Number.isFinite(child.createdAt))).toBe(true)
+    for (const child of children) {
+      expect(child.authority).toEqual({ version: 0, childId: child.id, sandboxMode: null, approvalPolicy: null, toolFilter: { allow: [] } })
+    }
     expect(listSessions).not.toHaveBeenCalled()
     expect(observeSession).toHaveBeenCalledOnce()
   })

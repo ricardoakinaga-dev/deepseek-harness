@@ -101,6 +101,7 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
   let oneShotId: SessionId
   let grandchildId: SessionId
   let liveReferenceOptions: string[]
+  let publishedAuthority: string
   let tripwire: ReturnType<typeof watchConsole>
   const apiCalls: string[] = []
 
@@ -149,6 +150,17 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     })
     childId = started.childId
     await waitForAgentToSettle(scaffold, childId)
+    const authority = (await readPersistedEvents(scaffold, parent.id))
+      .findLast(event => event.type === 'subagent/authority' && event.data.childId === childId)
+    if (authority?.type !== 'subagent/authority') throw new Error('local child did not publish authority')
+    const { sandboxMode, approvalPolicy, toolFilter } = authority.data
+    expect(toolFilter.allow).toEqual(expect.arrayContaining(['read', 'skill', 'subagent']))
+    const fileLabels = {
+      'read-only': 'Read-only', 'workspace-write': 'Workspace write', 'danger-full-access': 'Full file access',
+    }
+    const fileLabel = sandboxMode === null ? 'Unconfirmed' : fileLabels[sandboxMode]
+    const approvalLabel = approvalPolicy === null ? 'Unconfirmed' : approvalPolicy === 'ask' ? 'Ask' : 'Never ask'
+    publishedAuthority = `At latest publication: Files: ${fileLabel}; Approval: ${approvalLabel}; Tools: ${toolFilter.allow.join(', ')}`
     const liveInput = page.locator('[data-composer-input][contenteditable="true"]').first()
     const liveMenu = page.getByRole('listbox', { name: 'Trigger suggestions' })
     await writeComposerDraft(page, liveInput, '@')
@@ -374,15 +386,20 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     })
     expect(await oneShotDisclosure.count()).toBe(0)
     const oneShotRow = page.getByRole('treeitem', { name: new RegExp(ONE_SHOT_LABEL) })
+    expect(await oneShotRow.locator('[data-subagent-authority]').textContent())
+      .toBe('Authority unconfirmed: no publication record')
     expect(await oneShotRow.locator('[data-state="done"]').count()).toBe(1)
     expect(await oneShotRow.getByText('~6mo 12d', { exact: true }).count()).toBe(1)
     expect(await oneShotRow.getAttribute('aria-label')).toContain('192d 00h 00m 00s')
     await page.getByRole('button', { name: `Expand ${LABEL} descendants` }).click()
     const childRow = page.getByRole('treeitem', { name: new RegExp(LABEL) })
+    expect(await childRow.locator('[data-subagent-authority]').textContent()).toBe(publishedAuthority)
     const childLabel = await childRow.getAttribute('aria-label')
     await page.waitForTimeout(1_100)
     expect(await childRow.getAttribute('aria-label')).toBe(childLabel)
     await page.getByRole('treeitem', { name: new RegExp(NESTED_LABEL) }).waitFor({ timeout: 15_000 })
+    expect(await page.getByRole('treeitem', { name: new RegExp(NESTED_LABEL) })
+      .locator('[data-subagent-authority]').textContent()).toBe('Authority unconfirmed: no publication record')
     expect(scaffold.ctx.agents.get(childId)).toBeUndefined()
     expect(scaffold.ctx.agents.get(grandchildId)).toBeUndefined()
     const snapshot = await captureStableAria(

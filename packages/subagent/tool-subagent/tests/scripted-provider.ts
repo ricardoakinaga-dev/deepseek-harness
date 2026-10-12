@@ -16,6 +16,7 @@ const DEFAULT_CAPABILITIES: SubagentCapabilities = {
   agentOptions: true,
   outputSchema: true,
   depthLimit: true,
+  sandboxMode: false,
   toolFilter: true,
   persona: true,
 }

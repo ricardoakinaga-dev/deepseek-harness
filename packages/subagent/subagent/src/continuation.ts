@@ -41,6 +41,7 @@ import { assertSubagentMaxDepth } from './depth.ts'
 import { foldSubagentDescriptor, snapshotSubagentDescriptor } from './descriptor.ts'
 import { establishCatalogChild } from './catalog.ts'
 import { SubagentError } from './error.ts'
+import { appendSubagentAuthority, resolveDelegatedToolFilter } from './authority.ts'
 /*! v8 ignore start -- V8 attributes the imported module branch to this declaration; the internal helper module owns that behavior. */
 import { isAdjacentAgentSendMessageTool } from './internal.ts'
 /*! v8 ignore stop */
@@ -118,6 +119,7 @@ export class SubagentContinuationManager {
     const agentProvider = agentOptions.provider
     const agentModel = agentOptions.model
     const agentReasoningEffort = agentOptions.reasoningEffort
+    const toolFilter = resolveDelegatedToolFilter(parent, request.toolFilter)
     const descriptor = snapshotSubagentDescriptor({
       mode: 'continuable',
       provider: spec.provider,
@@ -126,11 +128,11 @@ export class SubagentContinuationManager {
       ...agentModel !== undefined ? { agentModel } : {},
       ...agentReasoningEffort !== undefined ? { agentReasoningEffort } : {},
       ...request.persona !== undefined ? { persona: request.persona } : {},
-      ...request.toolFilter !== undefined ? { toolFilter: request.toolFilter } : {},
+      toolFilter,
     })
     // Capture before the first await: a later parent switch belongs to the
     // parent's future, not to this child.
-    const delegatedPolicies = captureDelegatedPolicyOverrides(parent)
+    const delegatedPolicies = captureDelegatedPolicyOverrides(parent, request.sandboxMode)
 
     // An idle continuation-managed parent must not settle while a caller is
     // still creating its child. A turn-scoped delegation does not need this,
@@ -172,7 +174,7 @@ export class SubagentContinuationManager {
             descriptor,
           },
           agentOptions,
-          composition: { persona: request.persona, toolFilter: request.toolFilter },
+          composition: { persona: request.persona, toolFilter },
           signal: spec.signal,
         })
         const childHeader = activation.handle.agent.session.header
@@ -360,6 +362,7 @@ export class SubagentContinuationManager {
     }
     const message = createAgentMessage(sender, content)
     this.sendAgentMessage(parent, message)
+    activation.parentMessages.add(message.id)
     return message.id
   }
 
@@ -474,6 +477,7 @@ export class SubagentContinuationManager {
       }
       const messageId = this.submitAdmitted(activation, content, options, parent)
       commit?.()
+      appendSubagentAuthority(parent, activation.handle.agent)
       activation.announced = true
       return messageId
     } catch (error: unknown) {

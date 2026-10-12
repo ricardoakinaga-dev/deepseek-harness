@@ -80,7 +80,7 @@ A start request resolves through the subagent service, then the shared driver va
 
 ### Ownership and scope
 
-The child gets a fresh flat registration scope: parent tool restrictions and authority are never imported, and the filter the tool applies is composition, not a parent-derived grant. The backend advertises all five start-time capabilities, including `agentOptions`, because it controls the child's creation window and can enforce each one.
+The child gets an independent registration scope bounded by the parent's effective inherited tools. The backend supports `sandboxMode`: a child may request read-only or workspace-write only when that mode does not widen the effective parent policy. Approval remains pinned to never. The shared driver applies these permissions before publication.
 
 </details>
 
@@ -106,7 +106,7 @@ Read these pages when the package-level contract is not enough; they move from t
 
 #### What the model sees
 
-The fresh child receives the task content verbatim as its only user message in a new empty conversation, with the parent provider, model, reasoning effort, output-token limit, and working directory by default. A configured persona shadows global prompt text in the child's scope; a tool filter removes named global tools from its schemas, executable lookup, and PTC mode SDK bindings while leaving independently registered guidance. No parent conversation message is included; the filter is composition, not an inherited authority grant.
+The fresh child receives the task content verbatim as its only user message in a new empty conversation, with the parent provider, model, reasoning effort, output-token limit, and working directory by default. A configured persona shadows global prompt text in the child's scope; a tool filter removes named global tools from its schemas, executable lookup, and PTC mode SDK bindings while leaving independently registered guidance. No parent conversation message is included; the filter intersects with the parent's effective tool permissions.
 
 #### Token effect
 

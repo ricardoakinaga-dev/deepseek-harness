@@ -12,7 +12,7 @@ Service Definition：[dsh-subagent](../../packages/subagent/subagent)（`ctx.sub
 
 ## 两类能力，两种发现方式
 
-提供方通过一个静态描述符公布其**启动时**功能，服务会在单次 run 存在之前即行检查；如果请求依赖提供方不具备的功能，会被明确拒绝（`SubagentError('UNSUPPORTED_CAPABILITY')`），绝不会被接受后静默忽略。这些 flag 仅描述单次 [`start()`](#the-provider-contract-subagentprovider) 路径，即由提供方组合子 agent 的路径。**可继续**子 agent 由继续执行管理器自行组合，因此它们由唯一一个可选方法把关，方法存在即为能力，并以 TypeScript 的类型收窄作为发现机制：[`SubagentProvider.prepareContinuable`](#the-provider-contract-subagentprovider)。
+提供方通过一个静态描述符公布其**启动时**功能，服务会在单次 run 存在之前即行检查；如果请求依赖提供方不具备的功能，会被明确拒绝（`SubagentError('UNSUPPORTED_CAPABILITY')`），绝不会被接受后静默忽略。这些 flag 描述单次 [`start()`](#the-provider-contract-subagentprovider) 路径，即由提供方组合子 agent 的路径。**可继续**子 agent 由继续执行管理器自行组合，因此它们由唯一一个可选方法把关，方法存在即为能力，并以 TypeScript 的类型收窄作为发现机制：[`SubagentProvider.prepareContinuable`](#the-provider-contract-subagentprovider)。可继续子级的显式沙箱请求同样需要 `sandboxMode` 支持。
 
 ```ts type-equiv
 /**
@@ -22,7 +22,8 @@ Service Definition：[dsh-subagent](../../packages/subagent/subagent)（`ctx.sub
  * degradation" rule). These flags describe the ONE-SHOT
  * {@link SubagentProvider.start} path, where the provider composes the child;
  * continuable children are composed by the continuation manager itself and are
- * gated by {@link SubagentProvider.prepareContinuable} instead. Each flag
+ * gated by {@link SubagentProvider.prepareContinuable} instead, with explicit
+ * sandbox requests also requiring `sandboxMode` support. Each flag
  * corresponds one-to-one to a {@link SubagentStartRequest} option: `depthLimit`
  * to `maxDepth`; the other names match.
  */
@@ -30,6 +31,7 @@ interface SubagentCapabilities {
   readonly agentOptions: boolean
   readonly outputSchema: boolean
   readonly depthLimit: boolean
+  readonly sandboxMode: boolean
   readonly toolFilter: boolean
   readonly persona: boolean
 }
@@ -37,7 +39,7 @@ interface SubagentCapabilities {
 
 ## 单次启动请求
 
-工具层根据模型输入和自身配置构建此请求；服务在 `start` 之前针对指定提供方进行校验。必填的 `parent` 提供会话 cwd、谱系与委派深度。可选的 Agent 提供方、模型、推理强度与 token 覆盖、output schema、depth、工具过滤器和 persona 需要对应的能力 flag 匹配。进程内后端会把 `agentOptions` 合并到父 Agent 选项之上，将 filter 和 persona 的作用域限定在子 agent 创建阶段，并通过强制 capture 工具实现所支持的 object-rooted schema。DSH SDK 后端会把四个 Agent 路由字段合并到实例默认值之上，并在子运行时初始化期间校验；ACP、Codex 与 Claude Code 会在启动传输前拒绝 `agentOptions`。
+工具层根据模型输入和自身配置构建此请求；服务在 `start` 之前针对指定提供方进行校验。必填的 `parent` 提供会话 cwd、谱系与委派深度。可选的 Agent 提供方、模型、推理强度与 token 覆盖、output schema、depth、沙箱模式、工具过滤器和 persona 需要对应的能力 flag 匹配。进程内后端会把 `agentOptions` 合并到父 Agent 选项之上，将工具过滤器与父级有效权限取交集，把请求的沙箱模式限制在父级有效策略（包括部署默认值）之内，并将 persona 的作用域限定在子 agent 创建阶段，并通过强制 capture 工具实现所支持的 object-rooted schema。DSH SDK 后端会把四个 Agent 路由字段合并到实例默认值之上，并在子运行时初始化期间校验；ACP、Codex 与 Claude Code 会在启动传输前拒绝 `agentOptions`。
 
 ```ts type-equiv
 /**
@@ -95,6 +97,8 @@ interface SubagentStartRequest {
    * unknown-name validation.
    */
   readonly toolFilter?: ToolRestriction
+  /** Optional file mode, limited to the effective parent policy. Requires sandboxMode support. */
+  readonly sandboxMode?: 'read-only' | 'workspace-write'
   /**
    * Optional per-child persona. Requires {@link SubagentCapabilities.persona};
    * rejected at start otherwise. In-process backends register it as a scoped
@@ -465,7 +469,7 @@ spawn 和 fork 后端通过 `parent.ctx` 创建一个普通的单次 agent，将
 - **委派深度**由持久 `SessionHeader.delegationDepth` 与可合并扩展的运行时字段 `AgentOptions.subagentDepth` 共同表示；缺失表示顶层深度为零，存在的较大值具有权威性。两个字段都归该 seam 所有——循环既不设置也不读取它们——因此进程内子 agent 会持久保存 parent 深度 + 1，冷恢复无法降低深度，而且每次 start 都会拒绝超出安全整数域、或高于已定义绝对 `request.maxDepth` 上限的派生深度。
 - **Fork 种子注入**使用 [`CreateAgentOptions.seed`](core.zh.md#creation-and-ownership)（一个 `SessionEvent[]` 前缀，经由 `AgentLoop.createAgent` → `ctx.sessions.prepare({ seed })` 传递，与 `ctx.agents.resume()` 使用的原语相同）。fork 后端传入父级日志的一段*平衡的已完成轮次前缀*——父级事件直到并包括其最后一个 `turn/end`——因此种子从 0 连续，[invariants](../../packages/runtime-diagnostics/invariants) 回放可以接受它（进行中的、未平衡的轮次被排除在外）。
 
-`SubagentCatalogEntry` 描述一条完整或未知模式的直接子级目录记录；`SubagentCatalogState` 是仅 host 使用的 projection state。`listChildren()` 拥有一次 live-preferred 父 Session observation，不打开子级日志。浏览器消费者通过共享 Session projection store 读取 `subagentCatalog`，并将成员关系与 Session 列表活动状态组合。`SubagentCatalogRow` 属于递归目录列表。[父目录决策](../../.agents/notes/implemented/architecture/2026-09-01-parent-owned-subagent-catalog.zh.md) 规定持久事实与读取语义。
+`SubagentCatalogEntry` 描述一条完整或未知模式的直接子级目录记录；`SubagentCatalogState` 是仅 host 使用的 projection state。`listChildren()` 拥有一次 live-preferred 父 Session observation，不打开子级日志。浏览器消费者通过共享 Session projection store 读取 `subagentCatalog`，并将成员关系与 Session 列表活动状态组合。`SubagentCatalogRow` 属于递归目录列表。[父目录决策](../../.agents/notes/implemented/architecture/2026-09-01-parent-owned-subagent-catalog.zh.md) 规定持久事实与读取语义。 每行在存在观测时包含最近一次已确认的 `subagent/authority` 发布记录；历史或远程子代理可能没有此记录。
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 

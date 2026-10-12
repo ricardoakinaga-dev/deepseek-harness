@@ -7,7 +7,7 @@
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { boundContextSummary, createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionId, UserMessage } from '@deepseek-ai/dsh-session'
 import type { ActivationTerminal } from './lifecycle.ts'
 import type { SubagentResult } from './types.ts'
 
@@ -130,11 +130,13 @@ function settlementSummary(childId: SessionId, stopReason: SubagentResult['stopR
  * Build the runtime-owned settlement notice from the child's nonempty closing text.
  * @param childId - durable child session id named in the notice.
  * @param terminal - recorded terminal state for the settled Activation.
+ * @param delivered - Last child message recorded in the parent's history during this Activation; pending Inbox messages are excluded.
  * @returns the durable user-message representation delivered to the parent.
  */
 export function createSettlementMessage(
   childId: SessionId,
   terminal: ActivationTerminal,
+  delivered?: UserMessage,
 ): ReturnType<typeof createUserMessage> {
   const summary = settlementSummary(childId, terminal.stopReason)
   // Parent providers receive this notice as a user message and may reject
@@ -143,12 +145,19 @@ export function createSettlementMessage(
   const closingText = (terminal.output ?? []).flatMap(block =>
     block.type === 'text' && block.text.length > 0 ? [block] : [],
   )
+  const sentContent = delivered?.content.slice(1)
+  const repeatsDelivery = closingText.length > 0 && sentContent !== undefined
+    && sentContent.every(block => block.type === 'text')
+    && sentContent.map(block => block.text).join('')
+      === closingText.map(block => block.text).join('')
   return createUserMessage({
     content: [
       { type: 'text' as const, text: summary },
-      ...closingText.length === 0
-        ? [{ type: 'text' as const, text: 'It left no closing message.' }]
-        : [{ type: 'text' as const, text: 'Its closing message:' }, ...closingText],
+      ...repeatsDelivery && delivered !== undefined
+        ? [{ type: 'text' as const, text: `Its closing message repeats message ${delivered.id} sent to you; see that message.` }]
+        : closingText.length === 0
+          ? [{ type: 'text' as const, text: 'It left no closing message.' }]
+          : [{ type: 'text' as const, text: 'Its closing message:' }, ...closingText],
     ],
     source: {
       kind: 'subagent-settled' as const,

@@ -120,6 +120,15 @@ describe('a child agent composed in-process', () => {
     await run.dispose()
   })
 
+  it('retains parent restrictions when the child rejoins the same preset', async () => {
+    const { ctx, parent } = await setupPresetHost()
+    parent.ctx.tools.restrict({ deny: ['preset_only'] })
+    const run = await startInProcessRun({ ...spawnRequest(parent), toolFilter: { allow: ['preset_only'] } }, {})
+    await run.result
+    expect(ctx.tools.schemas(run.localAgent).map(schema => schema.name)).toEqual([])
+    await run.dispose()
+  })
+
   it('follows a parent that switched preset while blank', async () => {
     const { ctx, parent } = await setupPresetHost()
     // A DIFFERENT preset, so the assertion below distinguishes reading the

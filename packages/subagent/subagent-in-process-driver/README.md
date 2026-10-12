@@ -37,7 +37,7 @@ One call starts and drives one one-shot child. Fulfillment means the child is al
 
 ### What the child gets
 
-The child receives the parent's working-directory/session lineage and inherits the parent provider, model, reasoning effort, and output-token cap unless `request.agentOptions` overrides them. It gets a fresh flat registration scope: parent tool restrictions and authority are not imported. A run carries the parent's explicit sandbox override and `'never'` approval pin into the child and appends a per-run descriptor inside the child's initial turn.
+The child receives the parent's working-directory/session lineage and inherits the parent provider, model, reasoning effort, and output-token cap unless `request.agentOptions` overrides them. Its independent tool scope is bounded by the parent's effective inherited tools. A run records the effective parent sandbox mode, including deployment defaults, or a narrower requested `sandboxMode`, together with the `'never'` approval pin and appends a per-run descriptor inside the child's initial turn.
 
 -----
 
@@ -98,7 +98,7 @@ Read these pages when the package-level contract is not enough; they move from t
 
 #### What the model sees
 
-The shared driver sends the task verbatim as the child's user message and, when requested, shadows the persona and restricts global tool schemas, lookup, execution, and PTC mode SDK bindings in the unpublished child's fresh scope; parent restrictions are not inherited. Tool-guidance plugins can use the assembly scope to omit unavailable guidance; arbitrary static sections are not rewritten by the driver. Spawn supplies no history; fork supplies its balanced seed.
+The shared driver sends the task verbatim as the child's user message and, when requested, shadows the persona and restricts global tool schemas, lookup, execution, and PTC mode SDK bindings in the unpublished child's fresh scope; the child filter intersects with the parent's effective tool permissions. Tool-guidance plugins can use the assembly scope to omit unavailable guidance; arbitrary static sections are not rewritten by the driver. Spawn supplies no history; fork supplies its balanced seed.
 
 #### Token effect
 

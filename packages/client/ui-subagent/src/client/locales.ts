@@ -5,6 +5,15 @@ export const NS = 'subagent'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'authority.unconfirmed': '权限未确认：没有发布时的记录',
+  'authority.unknown': '未确认',
+  'authority.read-only': '只读',
+  'authority.workspace-write': '工作区可写',
+  'authority.danger-full-access': '完全文件访问',
+  'authority.ask': '询问',
+  'authority.never': '从不询问',
+  'authority.noTools': '未发布工具',
+  'authority.publication': '最近发布时：文件：{sandbox}；审批：{approval}；工具：{tools}',
   'duration.seconds': '{seconds}秒',
   'duration.minutes': '{minutes}分{seconds}秒',
   'duration.hours': '{hours}小时{minutes}分{seconds}秒',
@@ -48,6 +57,15 @@ export const zh = {
 
 /** English dictionary, key-identical to the Chinese source of truth. */
 export const en: Record<SubagentKey, string> = {
+  'authority.unconfirmed': 'Authority unconfirmed: no publication record',
+  'authority.unknown': 'Unconfirmed',
+  'authority.read-only': 'Read-only',
+  'authority.workspace-write': 'Workspace write',
+  'authority.danger-full-access': 'Full file access',
+  'authority.ask': 'Ask',
+  'authority.never': 'Never ask',
+  'authority.noTools': 'None published',
+  'authority.publication': 'At latest publication: Files: {sandbox}; Approval: {approval}; Tools: {tools}',
   'duration.seconds': '{seconds}s',
   'duration.minutes': '{minutes}m {seconds}s',
   'duration.hours': '{hours}h {minutes}m {seconds}s',

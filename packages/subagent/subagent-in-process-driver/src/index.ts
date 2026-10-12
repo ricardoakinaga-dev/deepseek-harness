@@ -28,6 +28,7 @@ import {
   finalAssistantOutput,
   resolveChildAgentOptions,
   resolveChildDepth,
+  resolveDelegatedToolFilter,
 } from '@deepseek-ai/dsh-subagent'
 import type {
   ResolvedSubagentStartRequest,
@@ -116,14 +117,15 @@ export async function startInProcessRun(
 
   // Capture before the first await: a later parent switch belongs to the
   // parent's future.
-  const inherited = captureDelegatedPolicyOverrides(parent)
+  const inherited = captureDelegatedPolicyOverrides(parent, request.sandboxMode)
+  const toolFilter = resolveDelegatedToolFilter(parent, request.toolFilter)
 
   let structured: StructuredAttachment | undefined
   const setup = (childCtx: Context, child: Agent): void => {
     appendDelegatedPolicyOverrides(child.session, inherited)
     applyChildComposition(childCtx, parent, {
       persona: request.persona,
-      toolFilter: request.toolFilter,
+      toolFilter,
     })
     if (request.outputSchema !== undefined) {
       structured = attachStructuredRuntime(childCtx, request.outputSchema)

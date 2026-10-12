@@ -25,8 +25,12 @@ function fakeParent(id = 'parent-1'): Agent {
   return { id: SessionId(id) } as unknown as Agent
 }
 
-const ALL_CAPS: SubagentCapabilities = { agentOptions: true, outputSchema: true, depthLimit: true, toolFilter: true, persona: true }
-const NO_CAPS: SubagentCapabilities = { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false }
+const ALL_CAPS: SubagentCapabilities = {
+  agentOptions: true, outputSchema: true, depthLimit: true, sandboxMode: true, toolFilter: true, persona: true,
+}
+const NO_CAPS: SubagentCapabilities = {
+  agentOptions: false, outputSchema: false, depthLimit: false, sandboxMode: false, toolFilter: false, persona: false,
+}
 
 function baseRequest(overrides: Partial<SubagentStartRequest> = {}): SubagentStartRequest {
   return {
@@ -190,6 +194,7 @@ describe('SubagentRuntime', () => {
     ['outputSchema', { outputSchema: { type: 'object', properties: {} } }],
     ['depthLimit', { maxDepth: 1 }],
     ['toolFilter', { toolFilter: { deny: ['bash'] } }],
+    ['sandboxMode', { sandboxMode: 'read-only' }],
     ['persona', { persona: 'reviewer' }],
   ] as const)('rejects unsupported %s before provider startup', async (_capability, override) => {
     const { subagents } = await service()
@@ -198,6 +203,21 @@ describe('SubagentRuntime', () => {
     await expect(subagents.start('weak', baseRequest(override)))
       .rejects.toMatchObject({ code: 'UNSUPPORTED_CAPABILITY' })
     expect(provider.startCount).toBe(0)
+  })
+
+  it('rejects unsupported continuable sandbox requests before preparation', async () => {
+    const { ctx, subagents } = await service()
+    const prepare = vi.fn(async () => ({}))
+    subagents.registerProvider({
+      name: 'weak', capabilities: NO_CAPS, inheritsParentContext: false,
+      start: async () => { throw new Error('unused') }, prepareContinuable: prepare,
+    })
+    await expect(subagents.startContinuable({
+      provider: 'weak', label: 'review', signal: new AbortController().signal,
+      request: { parent: fakeParent(), prompt: [], sandboxMode: 'read-only' },
+    })).rejects.toMatchObject({ code: 'UNSUPPORTED_CAPABILITY' })
+    expect(prepare).not.toHaveBeenCalled()
+    await ctx.fiber.dispose()
   })
 
   it('validates depth and schema semantics before provider startup', async () => {

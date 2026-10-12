@@ -82,6 +82,47 @@ describe('subagent catalog projection', () => {
     }
   })
 
+  it('publishes the latest own authority and preserves it through checkpoint restoration', () => {
+    const childId = SessionId('first')
+    const observed: SessionEvent<'subagent/authority'> = {
+      type: 'subagent/authority', seq: SessionSeq(1), time: 0,
+      data: { version: 0, childId, sandboxMode: 'read-only', approvalPolicy: 'never', toolFilter: { allow: ['read'] } },
+    }
+    const initial = fold([fact(0, childId, 1, { mode: 'one-shot' })])
+    expect(subagentCatalogProjectionDefinition.wire.view(initial)[0]).not.toHaveProperty('authority')
+    const first = subagentCatalogProjectionDefinition.apply(initial, observed)
+    const latest = subagentCatalogProjectionDefinition.apply(first, {
+      ...observed, seq: SessionSeq(2), data: { ...observed.data, sandboxMode: null, toolFilter: { allow: [] } },
+    })
+    const checkpoint: unknown = JSON.parse(JSON.stringify(latest))
+    const restored = subagentCatalogProjectionDefinition.stateSchema.parse(checkpoint)
+    expect(subagentCatalogProjectionDefinition.wire.view(restored)[0]?.authority)
+      .toEqual({ ...observed.data, sandboxMode: null, toolFilter: { allow: [] } })
+    expect(subagentCatalogProjectionDefinition.wire.view(first)[0]?.authority).toEqual(observed.data)
+    const inherited = subagentCatalogProjectionDefinition.init(header, SessionLogOffset(2))
+    expect(subagentCatalogProjectionDefinition.apply(inherited, observed)).toBe(inherited)
+    expect(subagentCatalogProjectionDefinition.stateVersion).toBe(4)
+  })
+
+  it.each(['constructor', '__proto__', 'toString'])('requires an own authority observation for child %s', (id) => {
+    const childId = SessionId(id)
+    const projection = subagentCatalogProjectionDefinition
+    for (const descriptor of [{ mode: 'one-shot' }, { mode: 'continuable', label: 'Child' }] as const) {
+      const initial = fold([fact(0, childId, 1, descriptor)])
+      const restored = projection.stateSchema.parse(JSON.parse(JSON.stringify(initial)))
+      expect(projection.wire.viewSchema.parse(projection.wire.view(restored)))
+        .toEqual([{ id: childId, createdAt: 1, ...descriptor }])
+      const authority = {
+        version: 0, childId, sandboxMode: 'read-only', approvalPolicy: 'never', toolFilter: { allow: ['read'] },
+      } as const
+      const observed = projection.apply(restored, {
+        type: 'subagent/authority', seq: SessionSeq(1), time: 0, data: authority,
+      })
+      expect(projection.wire.viewSchema.parse(projection.wire.view(observed)))
+        .toEqual([{ id: childId, createdAt: 1, ...descriptor, authority }])
+    }
+  })
+
   it('preserves event order across chunk rollover and checkpoint restoration', () => {
     const first = fold(Array.from({ length: 64 }, (_, i) =>
       fact(i, `child-${i}`, 130 - i, { mode: 'one-shot' })))

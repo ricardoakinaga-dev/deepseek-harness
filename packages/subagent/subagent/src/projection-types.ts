@@ -4,6 +4,7 @@
  * @module @deepseek-ai/dsh-subagent/projection-types
  */
 
+import type { SubagentAuthorityData } from './authority-types.ts'
 import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
 
 /** One current direct-child discovery row materialized from parent facts. */
@@ -11,6 +12,8 @@ export type SubagentCatalogEntry =
   & {
     readonly id: SessionId
     readonly createdAt: number
+    /** Effective authority at the most recent local publication, absent when unobserved. */
+    readonly authority?: SubagentAuthorityData
   }
   & (
     | { readonly mode: 'one-shot'; readonly label?: string }

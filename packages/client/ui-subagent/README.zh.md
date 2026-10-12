@@ -35,6 +35,8 @@ kind: "package-reference"
 
 行显示 mode、活动状态与由日志支撑的可选 title；running 使用共享 ongoing loading，最近一个已结束轮次正常完成的 inactive child 使用共享 success 绿点，其他 inactive child 使用共享 idle 灰点。每行都为状态图标预留相同的 14px 列宽，并将较小的圆点居中，使 title 与 loading 状态对齐。紧凑的页头触发器会垂直居中活动图标与数量，并保留 4px 水平间距。尾随列在上行显示提供方的持久化 token 用量总计，在下行显示活跃轮次耗时。键盘导航：ArrowRight/ArrowLeft 展开和折叠分支；ArrowUp/ArrowDown、Home、End 与 Escape 用于导航或关闭树。没有 label 的 one-shot 行回退到其会话 id。只有一行自身的目录加载为空后，它才是已知叶子。
 
+每行显示父级目录提供的最近一次发布权限：已确认的文件模式、记录的审批策略以及所有已发布的工具名称，包括响应基础设施。这些字段表示发布时的事实，不表示后续管理状态，也不把委派请求参数当作生效权限。没有观测记录时明确显示未确认；策略字段为 null 时，即使工具列表已知，该策略仍显示未确认。已确认的空工具列表与缺少权限记录分别显示。
+
 ### 续接对话
 
 确切 parent 存活时，可继续 child 保留普通输入 chrome：child 运行期间输入和 Send 保持可用，因为每条后续消息都会进入 child 的 FIFO inbox，而独立的 Stop 经由 `subagents/interruptByParent` 路由。确切 parent 不可用且 child 未在运行的可继续 child 会选用说明恢复路径的只读编辑器；此类 child 仍在运行期间，selector 会让位给普通编辑器——输入区与 Send 被禁用，但独立的 Stop 保持可用。
