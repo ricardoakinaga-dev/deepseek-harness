@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { createScope, type Scope } from '@deepseek-ai/dsh-scope'
 import { join, sep } from 'node:path'
+import { Readable } from 'node:stream'
 import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
@@ -59,6 +60,8 @@ const w = (path: string): string => path.replaceAll('/', sep)
 /** One scripted collect-mode stream, returned by `readFrom(0)` after settlement. */
 interface ScriptedStream {
   text: string
+  chunks?: Iterable<Buffer> | AsyncIterable<Buffer>
+  error?: Error
   lossy?: boolean
   spillPath?: string
 }
@@ -106,7 +109,7 @@ class FakeReader implements SubprocessOutputReader {
 class FakeHandle implements SubprocessHandle {
   readonly control = undefined
   readonly stdin = undefined
-  readonly stdout = undefined
+  readonly stdout: Readable | undefined
   readonly stderr = undefined
   readonly collected: SubprocessCollectedOutputs
   readonly done: Promise<SubprocessOutcome>
@@ -128,8 +131,17 @@ class FakeHandle implements SubprocessHandle {
       this.collected = {}
       this.done = Promise.reject(scripted.reject)
     } else {
+      if (spec.stdio.stdout === 'pipe' && !dropReaders) {
+        this.stdout = Readable.from((async function* () {
+          yield* scripted.stdout.chunks ?? [Buffer.from(scripted.stdout.text)]
+          if (scripted.stdout.error !== undefined) throw scripted.stdout.error
+        })())
+      }
       this.collected = {
-        ...dropReaders ? {} : { stdout: new FakeReader(scripted.stdout), stderr: new FakeReader(scripted.stderr) },
+        ...dropReaders ? {} : {
+          ...spec.stdio.stdout === 'pipe' ? {} : { stdout: new FakeReader(scripted.stdout) },
+          stderr: new FakeReader(scripted.stderr),
+        },
       }
       this.done = Promise.resolve(scripted.outcome)
     }
@@ -287,7 +299,7 @@ describe('registration', () => {
   it('describes the modification-time head when over-cap sampling is disabled', async () => {
     const { ctx } = await setup({ config: { sampleOverCapGlobResults: false } })
     const glob = ctx.tools.schemas().find(schema => schema.name === 'glob')
-    expect(glob?.description).toContain('Returns up to 100 paths in modification-time order; a larger result keeps the first paths')
+    expect(glob?.description).toContain('Returns up to 100 paths, non-ignored first and in modification-time order within each group; a larger result keeps the first paths')
     expect(glob?.description).not.toContain('sampled across top-level entries')
   })
 })
@@ -737,7 +749,7 @@ describe('glob results', () => {
     subprocess.handler = () => runResult('/sessions/s1/src/a.ts\n/elsewhere/b.ts\nrel/c.ts\n')
     const result = await call(ctx, 'glob', { pattern: '*' }, { agent: agent('/sessions/s1') })
     if (result.isError) throw new Error('expected glob success')
-    expect(result.value).toEqual({ root: '.', paths: [join('src', 'a.ts'), '/elsewhere/b.ts', 'rel/c.ts'] })
+    expect(result.value).toEqual({ root: '.', ignoredPaths: [], paths: [join('src', 'a.ts'), '/elsewhere/b.ts', 'rel/c.ts'] })
     expect(text(result)).toBe(`${join('src', 'a.ts')}\n/elsewhere/b.ts\nrel/c.ts`)
   })
 
@@ -774,7 +786,7 @@ describe('glob results', () => {
     const result = await call(ctx, 'glob', { pattern: '*.ts' }, { agent: agent('/w') })
     expect(result.isError).toBe(false)
     if (result.isError) throw new Error('expected glob success')
-    expect(result.value).toEqual({ root: '.', paths: ['a.ts', 'b.ts', 'c.ts', 'd.ts'] })
+    expect(result.value).toEqual({ root: '.', ignoredPaths: [], paths: ['a.ts', 'b.ts', 'c.ts', 'd.ts'] })
     expect(text(result)).toBe('a.ts\nb.ts\n\n(Showing 2 of 4 paths. Full sorted result stored at: /spill/glob-results.txt. Use the fake retrieval hint.)')
     expect(spill?.saves).toHaveLength(1)
     expect(spill?.saves[0]).toMatchObject({
@@ -873,14 +885,14 @@ describe('glob results', () => {
     const { ctx, subprocess, spill } = await setup({ config: { globMaxResults: 1 }, spill: true })
     ctx.on('tools/post-execute', async () => ({
       kind: 'accept' as const,
-      value: { root: '.', paths: ['replacement-a.ts', 'replacement-b.ts'] },
+      value: { root: '.', ignoredPaths: [], paths: ['replacement-a.ts', 'replacement-b.ts'] },
     }))
     subprocess.handler = () => runResult('old-a.ts\nold-b.ts\n')
 
     const result = await call(ctx, 'glob', { pattern: '*.ts' }, { agent: agent('/w') })
 
     if (result.isError) throw new Error('expected glob replacement success')
-    expect(result.value).toEqual({ root: '.', paths: ['replacement-a.ts', 'replacement-b.ts'] })
+    expect(result.value).toEqual({ root: '.', ignoredPaths: [], paths: ['replacement-a.ts', 'replacement-b.ts'] })
     expect(text(result)).toContain('replacement-a.ts')
     expect(text(result)).not.toContain('old-a.ts')
     expect(spill?.saves).toHaveLength(0)
@@ -894,7 +906,7 @@ describe('glob results', () => {
       parent: Symbol('run_code') as ToolExecutionToken,
     })
     if (result.isError) throw new Error('expected glob success')
-    expect(result.value).toEqual({ root: '.', paths: ['a.ts', 'b.ts', 'c.ts', 'd.ts'] })
+    expect(result.value).toEqual({ root: '.', ignoredPaths: [], paths: ['a.ts', 'b.ts', 'c.ts', 'd.ts'] })
     expect(text(result)).toBe('a.ts\nb.ts\n\n(Showing 2 of 4 paths. The complete result could not be saved; narrow pattern or path to see more.)')
     expect(spill?.saves).toHaveLength(0)
   })
@@ -1102,9 +1114,8 @@ describe('the no-background-job invariant', () => {
     await call(ctx, 'glob', { pattern: '*' })
     subprocess.handler = () => runResult('', { exitCode: 2, stderr: { text: 'boom' } })
     await call(ctx, 'grep', { pattern: 'x' })
-    // One foreground spawn per call, each awaited to settlement before the
-    // tool returns — the searches never leave a background handle running.
-    expect(subprocess.spawns).toHaveLength(2)
+    // Discovery, ignore classification, and failed grep all settle before returning.
+    expect(subprocess.spawns).toHaveLength(3)
     expect(subprocess.handles.every(handle => handle.settled)).toBe(true)
   })
 })
@@ -1267,3 +1278,72 @@ describe('scope-aware search guidance', () => {
 function withPersona(...sections: string[]): string {
   return ['You are an AI agent powered by DeepSeek Harness.', ...sections].join('\n\n')
 }
+
+
+it('prioritizes non-ignored paths in sampled pages and keeps full annotations in the spill', async () => {
+  const { ctx, subprocess, spill } = await setup({ config: { globMaxResults: 1 }, spill: true })
+  subprocess.handler = spec => runResult(spec.argv.includes('--no-ignore') ? 'build/generated.ts\nsrc/main.ts\n' : 'src/main.ts\n')
+  const result = await call(ctx, 'glob', { pattern: '*.ts' }, { agent: agent('/w') })
+  expect(result.isError).toBe(false)
+  expect(text(result)).toMatch(/^src\/main.ts/)
+  expect(spill?.saves[0]?.content).toBe('src/main.ts\nbuild/generated.ts [ignored by ignore rules]')
+  expect(subprocess.spawns[1]?.argv).not.toContain('--glob=*.ts')
+})
+
+it('does not label paths when the ignore-respecting scan fails', async () => {
+  const { ctx, subprocess } = await setup()
+  subprocess.handler = spec => spec.argv.includes('--no-ignore') ? runResult('a.ts\n') : runResult('', { exitCode: 2, stderr: { text: 'permission denied' } })
+  const result = await call(ctx, 'glob', { pattern: '*.ts' })
+  expect(result.isError).toBe(true)
+  expect(text(result)).not.toContain('[ignored by ignore rules]')
+  expect(subprocess.handles.every(handle => handle.settled)).toBe(true)
+})
+
+it('streams classification across UTF-8 chunks and discards oversized unrelated lines', async () => {
+  const { ctx, subprocess } = await setup({ config: { rawOutputMaxBytes: 256 } })
+  try {
+    const candidate = '证据-🧪.ts'
+    const listing = Buffer.from(`${'x'.repeat(4096)}\n${candidate}\n${candidate}`)
+    subprocess.handler = spec => spec.argv.includes('--no-ignore')
+      ? runResult(`${candidate}\nignored.ts\n`)
+      : runResult('', { stdout: { chunks: (function* () {
+        for (let index = 0; index < listing.length; index++) yield listing.subarray(index, index + 1)
+      })() } })
+    const result = await call(ctx, 'glob', { pattern: '*.ts' })
+    expect(result.isError).toBe(false)
+    expect(text(result)).toBe(`${candidate}\nignored.ts [ignored by ignore rules]`)
+    expect(subprocess.spawns[1]?.stdio.stdout).toBe('pipe')
+    expect(subprocess.handles.every(handle => handle.settled)).toBe(true)
+  } finally { await ctx.fiber.dispose() }
+})
+
+it('terminates and joins classification after a stdout read failure', async () => {
+  const { ctx, subprocess } = await setup()
+  try {
+    subprocess.handler = spec => spec.argv.includes('--no-ignore') ? runResult('a.ts\n')
+      : runResult('a.ts\n', { stdout: { error: new Error('read failed') } })
+    const result = await call(ctx, 'glob', { pattern: '*.ts' })
+    expect(result.isError).toBe(true)
+    expect(result.error).toMatchObject({ info: { code: 'SEARCH_FAILED' } })
+    expect(subprocess.handles[1]).toMatchObject({ terminated: true, settled: true })
+    expect(subprocess.handles[1]?.stdout?.destroyed).toBe(true)
+  } finally { await ctx.fiber.dispose() }
+})
+
+it('aborts classification while the stdout pipe is streaming', async () => {
+  const { ctx, subprocess } = await setup()
+  const controller = new AbortController()
+  try {
+    subprocess.handler = spec => spec.argv.includes('--no-ignore') ? runResult('a.ts\n')
+      : runResult('', { stdout: { chunks: (function* () {
+        yield Buffer.from('a.')
+        controller.abort()
+        yield Buffer.from('ts\n')
+      })() } })
+    const result = await call(ctx, 'glob', { pattern: '*.ts' }, { signal: controller.signal })
+    expect(result.isError).toBe(true)
+    expect(result.error).toMatchObject({ info: { code: 'SEARCH_ABORTED' } })
+    expect(subprocess.handles[1]).toMatchObject({ terminated: true, settled: true })
+    expect(subprocess.handles[1]?.stdout?.destroyed).toBe(true)
+  } finally { await ctx.fiber.dispose() }
+})

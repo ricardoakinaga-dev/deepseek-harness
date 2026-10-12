@@ -1,0 +1,10 @@
+version: 1
+scenario: glob-ignore-annotations
+profile: headless
+composition: fs-search
+recording: authored
+platform: posix
+header:
+  class: fs-search
+workspace:
+  setup: fixed-search-mtimes

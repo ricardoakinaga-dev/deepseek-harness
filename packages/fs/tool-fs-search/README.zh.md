@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-在 `ctx.subprocess` 后端之后挂载工具；无需宿主 `rg` 安装，也无需文件系统提供方。模型随后获得按修改时间排序的文件发现与按行组织的内容搜索，两者都有界并受超时防护。
+在 `ctx.subprocess` 后端之后挂载工具；无需宿主 `rg` 安装，也无需文件系统提供方。模型随后获得优先列出未忽略路径的文件发现与按行组织的内容搜索，两者都有界并受超时防护。
 
 ### 最小组合
 
@@ -45,7 +45,7 @@ kind: "package-reference"
 
 | 工具 | 参数 | 行为 |
 |---|---|---|
-| `glob` | `pattern`、`path?` | 查找路径匹配 glob 模式的文件，包含隐藏与忽略文件但排除 VCS 元数据；不含 `/` 的模式匹配任意深度的基名，因此 `*` 匹配整棵树；完整结果保持按修改时间排序 |
+| `glob` | `pattern`、`path?` | 查找路径匹配 glob 模式的文件，包含隐藏与忽略文件但排除 VCS 元数据；不含 `/` 的模式匹配任意深度的基名，因此 `*` 匹配整棵树；未忽略结果排在忽略结果之前，各组内部按修改时间排序 |
 | `grep` | `pattern`、`path?`、`include?` | 用 ripgrep 正则搜索文件内容，并按文件分组返回 `Line N: <preview>` 匹配；`include` 是一个正向 glob 过滤器，逗号分隔列表与否定值会被前置拒绝 |
 
 常规预算不进入面向模型的 schema：需要周边上下文的模型用 `read` 读取匹配文件，需要后续结果的模型遵循返回的 spill locator 检索提示。
@@ -56,11 +56,11 @@ kind: "package-reference"
 
 | 键 | 默认值 | 含义 |
 |---|---|---|
-| `sampleOverCapGlobResults` | 无（必填） | `true` 在顶层条目之间对超过上限的 `glob` 页面采样；`false` 保留按修改时间排序的前部 |
+| `sampleOverCapGlobResults` | 无（必填） | `true` 在顶层条目之间对超过上限的 `glob` 页面采样；`false` 保留排序后的前部，未忽略路径优先 |
 | `globMaxResults` | `100` | 一次 `glob` 调用内联展示的最大路径数 |
 | `grepMaxMatches` | `250` | 一次 `grep` 调用内联保留的最大平铺匹配数；后续匹配写入格式化 spill 产物 |
 | `grepMaxLineBytes` | `2000` | 每条匹配行预览的字节上限，保留 UTF-8 边界 |
-| `rawOutputMaxBytes` | `20000000` | 搜索将解析的完整原始 `rg` stdout 上限；更大的原始输出以 `SEARCH_RAW_OUTPUT_OVERFLOW` 失败 |
+| `rawOutputMaxBytes` | `20000000` | 完整发现结果 stdout 上限；更大的结果以 `SEARCH_RAW_OUTPUT_OVERFLOW` 失败。忽略分类仅保留已发现的候选路径 |
 | `timeoutMs` | `30000` | 附加到两个工具的协作式工具调用预算，通过 `exec.signal` 强制执行 |
 | `graceMs` | `3000` | subprocess seam 在 `timeoutMs` 之外授予的终止升级宽限期 |
 | `stderrMaxBytes` | `65536` | `rg` stderr 的诊断尾部预算 |
@@ -103,7 +103,7 @@ Node 部署在受支持的 macOS、Linux 与 Windows 目标上获得 `@vscode/ri
 
 ### 搜索如何运行
 
-每次调用解析打包二进制（`@vscode/ripgrep`，或 pkg 单文件运行时中可执行程序的 `-rg` 伴随文件），前置 `--no-config`，使宿主的 `RIPGREP_CONFIG_PATH` 无法向不受约束的 spawn 注入 `--pre` 预处理器，并把每个模型控制的值作为普通 argv 元素传入——不存在 shell 层，因此不涉及 shell 引号处理。collect 模式预算限制完整 stdout 与 stderr 尾部；lossy stdout 读取以 `SEARCH_RAW_OUTPUT_OVERFLOW` 失败，而不是解析静默不完整的流。工具从不读取原始 spill 路径。
+每次调用解析打包二进制（`@vscode/ripgrep`，或 pkg 单文件运行时中可执行程序的 `-rg` 伴随文件），前置 `--no-config`，使宿主的 `RIPGREP_CONFIG_PATH` 无法向不受约束的 spawn 注入 `--pre` 预处理器，并把每个模型控制的值作为普通 argv 元素传入——不存在 shell 层，因此不涉及 shell 引号处理。collect 模式预算限制完整发现结果 stdout 与 stderr 尾部；lossy 发现结果读取以 `SEARCH_RAW_OUTPUT_OVERFLOW` 失败，而不是解析静默不完整的流。忽略分类读取未排序的 stdout 管道，仅保留已发现的候选路径，并以最长候选路径为待处理行的上限。更长的无关行会被丢弃直到换行。流读取失败时终止并等待子进程退出。工具从不读取原始 spill 路径。
 
 ### 两类预算、两类产物
 
@@ -174,7 +174,7 @@ glob 描述声明了配置的超过上限排序方式。生成的 [`glob` 和 `g
 
 #### 模型看到的内容
 
-`glob` 每行返回一个路径；`grep` 在每个路径下分组展示 `Line <line>: <preview>` 匹配。空搜索返回 `No files found` 或 `No matches found`。达到上限的结果以省略计数结尾，并附 spill locator 与后端检索提示，或说明完整结果无法保存。启用 `sampleOverCapGlobResults: true` 时，超过上限的 `glob` 页面按实际搜索根正下方的条目轮转取路径，页脚说明采样依据及其覆盖的顶层条目数；`false` 时页面是按修改时间排序的前部，并保留普通的上限结果页脚。spill 产物始终持有按修改时间排序的完整列表。
+`glob` 每行返回一个路径，并用 `[ignored by ignore rules]` 标记被忽略路径；`grep` 在每个路径下分组展示 `Line <line>: <preview>` 匹配。Glob 分类流式读取第二次 ripgrep 列举，遵循 `.gitignore`、`.ignore` 及其他 ripgrep 忽略来源；它不声明文件是否受 Git 跟踪。未忽略路径优先，各组内部按修改时间排序。空搜索返回 `No files found` 或 `No matches found`。达到上限的结果给出省略计数及完整列表的 spill locator，或说明列表无法保存。采样先在未忽略组的顶层条目中取路径，再用忽略路径填充剩余位置。spill 包含完整排序列表及其标记。两次扫描共享取消信号和工具超时。分类遍历搜索根目录但不保留无关路径，因此无关列表的大小不会耗尽发现结果的输出上限；大型遍历仍可能超时。
 
 #### Token 影响
 
