@@ -35,7 +35,7 @@
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
       "status": "proposed",
-      "summary": "Persist a goal's required-task manifest and reject completion while any required task remains unfinished.",
+      "summary": "Persist explicit human goal manifests, expose their creation prerequisites and recovery guidance, and reject completion while required tasks remain unfinished.",
       "upstreamPlan": "docs/customization/fork-v2-extraction.md#extraction-matrix",
       "paths": [
         "packages/goal/goal/src/types.ts",
@@ -53,6 +53,7 @@
         "packages/api/remotes/tests/built-lib.e2e.ts",
         "packages/goal/README*",
         "snapshots/session/goal*/",
+        "snapshots/session/goal-prose-recovery/",
         "snapshots/session/dynamic-tool-updates/*",
         "snapshots/session/dynamic-tool-prompt-updates/*",
         "snapshots/sdk/goal-manifest-command/",

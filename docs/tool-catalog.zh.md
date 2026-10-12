@@ -1295,7 +1295,7 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
 
 ### `create_goal`
 
-创建一个持久化目标，使当前会话跨自动延续 Round 持续工作。当直接人类请求是长期目标时使用，即使用户没有说「目标」；不要用于单轮工作。
+创建持久 goal，使本会话跨自动续行 Round 持续工作。仅当当前人类消息包含恰好具有 objective 和 requiredTasks 字段的 JSON 对象时调用。对于文本请求，应继续已授权的工作而不创建 goal。
 
 ```json
 {
@@ -1303,7 +1303,7 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
   "properties": {
     "objective": {
       "type": "string",
-      "description": "The concrete completion objective inferred from the direct human request."
+      "description": "Copy the exact objective string from the JSON object in the current human message."
     },
     "max_goal_rounds": {
       "type": "number",
@@ -1311,7 +1311,7 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
     },
     "required_tasks": {
       "type": "array",
-      "description": "Copy every ID and criterion from the human message JSON requiredTasks array. The objective and array must match exactly.",
+      "description": "Non-empty array. Copy every ID and criterion, in order, from that human JSON requiredTasks array; do not infer, omit, or invent tasks.",
       "items": {
         "type": "object",
         "additionalProperties": false,

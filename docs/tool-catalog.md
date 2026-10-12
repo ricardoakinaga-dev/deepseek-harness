@@ -1289,7 +1289,7 @@ The six terminal tools are opt-in and complement one-shot shell/filesystem tools
 
 ### `create_goal`
 
-Create a persisted goal that keeps this session working across automatic continuation rounds. Use it when the direct human request is a long-running objective, even if the user did not say "goal"; not for single-turn work.
+Create a persisted goal that keeps this session working across automatic continuation rounds. Call only when the current human message contains a JSON object with exactly objective and requiredTasks. For a prose request, continue the authorized work without creating a goal.
 
 ```json
 {
@@ -1297,7 +1297,7 @@ Create a persisted goal that keeps this session working across automatic continu
   "properties": {
     "objective": {
       "type": "string",
-      "description": "The concrete completion objective inferred from the direct human request."
+      "description": "Copy the exact objective string from the JSON object in the current human message."
     },
     "max_goal_rounds": {
       "type": "number",
@@ -1305,7 +1305,7 @@ Create a persisted goal that keeps this session working across automatic continu
     },
     "required_tasks": {
       "type": "array",
-      "description": "Copy every ID and criterion from the human message JSON requiredTasks array. The objective and array must match exactly.",
+      "description": "Non-empty array. Copy every ID and criterion, in order, from that human JSON requiredTasks array; do not infer, omit, or invent tasks.",
       "items": {
         "type": "object",
         "additionalProperties": false,

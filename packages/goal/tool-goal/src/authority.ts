@@ -25,6 +25,19 @@ function reject(message: string, code = 'GOAL_TOOL_AUTHORITY_REQUIRED'): never {
   throw new HarnessError(message, code)
 }
 
+/** Recover from missing creation authority without inventing human-approved scope. */
+function rejectManifest(): never {
+  reject(
+    'No goal was created. create_goal requires a non-empty required_tasks array matching every ID and criterion '
+    + 'in order, and the exact objective, from a current human message containing only JSON '
+    + '{"objective":"...","requiredTasks":[{"id":"...","criterion":"..."}]}. '
+    + 'For prose requests, continue the authorized work without a goal. If automatic continuation is needed, '
+    + 'prepare the full manifest for the human to submit with /goal create <JSON>; /goal scope requires an existing goal. '
+    + 'Do not retry with invented or partial tasks.',
+    'GOAL_TOOL_MANIFEST_REQUIRED',
+  )
+}
+
 /** Resolve the immutable event cut and open-turn boundary without copying the turn suffix. */
 function openTurnEvents(
   ctx: Context,
@@ -117,7 +130,7 @@ export function requireExplicitCreate(
 ): readonly { id: string; criterion: string }[] {
   requireDirectHuman(ctx, execution)
   if (requiredTasks === undefined || requiredTasks.length === 0) {
-    reject('create_goal requires an explicit required_tasks manifest', 'GOAL_TOOL_MANIFEST_REQUIRED')
+    rejectManifest()
   }
   const matches = someOpenTurnEvent(execution, (event) => {
     if (event.type !== 'user/message' || event.data.source.kind !== 'user') return false
@@ -141,7 +154,7 @@ export function requireExplicitCreate(
       }
     })
   })
-  if (!matches) reject('create_goal requires the exact JSON objective and requiredTasks from the human turn', 'GOAL_TOOL_MANIFEST_REQUIRED')
+  if (!matches) rejectManifest()
   return requiredTasks
 }
 

@@ -47,13 +47,13 @@
     },
     {
       "name": "create_goal",
-      "description": "Create a persisted goal that keeps this session working across automatic continuation rounds. Use it when the direct human request is a long-running objective, even if the user did not say \"goal\"; not for single-turn work.",
+      "description": "Create a persisted goal that keeps this session working across automatic continuation rounds. Call only when the current human message contains a JSON object with exactly objective and requiredTasks. For a prose request, continue the authorized work without creating a goal.",
       "parameters": {
         "type": "object",
         "properties": {
           "objective": {
             "type": "string",
-            "description": "The concrete completion objective inferred from the direct human request."
+            "description": "Copy the exact objective string from the JSON object in the current human message."
           },
           "max_goal_rounds": {
             "type": "number",
@@ -61,7 +61,7 @@
           },
           "required_tasks": {
             "type": "array",
-            "description": "Copy every ID and criterion from the human message JSON requiredTasks array. The objective and array must match exactly.",
+            "description": "Non-empty array. Copy every ID and criterion, in order, from that human JSON requiredTasks array; do not infer, omit, or invent tasks.",
             "items": {
               "type": "object",
               "additionalProperties": false,
@@ -402,6 +402,56 @@
           "run_in_background": {
             "type": "boolean",
             "description": "Defaults to true. Set false only when your next action depends on the result."
+          }
+        },
+        "required": [
+          "description",
+          "prompt"
+        ]
+      }
+    },
+    {
+      "name": "subagent_dsh_sdk",
+      "description": "Delegate a self-contained task to a subagent (a separate agent that works in its own context) to offload focused, independent work — research, a scoped implementation, an analysis — so it does not consume this conversation's context. The subagent returns its result, not its intermediate steps. This call waits for the result by default.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "A short (3-5 word) description of the delegated task, for display."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "The complete, self-contained task for the subagent. It does not share this conversation's context, so include everything it needs."
+          },
+          "run_in_background": {
+            "type": "boolean",
+            "description": "Run as a background job and return its id (collect with job_output, stop with job_kill). Defaults to false."
+          }
+        },
+        "required": [
+          "description",
+          "prompt"
+        ]
+      }
+    },
+    {
+      "name": "subagent_dsh_sdk_background",
+      "description": "Delegate a self-contained task to a subagent (a separate agent that works in its own context) to offload focused, independent work — research, a scoped implementation, an analysis — so it does not consume this conversation's context. The subagent returns its result, not its intermediate steps. This call waits for the result by default.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "A short (3-5 word) description of the delegated task, for display."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "The complete, self-contained task for the subagent. It does not share this conversation's context, so include everything it needs."
+          },
+          "run_in_background": {
+            "type": "boolean",
+            "description": "Run as a background job and return its id (collect with job_output, stop with job_kill). Defaults to false."
           }
         },
         "required": [
