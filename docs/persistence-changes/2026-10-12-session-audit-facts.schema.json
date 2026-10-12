@@ -1,0 +1,810 @@
+{
+  "formatVersion": 2,
+  "roots": [
+    {
+      "key": "event:deliverables/presented",
+      "kind": "event",
+      "event": "deliverables/presented",
+      "surface": false,
+      "digest": "c2562179620a32b65cc7d1d163604db65c4332fd207e8d4e9b1bb1c48241ef1d",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 12,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "callId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "files",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "turn",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "array",
+            "element": 4
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "capture",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "description",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "path",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              6,
+              9
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "maxBytes",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "too-large"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachment",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 11,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachmentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "bytes",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": "stored"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "deliverables/presented"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:runtime/audit",
+      "kind": "event",
+      "event": "runtime/audit",
+      "surface": false,
+      "digest": "3816f7d08fae774bf2d0952c3fbc160f07a74af1490ab5e217e3452bc0907ffe",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 25,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 26,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              2,
+              23
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "configuration",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "profile",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "reason",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "runtime",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "startedBundles",
+                "type": 22,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 4
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "id",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "plugin",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "values",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              7,
+              8,
+              9,
+              10,
+              11
+            ]
+          },
+          {
+            "kind": "primitive",
+            "type": "null"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 6
+          },
+          {
+            "kind": "object",
+            "properties": [],
+            "indices": [
+              {
+                "key": 5,
+                "value": 6
+              }
+            ]
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "literal",
+            "value": "initial"
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              14
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "arch",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "launcher",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "nodeVersion",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "platform",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "source",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "kind",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 19,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              17,
+              18
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "source"
+          },
+          {
+            "kind": "literal",
+            "value": "artifact"
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              7
+            ]
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              21
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "dirty",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "configuration",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "reason",
+                "type": 24,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": "reload"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "runtime/audit"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:sandbox/environment",
+      "kind": "event",
+      "event": "sandbox/environment",
+      "surface": false,
+      "digest": "0237cf86dfd53b683c593cedef2e36d1721787cc3af7bbc74249b98f0327c9d9",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 21,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "environment",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "mode",
+                "type": 18,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "enforcement",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "identity",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "runner",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "sharesHostTemporaryFiles",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "temporaryFiles",
+                "type": 15,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "full"
+          },
+          {
+            "kind": "literal",
+            "value": "partial"
+          },
+          {
+            "kind": "literal",
+            "value": "unavailable"
+          },
+          {
+            "kind": "union",
+            "types": [
+              8,
+              9,
+              10,
+              11
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "host"
+          },
+          {
+            "kind": "literal",
+            "value": "namespace-dependent"
+          },
+          {
+            "kind": "literal",
+            "value": "unknown"
+          },
+          {
+            "kind": "literal",
+            "value": "restricted-token"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              10,
+              14
+            ]
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "union",
+            "types": [
+              8,
+              10,
+              16,
+              17
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "per-call"
+          },
+          {
+            "kind": "literal",
+            "value": "per-session"
+          },
+          {
+            "kind": "union",
+            "types": [
+              19,
+              20
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "read-only"
+          },
+          {
+            "kind": "literal",
+            "value": "workspace-write"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "sandbox/environment"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:subagent/authority",
+      "kind": "event",
+      "event": "subagent/authority",
+      "surface": false,
+      "digest": "25cc6c357d85dc66217a19e4d95bd2aaa5032de5e3e36ee99667d0c956a86ff2",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 14,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 16,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "approvalPolicy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "childId",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "sandboxMode",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "toolFilter",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              3,
+              4,
+              5
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ask"
+          },
+          {
+            "kind": "literal",
+            "value": "never"
+          },
+          {
+            "kind": "primitive",
+            "type": "null"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              8,
+              9,
+              10
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "read-only"
+          },
+          {
+            "kind": "literal",
+            "value": "workspace-write"
+          },
+          {
+            "kind": "literal",
+            "value": "danger-full-access"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "allow",
+                "type": 12,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 6
+          },
+          {
+            "kind": "literal",
+            "value": 0
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "subagent/authority"
+          }
+        ]
+      }
+    }
+  ],
+  "types": []
+}

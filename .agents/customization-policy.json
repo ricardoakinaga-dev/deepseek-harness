@@ -1703,7 +1703,7 @@
       "id": "present-durable-attachments",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Capture presented files in attachment storage and export their logged immutable contents.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -1774,7 +1774,7 @@
       "id": "subagent-authority-narrowing",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Constrain each delegated child to the effective parent sandbox and tool authority, including deployment defaults.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -1861,7 +1861,7 @@
       "id": "runtime-config-audit",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Record runtime identity and explicitly audit-safe resolved plugin configuration for each Session and live reload.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -2107,7 +2107,7 @@
       "id": "sandbox-execution-facts",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Describe selected sandbox runner and temporary filesystem semantics, log execution facts, and probe sticky-mode bubblewrap profiles.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -2137,7 +2137,7 @@
       "id": "workspace-development-context",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Scope harness checkout and HMR instructions to DSH workspaces with an explicit deployment override while retaining GUI orientation.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -2154,7 +2154,7 @@
       "id": "glob-ignore-annotations",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Keep ignored-file discovery but label ignore-rule matches and prioritize ordinary paths with bounded cancellable ripgrep classification.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -2169,7 +2169,7 @@
       "id": "bash-output-retention",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Retain command-output head and tail while keeping diagnostic tails and publish one complete-output recovery notice.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -2207,7 +2207,7 @@
       "id": "subagent-settlement-dedup",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Reference an exactly repeated last delivered child message instead of duplicating its text at settlement; delegation lifecycle files remain owned by subagent-authority-narrowing.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -2219,7 +2219,7 @@
       "id": "active-skill-context",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Project intact skill loads for safe reload deduplication and show measured instruction character costs in the skill row.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
@@ -2245,7 +2245,7 @@
       "id": "session-audit-integration-package-hygiene",
       "kind": "upstream-patch",
       "solutionType": "upstream-package-change",
-      "status": "proposed",
+      "status": "active",
       "summary": "Remove unused source wildcard exports rejected by the existing workspace constraints during session-audit integration; no repository consumers use these entries.",
       "upstreamPlan": "docs/audits/propostas-correcao-sessao-dsh-2026-10-12.md",
       "paths": [
