@@ -1582,6 +1582,19 @@
       "paths": [
         "configs/audit-evidence/"
       ]
+    },
+    {
+      "id": "pi-ai-websocket-close-retry",
+      "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
+      "status": "active",
+      "summary": "Classify pi-ai WebSocket closes by RFC 6455 close code so a provider service restart retries as TRANSPORT instead of ending the turn.",
+      "upstreamPlan": "docs/audits/auditoria-sessao-dsh-2026-10-12.md#p0-2--fechamento-transitório-do-websocket-encerra-o-turno-sem-retry",
+      "paths": [
+        "packages/llm/llm-pi-ai/src/stream.ts",
+        "packages/llm/llm-pi-ai/tests/convert.spec.ts",
+        "snapshots/session/websocket-close-retry/"
+      ]
     }
   ]
 }
