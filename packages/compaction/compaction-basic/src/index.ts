@@ -16,6 +16,7 @@ import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
 // Type-only: makes the optional sibling service available to `ctx.get()`.
 import type {} from '@deepseek-ai/dsh-compaction-tool-result-pruner'
+import type {} from '@deepseek-ai/dsh-app-boot'
 import {
   resolveCompactSpec,
   resolveConfig,
@@ -145,8 +146,9 @@ export class BasicCompactionEngine extends CompactionEngine {
   readonly config: ResolvedConfig
 
   private readonly warnedPressureConfigTargets = new Set<string>()
-  /** Routed target whose step-pressure compaction is suspended until the agent goes idle. */
-  private readonly suspendedPressureTargets = new WeakMap<Agent, string>()
+  /** Summary failures are scoped to a session's current turn and configuration. */
+  private suspendedPressureTargets = new WeakMap<Session, string>()
+  private pressureConfigurationRevision = 0
   private readonly overflowRetries = new WeakMap<Agent, number>()
   private readonly overflowAgents = new WeakMap<Session, Agent>()
 
@@ -171,19 +173,23 @@ export class BasicCompactionEngine extends CompactionEngine {
       )
     }
 
-    // A configuration failure repeats on every later step of the turn, so step
-    // pressure stops retrying that routed target until the agent goes idle;
-    // the next turn makes one fresh attempt that observes any config change.
+    const configurationChanged = (): void => {
+      this.pressureConfigurationRevision += 1
+      this.suspendedPressureTargets = new WeakMap()
+    }
+    ctx.on('llm/adapters-updated', configurationChanged, { global: true })
+    ctx.on('app-boot/config-reload', configurationChanged, { global: true })
+
     ctx.on('agent/pre-step', async (
       { agent, signal },
       next,
     ): Promise<PreStepDecision> => {
       const target = routedTarget(agent.session)
       const targetKey = target === undefined ? undefined : `${target.provider}/${target.model}`
-      const suspended = this.suspendedPressureTargets.get(agent)
-      const paused = suspended !== undefined && suspended === targetKey
-      if (suspended !== undefined && !paused) this.suspendedPressureTargets.delete(agent)
-      if (!signal.aborted && !paused) {
+      const suspended = this.suspendedPressureTargets.get(agent.session)
+      if (suspended !== undefined && suspended !== targetKey) this.suspendedPressureTargets.delete(agent.session)
+      const revision = this.pressureConfigurationRevision
+      if (!signal.aborted) {
         try {
           const result = await this.compactIfNeeded(agent, 'pressure', signal)
           if (result !== null) logResult(result, 'step pressure')
@@ -193,10 +199,11 @@ export class BasicCompactionEngine extends CompactionEngine {
             this.warnedPressureConfigTargets.add(error.targetKey)
           }
           const message = error instanceof Error ? error.message : String(error)
-          if (targetKey !== undefined && error instanceof LlmError && CONFIGURATION_FAILURE_CODES.has(error.code)) {
-            this.suspendedPressureTargets.set(agent, targetKey)
+          if (targetKey !== undefined && revision === this.pressureConfigurationRevision
+            && error instanceof LlmError && CONFIGURATION_FAILURE_CODES.has(error.code)) {
+            this.suspendedPressureTargets.set(agent.session, targetKey)
             ctx.logger.warn(
-              `step compaction failed: ${message}; continuing the turn without step compaction `
+              `step compaction failed: ${message}; continuing the turn without automatic summaries `
               + `for ${targetKey} until the turn ends`,
             )
           } else {
@@ -210,12 +217,13 @@ export class BasicCompactionEngine extends CompactionEngine {
     ctx.on('agent/status', ({ agent, status }) => {
       if (status !== 'idle') return
       this.overflowRetries.delete(agent)
-      this.suspendedPressureTargets.delete(agent)
+      this.suspendedPressureTargets.delete(agent.session)
     })
 
     // A successful response starts a fresh overflow-recovery sequence even
     // when tool calls continue the same turn into another request.
     ctx.on('session/event', (session, event) => {
+      if (event.type === 'turn/end') this.suspendedPressureTargets.delete(session)
       if (event.type !== 'assistant/message') return
       const agent = this.overflowAgents.get(session)
       if (agent !== undefined) this.overflowRetries.delete(agent)
@@ -359,6 +367,8 @@ export class BasicCompactionEngine extends CompactionEngine {
       measurement = meter.measure(agent.session)
     }
     if (measurement.totalTokens < spec.thresholdTokens) return null
+
+    if (this.suspendedPressureTargets.get(agent.session) === targetKey) return null
 
     let result: CompactionResult | null = null
     for (let attempt = 0; attempt <= spec.compactionRetries; attempt += 1) {
