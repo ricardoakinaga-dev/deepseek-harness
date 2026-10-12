@@ -222,8 +222,8 @@ function collectAttachmentRefs(
 }
 
 /**
- * Collect references only from declared first-party content fields and completed
- * Assistant blocks. Unknown events and unrelated payload fields remain opaque.
+ * Collect references from declared first-party content fields, completed
+ * Assistant blocks, and saved deliverables. Unknown events and unrelated fields remain opaque.
  * @param event - one parsed JSONL event object.
  * @param images - image dedupe map keyed by attachment id.
  * @param files - file dedupe map keyed by attachment id and stored name.
@@ -243,9 +243,22 @@ function collectEventAttachmentRefs(
     inserted?: unknown
     summary?: unknown
     rawOutput?: unknown
+    files?: unknown
     stream?: Array<{ type?: unknown; chunk?: { type?: unknown; block?: unknown } }>
   }
   switch (row.type) {
+    case 'deliverables/presented':
+      if (!Array.isArray(carrier.files)) return
+      for (const file of carrier.files) {
+        if (typeof file !== 'object' || file === null || Array.isArray(file)) continue
+        const capture: unknown = (file as { capture?: unknown }).capture
+        if (typeof capture !== 'object' || capture === null || Array.isArray(capture)) continue
+        const saved = capture as { status?: unknown; attachment?: unknown }
+        if (saved.status !== 'stored' || typeof saved.attachment !== 'object' || saved.attachment === null) continue
+        const ref = saved.attachment as FileAttachmentRef
+        files.set(`${String(ref.attachmentId)}\u0000${ref.name}`, ref)
+      }
+      return
     case 'user/message': case 'tool/ptc-dispatch':
       collectAttachmentRefs(carrier.content, images, files)
       return

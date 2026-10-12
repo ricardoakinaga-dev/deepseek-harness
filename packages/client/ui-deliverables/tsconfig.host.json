@@ -9,7 +9,8 @@
     "src/index.ts",
     "src/changes.ts",
     "src/presented.ts",
-    "src/present-open.ts"
+    "src/present-open.ts",
+    "src/present-download.ts"
   ],
   "references": [
     {

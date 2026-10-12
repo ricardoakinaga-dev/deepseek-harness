@@ -3,6 +3,8 @@ import { mkdtemp, rm, readFile, writeFile, mkdir, realpath, symlink, unlink } fr
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
+import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
+import type { PresentedFile } from '@deepseek-ai/dsh-tool-present/types'
 import { WorkspaceFiles } from '@deepseek-ai/dsh-api-workspace-files'
 import { Context } from '@deepseek-ai/cordis'
 import { HostConnectionService } from '@deepseek-ai/dsh-client-connection'
@@ -13,6 +15,7 @@ import { SessionQueryError } from '@deepseek-ai/dsh-session-query'
 import type { SessionEventReadRequest } from '@deepseek-ai/dsh-session-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { registerPresentOpen } from '../src/present-open.ts'
+import { registerPresentDownload } from '../src/present-download.ts'
 import { presentedFileUrl, PRESENT_OPEN_PATH } from '../src/presented.ts'
 
 const cleanups: Array<() => Promise<unknown>> = []
@@ -27,10 +30,12 @@ async function fixture() {
   cleanups.push(() => rm(root, { recursive: true, force: true }))
   const cwd = join(root, 'workspace')
   await mkdir(cwd)
-  const file = { path: '日记模板.docx' }
+  const file: PresentedFile = { path: '日记模板.docx' }
   await writeFile(join(cwd, file.path), Uint8Array.of(80, 75, 0, 255))
   const ctx = new Context()
   cleanups.push(() => ctx.fiber.dispose())
+  await ctx.plugin(LocalAttachmentStore, { dshHome: join(root, 'home') })
+  file.capture = { status: 'stored', attachment: await ctx.attachments.saveFile({ name: file.path, data: Uint8Array.of(80, 75, 0, 255) }) }
   const session: { cwd?: string } = { cwd }
   await ctx.plugin(LocalFileSystem, { cwd })
   ctx.provide('sandboxPolicy', { workspaceRoot: cwd } as never)
@@ -49,7 +54,10 @@ async function fixture() {
   const applications = vi.fn(async () => [{ id: 'player', name: 'Player', default: true, icon: null }])
   ctx.provide('sessionController', { workspacePathApplications: applications, resolveAgent, openWorkspacePath: opener, workspaceDesktop: () => ({ name: 'desktop', available: true, fileManager: 'finder' }) } as never)
   const connection = new HostConnectionService(ctx, [], {} as BrowserAuth)
-  const fiber = ctx.plugin({ inject: ['connection', 'sessionQuery', 'sessionController', 'workspaceFiles', 'fs', 'sandboxPolicy'], apply: registerPresentOpen })
+  const fiber = ctx.plugin({ inject: ['connection', 'sessionQuery', 'sessionController', 'workspaceFiles', 'fs', 'sandboxPolicy', 'attachments'], apply(scope) {
+    registerPresentOpen(scope)
+    registerPresentDownload(scope)
+  } })
   await fiber
   const handler = connection.createSharedFetchHandler('/api')
   const open = (query = '?sessionId=owner&seq=7&index=0', signal?: AbortSignal) => handler.fetch(new Request(
@@ -60,11 +68,10 @@ async function fixture() {
 
 describe('Presented workspace file native open route', () => {
   it('opens the source itself with current bytes and leaves it intact at disposal', async () => {
-    const { cwd, open, file, fiber, opener, handler, ctx } = await fixture()
+    const { cwd, open, file, fiber, opener, handler } = await fixture()
     const source = await realpath(join(cwd, file.path))
     expect(presentedFileUrl(SessionId('owner'), 7, 0)).toBe('api/present.open?sessionId=owner&seq=7&index=0')
     expect((await handler.fetch(new Request(`http://localhost${PRESENT_OPEN_PATH}`))).status).toBe(400)
-    expect((await handler.fetch(new Request('http://localhost/api/present.download?sessionId=owner&seq=7&index=0'))).status).toBe(404)
     for (const contents of ['current source', 'edited source']) {
       await writeFile(source, contents)
       const response = await open()
@@ -74,7 +81,9 @@ describe('Presented workspace file native open route', () => {
       expect(opener.mock.lastCall?.[0].path).toBe(source)
       expect(await readFile(opener.mock.lastCall![0].path, 'utf8')).toBe(contents)
     }
-    expect(ctx.get('attachments')).toBeUndefined()
+    const saved = await handler.fetch(new Request('http://localhost/api/present.download?sessionId=owner&seq=7&index=0'))
+    expect(saved.status).toBe(200)
+    expect(new Uint8Array(await saved.arrayBuffer())).toEqual(Uint8Array.of(80, 75, 0, 255))
     await fiber.dispose()
     expect(await readFile(source, 'utf8')).toBe('edited source')
     expect((await open()).status).toBe(404)

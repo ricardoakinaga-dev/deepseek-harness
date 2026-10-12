@@ -5,6 +5,8 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { PresentedFileCard } from '../src/client/PresentedFileCard.tsx'
 import { en, zh } from '../src/client/locales.ts'
+import { AttachmentId } from '@deepseek-ai/dsh-attachment'
+import { isOutsideWorkspace } from '../src/presented.ts'
 
 afterEach(cleanup)
 const props = () => ({
@@ -14,6 +16,7 @@ const props = () => ({
   phase: undefined,
   onPreview: vi.fn(),
   actions: <button type="button">Native file action</button>,
+  downloadUrl: 'api/present.download?sessionId=owner&seq=4&index=1',
   t: makeTranslate(en),
 })
 it('localizes reveal failures and accurately reports a directory-only action', () => {
@@ -69,4 +72,33 @@ it('renders the supplied action independently from the card preview', () => {
   expect(p.onPreview).not.toHaveBeenCalled()
   fireEvent.click(view.getByRole('button', { name: 'Preview out/report.pdf in sidebar' }))
   expect(p.onPreview).toHaveBeenCalledOnce()
+})
+
+it.each([en, zh])('shows localized saved, oversized, historical, and outside-workspace states', (dictionary) => {
+  const p = { ...props(), t: makeTranslate(dictionary) }
+  const file = { ...p.file, path: '/elsewhere/report.pdf', capture: { status: 'stored' as const, attachment: {
+    attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`), name: 'report.pdf', bytes: 4,
+  } } }
+  const view = render(<PresentedFileCard {...p} file={file} cwd="/workspace" host={{ ...p.host, available: false }} />)
+  const link = view.getByRole('link', { name: dictionary['presented.savedCopy'] })
+  expect(link.getAttribute('href')).toBe(p.downloadUrl)
+  expect(link.getAttribute('download')).toBe('report.pdf')
+  expect(link.closest('button')).toBeNull()
+  expect(view.getByText(dictionary['presented.outsideWorkspace'])).toBeTruthy()
+  view.rerender(<PresentedFileCard {...p} file={{ ...file, capture: { status: 'too-large', maxBytes: 20 } }} />)
+  expect(view.queryByRole('link')).toBeNull()
+  expect(view.getByText(dictionary['presented.tooLarge'].replace('{maxBytes}', '20'))).toBeTruthy()
+  view.rerender(<PresentedFileCard {...p} />)
+  expect(view.getByText(dictionary['presented.captureUnknown'])).toBeTruthy()
+  expect(view.queryByRole('link')).toBeNull()
+  expect(view.queryByText(dictionary['presented.outsideWorkspace'])).toBeNull()
+})
+
+it.each([
+  ['/work', 'report.pdf', false], ['/work', '../report.pdf', true], ['/work', 'sub/../../report.pdf', true],
+  ['/work', '/work/sub/../report.pdf', false], ['/work', '/work-other/report.pdf', true], ['/', '/report.pdf', false],
+  ['C:\\Work', 'c:\\work\\report.pdf', false], ['C:\\Work', 'D:\\work\\report.pdf', true],
+  ['C:\\Work', '..\\report.pdf', true], ['\\\\host\\share\\work', '\\\\host\\share\\elsewhere\\report.pdf', true],
+] as const)('classifies %s and %s without source access', (cwd, path, outside) => {
+  expect(isOutsideWorkspace(cwd, path)).toBe(outside)
 })

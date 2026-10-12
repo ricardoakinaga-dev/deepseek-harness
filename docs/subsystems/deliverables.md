@@ -9,14 +9,20 @@ Sources: [`packages/deliverables/tool-present/src/types.ts`](../../packages/deli
 ## `PresentedFile` — one declared delivery
 
 ```ts type-equiv
-/** A declared filesystem file whose current contents remain at its source path. */
+/** A declared filesystem file with an optional immutable copy of its presented bytes. */
 interface PresentedFile {
   /** Original absolute path or path relative to the Session working directory. */
   path: string
   /** Optional description supplied by the model. */
   description?: string
+  /** Capture outcome; absent on historical declarations that did not preserve bytes. */
+  capture?:
+    | { status: 'stored'; attachment: FileAttachmentRef }
+    | { status: 'too-large'; maxBytes: number }
 }
 ```
+
+`path` continues to identify the original file for previews and native opening. A stored capture references immutable presented bytes through [`FileAttachmentRef`](attachment.md), so saved-copy downloads and Session ZIP exports remain available after source edits or deletion. A `too-large` capture records the configured byte ceiling and has no saved copy; absent `capture` means historical preservation status is unknown. Capture limits and failure behavior belong to [tool-present](../../packages/deliverables/tool-present/README.md); authenticated download behavior belongs to [ui-deliverables](../../packages/client/ui-deliverables/README.md).
 
 ## `WorkspaceChangedFile` — one changed file
 

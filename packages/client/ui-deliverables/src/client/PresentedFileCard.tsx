@@ -1,9 +1,9 @@
-/** File identity, Sidebar preview, and contributed native actions for one delivery. */
+/** File identity, capture status, saved-copy download, Sidebar preview, and native actions. */
 import type { ReactNode } from 'react'
 import { resolveWorkspacePath } from '@deepseek-ai/dsh-util-workspace-path'
 import { FileTypeIcon, fileExtension } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { PresentedHost } from '../presented.ts'
+import { isOutsideWorkspace, type PresentedHost } from '../presented.ts'
 import { PRESENTED_SUCCESS_HOLD_MS, PRESENTED_SUCCESS_FADE_MS, type PresentedOpenPhase } from './present-open.ts'
 import { basename, type PresentedPath } from './turn-deliverables.ts'
 import type { NS } from './locales.ts'
@@ -16,16 +16,17 @@ function cardDescription(description: string | undefined, fallback: string): str
 
 /**
  * Render independent file actions without nesting buttons inside a clickable card.
- * @param props - durable file metadata, Sidebar preview, Host capabilities, gesture status, and localized copy.
+ * @param props - durable metadata, authenticated download URL, preview, Host capabilities, gesture status, and localized copy.
  * @returns the file card and its anchored action menu.
  */
-export function PresentedFileCard({ file, cwd, phase, host, onPreview, actions, t }: {
+export function PresentedFileCard({ file, cwd, phase, host, onPreview, actions, downloadUrl, t }: {
   file: PresentedPath
   cwd: string | undefined
   phase: PresentedOpenPhase | undefined
   host: PresentedHost | null
   onPreview: () => void
   actions: ReactNode
+  downloadUrl: string
 } & PropsLocale<typeof NS>) {
   const succeeded = phase === 'opened' || phase === 'revealed'
   const reveal = host?.fileManager ?? 'directory'
@@ -51,6 +52,14 @@ export function PresentedFileCard({ file, cwd, phase, host, onPreview, actions, 
           </span>
           <span className={css.previewHint}>{t('presented.preview')}</span>
         </span>
+        <span className={css.capture} data-presented-capture>
+          {file.capture?.status === 'stored'
+            ? <a className={css.savedCopy} href={downloadUrl} download={file.capture.attachment.name}>{t('presented.savedCopy')}</a>
+            : file.capture?.status === 'too-large'
+              ? t('presented.tooLarge', { maxBytes: file.capture.maxBytes })
+              : t('presented.captureUnknown')}
+        </span>
+        {isOutsideWorkspace(cwd, file.path) && <span className={css.capture} data-presented-outside>{t('presented.outsideWorkspace')}</span>}
       </div>
       <div className={css.actions}>{actions}</div>
     </div>
