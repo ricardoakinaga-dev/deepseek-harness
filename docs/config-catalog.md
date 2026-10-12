@@ -731,15 +731,25 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 ## `@deepseek-ai/dsh-compaction-resilience-policy`
 
 - `inject`: `llm` · `sessions` · `tokenMeter`
-- `source`: [`packages/compaction/compaction-resilience-policy/src/index.ts:35`](../packages/compaction/compaction-resilience-policy/src/index.ts)
+- `source`: [`packages/compaction/compaction-resilience-policy/src/index.ts:38`](../packages/compaction/compaction-resilience-policy/src/index.ts)
 
 ```ts config-catalog
 /** Configurable compaction and request-admission limits. */
 export interface Config {
   /** Maximum output tokens sent by calls whose purpose is `compaction`. */
   compactionMaxTokens?: number
-  /** Reasoning effort sent by calls whose purpose is `compaction`; omitted to preserve the caller/provider choice. */
+  /**
+   * Reasoning effort sent by calls whose purpose is `compaction` on routes
+   * without a {@link Config.compactionReasoningEffortByRoute} entry; omitted to
+   * preserve the caller/provider choice.
+   */
   compactionReasoningEffort?: string
+  /**
+   * Per-route reasoning effort for calls whose purpose is `compaction`, keyed by
+   * `provider/model` or `provider`. An exact `provider/model` key wins over a
+   * `provider` key, which wins over {@link Config.compactionReasoningEffort}.
+   */
+  compactionReasoningEffortByRoute?: Record<string, string>
   /** Total cooperative deadline for one compaction stream, in milliseconds. */
   compactionTimeoutMs?: number
   /** Whether loop-built requests are checked against their logged context capacity before adapter dispatch. */

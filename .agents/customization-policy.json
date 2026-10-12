@@ -127,7 +127,8 @@
         "scripts/verify-package-readme-model-experience.ts",
         "snapshots/session/resilient-compaction-timeout/",
         "tsconfig.base.json",
-        "tsconfig.host.json"
+        "tsconfig.host.json",
+        "snapshots/session/resilient-compaction-route-effort/"
       ]
     },
     {

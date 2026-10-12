@@ -31,7 +31,6 @@ describe('dsh-resilient-compaction bundle', () => {
         name: '@deepseek-ai/dsh-compaction-resilience-policy',
         config: {
           compactionMaxTokens: 4096,
-          compactionReasoningEffort: 'off',
           compactionTimeoutMs: 480_000,
           requestPreflight: true,
           requestSafetyMarginTokens: 256,

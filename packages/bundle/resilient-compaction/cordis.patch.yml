@@ -7,7 +7,6 @@
       name: '@deepseek-ai/dsh-compaction-resilience-policy'
       config:
         compactionMaxTokens: 4096
-        compactionReasoningEffort: 'off'
         compactionTimeoutMs: 480000
         requestPreflight: true
         requestSafetyMarginTokens: 256

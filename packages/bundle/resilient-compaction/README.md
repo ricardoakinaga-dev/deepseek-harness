@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This opt-in, private fork-only bundle adds bounded compaction to a source-checkout `dsh --profile` surface without replacing the official compaction backend or copying agent presets. It caps compaction output at 4,096 tokens, selects reasoning effort `off`, applies an eight-minute cooperative deadline, and enables logged-capacity request admission. No shipped profile includes it automatically. It is not published under the upstream namespace; use the repository checkout or a separately authorized fork-owned package before installing it into a profile.
+This opt-in, private fork-only bundle adds bounded compaction to a source-checkout `dsh --profile` surface without replacing the official compaction backend or copying agent presets. It caps compaction output at 4,096 tokens, preserves the caller's reasoning effort, applies an eight-minute cooperative deadline, and enables logged-capacity request admission. No shipped profile includes it automatically. It is not published under the upstream namespace; use the repository checkout or a separately authorized fork-owned package before installing it into a profile.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ The package remains private until a separate decision establishes a fork-owned n
 
 ### What you get
 
-The layer inserts one host plugin with global `llm/stream` delivery. Global delivery is required because Web sessions mount their official `compaction-basic` engines inside preset realms. The policy applies `compactionMaxTokens: 4096`, `compactionReasoningEffort: off`, `compactionTimeoutMs: 480000`, request preflight, a 256-token safety margin, and a 1,024-token fallback output reserve. Later profile or `--patch` layers can replace this row's whole `config` to tune those values.
+The layer inserts one host plugin with global `llm/stream` delivery. Global delivery is required because Web sessions mount their official `compaction-basic` engines inside preset realms. The policy applies `compactionMaxTokens: 4096`, `compactionTimeoutMs: 480000`, request preflight, a 256-token safety margin, and a 1,024-token fallback output reserve; it selects no reasoning effort. Later profile or `--patch` layers can replace this row's whole `config` to tune those values.
 
 -----
 
@@ -85,7 +85,7 @@ The bundle itself adds no request prefix. The inserted policy preserves compacti
 
 These limits define the bundle's deployment boundary.
 
-- **`off` is an adapter-owned effort id** — a model that does not advertise it rejects compaction; override the complete policy row with a supported low-cost id or omit `compactionReasoningEffort`.
+- **Reasoning effort is route-specific** — the layer selects none; a later layer that wants `off` for a local model sets it in `compactionReasoningEffortByRoute`, because a model that does not advertise the effort rejects compaction.
 - **The layer expects the base services** — `llm`, `sessions`, and `tokenMeter` must exist; a minimal custom profile without them leaves the plugin waiting for dependencies.
 - **Later config patches replace the complete block** — restate every value you want to retain when tuning one field.
 - **The policy's event-log limitations still apply** — consult its README before relying on the event log for the effective reasoning effort or lowered output cap.

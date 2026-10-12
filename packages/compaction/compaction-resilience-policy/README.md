@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This private fork-only package bounds slow compaction requests when their adapter honors cancellation and rejects a loop-built request that is already too large for its logged model capacity before the adapter does expensive work. Compaction calls receive a configurable output cap, optional reasoning effort, and cooperative total deadline. Ordinary model calls keep their request options unchanged. Use it from the repository checkout or through a separately authorized fork-owned package; the upstream namespace is not a publication identity for this fork.
+This private fork-only package bounds slow compaction requests when their adapter honors cancellation and rejects a loop-built request that is already too large for its logged model capacity before the adapter does expensive work. Compaction calls receive a configurable output cap, an optional reasoning effort selected per route, and a cooperative total deadline. Ordinary model calls keep their request options unchanged. Use it from the repository checkout or through a separately authorized fork-owned package; the upstream namespace is not a publication identity for this fork.
 
 ## Table of Contents
 
@@ -37,7 +37,8 @@ Choose this policy for self-hosted or throughput-limited models where a large su
 - name: '@deepseek-ai/dsh-compaction-resilience-policy'
   config:
     compactionMaxTokens: 4096
-    compactionReasoningEffort: 'off'
+    compactionReasoningEffortByRoute:
+      llama-cpp: 'off'
     compactionTimeoutMs: 480000
     requestPreflight: true
     requestSafetyMarginTokens: 256
@@ -47,7 +48,8 @@ Choose this policy for self-hosted or throughput-limited models where a large su
 | Field | Default | Meaning |
 |---|---:|---|
 | `compactionMaxTokens` | `4096` | Upper bound applied to a `purpose: compaction` request without increasing a smaller caller cap |
-| `compactionReasoningEffort` | unset | Non-empty adapter effort id applied only to compaction; the selected model must advertise it |
+| `compactionReasoningEffort` | unset | Non-empty adapter effort id applied only to compaction on routes without a per-route entry; the selected model must advertise it |
+| `compactionReasoningEffortByRoute` | unset | Compaction effort keyed by `provider/model` or `provider`; an exact route key wins over its provider key, which wins over `compactionReasoningEffort` |
 | `compactionTimeoutMs` | `480000` | Total cooperative compaction deadline in milliseconds |
 | `requestPreflight` | `true` | Enables capacity checks for requests marked by `dsh-agent-loop` |
 | `requestSafetyMarginTokens` | `256` | Extra context headroom added to the projected request |
@@ -57,7 +59,7 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### Outcomes and recovery
 
-An oversized loop request ends with the canonical `CONTEXT_WINDOW_EXCEEDED` code before adapter dispatch. The official `compaction-basic` request-error handler can then prune or compact the durable surface and retry. A compaction deadline ends with `COMPACTION_TIMEOUT` only after the downstream adapter observes cancellation and settles; caller cancellation that happens first remains an ordinary aborted finish. An immutable compaction request fails closed with `COMPACTION_POLICY_IMMUTABLE_REQUEST` because silently bypassing the configured controls would restore the hang risk.
+An oversized loop request ends with the canonical `CONTEXT_WINDOW_EXCEEDED` code before adapter dispatch. The official `compaction-basic` request-error handler can then prune or compact the durable surface and retry. A compaction deadline ends with `COMPACTION_TIMEOUT` only after the downstream adapter observes cancellation and settles; caller cancellation that happens first remains an ordinary aborted finish. An immutable compaction request fails closed with `COMPACTION_POLICY_IMMUTABLE_REQUEST` because silently bypassing the configured controls would restore the hang risk. A route that does not offer the selected effort fails with `UNSUPPORTED_REASONING_EFFORT`, and the message names the route and the config entry that selected the effort.
 
 -----
 
@@ -103,7 +105,7 @@ The summarization model receives the same system prompt, tool schemas, conversat
 
 #### Token effect
 
-Compaction output is capped at `compactionMaxTokens` without increasing a smaller caller limit. A configured reasoning effort can reduce or increase hidden reasoning tokens according to the adapter; the bundle selects `off` to keep local summarization bounded.
+Compaction output is capped at `compactionMaxTokens` without increasing a smaller caller limit. A configured reasoning effort can reduce or increase hidden reasoning tokens according to the adapter; the bundle preserves the caller's effort, and a profile selects `off` per route for a local model whose summarization must stay bounded.
 
 #### KV Cache effect
 
@@ -132,7 +134,7 @@ These constraints define where the policy deliberately delegates or where the of
 - **Timeouts are cooperative** — an adapter that ignores `AbortSignal` can still fail to settle; the policy does not abandon live provider work or emit a terminal result while cleanup continues.
 - **Admission uses the token meter's estimate** — the safety margin reduces estimator risk but cannot turn heuristic tokenization into provider-exact pricing.
 - **Unknown or mismatched capacity delegates** — no preflight is attempted without a live session and a latest `request/context` matching the request's provider and model.
-- **The reasoning effort must exist on the selected model** — an unsupported configured id fails with the LLM service's `UNSUPPORTED_REASONING_EFFORT` result instead of silently falling back.
+- **The reasoning effort must exist on the selected model** — an unsupported configured id fails with the LLM service's `UNSUPPORTED_REASONING_EFFORT` result, naming the selecting config entry, instead of silently falling back.
 - **Official `compaction/summary` has no reasoning or timeout fields** — the event records provider, model, output cap, output, and usage; a waterfall-applied reasoning choice and a successful deadline are not represented. The package emits no custom session event because removable bundles must not make their historical logs unreadable.
 - **`compaction/summary` keeps the backend-requested cap** — the current `compaction-basic` result records its own configured `maxTokens`, even when this waterfall lowers the adapter request. Recording every effective auxiliary-call request requires an upstream event/API extension rather than a bundle-local event.
 
