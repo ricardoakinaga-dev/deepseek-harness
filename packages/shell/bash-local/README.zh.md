@@ -44,13 +44,16 @@ kind: "package-reference"
 | `cwd` | `process.cwd()` | 命令的默认工作目录 |
 | `timeoutMs` | `120,000` | 默认前台超时，单位为毫秒 |
 | `maxTimeoutMs` | `600,000` | 每次调用超时覆盖值的上限 |
-| `maxOutputBytes` | `64,000` | 每流内存输出上限；溢出后 spill 到临时文件 |
+| `maxOutputBytes` | `64,000` | 每流输出上限，以整数字节计；溢出后 spill 到临时文件 |
+| `outputHeadRatio` | `0.2` | 最终预览的前缀比例，范围 0 到 1；0 仅保留尾部 |
 | `maxSpillBytes` | `67,108,864` | 每流完整输出的 spill 上限 |
 | `graceMs` | `3,000` | 终止升级与退出后管道排空的宽限时间 |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-bash-local)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### 运行命令
+
+最终 stdout/stderr 预览保留配置的前缀与后缀，UTF-8 切口安全，并在可用时保留完整边界行。分隔符计入字节上限。任务读取器仍使用原有尾部和全流偏移，因此前台预览不会把旧前缀字节重复送入任务。
 
 通过等待 execution 的 `result()` 投影来运行命令。非零退出、超时或取消都会 resolve 为描述性结果——只有基础设施失败才 reject。每次调用的 `timeoutMs` 覆盖值受配置上限约束，`workdir` 未设置时则回退到配置的默认值；受信任的调用方还可以为单次调用提高 stdout 捕获预算，而 stderr 仍使用 `maxOutputBytes`。环境默认面向模型：`NO_COLOR=1 TERM=dumb PAGER=cat GIT_PAGER=cat` 可防止分页器与 ANSI 颜色破坏输出，调用方显式提供的条目仍然优先。
 
@@ -124,7 +127,7 @@ if (result.timedOut) console.log('timed out after', result.timeoutMs)
 <a id="model-experience"></a>
 ## 模型体验
 
-通过 `dsh-tool-bash` 间接影响；该工具会渲染本执行器有界的 stdout/stderr 尾部、后台进程增量、spill 文件路径与基础设施失败。
+通过 `dsh-tool-bash` 间接影响；该工具会渲染本执行器有界的 stdout/stderr 预览、后台进程增量、spill 文件路径与基础设施失败。
 
 #### KV Cache 影响
 

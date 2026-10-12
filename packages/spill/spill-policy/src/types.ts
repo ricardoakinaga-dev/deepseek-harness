@@ -12,6 +12,16 @@
 
 import type { SessionId } from '@deepseek-ai/dsh-session'
 
+/**
+ * Canonical bash recovery metadata. Its projection has three text blocks:
+ * preview, recovery notice, and terminal status. The path names complete raw
+ * stdout followed by marked stderr; absence means full recovery is unavailable.
+ */
+export interface BashOutputRetention {
+  kind: 'bash-output'
+  fullOutputPath?: string
+}
+
 /** Minimal structural view of a tool execution: the owning session's header id, when present. */
 export interface SpillPolicyExec {
   /** The agent on whose behalf the call runs, when there is one. */

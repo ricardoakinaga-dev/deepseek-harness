@@ -159,9 +159,16 @@ function signalTree(
 /**
  * Validate the synchronous portion of one ordinary spawn request.
  * @param spec - exact target request.
- * @throws when grace, cancellation, or argv is invalid before launch.
+ * @throws when grace, collection budgets, cancellation, or argv is invalid before launch.
  */
 export function validateSubprocessSpec(spec: SubprocessSpawnSpec): void {
+  for (const mode of [spec.stdio.stdout, spec.stdio.stderr]) {
+    if (typeof mode === 'string' || mode.headBytes === undefined) continue
+    if (!Number.isSafeInteger(mode.maxBytes) || mode.maxBytes < 0
+      || !Number.isSafeInteger(mode.headBytes) || mode.headBytes < 0 || mode.headBytes > mode.maxBytes) {
+      throw new Error('subprocess headBytes requires whole-byte budgets with 0 <= headBytes <= maxBytes')
+    }
+  }
   if (!Number.isFinite(spec.graceMs) || spec.graceMs <= 0 || spec.graceMs > MAX_TIMER_DELAY_MS) {
     throw new Error(`subprocess graceMs must be a positive finite number no greater than ${MAX_TIMER_DELAY_MS}`)
   }
@@ -284,6 +291,7 @@ export function bindManagedProcess(
       mode.maxBytes,
       label,
       mode.spill === undefined ? undefined : { maxBytes: mode.spill.maxBytes, dir: spillDir, onFailure: onSpillFailure },
+      mode.headBytes,
     )
     stream.on('data', (chunk: Buffer) => { collector.push(chunk) })
     return collector

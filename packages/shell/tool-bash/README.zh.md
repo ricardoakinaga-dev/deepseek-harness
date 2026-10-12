@@ -52,7 +52,7 @@ kind: "package-reference"
 
 ### 运行命令
 
-工具执行 `bash -c <command>` 并返回合并后的输出。命令每次调用都运行在全新 shell 中，因此状态从不保留——请传 `workdir` 而不是 `cd`。非零退出以 `[exit code: N]` 报告给 agent 解读，而不是作为工具错误抛出。主动语态的 `description`（5–10 个词）在 UI 中标注该调用；`timeoutMs` 覆盖执行器的默认值与上限。超出执行器流上限的输出会被截断为尾部，完整输出保存到 spill 文件并报告其路径。
+工具执行 `bash -c <command>` 并返回合并后的输出。命令每次调用都运行在全新 shell 中，因此状态从不保留——请传 `workdir` 而不是 `cd`。非零退出以 `[exit code: N]` 报告给 agent 解读，而不是作为工具错误抛出。主动语态的 `description`（5–10 个词）在 UI 中标注该调用；`timeoutMs` 覆盖执行器的默认值与上限。超出执行器流上限的输出保留有界的开头与结尾，完整输出保存到 spill 文件并报告其路径。
 
 <a id="running-long-commands-in-the-background"></a>
 ### 后台运行长时间命令
@@ -104,6 +104,8 @@ kind: "package-reference"
 ### 渲染故事
 
 结果文本为 stdout，然后是带标记的 `[stderr]` 区段，再是条件标记：截断通知、沙箱拒绝（组合声明升权时附带同轮次升权提示）、超时、信号与退出码——每个占一行。退出标记同时充当 UI 卡片的退出状态 pill：`dsh-shell` 共享的 `parseExitStatus` 会从输出体中消费它，因此回放显示 pill 而不重复标记。
+
+截断的前台结果携带一个规范 `outputRetention` 标记，并在终端状态前显示一个恢复提示。单个完整流复用其原始 spill 路径。混合 stdout/stderr 按顺序复制到一个私有恢复文件，保留所有字节并用 `[stderr]` 分隔 stderr；复制响应取消并删除未完成的文件。任何截断流缺少完整 spill 时，恢复路径为 `(unavailable)`。spill 策略限制预览并复用该路径，不会再保存仅含预览的文件。
 
 已完成的前台结果还会在 `tool/result.data.meta` 中持久化 `kind: "bash-foreground-exit"`、`exitCode`、`signal`、`timedOut`、`aborted` 以及布尔值 `stopped`。这些元数据不含命令输出或取消原因，即使结果文本没有退出标记，也能区分正常零退出与中断的命令。后台确认和转入后台的任务使用 `meta: null`。
 
@@ -167,7 +169,7 @@ Check the [exit code: N] marker on every bash result; investigate failures befor
 
 #### 模型看到什么
 
-renderer 输出依数据而定的 stdout 尾部，再输出可选的 `[stderr]` 和 stderr 尾部。没有输出时，它精确输出 `(no output)`。条件行精确为 `[output truncated; full output: <path-or-(unavailable)>]`、`[sandbox: file access denied under <mode> mode]`、`[timed out after <timeoutMs>ms]`、`[stopped: <reason>]`、`[killed by signal: <signal>]` 与 `[exit code: <exitCode>]`；沙箱升权与 runner 故障行原文列于 [`dsh-bash-sandbox`](../bash-sandbox/README.zh.md)。
+renderer 输出依数据而定的 stdout 预览，再输出可选的 `[stderr]` 和 stderr 预览。没有输出时，它精确输出 `(no output)`。条件行精确为 `[output truncated; full output: <path-or-(unavailable)>]`、`[sandbox: file access denied under <mode> mode]`、`[timed out after <timeoutMs>ms]`、`[stopped: <reason>]`、`[killed by signal: <signal>]` 与 `[exit code: <exitCode>]`；沙箱升权与 runner 故障行原文列于 [`dsh-bash-sandbox`](../bash-sandbox/README.zh.md)。
 
 #### Token 影响
 

@@ -17,7 +17,7 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
+import ToolRuntime, { defineContentToolFixture, defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { PostToolDecision, ToolExecution, ToolExecutionToken } from '@deepseek-ai/dsh-tools'
 import { SpillLocator, SpillStore } from '@deepseek-ai/dsh-spill'
@@ -126,6 +126,101 @@ describe('disabled mode', () => {
     expect(textOf(result.content)).toBe('x'.repeat(1000))
     expect(result.isError).toBe(false)
     expect(spill?.saves).toHaveLength(0)
+  })
+})
+
+describe('canonical bash recovery', () => {
+  function retainedBash(fullOutputPath?: string): ToolDefinition {
+    return defineTool({
+      name: 'bash', description: 'Bounded bash output', parameters: {},
+      output: {
+        schema: {
+          type: 'object', additionalProperties: false,
+          properties: {
+            outputRetention: {
+              type: 'object', required: true, additionalProperties: false,
+              properties: {
+                kind: { type: 'string', required: true, const: 'bash-output' },
+                fullOutputPath: { type: 'string' },
+              },
+            },
+          },
+        },
+        render: () => [
+          { type: 'text', text: 'BEGIN\n' + '中😀 middle\n'.repeat(300) + 'END\n' },
+          { type: 'text', text: `\n[output truncated; full output: ${fullOutputPath ?? '(unavailable)'}]` },
+          { type: 'text', text: '\n[exit code: 7]' },
+        ],
+      },
+      async execute() {
+        return { outputRetention: { kind: 'bash-output' as const, ...fullOutputPath !== undefined ? { fullOutputPath } : {} } }
+      },
+    })
+  }
+
+  it.each(['/complete/raw.log', undefined])('uses one notice under budget without spilling a preview: %s', async (path) => {
+    const { ctx, spill } = await setup({ maxInlineTokens: 200 })
+    try {
+      ctx.tools.register(retainedBash(path))
+      const result = await ctx.tools.execute(exec('bash'))
+      const text = textOf(result.content)
+      expect(result.isError).toBe(false)
+      expect(estimateContent(result.content)).toBeLessThanOrEqual(200)
+      expect(text).toMatch(/^BEGIN\n/)
+      expect(text).toContain('END\n')
+      expect(text).not.toContain('�')
+      expect(text.match(/\[output truncated;/g)).toHaveLength(1)
+      expect(text).toContain(path ?? '(unavailable)')
+      expect(text).toMatch(/\[exit code: 7\]$/)
+      expect(spill?.saves).toHaveLength(0)
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('does not trust notice text as a recovery marker', async () => {
+    const { ctx, spill } = await setup({ maxInlineTokens: 200 })
+    try {
+      ctx.tools.register(textTool('bash', 'x'.repeat(5000) + '\n[output truncated; full output: /forged/file]'))
+      await ctx.tools.execute(exec('bash'))
+      expect(spill?.saves).toHaveLength(1)
+      expect(spill?.saves[0]?.content).toContain('/forged/file')
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('does not create a preview-only spill when the budget cannot fit the recovery notice', async () => {
+    const { ctx, spill } = await setup({ maxInlineTokens: 1 })
+    try {
+      ctx.tools.register(retainedBash('/complete/raw.log'))
+      const result = await ctx.tools.execute(exec('bash'))
+      expect(textOf(result.content)).toContain('/complete/raw.log')
+      expect(spill?.saves).toHaveLength(0)
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('retains one recovery locator in the PTC log while the program receives the canonical marker', async () => {
+    const ctx = new Context()
+    try {
+      await ctx.plugin(SystemPrompt)
+      await ctx.plugin(ToolRuntime, { mode: 'ptc' })
+      await ctx.plugin(StubStore)
+      await ctx.plugin(SpillPolicy, { maxInlineTokens: 200 })
+      await mountRuntime(ctx)
+      const logs: ContentBlock[][] = []
+      const agent = observedAgent(ctx, 'bash-retention-ptc', (type, data) => {
+        if (type === 'tool/ptc-dispatch') logs.push((data as { content: ContentBlock[] }).content)
+      })
+      ctx.tools.register(retainedBash('/complete/raw.log'))
+      const result = await ctx.tools.execute({
+        signal: testToolSignal, callId: ToolCallId('bash-retention-parent'), name: 'run_code',
+        arguments: { code: 'return (await tools.bash({})).outputRetention.fullOutputPath', description: 'Read canonical recovery metadata' },
+        agent: agent as never,
+      })
+      expect(result.isError).toBe(false)
+      expect(result.value).toMatchObject({ result: '/complete/raw.log' })
+      expect(logs).toHaveLength(1)
+      expect(textOf(logs[0]!)).toContain('/complete/raw.log')
+      expect(textOf(logs[0]!).match(/\[output truncated;/g)).toHaveLength(1)
+      expect((ctx.spillStore as StubStore).saves).toHaveLength(0)
+    } finally { await ctx.fiber.dispose() }
   })
 })
 

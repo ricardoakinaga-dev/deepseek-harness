@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -321,6 +321,54 @@ describe('bash tool', () => {
     const result = await call(ctx, 'bash', { command: 'for i in $(seq 1 100); do printf "line-%04d\\n" $i; done', description: 'test command' })
     expect(text(result)).toContain('[output truncated; full output: ')
     expect(text(result)).toContain('line-0100')
+  })
+
+  it('provides one complete recovery file for truncated stdout and stderr', async () => {
+    const ctx = new Context()
+    try {
+      await ctx.plugin(SystemPrompt)
+      await ctx.plugin(ToolRuntime)
+      await ctx.plugin(LocalSubprocessRuntime)
+      ;(ctx.subprocess as LocalSubprocessRuntime).internals = { spillDir }
+      await ctx.plugin(LocalBashExecutor, { maxOutputBytes: 100, graceMs: 200 })
+      await ctx.plugin(BashEnvPlugin)
+      await ctx.plugin(ToolBash)
+      const result = await call(ctx, 'bash', {
+        command: 'for i in $(seq 1 100); do printf "out-%04d\\n" $i; printf "err-%04d\\n" $i >&2; done; exit 7',
+        description: 'Emit both complete output streams',
+      })
+      expect(result.isError).toBe(false)
+      expect(text(result)).toContain('out-0001')
+      expect(text(result)).toContain('out-0100')
+      expect(text(result)).toContain('err-0001')
+      expect(text(result)).toContain('err-0100')
+      expect(text(result).match(/\[output truncated;/g)).toHaveLength(1)
+      expect(text(result)).toMatch(/\[exit code: 7\]$/)
+      const value = result.value as { outputRetention: { kind: string; fullOutputPath: string }; aborted: boolean; timedOut: boolean }
+      expect(value.aborted).toBe(false)
+      expect(value.timedOut).toBe(false)
+      expect(value.outputRetention.kind).toBe('bash-output')
+      const lines = (prefix: string) => Array.from({ length: 100 }, (_, index) => `${prefix}-${String(index + 1).padStart(4, '0')}\n`).join('')
+      expect(readFileSync(value.outputRetention.fullOutputPath, 'utf8')).toBe(lines('out') + '\n[stderr]\n' + lines('err'))
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('does not advertise a complete recovery file when a raw stream exceeded its spill cap', async () => {
+    const ctx = new Context()
+    try {
+      await ctx.plugin(SystemPrompt)
+      await ctx.plugin(ToolRuntime)
+      await ctx.plugin(LocalSubprocessRuntime)
+      ;(ctx.subprocess as LocalSubprocessRuntime).internals = { spillDir }
+      await ctx.plugin(LocalBashExecutor, { maxOutputBytes: 100, maxSpillBytes: 200, graceMs: 200 })
+      await ctx.plugin(BashEnvPlugin)
+      await ctx.plugin(ToolBash)
+      const result = await call(ctx, 'bash', { command: "printf 'X%.0s' {1..1000}", description: 'Exceed full output storage budget' })
+      expect(result.isError).toBe(false)
+      expect(result.value).toMatchObject({ outputRetention: { kind: 'bash-output' } })
+      expect((result.value as { outputRetention: object }).outputRetention).not.toHaveProperty('fullOutputPath')
+      expect(text(result)).toContain('[output truncated; full output: (unavailable)]')
+    } finally { await ctx.fiber.dispose() }
   })
 
   it('honors workdir', async () => {
