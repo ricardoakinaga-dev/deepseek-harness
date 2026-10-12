@@ -14,6 +14,7 @@ import { expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './supp
 
 // Any generation path names the role; the owner's highest committed generation replays.
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/session/skill-load/session.v4.jsonl', import.meta.url))
+const REUSE_FIXTURE = fileURLToPath(new URL('../../../snapshots/session/skill-active-reload/session.v4.jsonl', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/skill-tool-row', import.meta.url))
 const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/skill-tool-row/ui.expected.md', import.meta.url))
 const MODE = webSnapshotMode()
@@ -30,6 +31,8 @@ describe.skipIf(MODE === 'record')('web e2e: dedicated Skill tool row', () => {
     const fixture = await readFile(await selectedSessionFixture(FIXTURE), 'utf8')
     expect(fixtureUserPrompts(fixture)).toEqual([PROMPT])
     scaffold = await launchWebScaffold({})
+    await seedSession(scaffold, await readFile(await selectedSessionFixture(REUSE_FIXTURE), 'utf8'),
+      'skill-reuse-web-e2e', undefined, { createdAt: Date.now() - 120_000 })
     await seedSession(scaffold, fixture, SEED_ID)
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -59,6 +62,8 @@ describe.skipIf(MODE === 'record')('web e2e: dedicated Skill tool row', () => {
     const row = call.getByRole('button', { name: 'Skill editing-cordis-compositions' })
     await expect.poll(() => row.getAttribute('aria-expanded')).toBe('false')
     expect(await call.getByText('editing-cordis-compositions', { exact: true }).count()).toBe(1)
+    expect(await row.textContent()).toContain('5847 instruction characters')
+    expect(await call.getByText('Existing instructions reused', { exact: false }).count()).toBe(0)
 
     await row.click()
     await expect.poll(() => row.getAttribute('aria-expanded')).toBe('true')
@@ -117,6 +122,25 @@ describe.skipIf(MODE === 'record')('web e2e: dedicated Skill tool row', () => {
         restore('--dsh-content-font-delta', saved.delta)
       }, previous)
     }
+  })
+
+  it('distinguishes a reused skill from newly loaded instruction characters', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-skill-tool-row-reuse'))
+    await page.getByRole('treeitem').nth(2).click()
+    const calls = page.locator('[data-tool="skill"]')
+    await expandOwningTurnProcess(page, calls.first())
+    await expect.poll(() => calls.count()).toBe(2)
+    expect(await calls.first().textContent()).toContain('5847 instruction characters')
+    const reused = calls.nth(1)
+    const row = reused.getByRole('button', { name: /Skill editing-cordis-compositions/ })
+    expect(await row.textContent()).toContain('Existing instructions reused')
+    expect(await row.textContent()).not.toContain('instruction characters')
+    await row.click()
+    expect(await reused.locator('pre').textContent()).toBe(
+      'Skill "editing-cordis-compositions" is already loaded in the current context. Follow its existing instructions.',
+    )
+    expect(tripwire.pageErrors).toEqual([])
+    expect(tripwire.warnings).toEqual([])
   })
 
   it('keeps its snapshot inventory closed', async () => {
