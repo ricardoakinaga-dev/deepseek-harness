@@ -13,7 +13,7 @@
 
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 import { networkInterfaces } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
@@ -26,6 +26,7 @@ import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-shell-env'
+import type { AssembleContext } from '@deepseek-ai/dsh-system-prompt'
 
 /** Stable Cordis plugin name. */
 export const name = 'web-app'
@@ -53,6 +54,8 @@ export interface Config {
    * orientation text would be false.
    */
   surfaceContext: boolean
+  /** Include checkout and rebuild guidance automatically for DSH workspaces, always, or never. */
+  developmentContext?: 'auto' | 'always' | 'never'
   /** Explicit `--trusted-host` authorities from this invocation. */
   trustedHosts: string[]
 }
@@ -61,6 +64,7 @@ export const Config: z<Config> = z.object({
   openBrowser: z.boolean().default(true),
   printUrl: z.boolean().default(true),
   surfaceContext: z.boolean().default(true),
+  developmentContext: z.union(['auto', 'always', 'never'] as const).default('auto').extra('extra', { audit: true }),
   trustedHosts: z.array(String).default([]),
 })
 
@@ -132,16 +136,15 @@ export function resolveLanTrust(bindHost: string, extra: readonly string[]): Web
 }
 
 /** Model-visible orientation and acceptance boundary for sessions created through `dsh web`. */
-function webSurfacePrompt(webUrl: string): string {
+function webSurfacePrompt(webUrl: string, development: boolean): string {
   const updateContract = 'The client-plugin HMR receiver is active, but client-plugin changes reload without a refresh only while '
     + '`pnpm run dev:web` is also running from this same checkout to rebuild their bundles; verify that watcher before promising automatic updates. '
     + 'Every other change — the apps/web shell and plain packages — requires rebuilding the affected Web artifacts and verifying this existing URL after a page refresh. '
   return `You are interacting with the user through the DeepSeek Harness Web GUI at ${webUrl}. `
     + 'When the user refers to "this page", "this GUI", or "this app" without naming another target, they mean this GUI. '
     + 'The browser provides no implicit DOM, route, or screenshot context. '
-    + updateContract
-    + 'Starting another server does not update this GUI. '
-    + 'The apps/web Vite entry builds the shell but is not a standalone application because only dsh web injects window.__DSH_BOOT__. '
+    + (development ? updateContract + 'Starting another server does not update this GUI. '
+      + 'The apps/web Vite entry builds the shell but is not a standalone application because only dsh web injects window.__DSH_BOOT__. ' : '')
     + 'Do not start a replacement server unless the user asks; if one is needed, use a managed background job and verify its exact URL.'
 }
 
@@ -232,11 +235,17 @@ export function apply(ctx: Context, config: Config): void {
   ctx.plugin(FrontendStatic, { distIndex: internals.resolveDistIndex() })
   if (config.surfaceContext) {
     ctx.inject(['systemPrompt'], (promptCtx) => {
-      addHarnessSourceSection(promptCtx, SOURCE_ROOT)
+      const development = (context: AssembleContext): boolean => {
+        if (config.developmentContext === 'always') return true
+        if (config.developmentContext === 'never') return false
+        const path = relative(SOURCE_ROOT, context.agent?.session.header.cwd ?? process.cwd())
+        return path === '' || path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path)
+      }
+      addHarnessSourceSection(promptCtx, SOURCE_ROOT, development)
       promptCtx.systemPrompt.section({
         name: 'app:web-surface',
         order: promptCtx.systemPrompt.getSectionOrder('WEB_SURFACE'),
-        text: () => webSurfacePrompt(localWebUrl(promptCtx)),
+        text: context => webSurfacePrompt(localWebUrl(promptCtx), development(context)),
       })
     })
     ctx.inject(['shellEnv'], (runtimeCtx) => {

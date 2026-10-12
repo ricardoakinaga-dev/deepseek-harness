@@ -451,3 +451,25 @@ describe('web-app runtime glue', () => {
     expect(errored.listenerCount('close')).toBe(0)
   })
 })
+
+
+it.each([
+  ['auto', '/unrelated-workspace', false],
+  ['always', '/unrelated-workspace', true],
+  ['never', process.cwd(), false],
+] as const)('keeps GUI orientation with developmentContext=%s in %s', async (developmentContext, cwd, expected) => {
+  stageDist()
+  const ctx = new Context()
+  try {
+    ctx.provide('webServer', fakeHttpServer().server)
+    apply(ctx, new Config({ openBrowser: false, printUrl: false, surfaceContext: true, trustedHosts: [], developmentContext }))
+    await ctx.plugin(SystemPrompt)
+    const assembly = await ctx.systemPrompt.assemble({ agent: { session: { header: { cwd } } } as never })
+    const source = assembly.sections.find(section => section.name === 'harness:source')?.text ?? ''
+    const surface = assembly.sections.find(section => section.name === 'app:web-surface')?.text ?? ''
+    expect(source.includes('implementation checkout')).toBe(expected)
+    expect(surface.includes('pnpm run dev:web')).toBe(expected)
+    expect(surface).toContain('this GUI')
+    expect(surface).toContain('http://127.0.0.1:4567')
+  } finally { await ctx.fiber.dispose() }
+})
