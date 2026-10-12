@@ -148,6 +148,8 @@ These limits define the policy surface this package provides. They are current p
 - **File-effect modes only** — `SandboxMode` governs file effects; network and process policy are outside its vocabulary, so no knob here restricts them.
 - **Temporary areas are deliberately summarized** — enforcing backends grant different platform temporary areas, which are selected after policy resolution and therefore cannot be enumerated truthfully in the current context.
 
+When the mounted sandbox provider exposes execution facts, request context includes its runner, enforcement, temporary-file sharing and identity limits. The first request context and each changed confined description append `sandbox/environment`; these events describe the standing policy, not a later approved per-call escalation. Providers without a descriptor retain policy-only context. Unconfined requests make no runner claim.
+
 <a id="dev-note"></a>
 ### Dev Note
 

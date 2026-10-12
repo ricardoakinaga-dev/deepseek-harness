@@ -17,7 +17,7 @@ import { bwrapProfileArgs } from '../src/profiles.ts'
  * ephemeral `/tmp`, so workspace-write actually proves the workspace-root rebind.
  */
 
-const probe = spawnSync('bwrap', [...bwrapProfileArgs({ mode: 'read-only', workspaceRoot: '/' }), '--', 'true'], { timeout: 5_000, stdio: 'ignore' })
+const probe = spawnSync('bwrap', [...bwrapProfileArgs({ mode: 'workspace-write', workspaceRoot: homedir() }), '--', 'true'], { timeout: 5_000, stdio: 'ignore' })
 const bwrapUsable = probe.status === 0
 
 let ctx: Context | undefined
@@ -141,6 +141,11 @@ describe.skipIf(!bwrapUsable)('sandbox-local: real bwrap confinement', () => {
     const { result } = await runConfined(sandbox, `printf tmp-ok > ${target} && cat ${target}`, { mode: 'workspace-write', workspaceRoot: workdir })
     expect(result.status).toBe(0)
     expect(result.stdout).toBe('tmp-ok')
+    const mode = await runConfined(sandbox, 'stat -c %a /tmp', { mode: 'workspace-write', workspaceRoot: workdir })
+    expect(mode.result.status).toBe(0)
+    expect(mode.result.stdout.trim()).toBe('1777')
+    const next = await runConfined(sandbox, `test ! -e ${target}`, { mode: 'workspace-write', workspaceRoot: workdir })
+    expect(next.result.status).toBe(0)
     expect(existsSync(target)).toBe(false)
   })
 })

@@ -8,6 +8,9 @@
 /process-sandbox/modes-and-enforcement:
   en: 11f91b55cc317334
   zh: 296678c4675864c1
+/process-sandbox/provider-execution-facts:
+  en: 89c00984152cd7ee
+  zh: ae1c6c3ec96f19f0
 /process-sandbox/per-call-policy:
   en: 7661eb4559bbc395
   zh: 0dceeb0bba367862

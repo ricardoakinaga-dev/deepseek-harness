@@ -59,6 +59,20 @@ export interface SandboxExecutionPolicy {
  */
 export type SandboxEnforcement = 'full' | 'partial'
 
+/** Provider facts for the requested confined mode; unknown values make no Host equivalence claim. */
+export interface SandboxExecutionEnvironment {
+  /** Selected runner family, without executable arguments or credentials. */
+  runner: string
+  /** Selection verdict; unavailable means no confined command can start. */
+  enforcement: SandboxEnforcement | 'unavailable'
+  /** Lifetime and sharing of the process temporary area. */
+  temporaryFiles: 'host' | 'per-call' | 'per-session' | 'unknown'
+  /** Whether process temporary paths refer to the Host temporary files. */
+  sharesHostTemporaryFiles: boolean | 'unknown'
+  /** Host identity preservation or runner-dependent UID/GID mapping. */
+  identity: 'host' | 'namespace-dependent' | 'restricted-token' | 'unknown'
+}
+
 /**
  * What one confined execution is allowed to touch — carried PER CALL, not
  * fixed on the provider: two consumers may confine under different policies
@@ -160,6 +174,17 @@ export abstract class SandboxProvider extends Service {
   /*! v8 ignore next -- abstract service construction is covered through concrete provider packages. */
   constructor(ctx: Context) {
     super(ctx, 'sandbox')
+  }
+
+  /**
+   * Describe the runner selected for a policy without launching a user command.
+   * Providers may perform bounded selection probes. Absence makes no claim about execution-world semantics.
+   * @param policy - fully resolved confined policy.
+   * @returns provider facts, or undefined when the provider offers no descriptor.
+   */
+  describe(policy: SandboxPolicy): SandboxExecutionEnvironment | undefined {
+    void policy
+    return undefined
   }
 
   /**

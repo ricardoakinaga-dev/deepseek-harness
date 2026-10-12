@@ -80,7 +80,7 @@ describe('profile dialects', () => {
   it('bwrap workspace-write: adds an ephemeral /tmp and rebinds the workspace root', () => {
     expect(bwrapProfileArgs(WW)).toEqual([
       '--ro-bind', '/', '/', '--dev', '/dev', '--unshare-pid', '--proc', '/proc', '--die-with-parent',
-      '--tmpfs', '/tmp', '--bind', '/ws', '/ws',
+      '--perms', '1777', '--tmpfs', '/tmp', '--bind', '/ws', '/ws',
     ])
   })
 
@@ -488,5 +488,33 @@ describe('the windows-acl probe (runner invocation contract)', () => {
     })
     const confined = await sandbox.confine(['true'], RO)
     expect(confined.argv.slice(0, 2)).toEqual([process.execPath, builtEntry])
+  })
+})
+
+
+describe('execution-world facts', () => {
+  it('shares runner selection with confine and distinguishes per-call tmp from host tmp', async () => {
+    const probeBwrap = vi.fn(() => true)
+    const { ctx, sandbox } = await setup({}, { platform: 'linux', probeBwrap })
+    try {
+      expect(sandbox.describe(WW)).toEqual({ runner: 'bwrap', enforcement: 'full', temporaryFiles: 'per-call', sharesHostTemporaryFiles: false, identity: 'namespace-dependent' })
+      expect(sandbox.describe(RO)).toMatchObject({ temporaryFiles: 'host', sharesHostTemporaryFiles: true })
+      for (const workspaceRoot of ['/', '/tmp']) {
+        expect(sandbox.describe({ ...WW, workspaceRoot })).toMatchObject({ temporaryFiles: 'host', sharesHostTemporaryFiles: true })
+      }
+      expect((await sandbox.confine(['true'], WW)).argv[0]).toBe('bwrap')
+      expect(probeBwrap).toHaveBeenCalledOnce()
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('reports the fallback and unavailable verdict without inventing namespace IDs', async () => {
+    for (const enforcement of ['full', 'partial', 'unusable'] as const) {
+      const { ctx, sandbox } = await setup({}, { platform: 'linux', probeBwrap: () => false, probeLandlock: () => enforcement })
+      try {
+        expect(sandbox.describe(WW)).toEqual(enforcement === 'unusable'
+          ? { runner: 'unavailable', enforcement: 'unavailable', temporaryFiles: 'unknown', sharesHostTemporaryFiles: 'unknown', identity: 'unknown' }
+          : { runner: 'landlock', enforcement, temporaryFiles: 'host', sharesHostTemporaryFiles: true, identity: 'host' })
+      } finally { await ctx.fiber.dispose() }
+    }
   })
 })

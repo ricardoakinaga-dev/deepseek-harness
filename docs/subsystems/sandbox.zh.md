@@ -38,6 +38,26 @@ type ConfinedSandboxMode = Exclude<SandboxMode, 'danger-full-access'>
 type SandboxEnforcement = 'full' | 'partial'
 ```
 
+## 提供方执行事实
+
+`describe(policy)` 可选地报告所选 runner、临时文件的生命周期与共享方式、限制完整性和身份映射。缺失表示提供方未提供描述，不表示其行为与宿主相同。
+
+```ts type-equiv
+/** Provider facts for the requested confined mode; unknown values make no Host equivalence claim. */
+interface SandboxExecutionEnvironment {
+  /** Selected runner family, without executable arguments or credentials. */
+  runner: string
+  /** Selection verdict; unavailable means no confined command can start. */
+  enforcement: SandboxEnforcement | 'unavailable'
+  /** Lifetime and sharing of the process temporary area. */
+  temporaryFiles: 'host' | 'per-call' | 'per-session' | 'unknown'
+  /** Whether process temporary paths refer to the Host temporary files. */
+  sharesHostTemporaryFiles: boolean | 'unknown'
+  /** Host identity preservation or runner-dependent UID/GID mapping. */
+  identity: 'host' | 'namespace-dependent' | 'restricted-token' | 'unknown'
+}
+```
+
 ## 逐调用策略
 
 完整执行策略会按每次能力调用解析并携带。它包括 `danger-full-access`，因此消费方可以只解析一次策略，再决定是否绕过约束。普通工具调用从调用会话的不可变 cwd 派生 `workspaceRoot`；部署配置是没有 agent（智能体）时的回退值。解析器保留执行环境中的绝对路径写法。执行限制的提供方在文件实际存在的位置规范化根目录，因此包含 `symlink/..` 的 cwd 会标识配套子进程提供方实际运行的目录。
@@ -172,6 +192,14 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 Abstract process-sandbox service. confine must return enforcing argv or fail closed at wrap or runner-execution time; silent unconfined passthrough is forbidden. Functional probes arbitrate multi-runner chains and may be skipped for a sole candidate, whose own refusal remains the fail-closed end.
 
 ```ts cordis-catalog
+/**
+ * Describe the runner selected for a policy without launching a user command.
+ * Providers may perform bounded selection probes. Absence makes no claim about execution-world semantics.
+ * @param policy - fully resolved confined policy.
+ * @returns provider facts, or undefined when the provider offers no descriptor.
+ */
+describe(policy: SandboxPolicy): SandboxExecutionEnvironment | undefined
+
 /**
  * Wrap `argv` so it executes confined under `policy` on this host; the
  * caller spawns the returned argv in place of its own.
