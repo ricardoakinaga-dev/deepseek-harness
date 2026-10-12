@@ -19,7 +19,7 @@ describe('dsh-resilient-compaction bundle', () => {
     expect(manifest.dsh?.bundle?.patch).toBe('./cordis.patch.yml')
     expect(manifest.dependencies).toHaveProperty(
       '@deepseek-ai/dsh-compaction-resilience-policy',
-      'workspace:^',
+      'workspace:*',
     )
     const parsed = yaml.load(
       readFileSync(resolve(root, manifest.dsh!.bundle!.patch!), 'utf8'),
