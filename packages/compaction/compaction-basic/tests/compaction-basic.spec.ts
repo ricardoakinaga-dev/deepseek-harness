@@ -13,7 +13,7 @@ import {
   resolveTargetPolicy,
 } from '@deepseek-ai/dsh-compaction-basic/src/config.ts'
 import type { CompactionResult } from '@deepseek-ai/dsh-compaction'
-import LlmRuntime, { createUserMessage, ToolCallId, CONTEXT_WINDOW_EXCEEDED_CODE, createSystemMessage, createToolResultMessage, LlmAdapter , createMessage } from '@deepseek-ai/dsh-llm'
+import LlmRuntime, { createUserMessage, ToolCallId, CONTEXT_WINDOW_EXCEEDED_CODE, createSystemMessage, createToolResultMessage, LlmAdapter , createMessage, LlmError } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import type {
   ContentBlock,
@@ -1757,6 +1757,77 @@ describe('automatic listener and loader composition', () => {
     await expect(preStep(ctx, agent(session, MODEL))).resolves.toEqual({ kind: 'enter', messages: [] })
     expect(warnings).toContainEqual(expect.stringContaining('temporary failure'))
     expect(session.snapshotEvents().some(event => event.type === 'compaction/summary')).toBe(false)
+  })
+
+  it('suspends step compaction for the routed target until the turn ends after a configuration failure', async () => {
+    const ctx = createContext()
+    const warnings: string[] = []
+    ctx.logger.warn = ((message: string) => void warnings.push(message)) as typeof ctx.logger.warn
+    const compact = new TestCompactionEngine(ctx, {
+      headroomTokens: 0,
+      maxTokens: 8192,
+      thresholdRatio: 0.5,
+      retainTokens: 180,
+    })
+    compact.error = new LlmError(
+      `provider "${MODEL}" model "${MODEL}" does not support reasoning effort "off"`,
+      'UNSUPPORTED_REASONING_EFFORT',
+    )
+    const session = conversation(4)
+    const owner = agent(session, MODEL)
+
+    await preStep(ctx, owner)
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(1)
+    expect(warnings).toEqual([
+      `step compaction failed: provider "${MODEL}" model "${MODEL}" does not support reasoning effort "off"; `
+      + `continuing the turn without step compaction for ${MODEL}/${MODEL} until the turn ends`,
+    ])
+    expect(session.snapshotEvents().filter(event => event.type === 'compaction/end')).toHaveLength(1)
+
+    agentEvents(ctx, owner).emit('agent/status', { status: 'idle' })
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(2)
+  })
+
+  it('resumes suspended step compaction when the routed target changes', async () => {
+    const ctx = createContext()
+    const compact = new TestCompactionEngine(ctx, {
+      headroomTokens: 0,
+      maxTokens: 8192,
+      thresholdRatio: 0.5,
+      retainTokens: 180,
+    })
+    compact.error = new LlmError('credential reference resolved to nothing', 'MISSING_CREDENTIAL')
+    const session = conversation(4)
+    const owner = agent(session, MODEL)
+
+    await preStep(ctx, owner)
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(1)
+
+    session.append('request/header', {
+      header: { config: { provider: 'actual', model: MODEL } },
+      reason: 'change',
+    })
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(2)
+  })
+
+  it('keeps retrying step compaction after a transient model failure', async () => {
+    const ctx = createContext()
+    const compact = new TestCompactionEngine(ctx, {
+      headroomTokens: 0,
+      maxTokens: 8192,
+      thresholdRatio: 0.5,
+      retainTokens: 180,
+    })
+    compact.error = new LlmError('WebSocket closed 1012', 'TRANSPORT')
+    const owner = agent(conversation(4), MODEL)
+
+    await preStep(ctx, owner)
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(2)
   })
 
   it('warns once per routed target when proactive pressure has no context metadata', async () => {

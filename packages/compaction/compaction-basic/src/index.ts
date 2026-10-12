@@ -9,7 +9,7 @@ import z from '@deepseek-ai/schemastery'
 import { CompactionEngine, ManualCompactionError } from '@deepseek-ai/dsh-compaction'
 import type { CompactionResult, CompactionTrigger } from '@deepseek-ai/dsh-compaction'
 import type { Session, SessionSeq } from '@deepseek-ai/dsh-session'
-import { CONTEXT_WINDOW_EXCEEDED_CODE } from '@deepseek-ai/dsh-llm'
+import { CONTEXT_WINDOW_EXCEEDED_CODE, LlmError } from '@deepseek-ai/dsh-llm'
 import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
@@ -66,6 +66,20 @@ function reservedCompletionTokens(agent: Agent, defaultMaxTokens: number | undef
   const configured = agent.session.requestHeader()?.config.maxTokens
   return configured ?? defaultMaxTokens ?? 0
 }
+
+/**
+ * LLM failure codes that repeat for an unchanged route, credential, and request
+ * configuration regardless of the summarized region.
+ */
+const CONFIGURATION_FAILURE_CODES: ReadonlySet<string> = new Set([
+  'AUTH',
+  'INVALID_CREDENTIAL',
+  'MISSING_CREDENTIAL',
+  'NO_ADAPTER',
+  'UNKNOWN_MODEL',
+  'UNSUPPORTED_OPTION',
+  'UNSUPPORTED_REASONING_EFFORT',
+])
 
 /** Resolve the conversation target used to select an optional policy override. */
 function conversationTarget(
@@ -131,6 +145,8 @@ export class BasicCompactionEngine extends CompactionEngine {
   readonly config: ResolvedConfig
 
   private readonly warnedPressureConfigTargets = new Set<string>()
+  /** Routed target whose step-pressure compaction is suspended until the agent goes idle. */
+  private readonly suspendedPressureTargets = new WeakMap<Agent, string>()
   private readonly overflowRetries = new WeakMap<Agent, number>()
   private readonly overflowAgents = new WeakMap<Session, Agent>()
 
@@ -155,11 +171,19 @@ export class BasicCompactionEngine extends CompactionEngine {
       )
     }
 
+    // A configuration failure repeats on every later step of the turn, so step
+    // pressure stops retrying that routed target until the agent goes idle;
+    // the next turn makes one fresh attempt that observes any config change.
     ctx.on('agent/pre-step', async (
       { agent, signal },
       next,
     ): Promise<PreStepDecision> => {
-      if (!signal.aborted) {
+      const target = routedTarget(agent.session)
+      const targetKey = target === undefined ? undefined : `${target.provider}/${target.model}`
+      const suspended = this.suspendedPressureTargets.get(agent)
+      const paused = suspended !== undefined && suspended === targetKey
+      if (suspended !== undefined && !paused) this.suspendedPressureTargets.delete(agent)
+      if (!signal.aborted && !paused) {
         try {
           const result = await this.compactIfNeeded(agent, 'pressure', signal)
           if (result !== null) logResult(result, 'step pressure')
@@ -169,14 +193,24 @@ export class BasicCompactionEngine extends CompactionEngine {
             this.warnedPressureConfigTargets.add(error.targetKey)
           }
           const message = error instanceof Error ? error.message : String(error)
-          ctx.logger.warn(`step compaction failed: ${message}; continuing the turn`)
+          if (targetKey !== undefined && error instanceof LlmError && CONFIGURATION_FAILURE_CODES.has(error.code)) {
+            this.suspendedPressureTargets.set(agent, targetKey)
+            ctx.logger.warn(
+              `step compaction failed: ${message}; continuing the turn without step compaction `
+              + `for ${targetKey} until the turn ends`,
+            )
+          } else {
+            ctx.logger.warn(`step compaction failed: ${message}; continuing the turn`)
+          }
         }
       }
       return next()
     })
 
     ctx.on('agent/status', ({ agent, status }) => {
-      if (status === 'idle') this.overflowRetries.delete(agent)
+      if (status !== 'idle') return
+      this.overflowRetries.delete(agent)
+      this.suspendedPressureTargets.delete(agent)
     })
 
     // A successful response starts a fresh overflow-recovery sequence even

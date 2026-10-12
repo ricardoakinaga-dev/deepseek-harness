@@ -680,7 +680,6 @@
         "packages/api/session-controller/tests/test-remote.ts",
         "packages/boot/app-boot/tests/profile-resolution.spec.ts",
         "packages/boot/plugin-manager/tests/tools.spec.ts",
-        "packages/compaction/compaction-basic/tests/compaction-basic.spec.ts",
         "packages/compaction/compaction-tool-result-pruner/tests/tool-result-pruner.spec.ts",
         "packages/context/tmux-context/tests/tmux-context.spec.ts",
         "packages/core/tools/tests/ptc.spec.ts",
@@ -1277,7 +1276,6 @@
         "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx",
         "packages/client/ui-workspace/src/client/tree.ts",
         "packages/compaction/command-compact/src/index.ts",
-        "packages/compaction/compaction-basic/src/index.ts",
         "packages/compaction/compaction-basic/src/region.ts",
         "packages/compaction/compaction-tool-result-pruner/src/index.ts",
         "packages/compaction/compaction/src/invariant.ts",
@@ -1594,6 +1592,22 @@
         "packages/llm/llm-pi-ai/src/stream.ts",
         "packages/llm/llm-pi-ai/tests/convert.spec.ts",
         "snapshots/session/websocket-close-retry/"
+      ]
+    },
+    {
+      "id": "compaction-configuration-failure-suspension",
+      "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
+      "status": "active",
+      "summary": "Suspend step-pressure compaction for a routed target after a configuration-class summary failure until the turn ends, instead of repeating the same failing request at every step.",
+      "upstreamPlan": "docs/audits/auditoria-sessao-dsh-2026-10-12.md#p0-1--compactação-automática-inoperante-por-esforço-de-raciocínio-incompatível",
+      "paths": [
+        "packages/compaction/compaction-basic/src/index.ts",
+        "packages/compaction/compaction-basic/tests/compaction-basic.spec.ts",
+        "packages/compaction/compaction-basic/README.md",
+        "packages/compaction/compaction-basic/README.zh.md",
+        "packages/compaction/compaction-basic/README.i18n.yaml",
+        "snapshots/session/compaction-config-failure/"
       ]
     }
   ]
