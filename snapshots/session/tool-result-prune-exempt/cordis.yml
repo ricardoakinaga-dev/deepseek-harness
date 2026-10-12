@@ -1,0 +1,24 @@
+# Proactive pressure after a loaded skill and a long bash result: the pruner
+# trims the bash result and leaves the exempt skill result intact; the summary
+# route has no adapter, so no summary replaces either result.
+
+- id: llm-deepseek
+  config:
+    models:
+      - id: deepseek-v4-flash
+        contextWindow: 11000
+
+- id: compaction-basic
+  config:
+    thresholdRatio: 0.8
+    headroomTokens: 0
+    retainTokens: 20
+    maxTokens: 32
+    summarizationProvider: unconfigured-summarizer
+    summarizationModel: unconfigured-model
+
+- id: tool-result-pruner
+  config:
+    thresholdChars: 2048
+    headChars: 512
+    tailChars: 256

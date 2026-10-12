@@ -779,6 +779,11 @@ export interface ToolResultPruneConfig {
   headChars?: number
   /** Maximum trailing Unicode code points retained. Defaults to `1024`. */
   tailChars?: number
+  /**
+   * Tool names whose results are never pruned, such as instructions the agent
+   * keeps following after they load. Defaults to `['skill']`.
+   */
+  exemptTools?: string[]
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-compaction-tool-result-pruner -->

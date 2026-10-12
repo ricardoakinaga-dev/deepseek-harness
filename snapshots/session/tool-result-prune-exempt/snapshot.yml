@@ -1,0 +1,12 @@
+version: 1
+scenario: tool-result-prune-exempt
+profile: headless
+composition: tool-result-prune-exempt
+recording: authored
+header:
+  class: tool-result-prune-exempt
+  pin: true
+  systemPromptSource: text-turn
+  toolSchemasSource: text-turn
+workspace:
+  setup: editing-cordis-skill
