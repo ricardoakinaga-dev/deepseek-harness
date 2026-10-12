@@ -10,7 +10,7 @@
  */
 
 import { existsSync } from 'node:fs'
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, delimiter, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -568,14 +568,6 @@ async function runScenario(scenario: CorpusScenario): Promise<{
   let childSessionsRoot: string | undefined
   let childEnvironment: Record<string, string> = {}
   if (assertions.dshSdkChild !== undefined) {
-    // This optional backend is not a dependency of the shipped SDK profile.
-    const providerModules = join(dshHome, 'profiles', 'sdk', 'node_modules', '@deepseek-ai')
-    await mkdir(providerModules, { recursive: true })
-    await symlink(
-      fileURLToPath(new URL('../../packages/subagent/subagent-dsh-sdk/', import.meta.url)),
-      join(providerModules, 'dsh-subagent-dsh-sdk'),
-      process.platform === 'win32' ? 'junction' : 'dir',
-    )
     const childHome = join(cwd, '.child-dsh')
     const childPatch = materializeProfilePatch(assertions.dshSdkChild.config, cwd, 'sdk', patchRoot, patches.length)
     await mkdir(childHome, { recursive: true })
@@ -867,6 +859,14 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
       )
       reconcileCatalogCreationTimes(ordered.map(log => log.content), 'validate')
       const actualContext = contextOf(ordered, cwd)
+      if (scenario.name === 'subagent-dsh-sdk-diagnostic') {
+        const toolResults = records(ordered[0]!.content).filter(event => event.type === 'tool/result')
+        expect(toolResults).toHaveLength(3)
+        const diagnostic = 'Subagent failure (provider: DSH SDK; stage: session-run; category: child-error)'
+        expect(JSON.stringify(toolResults[0])).toContain(diagnostic)
+        expect(toolResults[1]).toMatchObject({ data: { message: { isError: false } } })
+        expect(JSON.stringify(toolResults[2])).toContain(diagnostic)
+      }
       if (scenario.name === 'goal-manifest-command') {
         const changes = records(ordered[0]!.content).filter(event => event.type === 'goal/change')
         expect(changes.map(event => (event.data as JsonObject)['operation'])).toEqual([
