@@ -50,7 +50,7 @@ export class ToolResultPruner extends Service {
     thresholdChars: z.number().step(1).min(1).default(DEFAULTS.thresholdChars),
     headChars: z.number().step(1).min(0).default(DEFAULTS.headChars),
     tailChars: z.number().step(1).min(0).default(DEFAULTS.tailChars),
-    exemptTools: z.array(z.string().min(1)).default([...DEFAULTS.exemptTools]),
+    exemptTools: z.array(z.string().min(1)).default([...DEFAULTS.exemptTools]).extra('extra', { audit: true }),
   })
 
   /** Resolved and immutable character budgets. */

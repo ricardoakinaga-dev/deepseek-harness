@@ -28,6 +28,18 @@
     },
     {
       "path": "../../../vendor/loader"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../boot/app-boot"
+    },
+    {
+      "path": "../../boot/hmr"
     }
   ]
 }

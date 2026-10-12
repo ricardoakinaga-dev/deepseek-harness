@@ -38,6 +38,12 @@ Reset restores the value beneath the profile override, including schema defaults
 
 Each form reports `autoGenerate`, enabled by default, for clients that build pages from the schema; no shipped client does so yet. A plugin that ships its own page registers `configure({ auto: false }, ctx.fiber)` as an effect inside an optional `ctx.inject(['settings'], ...)` child from `apply`: the child names the plugin fiber the policy belongs to, a late-loading or replaced Settings service picks the policy up, and the business plugin runs without Settings. The policy does not remove configuration reads or writes.
 
+When Session and Agent services are present, Settings records `runtime/audit` for each published agent session, including children and resumed sessions, and for agents already live when Settings activates. The awaited `agent/created` hook validates and appends after all Session creation observers receive their baseline; failure rejects agent publication. Bare Sessions without a published agent do not receive execution audit records. Initial records include the profile, startup bundle names, and launcher identity. Source launches report Git revision and dirty state separately from the launcher module's SHA-256; compiled launches report only that module's hash. Neither hash identifies all dependency bytes. Unavailable identity facts are `null`.
+
+Plugin owners opt fields into audit with `.extra('extra', { audit: true })`. The structural projection reads active Loader entries' resolved Config, including schema defaults and volatile references; it excludes unmarked and unknown object fields. Marks propagate through declared object, dictionary and array fields. Audited subtrees containing `secret` or `credential-ref` roles, or unconstrained schemas, fail before logging. Plugin-specific transformations outside Config are not inspected.
+
+After a successful profile reload or module replacement by the optional HMR service, only entries with changed audited values are appended; `values: null` records removal. Changes limited to unmarked fields produce no audit event. Records are ordinary declared Session events, require a reader that recognizes `runtime/audit`, and remain in exported logs. Config-only compositions work without Session or Agent services.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 

@@ -1,0 +1,9 @@
+# Record safe route effort in the real headless profile.
+
+- insert:
+    - id: compaction-resilience-policy
+      name: '@deepseek-ai/dsh-compaction-resilience-policy'
+      config:
+        compactionReasoningEffortByRoute:
+          deepseek-official: high
+        requestPreflight: false

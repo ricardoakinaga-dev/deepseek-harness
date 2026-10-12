@@ -11,9 +11,23 @@ export interface ProfilePnpmInvocation {
   readonly env: Readonly<Record<string, string>>
 }
 
+/** Launcher identity; source revision never identifies compiled dependency bytes. */
+export interface RuntimeIdentity {
+  readonly version: string
+  readonly nodeVersion: string
+  readonly platform: string
+  readonly arch: string
+  /** Hash identifies only the launcher module, not its transitive dependencies. */
+  readonly launcher: { readonly kind: 'source' | 'artifact'; readonly sha256: string | null }
+  /** Available only for a source launch from a Git checkout. */
+  readonly source: { readonly revision: string; readonly dirty: boolean } | null
+}
+
 /** Current profile facts; scheduling and mutation belong to their callers. */
 export interface ProfileContext {
   readonly name: string
+  /** Absent for embedders that cannot identify their launcher. */
+  readonly runtimeIdentity?: RuntimeIdentity
   /** Packaged applications supply their bundled runtime instead of a PATH executable. */
   readonly packageManager?: ProfilePnpmInvocation
   readonly dir: string

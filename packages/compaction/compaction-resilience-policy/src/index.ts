@@ -62,13 +62,13 @@ export interface Config {
 
 /** Runtime schema for {@link Config}. */
 export const Config: z<Config> = z.object({
-  compactionMaxTokens: z.number().step(1).min(1).default(4096),
-  compactionReasoningEffort: z.string().min(1),
-  compactionReasoningEffortByRoute: z.dict(z.string().min(1)),
-  compactionTimeoutMs: z.number().step(1).min(1).max(MAX_TIMER_DELAY_MS).default(480_000),
-  requestPreflight: z.boolean().default(true),
-  requestSafetyMarginTokens: z.number().step(1).min(0).default(256),
-  requestOutputReserveTokens: z.number().step(1).min(1).default(1024),
+  compactionMaxTokens: z.number().step(1).min(1).default(4096).extra('extra', { audit: true }),
+  compactionReasoningEffort: z.string().min(1).extra('extra', { audit: true }),
+  compactionReasoningEffortByRoute: z.dict(z.string().min(1)).extra('extra', { audit: true }),
+  compactionTimeoutMs: z.number().step(1).min(1).max(MAX_TIMER_DELAY_MS).default(480_000).extra('extra', { audit: true }),
+  requestPreflight: z.boolean().default(true).extra('extra', { audit: true }),
+  requestSafetyMarginTokens: z.number().step(1).min(0).default(256).extra('extra', { audit: true }),
+  requestOutputReserveTokens: z.number().step(1).min(1).default(1024).extra('extra', { audit: true }),
 })
 
 interface ResolvedConfig {
