@@ -18,8 +18,8 @@
   - button "Jump to turn 2"
 - text: "Explain event sourcing in one sentence.Your parent agent id is \"session-{{uuid}}\". Put your self-contained final result in your final reply; it will be delivered to your parent automatically when you finish. Use send_message({ agent_id: \"session-{{uuid}}\", message: \"<progress or coordination>\" }) when a finding changes what the parent should do next. Do not send a second copy of your final result. The parent shares your workspace but does not automatically receive your transcript, tool output, or reasoning. Sending a message does not end your turn. {{clock}}"
 - button "Copy"
-- status: Worked
-- button "Took {{duration}}" [expanded]
+- status: Completed
+- button "Completed in {{duration}}" [expanded]
 - button "Analysis completed" [expanded]
 - button "Think The user is asking for a one-sentence description of event sourcing. This is a straightforward knowledge question that doesn't require any skill loading or tool calls."
 - paragraph: Event sourcing is a pattern where all changes to an application's state are stored as an immutable, append-only sequence of events, rather than persisting only the current state, enabling full auditability, temporal queries, and event-driven architectures.
@@ -29,8 +29,8 @@
 - button "Branch into a new conversation"
 - text: {{clock}} Now give the same explanation to a human reader. {{clock}}
 - button "Copy"
-- status: Worked
-- button "Took {{duration}}" [expanded]
+- status: Completed
+- button "Completed in {{duration}}" [expanded]
 - button "Analysis completed" [expanded]
 - button "Think The user is asking for a one-sentence description of event sourcing. This is a straightforward knowledge question that doesn't require any skill loading or tool calls."
 - paragraph: Event sourcing is a pattern where all changes to an application's state are stored as an immutable, append-only sequence of events, rather than persisting only the current state, enabling full auditability, temporal queries, and event-driven architectures.

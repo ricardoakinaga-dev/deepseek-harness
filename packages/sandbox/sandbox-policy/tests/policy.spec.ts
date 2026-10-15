@@ -30,7 +30,7 @@ function session(ctx: Context, id: string, cwd?: string): Session {
 }
 
 function agentFor(activeSession: Session): Agent {
-  return { session: activeSession } as unknown as Agent
+  return { session: activeSession } as Agent
 }
 
 async function policyContext(ctx: Context, activeSession: Session): Promise<string | undefined> {

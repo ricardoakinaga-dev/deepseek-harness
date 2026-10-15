@@ -99,6 +99,12 @@ export interface SessionTitleProviderRequest {
   readonly messages: readonly SessionTitleUserMessage[]
   /** Exact current logged main-request route, when one has been recorded. */
   readonly route?: SessionTitleModelIdentity
+  /**
+   * Latest accepted title captured at invocation, including an accepted
+   * fallback whose event may follow the last eligible message. Absent before
+   * any title is accepted. The provider decides whether and how to use it.
+   */
+  readonly currentTitle?: SessionTitleSnapshot
   /** Cancellation for supersession, disposal, timeout composition, or the explicit caller. */
   readonly signal: AbortSignal
 }
@@ -138,7 +144,7 @@ export interface SessionTitleProvider {
   loadMessages(request: SessionTitleProviderMessageRequest): Promise<readonly SessionTitleUserMessage[]>
   /**
    * Produce one title revision.
-   * @param request - message snapshot, current route, session, and cancellation.
+   * @param request - message snapshot, current title, current route, session, and cancellation.
    * @returns proposed title plus exact input seqs and the optional provider/model route used to generate it.
    */
   generate(request: SessionTitleProviderRequest): Promise<SessionTitleProviderResult>
@@ -510,13 +516,14 @@ export class SessionTitleService extends Service {
 
   /**
    * Register the sole optional title provider. Disposal aborts its pending and
-   * active work before another provider may register.
+   * active work; a replacement may register once disposal has started, and the
+   * closing provider's late results never commit.
    * @param provider - provider identity, cadence, and generation function.
    * @returns exact Cordis effect disposer, which settles after active calls quiesce.
    */
   register(provider: SessionTitleProvider): () => Promise<void> {
     this.validateProvider(provider)
-    if (this.registration !== undefined) {
+    if (this.registration !== undefined && !this.registration.closing) {
       throw new Error(`session-title provider "${this.registration.provider.id}" is already registered`)
     }
     const registration: ProviderRegistration = {
@@ -597,7 +604,6 @@ export class SessionTitleService extends Service {
     const boundary = this.ctx.sessionProjections.stateOf(session, 'turnBoundary')?.lastStepBoundary
     const route = session.requestHeader()?.config
     if (boundary?.kind !== 'start'
-      || boundary.seq <= pending.throughSeq
       || route?.provider !== options.provider
       || route.model !== options.model) return
     this.startPending(session, state, pending, { provider: options.provider, model: options.model })
@@ -658,10 +664,12 @@ export class SessionTitleService extends Service {
         this.assertCurrent(session, work)
         messages = this.validateLoadedMessages(loaded, session, work.throughSeq)
       }
+      const currentTitle = this.get(session)
       const result = await work.registration.provider.generate({
         session,
         messages,
         ...route === undefined ? {} : { route },
+        ...currentTitle === undefined ? {} : { currentTitle },
         signal: work.signal,
       })
       this.assertCurrent(session, work)

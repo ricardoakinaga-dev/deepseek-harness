@@ -1,7 +1,7 @@
 /** Recorded npm evidence stays intact while authored files and exact edits remain checked. */
 
 import { describe, expect, it } from 'vitest'
-import { exactEditState, isRescopeExcluded } from './rescope-vendor.ts'
+import { exactEditState, isRescopeExcluded, rewriteRescopeSource } from './rescope-vendor.ts'
 
 const ANCHOR = '\n## Sync procedure'
 const INSERTED = `\n15. **rescope**: one log entry.\n${ANCHOR}`
@@ -49,5 +49,21 @@ describe('exactEditState', () => {
     // A moved or partially applied site: neither state is complete.
     expect(exactEditState('a = 1\nb = 2\n', 'a = 1', 'b = 2', 1)).toBe('invalid')
     expect(exactEditState('x\n', 'a = 1', 'b = 2', 1)).toBe('invalid')
+  })
+})
+
+
+describe('preset ids and package specifiers', () => {
+  const file = 'packages/client/ui-agent-preset/src/client/CreatePluginMenuItem.tsx'
+
+  it('preserves the agent preset id while rescoping imports in its owner', () => {
+    const source = "import { Context } from 'cordis'\nconst id = 'cordis'\nconst module = import('cordis/subpath')\n"
+    expect(rewriteRescopeSource(source, file).text).toBe("import { Context } from '@deepseek-ai/cordis'\nconst id = 'cordis'\nconst module = import('@deepseek-ai/cordis/subpath')\n")
+  })
+
+  it('checks unclassified package-name tokens and supports reverse imports', () => {
+    expect(rewriteRescopeSource("const name = 'cordis'", 'packages/example/src/index.ts').text).toBe("const name = '@deepseek-ai/cordis'")
+    expect(rewriteRescopeSource("import 'cordis'", file).text).toBe("import '@deepseek-ai/cordis'")
+    expect(rewriteRescopeSource("import '@deepseek-ai/cordis'", file, true).text).toBe("import 'cordis'")
   })
 })

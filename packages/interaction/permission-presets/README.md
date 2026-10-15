@@ -79,8 +79,6 @@ The observable behavior is covered in [Use this package](#use-this-package); thi
 |---|---|
 | [`src/index.ts`](src/index.ts) | `PermissionPresetService`: configured table, fixed Auto registration, write path, settings namespace, session pinning, children |
 | [`src/types.ts`](src/types.ts) | Process catalog, catalog-change event, and `permissions` current-selection types |
-| [`src/invariant.ts`](src/invariant.ts) | Invariant companion validating configured preset names; Auto restore is checked before publication |
-| [`src/preset-history.ts`](src/preset-history.ts) | Package-owned exact Session prefix fold shared by provider and invariant fibers |
 
 ### Write path
 
@@ -89,8 +87,6 @@ The observable behavior is covered in [Use this package](#use-this-package); thi
 ### Read side and `custom`
 
 `current(session)` reads the required `permissions` projection, whose unit folds the three whole-value knob events over the composition defaults (`ctx.shell.sandboxMode` and the approval config). The host state also retains whether `session/end-seed` has occurred, so session pinning distinguishes an explicitly empty restored seed from a genuinely fresh session without rescanning the log. A still-matching last selection wins shared-bundle ties, and a recorded Auto selection also matches the `never` approval policy; otherwise the first configured match wins; otherwise the derived `CUSTOM_PRESET` is returned. A missing projection key fails explicitly.
-
-The invariant companion checks historical preset identities from the package-owned exact Session fold; see the [subsystem reference](../../../docs/subsystems/permission-presets.md#preset-history-validation) for creation, restore, and provider lifetime behavior.
 
 `optionOf(name)` returns a configured entry, the live Auto entry, or the display-only `custom` entry. It throws only when the name matches none of those; a withdrawn Auto entry is unavailable.
 
@@ -112,7 +108,7 @@ The service requires `ctx.sessionProjections` and registers a `permissions` proj
 Read these pages when the package-level contract is not enough. They move from the preset vocabulary to the enforcement knobs and the design rationale.
 
 - [Permission presets subsystem reference](../../../docs/subsystems/permission-presets.md) — the preset table, process catalog, current selection, and `ctx.permissionPresets` Cordis API.
-- [Sandbox switching design Agent Note](../../../.agents/notes/implemented/feature/2026-07-06-sandbox.md) — how sandbox mode and approval policy compose and switch.
+- [historical Sandbox switching design Agent Note](../../../.agents/notes/archived/feature/2026-07-06-sandbox.md) — how sandbox mode and approval policy compose and switch.
 - [Approval subsystem reference](../../../docs/subsystems/approval.md) — the approval policy knob this service bundles.
 - [Interaction group map](../README.md) — adjacent command, approval, and question packages.
 

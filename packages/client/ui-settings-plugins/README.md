@@ -67,7 +67,6 @@ None; this package neither assembles nor sends a provider request.
 <a id="known-limitations-and-deferred-work"></a>
 
 - **The section has no tab of its own** — it renders its empty line until a feature plugin registers one; the shell cannot fill the section alone.
-- **Runtime invariant:** No companion is published. The section owns no relationship beyond the slot ledger it projects.
 
 **Runtime invariant:** No companion is published. This is a browser-side settings surface whose node half owns no event stream or mutable runtime data; the layering and write refusals are Host contracts covered by the owning plugins and the api-proxy.
 

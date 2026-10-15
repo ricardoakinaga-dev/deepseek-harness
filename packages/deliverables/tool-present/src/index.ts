@@ -1,5 +1,6 @@
 /** Scoped tool that declares filesystem deliveries in their owning Session. */
 import { Readable } from 'node:stream'
+import type {} from '@deepseek-ai/dsh-working-directory'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { FsError } from '@deepseek-ai/dsh-fs'
@@ -28,7 +29,7 @@ export const Config: z<Config> = z.object({
 })
 
 /** Services used by the scoped delivery tool. */
-export const inject = ['tools', 'fs', 'attachments', 'sessionProjections']
+export const inject = ['tools', 'fs', 'attachments', 'sessionProjections', 'workingDirectory']
 
 /**
  * Register present with durable file references in its tool result.
@@ -114,8 +115,7 @@ export function apply(ctx: Context, config: Config): void {
       const boundary = ctx.sessionProjections.stateOf(exec.agent.session, 'turnBoundary')
       if (boundary === undefined || boundary.openTurnStartSeq === null) throw new Error('present requires an open turn')
       if (args.files.length === 0 || args.files.length > config.maxFiles) throw new Error(`present accepts 1 to ${config.maxFiles} files`)
-      const cwd = exec.agent.session.header.cwd
-      if (cwd === undefined) throw new Error('present requires a workspace')
+      const cwd = await ctx.workingDirectory.ensure(exec.agent, exec.signal)
       const options = { cwd, signal: exec.signal }
       const files: PresentedFile[] = []
       for (const file of args.files) {
@@ -127,7 +127,7 @@ export function apply(ctx: Context, config: Config): void {
         if (info === undefined) throw new FsError(`Cannot present ${file.path}: file not found. Check the path, create the file if needed, and retry.`, 'FS_NOT_FOUND')
         if (info.type !== 'file') throw new Error(`Cannot present ${file.path}: not a regular file`)
         if (info.size !== undefined && info.size > config.maxFileBytes) {
-          files.push({ ...file, capture: { status: 'too-large', maxBytes: config.maxFileBytes } })
+          files.push({ ...file, path: ctx.fs.processPath(target), capture: { status: 'too-large', maxBytes: config.maxFileBytes } })
           continue
         }
         let data: Uint8Array
@@ -136,13 +136,13 @@ export function apply(ctx: Context, config: Config): void {
         } catch (error) {
           exec.signal.throwIfAborted()
           if (typeof error !== 'object' || error === null || !('code' in error) || error.code !== 'FS_TOO_LARGE') throw error
-          files.push({ ...file, capture: { status: 'too-large', maxBytes: config.maxFileBytes } })
+          files.push({ ...file, path: ctx.fs.processPath(target), capture: { status: 'too-large', maxBytes: config.maxFileBytes } })
           continue
         }
         const attachment = await ctx.attachments.saveFileStream({
           data: Readable.from([data]), name: file.path, signal: exec.signal,
         })
-        files.push({ ...file, capture: { status: 'stored', attachment } })
+        files.push({ ...file, path: ctx.fs.processPath(target), capture: { status: 'stored', attachment } })
       }
       exec.signal.throwIfAborted()
       pending.set(exec, { session: exec.agent.session, turn: boundary.lastTurn, files })

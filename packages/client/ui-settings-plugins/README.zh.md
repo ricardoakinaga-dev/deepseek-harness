@@ -67,7 +67,6 @@ kind: "package-reference"
 <a id="known-limitations-and-deferred-work"></a>
 
 - **分区没有自己的标签页**——在功能插件注册标签页之前它只显示空提示；壳自己填不满分区。
-- **运行时不变量：**不发布伴生。分区除了投影 slot 账本之外不拥有任何关系。
 
 **运行时不变式：** 不发布伴生入口。这是浏览器端设置界面，node half 不持有事件流或可变运行时数据；分层与写入拒绝是 Host 约定，由相应插件和 api-proxy 覆盖。
 

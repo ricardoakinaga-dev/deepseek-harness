@@ -79,8 +79,6 @@ kind: "package-reference"
 |---|---|
 | [`src/index.ts`](src/index.ts) | `PermissionPresetService`：配置表、固定 Auto 注册、写入路径、设置命名空间、会话固定、子功能 |
 | [`src/types.ts`](src/types.ts) | 进程级目录、目录变化事件与 `permissions` 当前选择类型 |
-| [`src/invariant.ts`](src/invariant.ts) | 不变式伴生插件：校验配置预设名称；Auto 恢复在发布前另行检查 |
-| [`src/preset-history.ts`](src/preset-history.ts) | 供服务提供者与不变式 fiber 共享的包级精确 Session 前缀折叠 |
 
 ### 写入路径
 
@@ -89,8 +87,6 @@ kind: "package-reference"
 ### 读取侧与 `custom`
 
 `current(session)` 读取必需的 `permissions` 投影；该单元在组合默认值（`ctx.shell.sandboxMode` 与审批配置）之上折叠三个全量值旋钮事件。host 状态还会保留 `session/end-seed` 是否已经出现，使会话固定无需重扫日志即可区分显式为空的恢复 seed 与真正的新会话。仍匹配的最近选择在共享捆绑时胜出，已记录的 Auto 选择在 `never` 审批策略下也匹配；否则配置表中的第一个匹配项胜出；否则返回推导出的 `CUSTOM_PRESET`。投影 key 缺失时会显式失败。
-
-不变式伴生插件从包级精确 Session 折叠中检查历史预设身份；创建、恢复与提供者生命周期行为见[子系统参考](../../../docs/subsystems/permission-presets.zh.md#preset-history-validation)。
 
 `optionOf(name)` 返回配置条目、存活的 Auto 条目或仅供显示的 `custom` 条目。只有名称不匹配这三者时才抛错；已撤回的 Auto 条目不可用。
 
@@ -112,7 +108,7 @@ kind: "package-reference"
 当包级约定不够用时阅读以下页面。它们从预设词汇逐步进入执行旋钮与设计依据。
 
 - [权限预设子系统参考](../../../docs/subsystems/permission-presets.zh.md)——预设表、进程级目录、当前选择与 `ctx.permissionPresets` Cordis API。
-- [沙箱切换设计 Agent Note](../../../.agents/notes/implemented/feature/2026-07-06-sandbox.zh.md)——沙箱模式与审批策略如何组合与切换。
+- [历史沙箱切换设计 Agent Note](../../../.agents/notes/archived/feature/2026-07-06-sandbox.md)——沙箱模式与审批策略如何组合与切换。
 - [审批子系统参考](../../../docs/subsystems/approval.zh.md)——此服务捆绑的审批策略旋钮。
 - [交互组映射](../README.zh.md)——相邻的命令、审批与问答包。
 

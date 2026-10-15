@@ -7,11 +7,10 @@
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { boundContextSummary, createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { SessionId, UserMessage } from '@deepseek-ai/dsh-session'
-import type { ActivationTerminal } from './lifecycle.ts'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SubagentResult } from './types.ts'
 
-/** Durable attribution for one model-authored message between adjacent Agents. */
+/** Durable attribution for one model-authored message between Agents. */
 export interface AgentMessageSource {
   readonly kind: 'agent-message'
   /** A message another agent addressed to this one (`relay` context form). */
@@ -73,7 +72,7 @@ export function createAgentMessage(
 }
 
 /**
- * Append automatic final-result and adjacent-Agent progress guidance to the initial task.
+ * Append automatic final-result and adjacent-Agent progress guidance to a continuable child's initial task.
  * @param parentId - durable parent session id named in the guidance.
  * @param prompt - initial model-visible task blocks.
  * @returns task blocks followed by the continuable return guidance.
@@ -102,13 +101,16 @@ export function withContinuableReturnGuidance(
  * the parent's own task vocabulary.
  * @param childId - the durable child the parent knows by id.
  * @param stopReason - how the child's last ordinary turn ended.
+ * @param continuable - whether the child accepts a later message.
  * @returns the model-facing opening line of the settlement notice.
  */
-function settlementSummary(childId: SessionId, stopReason: SubagentResult['stopReason']): string {
+function settlementSummary(childId: SessionId, stopReason: SubagentResult['stopReason'], continuable: boolean): string {
   const subject = `Background subagent ${childId}`
   switch (stopReason) {
     case 'completed':
-      return `${subject} finished and will do no further work unless you send it more.`
+      return continuable
+        ? `${subject} finished and will do no further work unless you send it more.`
+        : `${subject} finished. It cannot receive follow-up messages.`
     case 'aborted':
       return `${subject} was stopped before it finished.`
     case 'max-tokens':
@@ -119,7 +121,7 @@ function settlementSummary(childId: SessionId, stopReason: SubagentResult['stopR
       return `${subject} declined the task.`
     case 'error':
       return `${subject} failed before it finished.`
-    /*! v8 ignore next 4 -- `SubagentResult['stopReason']` is merge-extensible, so this arm
+    /* v8 ignore next 4 -- `SubagentResult['stopReason']` is merge-extensible, so this arm
      * needs a backend that adds a variant; an unnameable ending is reported as unfinished
      * rather than silently as success. */
     default:
@@ -131,34 +133,31 @@ function settlementSummary(childId: SessionId, stopReason: SubagentResult['stopR
  * Build the runtime-owned settlement notice from the child's nonempty closing text.
  * @param childId - durable child session id named in the notice.
  * @param terminal - recorded terminal state for the settled Activation.
- * @param delivered - Last child message recorded in the parent's history during this Activation; pending Inbox messages are excluded.
+ * @param continuable - whether the child can accept another task.
  * @returns the durable user-message representation delivered to the parent.
  */
 export function createSettlementMessage(
   childId: SessionId,
-  terminal: ActivationTerminal,
-  delivered?: UserMessage,
+  terminal: SubagentResult,
+  continuable = true,
 ): ReturnType<typeof createUserMessage> {
-  const summary = settlementSummary(childId, terminal.stopReason)
+  const summary = settlementSummary(childId, terminal.stopReason, continuable)
   // Parent providers receive this notice as a user message and may reject
   // nontext assistant blocks. Keep this conversion local so SDK/UI consumers
   // retain the complete child output.
-  const closingText = (terminal.output ?? []).flatMap(block =>
+  const closingText = terminal.output.flatMap(block =>
     block.type === 'text' && block.text.length > 0 ? [block] : [],
   )
-  const sentContent = delivered?.content.slice(1)
-  const repeatsDelivery = closingText.length > 0 && sentContent !== undefined
-    && sentContent.every(block => block.type === 'text')
-    && sentContent.map(block => block.text).join('')
-      === closingText.map(block => block.text).join('')
   return createUserMessage({
     content: [
       { type: 'text' as const, text: summary },
-      ...repeatsDelivery && delivered !== undefined
-        ? [{ type: 'text' as const, text: `Its closing message repeats message ${delivered.id} sent to you; see that message.` }]
-        : closingText.length === 0
-          ? [{ type: 'text' as const, text: 'It left no closing message.' }]
-          : [{ type: 'text' as const, text: 'Its closing message:' }, ...closingText],
+      ...closingText.length === 0
+        ? [{ type: 'text' as const, text: 'It left no closing message.' }]
+        : [{ type: 'text' as const, text: 'Its closing message:' }, ...closingText],
+      ...terminal.structured !== undefined
+        ? [{ type: 'text' as const, text: `Structured result: ${JSON.stringify(terminal.structured)}` }] : [],
+      ...terminal.diagnostic !== undefined
+        ? [{ type: 'text' as const, text: terminal.diagnostic }] : [],
     ],
     source: {
       kind: 'subagent-settled' as const,

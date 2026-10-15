@@ -6,4 +6,4 @@ recording: authored
 header:
   class: child-question
   pin: true
-  systemPromptSource: text-turn
+  systemPromptSource: tool-call-turn

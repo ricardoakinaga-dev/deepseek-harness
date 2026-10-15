@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-compaction-basic",
   "description": "Token-meter-driven compaction policy and LLM summarization backend for the DeepSeek Harness",
-  "version": "0.2.0-rc.1",
+  "version": "0.2.1-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -18,9 +18,11 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
     "lib/types/**/*.d.ts"
   ],
@@ -39,9 +41,6 @@
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-compaction-tool-result-pruner": {
       "optional": true
-    },
-    "@deepseek-ai/dsh-app-boot": {
-      "optional": true
     }
   },
   "dependencies": {
@@ -58,7 +57,6 @@
     "@deepseek-ai/dsh-commands": "workspace:*",
     "@deepseek-ai/dsh-compaction": "workspace:*",
     "@deepseek-ai/dsh-compaction-tool-result-pruner": "workspace:*",
-    "@deepseek-ai/dsh-invariants": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/dsh-llm-retry": "workspace:*",
     "@deepseek-ai/dsh-session": "workspace:*",

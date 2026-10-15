@@ -76,6 +76,26 @@ interface GenericSkip {
 }
 
 const GENERIC_SKIPS: readonly GenericSkip[] = [
+  // Agent preset ids are product data; package import specifiers remain checked.
+  { file: 'apps/cli/tests/optional-bundle-transitions.e2e.ts', upstream: ['cordis'] },
+  { file: 'apps/web/tests/agent-preset-selection.e2e.ts', upstream: ['cordis'] },
+  { file: 'apps/web/tests/developer-tools-settings.e2e.ts', upstream: ['cordis'] },
+  { file: 'docs/subsystems/schedule.md', upstream: ['cordis'] },
+  { file: 'docs/subsystems/schedule.zh.md', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.0-rc.2/schedule-bundle-retired/guide.md', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.0-rc.2/schedule-bundle-retired/guide.zh.md', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.1-alpha.1/subagent-preset-composition/guide.md', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.1-alpha.1/subagent-preset-composition/guide.zh.md', upstream: ['cordis'] },
+  { file: 'docs/user/guide/schedule.md', upstream: ['cordis'] },
+  { file: 'docs/user/guide/schedule.zh.md', upstream: ['cordis'] },
+  { file: 'packages/bundle/web-app/cordis.patch.yml', upstream: ['cordis'] },
+  { file: 'packages/client/ui-agent-preset/src/client/CreatePluginMenuItem.tsx', upstream: ['cordis'] },
+  { file: 'packages/client/ui-agent-preset/tests/components.client.spec.tsx', upstream: ['cordis'] },
+  { file: 'packages/client/ui-agent-preset/tests/create-plugin-menu-item.client.spec.tsx', upstream: ['cordis'] },
+  { file: 'packages/client/ui-agent-preset/tests/section-store.client.spec.ts', upstream: ['cordis'] },
+  { file: 'packages/extensions/cordis-host-runner/tests/inspect-registry.spec.ts', upstream: ['cordis'] },
+  { file: 'snapshots/session/cordis-inspect-liveness/client-fixture.mjs', upstream: ['cordis'] },
+  { file: 'snapshots/session/cordis-inspect-timeout/client-fixture.mjs', upstream: ['cordis'] },
   // `Symbol.for('schemastery')` and the `vendor:` metadata field are upstream identifiers.
   { file: 'vendor/schemastery/src/index.ts', upstream: ['schemastery'] },
   // Narrows a Standard Schema by the same upstream `vendor:` identifier.
@@ -152,7 +172,6 @@ const POSTCONDITIONS: readonly PostCondition[] = [
   { file: 'vendor/hmr/package.json', text: '"name": "@deepseek-ai/cordis-plugin-hmr"', count: 1 },
   { file: 'scripts/cordis-walk.ts', text: '@deepseek-ai\\/cordis', count: 1 },
   { file: 'scripts/cordis-walk.ts', text: '!== \'@deepseek-ai/cordis\'', count: 1 },
-  { file: 'scripts/gen-scoped-events.ts', text: '=== \'@deepseek-ai/cordis\'', count: 1 },
   { file: 'packages/typert/generator/src/analyzer.ts', text: '!== \'@deepseek-ai/cordis\'', count: 2 },
   { file: 'scripts/check-workspace-constraints.ts', text: '?.[\'@deepseek-ai/cordis\']', count: 2 },
   { file: 'packages/boot/app-boot/tsdown.config.ts', text: '[\'@deepseek-ai/cordis-plugin-include\']', count: 1 },
@@ -432,7 +451,7 @@ const VENDORED_LIBRARY = /^@deepseek-ai\\/(cosmokit|schemastery)(\\/|$)/
  * @returns Whether the codemod must preserve the file without scanning its tokens.
  */
 export function isRescopeExcluded(file: string): boolean {
-  if (file === 'scripts/rescope-vendor.ts') return true // the mapping itself
+  if (file === 'scripts/rescope-vendor.ts' || file === 'scripts/rescope-vendor.spec.ts') return true // package-name mapping and regression inputs
   if (file.startsWith('.agents/notes/')) return true // notes record what was true when written
   // Recorded model payloads quote documentation verbatim, so they must mirror the
   // sources on disk — including the notes this rescope leaves alone.
@@ -482,8 +501,12 @@ function skipped(file: string, pattern: Pattern): boolean {
 function rewriteLine(line: string, file: string, all: readonly Pattern[]): string {
   let out = line
   for (const pattern of all) {
+    out = out.replace(pattern.token, (match: string, quote: string, subpath: string, offset: number) => {
+      const specifier = /(?:\bfrom\s*|\b(?:import|require|resolve)\s*\(\s*|^\s*import\s*)$/.test(out.slice(0, offset))
+      if (skipped(file, pattern) && !specifier) return match
+      return `${quote}${pattern.to}${subpath}${quote}`
+    })
     if (skipped(file, pattern)) continue
-    out = out.replace(pattern.token, (_match, quote: string, subpath: string) => `${quote}${pattern.to}${subpath}${quote}`)
     out = out.replace(pattern.yamlName, (_match, prefix: string, suffix: string) => `${prefix}${pattern.to}${suffix}`)
   }
   return out
@@ -491,6 +514,10 @@ function rewriteLine(line: string, file: string, all: readonly Pattern[]): strin
 
 /**
  * Rewrite a file's eligible lines.
+ * @param text - File contents.
+ * @param file - Repository-relative path.
+ * @param reverse - Restore upstream package names when true.
+ * @returns Rewritten contents and number of changed lines.
  *
  * Markdown splits in two. Every fence is code a reader copies or a
  * configuration they mount, so every fence follows the rename regardless of its
@@ -500,7 +527,8 @@ function rewriteLine(line: string, file: string, all: readonly Pattern[]): strin
  * can mean something else entirely — the Python SDK's `cordis` option, or the
  * unvendored `@cordisjs/plugin-http`.
  */
-function rewrite(text: string, file: string, all: readonly Pattern[]): { text: string; lines: number } {
+export function rewriteRescopeSource(text: string, file: string, reverse = false): { text: string; lines: number } {
+  const all = patterns(reverse)
   const markdown = file.endsWith('.md')
   const prose = markdown && file.startsWith('docs/')
   let insideFence = false
@@ -568,8 +596,7 @@ function main(): void {
   const args = process.argv.slice(2)
   const mode = args.includes('--apply') ? 'apply' : args.includes('--check') ? 'check' : 'dry'
   const reverse = args.includes('--reverse')
-  const all = patterns(reverse)
-  const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
+  const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
     .split('\0')
     .filter(file => file !== '' && !isRescopeExcluded(file))
 
@@ -614,7 +641,7 @@ function main(): void {
   for (const file of files) {
     const path = resolve(root, file)
     const before = readFileSync(path, 'utf8')
-    const { text: after, lines } = rewrite(before, file, all)
+    const { text: after, lines } = rewriteRescopeSource(before, file, reverse)
     if (after === before) continue
     outstanding.push(file)
     const kind = classify(file)

@@ -211,6 +211,33 @@ describe('pending waking input after request failure', () => {
       .toHaveLength(1)
   })
 
+  it('lets a terminal-error observer park waking input until an explicit later wake', async () => {
+    const { ctx, adapter, agent } = await setup()
+    const accepted = input('parked after terminal failure')
+    ctx.on('agent/error', ({ agent: subject }) => {
+      if (subject === agent) agent.cancel({ kind: 'hook', reason: 'terminal failure requires explicit recovery' }, { keepInbox: true })
+    })
+    agent.followup(accepted)
+    adapter.release.resolve(undefined)
+    await agent.whenIdle()
+
+    expect(adapter.requests).toHaveLength(1)
+    expect(agent.inbox.nextTurn).toEqual([accepted])
+    expect(agent.session.snapshotEvents().flatMap(event => event.type === 'turn/end' ? [event.data.reason.kind] : []))
+      .toEqual(['error'])
+    expect(agent.session.snapshotEvents().filter(event => event.type === 'user/message' && event.data.id === accepted.id))
+      .toHaveLength(0)
+
+    agent.steer(input('explicit recovery'))
+    await agent.whenIdle()
+
+    expect(adapter.requests).toHaveLength(2)
+    expect([...agent.inbox.nextTurn, ...agent.inbox.nextStep]).toEqual([])
+    expect(adapter.requests[1]!.messages.filter(message => message.id === accepted.id)).toHaveLength(1)
+    expect(agent.session.snapshotEvents().filter(event => event.type === 'user/message' && event.data.id === accepted.id))
+      .toHaveLength(1)
+  })
+
   it('disposes pending waking input without starting another request', async () => {
     const { ctx, adapter, agent } = await setup()
     agent.steer(input('accepted before disposal'))

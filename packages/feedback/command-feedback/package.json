@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-command-feedback",
   "description": "Log-only session feedback: the record event, the sessionFeedback Host Remote, and the human-facing slash command",
-  "version": "0.2.0-rc.1",
+  "version": "0.2.1-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -30,9 +30,11 @@
       "types": "./lib/typert.remote-client.d.ts",
       "default": "./lib/typert.remote-client.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts",
@@ -50,7 +52,7 @@
     "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   },
   "dependencies": {
-    "zod": "^4.4.3"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@deepseek-ai/cordis-plugin-include": "workspace:~",

@@ -1,20 +1,20 @@
+import { mountWorkingDirectoryFixture } from '../../subagent/tests/working-directory-fixture.ts'
 /** Default-off settings and per-session model-selection decisions. */
 
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import { assembleContextFor } from '@deepseek-ai/dsh-agent'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
-import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { bindScopeParent, createScope, scopeOf, scopeTarget } from '@deepseek-ai/dsh-scope'
 import { liveConfig } from '../../../settings/settings/tests/live-config.ts'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import * as tool from '../src/index.ts'
-import * as ToolInvariant from '../src/invariant.ts'
 import SubagentModelSelectionConfig from '../src/model-selection-settings.ts'
 import {
   subagentModelSelectionPolicy,
@@ -46,6 +46,7 @@ async function boot(withPreset = true): Promise<Context> {
   selectionConfigs.set(ctx, await liveConfig(ctx, SubagentModelSelectionConfig))
   await mountAgentLoopTestDependencies(ctx)
   await ctx.plugin(AgentLoop, { agents: [] })
+  await mountWorkingDirectoryFixture(ctx)
   subagentConfigs.set(ctx, await liveConfig(ctx, SubagentRuntime))
   await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
   if (withPreset) {
@@ -53,7 +54,6 @@ async function boot(withPreset = true): Promise<Context> {
     await preset.ctx.plugin(tool, {
       provider: 'spawn',
       modelSelectionSettings: true,
-      backgroundMode: 'continuable',
     })
     modelSelectionPresets.set(ctx, preset)
   }
@@ -126,16 +126,15 @@ describe('SubagentModelSelectionConfig', () => {
     await selectionConfigs.get(ctx)!.update({ allowedModels: [] })
     expect(ctx.subagentModelSelection.current()).toEqual({ enabled: false, allowedModels: [] })
 
-    const invalid = Session.create(SessionId('empty-policy'))
-    invalid.append('subagent/model-selection-policy', { allowedModels: [] })
-    expect(() => ctx.sessions.create(invalid.id, { seed: invalid.snapshotEvents() }))
-      .toThrow('requires at least one route')
-
-    const malformed = Session.create(SessionId('malformed-policy'))
-    malformed.append('subagent/model-selection-policy', {
-      allowedModels: [{ provider: 1, model: 'fast-model' }],
-    } as never)
-    expect(() => ctx.sessions.create(malformed.id, { seed: malformed.snapshotEvents() }))
+    const foldPolicy = subagentModelSelectionProjectionDefinition.apply
+    const invalid: SessionEvent<'subagent/model-selection-policy'> = {
+      type: 'subagent/model-selection-policy', seq: SessionSeq(0), time: 0, data: { allowedModels: [] },
+    }
+    expect(() => foldPolicy(null, invalid)).toThrow('requires at least one route')
+    const malformed: SessionEvent<'subagent/model-selection-policy'> = {
+      ...invalid, data: { allowedModels: [{ provider: 1, model: 'fast-model' }] } as never,
+    }
+    expect(() => foldPolicy(null, malformed))
       .toThrow('requires non-empty provider and model ids')
     await ctx.fiber.dispose()
   })
@@ -179,10 +178,9 @@ describe('SubagentModelSelectionConfig', () => {
       setup: async (agentCtx, agent) => {
         prepared = agent
         const fiber = agentCtx.inject(tool.inject, (runtimeCtx) => {
-          tool.apply(runtimeCtx, {
+          return tool.apply(runtimeCtx, {
             provider: 'spawn',
             modelSelectionSettings: true,
-            backgroundMode: 'continuable',
           }, agent.session)
         })
         await fiber.await()
@@ -247,14 +245,11 @@ describe('SubagentModelSelectionConfig', () => {
 
   it('installs per-Agent definitions for a shared preset scope', async () => {
     const ctx = await boot(false)
-    await ctx.plugin(InvariantRegistry, { enabled: true })
-    await ctx.plugin(ToolInvariant)
     const preset = createScope(ctx, { preset: 'standard' })
     const other = createScope(ctx, { preset: 'minimal' })
     await preset.ctx.plugin(tool, {
       provider: 'spawn',
       modelSelectionSettings: true,
-      backgroundMode: 'continuable',
     })
 
     let enabledBinding: ReturnType<typeof bindScopeParent> | undefined
@@ -309,7 +304,6 @@ describe('SubagentModelSelectionConfig', () => {
     await preset.ctx.plugin(tool, {
       provider: 'spawn',
       modelSelectionSettings: true,
-      backgroundMode: 'continuable',
     })
     let binding: ReturnType<typeof bindScopeParent> | undefined
     const handle = await ctx.agents.create({
@@ -378,84 +372,26 @@ describe('SubagentModelSelectionConfig', () => {
   it('requires both the Host setting owner and a scoped standing preset', async () => {
     const withoutSettings = new Context()
     await mountAgentLoopTestDependencies(withoutSettings)
+    await mountWorkingDirectoryFixture(withoutSettings)
     await withoutSettings.plugin(SubagentRuntime)
-    expect(() => {
-      tool.apply(withoutSettings, {
-        provider: 'missing',
-        modelSelectionSettings: true,
-        maxDepth: 'provider-managed',
-      })
-    }).toThrow('requires @deepseek-ai/dsh-tool-subagent/model-selection-settings')
+    await expect(tool.apply(withoutSettings, {
+      provider: 'missing',
+      modelSelectionSettings: true,
+      maxDepth: 'provider-managed',
+    })).rejects.toThrow('requires @deepseek-ai/dsh-tool-subagent/model-selection-settings')
     await withoutSettings.fiber.dispose()
 
     const withoutAgent = await boot(false)
-    expect(() => {
-      tool.apply(withoutAgent, {
-        provider: 'spawn',
-        modelSelectionSettings: true,
-        backgroundMode: 'continuable',
-      })
-    }).toThrow('requires a scoped preset Context')
+    await expect(tool.apply(withoutAgent, {
+      provider: 'spawn',
+      modelSelectionSettings: true,
+    })).rejects.toThrow('requires a scoped preset Context')
 
     await withoutAgent.fiber.dispose()
   })
 
-  it('keeps model selection inactive without the Session registry', async () => {
-    const ctx = new Context()
-    try {
-      await ctx.plugin(SessionProjectionRegistry)
-      await ctx.plugin(SubagentModelSelectionConfig)
-      expect(ctx.get('sessionProjections')).toBeUndefined()
-      expect(ctx.get('subagentModelSelection')).toBeUndefined()
-    } finally {
-      await ctx.fiber.dispose()
-    }
-  })
 
-  it('checks model-selectable definitions without rejecting a policy-only preset', async () => {
-    const ctx = await boot()
-    await ctx.plugin(InvariantRegistry, { enabled: true })
-    await ctx.plugin(ToolInvariant)
-    const disabled = await createAgent(ctx, 'invariant-disabled')
-    const next = () => Promise.resolve({ kind: 'enter' as const, messages: [] })
-    const payload = {
-      agent: disabled,
-      messages: [],
-      turn: 1,
-      step: 1,
-      signal: new AbortController().signal,
-    }
-    await expect(ctx.waterfall(ctx as never, 'agent/pre-step', payload, next)).resolves.toEqual({
-      kind: 'enter', messages: [],
-    })
-
-    disabled.session.append('subagent/model-selection-policy', { allowedModels: ALLOWED_MODELS })
-    await expect(ctx.waterfall(ctx as never, 'agent/pre-step', payload, next))
-      .resolves.toEqual({ kind: 'enter', messages: [] })
-
-    await selectionConfigs.get(ctx)!.update({
-      enabled: true,
-      allowedModels: ALLOWED_MODELS,
-    })
-    const enabled = await createAgent(ctx, 'invariant-enabled')
-    await expect(ctx.waterfall(ctx as never, 'agent/pre-step', { ...payload, agent: enabled }, next))
-      .resolves.toEqual({ kind: 'enter', messages: [] })
-
-    const enabledSchemas = ctx.tools.schemas(enabled)
-    const schemas = vi.spyOn(ctx.tools, 'schemas')
-    schemas.mockReturnValue(enabledSchemas.filter(schema => schema.name !== 'list_subagent_models'))
-    await expect(ctx.waterfall(ctx as never, 'agent/pre-step', { ...payload, agent: enabled }, next))
-      .rejects.toThrow('require a durable policy, route fields, and list_subagent_models')
-
-    schemas.mockReturnValue(enabledSchemas)
-    await selectionConfigs.get(ctx)!.update({ enabled: false })
-    const withoutPolicy = await createAgent(ctx, 'invariant-without-policy')
-    await expect(ctx.waterfall(ctx as never, 'agent/pre-step', { ...payload, agent: withoutPolicy }, next))
-      .rejects.toThrow('require a durable policy, route fields, and list_subagent_models')
-    await ctx.fiber.dispose()
-  })
 })
-
 
 it('reads the saved default depth at each delegation without remounting the tool', async () => {
   const ctx = await boot(false)
@@ -463,18 +399,34 @@ it('reads the saved default depth at each delegation without remounting the tool
   try {
     ctx.subagents.registerProvider({
       name: 'capture-depth',
-      capabilities: { agentOptions: true, outputSchema: true, depthLimit: true, sandboxMode: false, toolFilter: true, persona: true },
+      capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true, toolFilter: true, sandboxMode: true },
       inheritsParentContext: false,
       start: async (request) => {
         depths.push(request.maxDepth)
-        return { id: SessionId(`depth-${depths.length}`), localAgent: undefined,
+        return { id: SessionId(`depth-${depths.length}`),
           result: Promise.resolve({ output: [], stopReason: 'completed' as const }), dispose: async () => {} }
       },
     })
     await ctx.plugin(tool, { provider: 'capture-depth' })
+    const { agent } = await ctx.agents.create({ sessionId: SessionId('live-depth-context') })
+    const initial = await ctx.systemPrompt.assemble(assembleContextFor(agent))
+    expect(initial.contexts.find(part => part.name === 'tool:subagent:depth')?.text)
+      .toBe('')
     await callSubagent(ctx, { description: 'first', prompt: 'work' })
     await subagentConfigs.get(ctx)!.update({ maxDepth: 5 })
+    const updated = ctx.systemPrompt.refreshContext(initial, assembleContextFor(agent))
+    expect(updated.contexts.find(part => part.name === 'tool:subagent:depth')?.text)
+      .toBe('')
     await callSubagent(ctx, { description: 'second', prompt: 'work' })
+    await subagentConfigs.get(ctx)!.update({ maxDepth: 0 })
+    const disabled = ctx.systemPrompt.refreshContext(initial, assembleContextFor(agent))
+    expect(disabled.contexts.find(part => part.name === 'tool:subagent:depth')?.text)
+      .toBe('Delegation depth for `subagent`: current 0, maximum 0, remaining levels 0. Do not call `subagent` at this depth; carry out the work directly.')
+    expect(disabled.sections).toEqual(initial.sections)
+    expect(disabled.tools).toEqual(initial.tools)
+    await subagentConfigs.get(ctx)!.update({ maxDepth: 2 })
+    expect(ctx.systemPrompt.refreshContext(disabled, assembleContextFor(agent))
+      .contexts.find(part => part.name === 'tool:subagent:depth')?.text).toBe('')
     await subagentConfigs.get(ctx)!.update({ maxDepth: 0 })
     await callSubagent(ctx, { description: 'disabled', prompt: 'work' })
     expect(depths).toEqual([1, 5, 0])

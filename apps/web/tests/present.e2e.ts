@@ -132,7 +132,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
     await page.getByText(/^PRESENT_DONE\.?$/).waitFor({ timeout: 30_000 })
     await assertFinalWorkspaceSnapshot(DIR, cwd)
     expect(events.filter(event => event.type === 'deliverables/presented').flatMap(event => event.data.files.map(file => file.path)))
-      .toEqual(['report.txt', '说明.txt'])
+      .toEqual([join(cwd, 'report.txt'), join(cwd, '说明.txt')])
     for (const event of events) {
       if (event.type === 'deliverables/presented') {
         expect(event.data.files).toEqual(DECLARATIONS)
@@ -172,7 +172,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       const beforePreview = (await opened()).length
       const column = page.locator('[data-rightbar-col]')
       for (const [name, content] of [['report.txt', 'EDITED_REPORT'], ['说明.txt', 'EDITED_NOTE']] as const) {
-        const mention = page.locator('code').getByRole('button', { name: `Open ${name} in sidebar`, exact: true })
+        const mention = page.locator('code').getByRole('button', { name: `Open ${join(cwd, name)} in sidebar`, exact: true })
         await mention.click()
         const preview = column.locator('[data-document-preview]')
         await expect.poll(() => preview.getAttribute('data-textpreview-url'))

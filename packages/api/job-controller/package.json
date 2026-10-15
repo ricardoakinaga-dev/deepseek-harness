@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-api-job-controller",
   "description": "Job Remote observation stream and the reference-counted client job-output service",
-  "version": "0.2.0-rc.1",
+  "version": "0.2.1-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -34,7 +34,8 @@
       "types": "./lib/typert.remote-client.d.ts",
       "default": "./lib/typert.remote-client.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "dsh": {
     "client": {
@@ -53,6 +54,7 @@
     "watch": "tsdown --watch"
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
     "lib/client.js",
     "lib/types/**/*.js",
@@ -66,7 +68,7 @@
   "dependencies": {
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
-    "zod": "^4.4.3"
+    "zod": "4.4.3"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~"

@@ -189,8 +189,8 @@ describe('web e2e: waiting and failed activity without assistant prose', () => {
   it('shows the failed delegated child in the catalog and its own activity header', async () => {
     const world = await openWorld('failure')
     const { scaffold, owner, adapter, page, events, tripwire } = world
-    const started = await scaffold.ctx.subagents.startContinuable({
-      provider: 'spawn', label: CHILD_LABEL, signal: new AbortController().signal,
+    const started = await scaffold.ctx.subagents.startActivation({
+      provider: 'spawn', label: CHILD_LABEL, delivery: 'parent', signal: new AbortController().signal,
       request: { parent: owner.agent, prompt: [{ type: 'text', text: 'Run the delegated activity case.' }] },
     })
     const childId = started.childId

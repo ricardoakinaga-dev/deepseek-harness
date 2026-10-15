@@ -30,7 +30,7 @@
   "events": [
     {
       "type": "request/header",
-      "seq": 12,
+      "seq": 11,
       "time": 0,
       "data": {
         "header": {
@@ -67,6 +67,7 @@
             "web_fetch",
             "web_search",
             "workflow",
+            "working_directory",
             "write"
           ]
         },
@@ -75,7 +76,7 @@
     },
     {
       "type": "request/context",
-      "seq": 13,
+      "seq": 12,
       "time": 0,
       "data": {
         "provider": "deepseek-official",
@@ -85,7 +86,7 @@
     },
     {
       "type": "request/header",
-      "seq": 21,
+      "seq": 19,
       "time": 0,
       "data": {
         "header": {
@@ -123,6 +124,7 @@
             "web_fetch",
             "web_search",
             "workflow",
+            "working_directory",
             "write"
           ]
         },
@@ -131,7 +133,7 @@
     },
     {
       "type": "developer/message",
-      "seq": 22,
+      "seq": 20,
       "time": 0,
       "data": {
         "turn": 1,
@@ -149,13 +151,13 @@
           "role": "developer",
           "id": "{{messageId}}"
         },
-        "headerSeq": 21
+        "headerSeq": "{{header:2}}"
       },
       "surfaceOp": "append"
     },
     {
       "type": "request/header",
-      "seq": 29,
+      "seq": 26,
       "time": 0,
       "data": {
         "header": {
@@ -192,6 +194,7 @@
             "web_fetch",
             "web_search",
             "workflow",
+            "working_directory",
             "write"
           ]
         },
@@ -200,7 +203,7 @@
     },
     {
       "type": "developer/message",
-      "seq": 30,
+      "seq": 27,
       "time": 0,
       "data": {
         "turn": 1,

@@ -51,7 +51,11 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### What a delegation does
 
-One tool call starts one child and waits for its result: the child works in its own session and the parent receives only its final output, or an errored tool result when the run is cancelled, refused, truncated by its token limit, or rejected at startup. A rejected start leaves no published child; a completed run is disposed after its result is collected.
+One tool call creates a background child and returns its session id immediately. The child works in its own session; the parent receives its final answer in a completion notice. The child can also send messages through `send_message`. A rejected start leaves no published child. Programmatic callers such as workflows can await the activation result directly.
+
+An explicit `agentPreset` selects the currently registered preset independently; omission joins the parent's active revision. Only spawn supports this choice. Persona and tools belong in the [preset definition](../../preset/agent-preset-registry/README.md). Cold resume follows the shared [child composition rules](../subagent/README.md#restoring-child-composition).
+
+The manager captures the effective parent sandbox policy and inherited tool ceiling before provider preparation. Requests may narrow `sandboxMode` and `toolFilter`; cold resume retains these decisions and each publication records actual child authority. Final replies are delivered automatically, while `send_message` remains available for progress and coordination.
 
 -----
 
@@ -61,26 +65,25 @@ One tool call starts one child and waits for its result: the child works in its 
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-This section explains how the backend is built and where the behavior in [Use this package](#use-this-package) comes from; the shared mechanics belong to the in-process driver.
+This section explains provider preparation and the activation lifecycle owned by the subagent service.
 
 ### Design concept
 
-One separation: this backend contributes only the provider registration and the decision to start fresh, while every run mechanic — depth checking, child creation, per-child customization, structured output, cancellation, result reading, and disposal — lives in `dsh-subagent-in-process-driver`. The agent factory's creation transaction owns the unpublished setup window and its rollback; after publication the caller owns the run.
+This backend registers the provider and prepares a fresh child session. `dsh-subagent` owns activation depth checks, child creation, preset composition, structured output, result collection, and disposal. The caller signal cancels unpublished creation; the published handle cancels and reaches quiescence through `dispose()`.
 
 ### Source map
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | Provider registration: `Config` schema, capability declaration, `start()` |
-| — | No runtime invariant companion is published; this package exposes no independent event sequence or mutable data relation beyond contracts enforced at its owning seam. |
+| [`src/index.ts`](src/index.ts) | Provider registration: `Config` schema, capability declaration, `prepareContinuable()` |
 
 ### Run flow
 
-A start request resolves through the subagent service, then the shared driver validates depth, mints a child session id, creates the child through the host agent factory with the caller's signal, applies persona, tool filter, and structured output inside the creation window, publishes the child, drives one task, reads the child's own final output, and disposes the handle quiescently.
+`startActivation()` resolves the provider and calls `prepareContinuable()`, then creates and publishes the child. Structured output is attached separately for each activation. Callers can await `result` and use `dispose()` to wait for the entire child subtree to reach quiescence.
 
 ### Ownership and scope
 
-The child gets an independent registration scope bounded by the parent's effective inherited tools. The backend supports `sandboxMode`: a child may request read-only or workspace-write only when that mode does not widen the effective parent policy. Approval remains pinned to never. The shared driver applies these permissions before publication.
+The child has its own registration scope below the inherited or independently selected preset. The manager captures the parent's admitted inherited tools and applies that ceiling in the child's own scope; an explicitly selected preset retains its tools while respecting parent denials. The backend advertises `agentPreset` and `agentOptions` alongside its other start-time capabilities; the subagent manager applies them during child creation.
 
 </details>
 
@@ -92,7 +95,6 @@ The child gets an independent registration scope bounded by the parent's effecti
 Read these pages when the package-level contract is not enough; they move from the shared subagent model to the sibling backends and exhaustive configuration.
 
 - [Subagent subsystem](../../../docs/subsystems/subagent.md) — start requests, results, live runs, and the provider contract.
-- [dsh-subagent-in-process-driver](../subagent-in-process-driver/README.md) — the shared run driver this backend calls.
 - [dsh-subagent-fork-in-process](../subagent-fork-in-process/README.md) — the sibling backend that seeds completed parent turns.
 - [dsh-tool-subagent](../tool-subagent/README.md) — the model-facing delegation tool that reaches this provider.
 - [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-subagent-spawn-in-process) — every accepted config field and its source declaration.
@@ -106,21 +108,21 @@ Read these pages when the package-level contract is not enough; they move from t
 
 #### What the model sees
 
-The fresh child receives the task content verbatim as its only user message in a new empty conversation, with the parent provider, model, reasoning effort, output-token limit, and working directory by default. A configured persona shadows global prompt text in the child's scope; a tool filter removes named global tools from its schemas, executable lookup, and PTC mode SDK bindings while leaving independently registered guidance. No parent conversation message is included; the filter intersects with the parent's effective tool permissions.
+The fresh child receives the task content verbatim as its only user message in a new empty conversation, with the parent provider, model, reasoning effort, output-token limit, and working directory by default. The inherited or selected preset supplies tools and prompt sections. No parent conversation message is included.
 
 #### Token effect
 
-The child pays for a new independent context and history, and no parent-history token is duplicated. A persona changes the child's repeated prompt cost; a tool filter changes its schema or generated SDK cost.
+The child pays for a new independent context and history, and no parent-history token is duplicated. The preset's prompt and tools determine repeated prompt, schema, and generated SDK costs.
 
 #### KV Cache effect
 
-The child's request cache is independent of the parent's. Child history grows append-only, while persona, tool-filter, generated-SDK, provider, or model changes establish a different child prefix.
+The child's request cache is independent of the parent's. Child history grows append-only, while preset, generated-SDK, provider, or model changes establish a different child prefix.
 
 ### Parent tool result, indirectly
 
 #### What the model sees
 
-Through `dsh-tool-subagent`, the parent receives only the child's final output or an errored result for a non-completed stop reason; intermediate child work never reaches it.
+Through `dsh-tool-subagent`, the parent first receives the child session id, then a completion notice with its final answer. Child-authored messages arrive through `send_message`. Internal child tool calls remain in the child session.
 
 #### Token effect
 
@@ -137,7 +139,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 These limits define when the backend is the wrong choice; they are current package constraints.
 
-- **Fresh means no parent transcript** — the child inherits cwd, lineage, provider, model, reasoning effort, output-token limit, and explicitly configured persona or tool restrictions, but none of the parent's conversation; use the fork backend when completed-turn context is required.
+- **Fresh means no parent transcript** — the child inherits cwd, lineage, provider, model, reasoning effort, and output-token limit, but none of the parent's conversation; use the fork backend when completed-turn context is required.
 
 <a id="dev-note"></a>
 ### Dev Note

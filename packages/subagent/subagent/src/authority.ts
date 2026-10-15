@@ -23,6 +23,7 @@ declare module '@deepseek-ai/dsh-session/types' {
 
 /**
  * Record effective authority from a composed local child, independently of request arguments.
+ * Observed tool names are sorted independently of registration order.
  * @param parent - Direct parent whose durable log owns the observation.
  * @param child - Published local child with its policy and tool restrictions installed.
  */
@@ -37,7 +38,7 @@ export function appendSubagentAuthority(parent: Agent, child: Agent): void {
     childId: child.id,
     sandboxMode: effective === undefined || (effective !== 'danger-full-access' && unconfined) ? null : effective,
     approvalPolicy: child.ctx.get('approval')?.overrideOf(child.session) ?? null,
-    toolFilter: { allow: child.ctx.tools.schemas(child).map(tool => tool.name) },
+    toolFilter: { allow: child.ctx.tools.schemas(child).map(tool => tool.name).sort() },
   })
 }
 
@@ -97,11 +98,17 @@ export function resolveDelegatedSandboxMode(parent: Agent, requested?: ConfinedS
 /**
  * Snapshot the parent's admitted inherited tools for an independently scoped child.
  * Child-owned response infrastructure is installed separately and remains available.
+ * Captured allow and deny names are sorted independently of tool registration order.
  * @param parent - Live delegating Agent whose visible inherited tools bound the child.
  * @param requested - Additional child restriction, validated against inherited tool names.
- * @returns The parent ceiling intersected with the requested filter.
+ * @param independentPreset - whether an explicitly selected preset grants its own tool set.
+ * @returns The inherited snapshot, or parent denials for an independently selected preset, intersected with the request.
  */
-export function resolveDelegatedToolFilter(parent: Agent, requested?: ToolRestriction): ToolRestriction {
+export function resolveDelegatedToolFilter(
+  parent: Agent,
+  requested?: ToolRestriction,
+  independentPreset = false,
+): ToolRestriction {
   const tools = parent.ctx.tools
   const inherited = tools.schemas(scopeParentOf(parent)).map(tool => tool.name).filter(name => name !== RUN_CODE_NAME)
   const available = new Set(inherited)
@@ -111,5 +118,12 @@ export function resolveDelegatedToolFilter(parent: Agent, requested?: ToolRestri
     }
   }
   const visible = new Set(tools.schemas(parent).map(tool => tool.name))
-  return intersectToolFilters({ allow: inherited.filter(name => visible.has(name)) }, requested) as ToolRestriction
+  const ceiling = independentPreset
+    ? { deny: inherited.filter(name => !visible.has(name)) }
+    : { allow: inherited.filter(name => visible.has(name)) }
+  const resolved = intersectToolFilters(ceiling, requested) as ToolRestriction
+  return {
+    ...resolved.allow === undefined ? {} : { allow: [...resolved.allow].sort() },
+    ...resolved.deny === undefined ? {} : { deny: [...resolved.deny].sort() },
+  }
 }

@@ -429,7 +429,7 @@ describe('session.history projections block', () => {
     await ctx.plugin(SessionStore)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(SessionProjectionRegistry)
-    const listing = new ApiSessionList(ctx)
+    const listing = new ApiSessionList(ctx, 10)
     const session = ctx.sessions.create(SessionId('without-attachments'), { meta: { cwd: '/workspace' } })
     seedMessages(session, 1)
     expect('imageLimits' in (listing.summaryFor(session).projections?.values ?? {})).toBe(false)

@@ -160,8 +160,8 @@ interface SessionEventMap {
    * keep ordinary restore and replay lifecycle boundaries.
    *
    * Only the `Session` constructor and `buildForkSeed` may create this marker.
-   * The invariant companion deliberately constrains nothing here, so a plugin
-   * appending one would silently classify every live bracket before it as seed history.
+   * Session append does not reject other writers, so a plugin appending one
+   * would silently classify every live bracket before it as seed history.
    *
    * An owner of a standalone open/close bracket (`compaction/start` …
    * `compaction/end`) reads it because seed history and live work are otherwise
@@ -207,7 +207,7 @@ interface EpochHeader {
 
 ### 路由容量事件：`request/context`
 
-请求所解析到的路由的上下文元数据是独立的已记录状态，在同一步骤内紧随 `request/header` 追加，且仅在提供方、模型、容量或 `systemPromptUpdate` 模式与上一条记录不同时追加。它保持在 `EpochHeader` 之外，因为该类型是 `headerEquals` 逐字段比较的重建约定。容量与更新模式描述的是路由，不是请求输入，把它们折叠进去会让一次路由变化被登记为请求信封的 `change`，也会把适配器元数据拉进 loop 的重建不变式。与 `request/header` 一样，它不是 `SurfaceEventType`，也不产生 LLM 消息。`session.requestContext()` 以增量方式归并最新一条记录；agent loop 在决定变化后的系统提示词是替换最新的系统节点还是追加到已缓存历史之后时，读取该记录的 `systemPromptUpdate`（[决策规则](../../packages/core/agent-loop/README.zh.md#understand-the-implementation)）。适配器不公布容量的路由会以缺失 `contextWindow` 的形式记录，因此新记录可以清除较早路由的容量；未声明更新模式的路由同样会清除较早路由的 `systemPromptUpdate`。
+请求所解析到的路由的上下文元数据是独立的已记录状态，在同一步骤内紧随 `request/header` 追加，且仅在提供方、模型、容量或 `systemPromptUpdate` 模式与上一条记录不同时追加。它保持在 `EpochHeader` 之外，因为该类型是 `headerEquals` 逐字段比较的重建约定。容量与更新模式描述的是路由，不是请求输入，把它们折叠进去会让一次路由变化被登记为请求信封的 `change`，也会把适配器元数据拉进 loop 的请求重建。与 `request/header` 一样，它不是 `SurfaceEventType`，也不产生 LLM 消息。`session.requestContext()` 以增量方式归并最新一条记录；agent loop 在决定变化后的系统提示词是替换最新的系统节点还是追加到已缓存历史之后时，读取该记录的 `systemPromptUpdate`（[决策规则](../../packages/core/agent-loop/README.zh.md#understand-the-implementation)）。适配器不公布容量的路由会以缺失 `contextWindow` 的形式记录，因此新记录可以清除较早路由的容量；未声明更新模式的路由同样会清除较早路由的 `systemPromptUpdate`。
 
 ```ts type-equiv
 /** Registration-bound metadata for one resolved model route. */
@@ -462,219 +462,218 @@ declare class Session {
   /** The ordered surface over this session's event log. */
   get surface(): SessionSurface;
   /**
-   * Detached, deep-frozen creation metadata (format version, cwd, lineage,
-   * and whether fork history exists). Supplied by the store via `ctx.sessions.create()`. When a
-   * `Session` is created without a store-owned header, a minimal header is
-   * synthesized (stamped with the current {@link SESSION_FORMAT_VERSION}) so
-   * `session.header` is always present. Kept out of the event log — it is a
-   * storage concern, not replayable conversation state.
-   */
+     * Detached, deep-frozen creation metadata (format version, cwd, lineage,
+     * and whether fork history exists). Supplied by the store via `ctx.sessions.create()`. When a
+     * `Session` is created without a store-owned header, a minimal header is
+     * synthesized (stamped with the current {@link SESSION_FORMAT_VERSION}) so
+     * `session.header` is always present. Kept out of the event log — it is a
+     * storage concern, not replayable conversation state.
+     */
   readonly header: SessionHeader;
   /** Number of leading events inherited from this Session's fork parent. */
   readonly inheritedEventCount: SessionLogOffset;
   /** The session identity, derived from its durable header's single copy. */
   get id(): SessionId;
   /**
-   * The constructor seed length (0 without one), before any marker appended
-   * during construction. Seed events never publish on `session/event`. A
-   * marker appended before the store attaches occupies this seq without
-   * publishing either; otherwise this seq is available for the next append.
-   *
-   * This in-process offset is not persisted. A fork seed can already contain
-   * the child's inherited marker and synthetic closers, so its child-owned
-   * history starts at {@link inheritedEventCount}, before this offset. A
-   * resumed Session's seed contains its full stored log, while its inherited
-   * count keeps the durable fork cut. Consumers needing complete canonical
-   * history start at seq 0.
-   */
+     * The constructor seed length (0 without one), before any marker appended
+     * during construction. Seed events never publish on `session/event`. A
+     * marker appended before the store attaches occupies this seq without
+     * publishing either; otherwise this seq is available for the next append.
+     *
+     * This in-process offset is not persisted. A fork seed can already contain
+     * the child's inherited marker and synthetic closers, so its child-owned
+     * history starts at {@link inheritedEventCount}, before this offset. A
+     * resumed Session's seed contains its full stored log, while its inherited
+     * count keeps the durable fork cut. Consumers needing complete canonical
+     * history start at seq 0.
+     */
   readonly firstLiveSeq: SessionLogOffset;
   /**
-   * First event produced for this object lifecycle. A new fork includes its
-   * child-owned seed marker and closers; a restored Session starts after its
-   * complete stored prefix. This in-process capture offset is not persisted.
-   */
+     * First event produced for this object lifecycle. A new fork includes its
+     * child-owned seed marker and closers; a restored Session starts after its
+     * complete stored prefix. This in-process capture offset is not persisted.
+     */
   readonly firstLifecycleSeq: SessionLogOffset;
-
   /**
-   * Create a detached session by validating and snapshotting borrowed seed
-   * events and storage metadata.
-   * @param id - session identity.
-   * @param seed - optional borrowed replay or fork events.
-   * @param header - optional borrowed storage metadata.
-   * @param inheritedEventCount - exact fork-inherited prefix length for a seeded header.
-   * @param projections - pure interpreters for plugin-owned message changes.
-   * @returns a detached session.
-   * @throws when a seed event requires a missing message interpreter or fails validation.
-   */
+     * Create a detached session by validating and snapshotting borrowed seed
+     * events and storage metadata.
+     * @param id - session identity.
+     * @param seed - optional borrowed replay or fork events.
+     * @param header - optional borrowed storage metadata.
+     * @param inheritedEventCount - exact fork-inherited prefix length for a seeded header.
+     * @param projections - pure interpreters for plugin-owned message changes.
+     * @returns a detached session.
+     * @throws when a seed event requires a missing message interpreter or fails validation.
+     */
   static create(
-    id: SessionId,
-    seed?: readonly SessionEvent[],
-    header?: SessionHeader,
-    inheritedEventCount?: SessionLogOffset,
-    projections?: readonly SessionMessageProjection[],
+      id: SessionId,
+      seed?: readonly SessionEvent[],
+      header?: SessionHeader,
+      inheritedEventCount?: SessionLogOffset,
+      projections?: readonly SessionMessageProjection[],
     ): Session;
   /**
-   * Restore a detached session by adopting an independently owned or deeply frozen seed.
-   * Runtime-required event fields, event envelopes, sequence continuity, surface
-   * transitions, and header fields are validated without copying or freezing events.
-   * Embedded Assistant streams remain opaque until a stream consumer or storage
-   * verifier reads them.
-   * @param id - restored session identity.
-   * @param seed - independently owned or deeply frozen events.
-   * @param header - independently owned storage metadata.
-   * @param inheritedEventCount - exact fork-inherited prefix length decoded from storage.
-   * @param eventState - aliasing state carried from the operation that produced the seed.
-   * @param projections - pure interpreters for plugin-owned message changes.
-   * @returns a restored detached session.
-   * @throws when a seed event requires a missing message interpreter or fails validation.
-   */
+     * Restore a detached session by adopting an independently owned or deeply frozen seed.
+     * Runtime-required event fields, event envelopes, sequence continuity, surface
+     * transitions, and header fields are validated without copying or freezing events.
+     * Embedded Assistant streams remain opaque until a stream consumer or storage
+     * verifier reads them.
+     * @param id - restored session identity.
+     * @param seed - independently owned or deeply frozen events.
+     * @param header - independently owned storage metadata.
+     * @param inheritedEventCount - exact fork-inherited prefix length decoded from storage.
+     * @param eventState - aliasing state carried from the operation that produced the seed.
+     * @param projections - pure interpreters for plugin-owned message changes.
+     * @returns a restored detached session.
+     * @throws when a seed event requires a missing message interpreter or fails validation.
+     */
   static fromRestore(
-    id: SessionId,
-    seed: readonly SessionEvent[],
-    header: SessionHeader,
-    inheritedEventCount: SessionLogOffset,
-    eventState: SessionSeedEventState,
-    projections?: readonly SessionMessageProjection[],
+      id: SessionId,
+      seed: readonly SessionEvent[],
+      header: SessionHeader,
+      inheritedEventCount: SessionLogOffset,
+      eventState: SessionSeedEventState,
+      projections?: readonly SessionMessageProjection[],
     ): Session;
   /**
-   * Return the immutable event stored at one exact sequence number.
-   * @deprecated Existing logic may remain unmigrated for now, but new calls are prohibited.
-   * See the [Agent Note](../../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md).
-   * @param seq - event sequence number.
-   * @returns the accepted event, or undefined when the log does not contain it.
-   */
+     * Return the immutable event stored at one exact sequence number.
+     * @deprecated Existing logic may remain unmigrated for now, but new calls are prohibited.
+     * See the [Agent Note](../../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md).
+     * @param seq - event sequence number.
+     * @returns the accepted event, or undefined when the log does not contain it.
+     */
   eventAt(seq: SessionSeq): SessionEvent | undefined;
   /**
-   * Materialize an immutable snapshot of a half-open event sequence range.
-   * A full current snapshot is reused until the next append; every previously
-   * returned snapshot remains stable after later appends.
-   * @deprecated Existing logic may remain unmigrated for now, but new calls are prohibited.
-   * See the [Agent Note](../../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md).
-   * @param fromSeq - non-negative inclusive sequence number; defaults to the log start.
-   * @param toSeqExclusive - non-negative exclusive sequence number; defaults to the current end.
-   * @returns a frozen array of the selected deeply frozen events.
-   */
+     * Materialize an immutable snapshot of a half-open event sequence range.
+     * A full current snapshot is reused until the next append; every previously
+     * returned snapshot remains stable after later appends.
+     * @deprecated Existing logic may remain unmigrated for now, but new calls are prohibited.
+     * See the [Agent Note](../../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md).
+     * @param fromSeq - non-negative inclusive sequence number; defaults to the log start.
+     * @param toSeqExclusive - non-negative exclusive sequence number; defaults to the current end.
+     * @returns a frozen array of the selected deeply frozen events.
+     */
   snapshotEvents(
-    fromSeq: SessionLogOffset = SessionLogOffset(0),
-    toSeqExclusive: SessionLogOffset = this.seq,
+      fromSeq: SessionLogOffset = SessionLogOffset(0),
+      toSeqExclusive: SessionLogOffset = this.seq,
     ): readonly SessionEvent[];
   /**
-   * Return this Session's events after its fork-inherited prefix.
-   * @deprecated Existing logic may remain unmigrated for now, but new calls are prohibited.
-   * See the [Agent Note](../../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md).
-   * @returns a fresh array containing child-owned events in log order.
-   */
+     * Return this Session's events after its fork-inherited prefix.
+     * @deprecated Existing logic may remain unmigrated for now, but new calls are prohibited.
+     * See the [Agent Note](../../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md).
+     * @returns a fresh array containing child-owned events in log order.
+     */
   ownEvents(): readonly SessionEvent[];
   /**
-   * Whether one existing event position is outside the fork-inherited prefix.
-   * @param seq - event position in this Session.
-   * @returns true when the event belongs to this Session rather than its parent.
-   */
+     * Whether one existing event position is outside the fork-inherited prefix.
+     * @param seq - event position in this Session.
+     * @returns true when the event belongs to this Session rather than its parent.
+     */
   isOwnSeq(seq: SessionSeq): boolean;
   /**
-   * Whether an event object is the canonical object committed at its sequence.
-   * This identity check does not expose session history.
-   * @param event - event object to validate.
-   * @returns true only when the exact object stored at event.seq is supplied.
-   */
+     * Whether an event object is the canonical object committed at its sequence.
+     * This identity check does not expose session history.
+     * @param event - event object to validate.
+     * @returns true only when the exact object stored at event.seq is supplied.
+     */
   isCommittedEvent(event: SessionEvent): boolean;
   /** The next event's sequence number — always the log length (the `seq = log.length` contiguity contract). */
   get seq(): SessionLogOffset;
   /**
-   * Append one typed event to the log and synchronously notify observers via
-   * the store-owned, module-private publication hooks. The hot path never blocks
-   * on I/O — persistence plugins buffer asynchronously. Once the event enters
-   * the log, the append is committed: observer failures are logged and
-   * contained per listener, so they do not change the return value or prevent
-   * later listeners from observing the same accepted event.
-   *
-   * @param type - The event type (key of {@link SessionEventMap}).
-   * @param data - The event payload; must be JSON-serializable.
-   * @param opts - Surface metadata: `surfaceOp` controls how the event enters
-   *   the ordered surface; `sourceEventSeqs` lists the seq numbers of earlier
-   *   events this one derives from. REQUIRED for
-   *   {@link SurfaceEventType} events (every message-producing event must
-   *   declare how it joins the surface, the sole source of derived model
-   *   history) and
-   *   rejected by the compiler for non-surface types like `turn/start` or
-   *   `assistant/attempt`. Assistant messages embed their exact provider
-   *   stream and cannot cite top-level source events.
-   * @returns the logged event — its assigned `seq`/`time` plus the SNAPSHOT of
-   *   `data` that entered the log, so reading `event.data` back sees the logged
-   *   value, never the caller's still-mutable input.
-   * @throws if `data` or surface metadata is not losslessly JSON-serializable
-   *   (BigInt, function, symbol, undefined, negative zero, non-finite number,
-   *   circular reference, sparse array, or an exotic object such as
-   *   Map/Set/Date/class instance), or when the candidate violates the
-   *   request-header empty-field or tool-error consistency rules, or the
-   *   canonical surface contract (marker shape and eligibility, unique
-   *   earlier source-event references, positional replacement validity, and complete
-   *   shadowed-node coverage). One iterative pass reads, validates, and
-   *   copies each nested value once, so a stateful getter cannot supply one value
-   *   to validation and another to storage. The event log is the durable source
-   *   of truth, so a bad event fails at the append site rather than later during
-   *   a backend flush. A synchronous internal dispatch validation failure or an
-   *   append reentered while this acceptance/publication boundary is open also
-   *   rejects before the log changes.
-   */
+     * Append one typed event to the log and synchronously notify observers via
+     * the store-owned, module-private publication hooks. The hot path never blocks
+     * on I/O — persistence plugins buffer asynchronously. Once the event enters
+     * the log, the append is committed: observer failures are logged and
+     * contained per listener, so they do not change the return value or prevent
+     * later listeners from observing the same accepted event.
+     *
+     * @param type - The event type (key of {@link SessionEventMap}).
+     * @param data - The event payload; must be JSON-serializable.
+     * @param opts - Surface metadata: `surfaceOp` controls how the event enters
+     *   the ordered surface; `sourceEventSeqs` lists the seq numbers of earlier
+     *   events this one derives from. REQUIRED for
+     *   {@link SurfaceEventType} events (every message-producing event must
+     *   declare how it joins the surface, the sole source of derived model
+     *   history) and
+     *   rejected by the compiler for non-surface types like `turn/start` or
+     *   `assistant/attempt`. Assistant messages embed their exact provider
+     *   stream and cannot cite top-level source events.
+     * @returns the logged event — its assigned `seq`/`time` plus the SNAPSHOT of
+     *   `data` that entered the log, so reading `event.data` back sees the logged
+     *   value, never the caller's still-mutable input.
+     * @throws if `data` or surface metadata is not losslessly JSON-serializable
+     *   (BigInt, function, symbol, undefined, negative zero, non-finite number,
+     *   circular reference, sparse array, or an exotic object such as
+     *   Map/Set/Date/class instance), or when the candidate violates the
+     *   request-header empty-field or tool-error consistency rules, or the
+     *   canonical surface contract (marker shape and eligibility, unique
+     *   earlier source-event references, positional replacement validity, and complete
+     *   shadowed-node coverage). One iterative pass reads, validates, and
+     *   copies each nested value once, so a stateful getter cannot supply one value
+     *   to validation and another to storage. The event log is the durable source
+     *   of truth, so a bad event fails at the append site rather than later during
+     *   a backend flush. A synchronous internal dispatch validation failure or an
+     *   append reentered while this acceptance/publication boundary is open also
+     *   rejects before the log changes.
+     */
   append<T extends SessionEventType>(
-    type: T,
-    data: SessionEventMap[T],
-    ...opts: T extends SurfaceEventType ? [opts: SurfaceIntent<T>] : []
+      type: T,
+      data: SessionEventMap[T],
+      ...opts: T extends SurfaceEventType ? [opts: SurfaceIntent<T>] : []
     ): SessionEvent<T>;
   /**
-   * The {@link EpochHeader} in force after the log's last header event — the
-   * header the NEXT request will be compared against — or undefined before
-   * the first `request/header` snapshot. The live, incrementally-maintained
-   * form of `foldRequestHeader(session.snapshotEvents())`: each header event is folded
-   * once, when first seen, so a per-step read costs O(new events).
-   * @returns the folded header, or undefined when no header event exists yet.
-   */
+     * The {@link EpochHeader} in force after the log's last header event — the
+     * header the NEXT request will be compared against — or undefined before
+     * the first `request/header` snapshot. The live, incrementally-maintained
+     * form of `foldRequestHeader(session.snapshotEvents())`: each header event is folded
+     * once, when first seen, so a per-step read costs O(new events).
+     * @returns the folded header, or undefined when no header event exists yet.
+     */
   requestHeader(): EpochHeader | undefined;
   /**
-   * Return the latest resolved route metadata, or `undefined` before the first
-   * `request/context` event. Each event is folded once.
-   * @returns the latest immutable route metadata.
-   */
+     * Return the latest resolved route metadata, or `undefined` before the first
+     * `request/context` event. Each event is folded once.
+     * @returns the latest immutable route metadata.
+     */
   requestContext(): RequestContext | undefined;
   /**
-   * Fold unseen committed events into capability-independent tool history.
-   * Initial access reconstructs inherited history; later reads consume only new events.
-   * @returns an immutable snapshot for LLM request projection, including historical addition definitions.
-   */
+     * Fold unseen committed events into capability-independent tool history.
+     * Initial access reconstructs inherited history; later reads consume only new events.
+     * @returns an immutable snapshot for LLM request projection, including historical addition definitions.
+     */
   toolHistory(): ToolHistory;
   /**
-   * Derive the LLM message history by walking the ordered sequences of
-   * message-producing events maintained by `surfaceOp` markers. The
-   * surface is the single source of derived history: every message-producing
-   * append records its `surfaceOp`, so a raw event with no marker (a chunk, a
-   * turn boundary) is correctly absent, and a compaction `replace` deletes the
-   * shadowed nodes from the derivation. The projection rules are
-   * {@link deriveEventMessage}, with logged message projections applied
-   * without changing node membership or message identity.
-   *
-   * CACHED: pure tail growth costs O(new nodes); a replacement or message projection
-   * ({@link SessionSurface.contentGeneration}) rebuilds. The returned array is
-   * a fresh snapshot per call (later appends never grow an array a caller
-   * already holds); the `Message` objects in it are SHARED and **deep-frozen**.
-   * Unchanged content reuses frozen event data; projected blocks are frozen
-   * derived copies. Consumers cannot mutate the log through either form.
-   * @returns a fresh array of the shared, frozen derived history.
-   */
+     * Derive the LLM message history by walking the ordered sequences of
+     * message-producing events maintained by `surfaceOp` markers. The
+     * surface is the single source of derived history: every message-producing
+     * append records its `surfaceOp`, so a raw event with no marker (a chunk, a
+     * turn boundary) is correctly absent, and a compaction `replace` deletes the
+     * shadowed nodes from the derivation. The projection rules are
+     * {@link deriveEventMessage}, with logged message projections applied
+     * without changing node membership or message identity.
+     *
+     * CACHED: pure tail growth costs O(new nodes); a replacement or message projection
+     * ({@link SessionSurface.contentGeneration}) rebuilds. The returned array is
+     * a fresh snapshot per call (later appends never grow an array a caller
+     * already holds); the `Message` objects in it are SHARED and **deep-frozen**.
+     * Unchanged content reuses frozen event data; projected blocks are frozen
+     * derived copies. Consumers cannot mutate the log through either form.
+     * @returns a fresh array of the shared, frozen derived history.
+     */
   deriveMessages(): Message[];
   /**
-   * Project one event with all committed message projections applied.
-   * The original durable event remains unchanged.
-   * @param event - the event to project.
-   * @returns the derived message, or null when the event produces none.
-   */
+     * Project one event with all committed message projections applied.
+     * The original durable event remains unchanged.
+     * @param event - the event to project.
+     * @returns the derived message, or null when the event produces none.
+     */
   deriveEventMessage(event: SessionEvent): Message | null;
 }
 ```
 
 ## 派生历史：`deriveMessages()` 与 `deriveEventMessage()`
 
-`Session.deriveMessages()` 将事件日志投影为模型看到的 `Message[]`。它是缓存的（每个 surface 节点在首次出现时投影一次；surface 重写触发重建）且冻结的（每次调用返回一个新数组，引用共享的深冻结消息，因此通过投影修改已记录的历史在类型上不可表达）。`deriveEventMessage(event)` 是折叠所应用的逐节点纯函数，公开暴露以便外部重建器和开发不变式检查能以完全相同的规则投影日志前缀，不会与缓存产生分歧。投影规则：
+`Session.deriveMessages()` 将事件日志投影为模型看到的 `Message[]`。它是缓存的（每个 surface 节点在首次出现时投影一次；surface 重写触发重建）且冻结的（每次调用返回一个新数组，引用共享的深冻结消息，因此通过投影修改已记录的历史在类型上不可表达）。`deriveEventMessage(event)` 是折叠所应用的逐节点纯函数，公开暴露以便外部重建器能以完全相同的规则投影日志前缀，不会与缓存产生分歧。投影规则：
 
 - `user/message` → 一条携带确切 `content` 的 user 消息；可选 envelope 仅作为日志中的展示元数据保留。
 - `assistant/message` → 一条 assistant 消息，包含生成它的提供方和模型，以及可选的适配器私有回放状态。其嵌入式紧凑 stream 是回放、usage 与 UI 证据，而不是第二条 message。**内容为空的** `assistant/message` 也会跳过：因 max-tokens 而截断且无内容的步骤仍会记录一条 `assistant/message` 来保存 stream、usage、提供方和模型，但无内容的 assistant 轮次不得进入提供方 transcript（文本记录）。
@@ -689,7 +688,7 @@ declare class Session {
 
 - `fork(source, boundary?, childSessionId?)` 接受一个活跃的 `Session` 对象或活跃的 `SessionId`，选取到 `SessionSeq` boundary（含）为止的源事件（默认为当前最后一个事件），要求所选前缀结束时没有开放轮次，然后创建一个活跃的子会话，包含深克隆的 seed event、`parentSession`、`isSeeded: true`、精确 `inheritedEventCount` 及继承的 `cwd`。
 
-显式 `boundary` 允许调用者从任意稳定的轮次间位置 fork，包括之前的 `turn/end` 或更晚的独立纯日志事件，即使源会话有更新的事件或正在进行的轮次。API 拒绝结束于开放轮次内的前缀，而不是静默截断。更广泛的执行关系健全性检查留在既有的 `dsh-invariants` 插件和持久化修复路径中，不在 `fork()` 中重复。`dsh-subagent-fork-in-process` 保留其已完成前缀截断逻辑，因为工具调用时的委托通常在父轮次仍然打开时启动；普通的会话分支应显式指定请求的 boundary。
+显式 `boundary` 允许调用者从任意稳定的轮次间位置 fork，包括之前的 `turn/end` 或更晚的独立纯日志事件，即使源会话有更新的事件或正在进行的轮次。API 拒绝结束于开放轮次内的前缀，而不是静默截断。`dsh-subagent-fork-in-process` 保留其已完成前缀截断逻辑，因为工具调用时的委托通常在父轮次仍然打开时启动；普通的会话分支应显式指定请求的 boundary。
 
 <a id="why-a-turn-ended-turnendreasonmap"></a>
 
@@ -743,7 +742,7 @@ interface TurnEndReasonMap {
 
 一个轮次包围一次模型循环执行，而不是整个会话日志。AgentLoop 只会在轮次内进入 pre-step 批次时记录注入的 `user/message` 事件；插件所属的纯日志事件仍可出现在 `turn/end` 与下一个 `turn/start` 之间，占用事件 seq 但不递增轮次编号。持久化会将每个连续且已接受的事件纳入有界持久化批次，而崩溃修复只关闭确实仍处于开放状态的尾部轮次。需要即时持久性屏障的生产方会显式等待 `ctx.sessions.flush(session)`。
 
-可选的 `dsh-session/invariant` 配套插件会强制核心拥有的关系：轮次与步骤编号、执行事件封闭，以及同一步骤内的工具调用／结果配对。可合并扩展事件的关系由声明它的插件拥有，因此核心不会仅因没有开放轮次就拒绝未知事件。见[独立事件决策](../../.agents/notes/implemented/simplification/2026-07-28-remove-synthetic-log-only-turns.zh.md)。
+可合并扩展事件的关系由声明它的插件拥有，因此核心不会仅因没有开放轮次就拒绝未知事件。见[独立事件决策](../../.agents/notes/implemented/simplification/2026-07-28-remove-synthetic-log-only-turns.zh.md)。
 
 ## 种子结束边界：`session/end-seed`
 
@@ -757,11 +756,54 @@ interface TurnEndReasonMap {
 
 ## 插件贡献的仅日志事件
 
-插件可以通过 declaration merging 添加额外的 `SessionEventMap` 类型。这些是**仅日志**事件：不是 `SurfaceEventType`（不携带 `surfaceOp`，不参与派生历史）。事件所有方决定它们属于一个开放的执行轮次，还是可以独立位于轮次之间，并在自己的不变量配套插件中强制所需关系。生成的[持久化日志事件目录](../persistence-catalog.zh.md)会列出每个核心或插件贡献的事件；压缩 seam 的 `compaction/*` 语义在 [compaction.md](compaction.zh.md) 中讨论。
+插件可以通过 declaration merging 添加额外的 `SessionEventMap` 类型。这些是**仅日志**事件：不是 `SurfaceEventType`（不携带 `surfaceOp`，不参与派生历史）。事件所有方决定它们属于一个开放的执行轮次，还是可以独立位于轮次之间。生成的[持久化日志事件目录](../persistence-catalog.zh.md)会列出每个核心或插件贡献的事件；压缩 seam 的 `compaction/*` 语义在 [compaction.md](compaction.zh.md) 中讨论。
 
 如果同一个插件事件族中的多条事件要组装成一个 Web Client Conversation Node，该事件族中的每条 start、update、result、resource 或 interruption 事件都必须携带或独立推导出同一个稳定业务 id。此要求只约束需要关联的 Node 事件族，并不要求每条 Session 事件都有业务 id；Client 因此无须根据相邻关系猜测归属，也无须扫描历史。参见 [Conversation 子系统](conversation.zh.md)。
 
 钩子桥接层的 `hook/invoked` / `hook/result` 对（来自 `@deepseek-ai/dsh-hook-protocol`）通过 `handlerId` 关联。`UserPromptSubmit`、`PreToolUse`、`PostToolUse` 与 `Stop` 在 loop 已打开的轮次内触发，因此其 `hook/*` 记录天然位于轮次之内。`SessionStart` 不生成 `hook/*` 记录，因为它在轮次 1 之前运行；其上下文会在 inbox 中保持待处理，直到唤醒交付打开一个轮次。
+
+### 插件记录
+
+实验性包在 `PluginRecordMap` 中声明插件自有的状态：`appendPluginRecord()` 根据每项声明约束名称与 payload 类型，并在 `plugin:` 命名空间中追加一条带 `ignorable: true` 标记的事件。`pluginRecordOf()` 读取已存记录，其 payload 为未知类型，不受当前声明约束。[实验性持久化目录](../experimental-persistence-catalog.zh.md)列出当前声明。调用方限制、保留方式与读取路径见[包 README](../../packages/core/session/README.zh.md#write-experimental-plugin-records)。
+
+```ts type-equiv
+/**
+ * Event type of an experimental plugin record: `plugin:` followed by
+ * slash-separated segments of lowercase letters, digits, `.`, `_`, and `-`,
+ * each starting with a letter or digit. A record type is never a
+ * {@link SessionEventMap} member.
+ */
+type PluginRecordType = `plugin:${string}`
+```
+
+```ts type-equiv
+/**
+ * Payloads written by experimental packages, keyed by their `plugin:` record
+ * names. Packages augment this map to type writes and enter the current plugin
+ * record catalog; these declarations do not enter {@link SessionEventMap} or
+ * released persistence schemas. Stored records still require owner validation.
+ */
+interface PluginRecordMap {}
+```
+
+```ts type-equiv
+/**
+ * One committed experimental plugin record, read from the log by
+ * `pluginRecordOf`. The record's owner validates `data` before use, because a
+ * restored record carries whatever JSON an earlier build of its owner wrote,
+ * or a V3 event that a format migration renamed into the `plugin:` namespace held.
+ */
+interface PluginRecord {
+  /** The record type, chosen by the owning plugin. */
+  readonly type: PluginRecordType
+  /** The record's position in the Session log. */
+  readonly seq: SessionSeq
+  /** Unix epoch milliseconds at append. */
+  readonly time: number
+  /** The JSON payload as committed. */
+  readonly data: unknown
+}
+```
 
 ## 持久性约定
 
@@ -810,23 +852,25 @@ inspect( sessionId: SessionId, signal?: AbortSignal, ): Promise<SessionInspectio
 /**
  * Read all visible Session rows without resuming an Agent.
  * @param _request - reserved empty list request.
- * @param signal - cancellation for persistence reads.
+ * @param signal - cancellation for persistence reads and summary generation.
  * @returns visible Session summaries ordered by activity.
  */
 @Remote('list') async list(_request: SessionListRequest, signal: AbortSignal): Promise<SessionListValue>
 
 /**
- * Search visible Session content without resuming an Agent.
+ * Search visible Session content without resuming an Agent. A non-owner
+ * receives only the hits whose Session `allows()` admits; `hasMore`
+ * describes the bounded result before that filtering.
  * @param request - literal message-content query.
  * @param signal - cancellation for list and search reads.
  * @returns authorized bounded Session search results.
  */
-@Remote('search') search(request: SessionSearchRequest, signal: AbortSignal): Promise<SessionSearchValue>
+@Remote('search') async search(request: SessionSearchRequest, signal: AbortSignal): Promise<SessionSearchValue>
 
 /**
- * Create or idempotently adopt one ordinary Session.
- * @param request - requested identity, location, and Agent preset.
- * @returns the Session identity and resolved preset when configured.
+ * Create one ordinary Session for a new conversation, reusing the named blank Session while it is reusable.
+ * @param request - optional blank Session to reuse, location, and Agent preset.
+ * @returns the created or reused Session identity and its preset when configured.
  */
 @Remote('create') create(request: SessionCreateRequest): Promise<SessionCreateValue>
 
@@ -890,10 +934,10 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * Fork one cold-readable exact event prefix into a new Session. An omitted
  * boundary selects the latest completed-turn prefix; an open cut receives
  * synthetic fork closers.
- * @param request - source Session and optional exact inclusive event boundary.
+ * @param request - source Session, optional exact inclusive event boundary, and migration preflight choice.
  * @returns the new Session identity.
  */
-@Remote('fork') fork(request: SessionForkRequest): Promise<SessionForkValue>
+@Remote('fork') async fork(request: SessionForkRequest): Promise<SessionForkValue>
 
 /**
  * Admit one prompt after explicitly resuming its Session.
@@ -901,7 +945,7 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * @param signal - caller cancellation before prompt admission begins.
  * @returns acknowledgement that the Agent accepted the prompt.
  */
-@Remote('prompt') prompt(request: SessionPromptRequest, signal: AbortSignal): Promise<SessionPromptValue>
+@Remote('prompt') async prompt(request: SessionPromptRequest, signal: AbortSignal): Promise<SessionPromptValue>
 
 /**
  * Read one image proven reachable from the addressed Session log.
@@ -930,7 +974,7 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * @param signal - cancellation for persistence reads.
  * @returns one chronological page.
  */
-@Remote('page') page(request: SessionPageRequest, signal: AbortSignal): Promise<SessionPage>
+@Remote({ name: 'page', resources: { session: addressedSession } }) page(request: SessionPageRequest, signal: AbortSignal): Promise<SessionPage>
 
 /**
  * Follow one Session log from its opening or resume cursor.
@@ -939,13 +983,13 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * @returns a complete opening snapshot followed by gap-free durable event
  *   frames and optional cursorless assistant-stream frames.
  */
-@Remote({ mode: 'stream' }) follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame>
+@Remote({ mode: 'stream', resources: { session: addressedSession } }) follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame>
 
 /**
- * Read all registered projections without activating an Agent.
+ * Read exact projections, returning cached hints only when migration is required.
  * @param request - Session whose current values are required.
- * @param signal - cancellation for the Session observation.
- * @returns complete baseline, or null when the Session does not exist.
+ * @param signal - cancellation for the Session read.
+ * @returns a sequenced baseline, cached hints when migration is deferred, or null when absent.
  */
 @Remote('projections') async projections(request: SessionProjectionsRequest, signal: AbortSignal): Promise<SessionProjectionsValue>
 
@@ -954,7 +998,7 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * @param signal - cancellation owned by the Remote stream carrier.
  * @returns one complete baseline followed by live replacement frames.
  */
-@Remote({ mode: 'stream' }) control(signal: AbortSignal): AsyncIterable<SessionControlFrame>
+@Remote({ mode: 'stream' }) async *control(signal: AbortSignal): AsyncIterable<SessionControlFrame>
 ```
 
 Types: [SessionId](core.zh.md) · [SessionInspection](persistence.zh.md) · [SessionSearchRequest](session-query.zh.md)
@@ -1066,8 +1110,8 @@ announce(session: Session): void
  * store owns the carrier, so callers (the checkpoint policy's per-request
  * barrier, goal-round-driver's idle checkpoint, teardown drains, and consumers
  * that flush themselves before reading storage) must come through here
- * rather than dispatch a raw `ctx.parallel('session/flush', …)` — one owner,
- * one spelling, and the scoped-dispatch invariant can pin it.
+ * rather than dispatch a raw `ctx.parallel('session/flush', …)` — one owner
+ * and one spelling.
  * @param session - the session whose buffered events must reach durable storage.
  * @returns whether at least one durability listener participated, after every
  *   listener has settled successfully.
@@ -1256,7 +1300,6 @@ Emitted once when an announced session leaves the store, including publication r
  * did not begin. Listener failures are logged and contained.
  * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`) reuses the owner scope.
  * @param session - the session that is no longer live in the store.
- * @dshScopeScan unsupported
  * @mode emit
  */
 'session/disposed'(this: Scoped<Session>, session: Session): void
@@ -1281,7 +1324,6 @@ Post-commit, fire-and-forget append feed. The listener snapshot resolves before 
  * receive only events from sessions entered through that agent's context.
  * @param session - the session whose log grew.
  * @param event - the appended event, exactly as recorded.
- * @dshScopeScan unsupported
  * @mode emit
  */
 'session/event'(this: Scoped<Session>, session: Session, event: SessionEvent): void
@@ -1303,7 +1345,6 @@ Awaited parallel durability checkpoint: every listener runs and the caller await
  * caller awaits all of them, with no waterfall veto. Scope-filtered dispatch
  * (`@deepseek-ai/dsh-scope`) reuses the session's owner scope.
  * @param session - the session whose buffered events must reach durable storage.
- * @dshScopeScan unsupported
  * @mode parallel
  */
 'session/flush'(this: Scoped<Session>, session: Session): Promise<void> | void

@@ -6,6 +6,7 @@
  * @module @deepseek-ai/dsh-session-snapshot/normalize
  */
 
+import { createHash } from 'node:crypto'
 import {
   decodeSeqRanges,
 } from '@deepseek-ai/dsh-session'
@@ -49,6 +50,7 @@ const FILE_URI_PATH_PREFIX_RE = /(?:^|[^a-z0-9+.-])file:\/\/\/?$/i
 
 /** A UUID v4 string, the shape `randomUUID()` produces for session ids. */
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
+const SHORT_JOB_ID_RE = /-[0-9a-f]{16}$/i
 // Separator runs also match JSON-escaped Windows paths; extraction preserves their exact serialized spelling.
 const LOCAL_SPILL_PATH_RE = new RegExp(
   String.raw`\{\{cwd\}\}[\\/]+\.spill[\\/]+session-[0-9a-f]{12}[\\/]+[0-9a-f]{12}-([A-Za-z0-9._~-]+?)`
@@ -359,8 +361,35 @@ export function normalizeSessionLog(
   const cwdPathMode = options.cwdPathMode ?? 'canonical'
   const identityMode = options.identityMode ?? 'legacy'
   const lines = rawLog.split('\n').filter(line => line.trim().length > 0)
-  const records = lines.map((line) => {
-    const record = JSON.parse(line) as Record<string, unknown>
+  const parsed = lines.map(line => JSON.parse(line) as Record<string, unknown>)
+  const jobTokens = new Map<string, string>()
+  const reservedTokens = new Set(rawLog.match(/\{\{id:[1-9]\d*\}\}/g) ?? [])
+  let nextJobToken = 1
+  if (identityMode === 'legacy') {
+    for (const record of parsed) {
+      if ((record.type !== 'job/registered' && record.type !== 'job/settled')
+        || record.data === null || typeof record.data !== 'object') continue
+      const id = (record.data as Record<string, unknown>).jobId
+      if (typeof id !== 'string' || (id.search(UUID_RE) < 0 && !SHORT_JOB_ID_RE.test(id)) || jobTokens.has(id)) continue
+      let token: string
+      do { token = `{{id:${nextJobToken++}}}` } while (reservedTokens.has(token))
+      jobTokens.set(id, token)
+    }
+  }
+  const replaceJobs = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      let output = value
+      for (const [id, token] of jobTokens) output = output.split(id).join(token)
+      return output
+    }
+    if (Array.isArray(value)) return value.map(replaceJobs)
+    if (value !== null && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceJobs(item)]))
+    }
+    return value
+  }
+  const records = parsed.map((raw) => {
+    const record = jobTokens.size === 0 ? raw : replaceJobs(raw) as Record<string, unknown>
     if (record.type === 'session') {
       if ('createdAt' in record) record.createdAt = 0
     } else if (isPackedFixtureRow(record)) {
@@ -392,6 +421,12 @@ export function normalizeSessionLog(
     normalizeFeedbackClocks(record)
     normalizeRuntimeAudit(record, ctx.repositoryRoot)
     normalizeSpillCaptureLocator(record, ctx.spillRoot)
+    if ((record.type === 'job/registered' || record.type === 'job/settled')
+      && record.data !== null && typeof record.data === 'object') {
+      const data = record.data as Record<string, unknown>
+      if ('startedAt' in data) data.startedAt = 0
+      if ('finishedAt' in data) data.finishedAt = 0
+    }
     if (record.type === 'goal/change' && record.data !== null && typeof record.data === 'object') {
       const data = record.data as Record<string, unknown>
       if ('createdAt' in data) data.createdAt = 0
@@ -448,6 +483,7 @@ export function normalizeSessionSnapshot(
 /**
  * Normalize one scenario's primary and child logs with shared typed identity redaction.
  * Native-writer comparison strictly restores each input before tokenizing its own delivery generation.
+ * Skill counts and digests follow normalized text only after checking the raw instructions.
  * @param rawLogs - primary-first persisted or projected session JSONL.
  * @param ctx - generated cwd spellings and other volatile run facts.
  * @param options - separator and native-writer comparison controls; identity relationships are preserved.
@@ -465,12 +501,13 @@ export function normalizeSessionSnapshots(
     return normalizeSessionFormatMetadata(currentLog, nativeWriterOutput
       ? sessionHeaderVersion(log, 'source Session snapshot') : undefined)
   })
-  return redactSessionSnapshotIds(comparableLogs).map(log => projectSessionSnapshot(
-    scrubSessionSnapshot(normalizeSessionLog(
+  return redactSessionSnapshotIds(comparableLogs).map((log, index) => normalizeSkillMetadata(
+    comparableLogs[index] as string,
+    projectSessionSnapshot(scrubSessionSnapshot(normalizeSessionLog(
       log,
       { ...ctx, sessionIds: [] },
       { ...normalizeOptions, identityMode: 'preserve' },
-    )),
+    ))),
   ))
 }
 
@@ -650,4 +687,110 @@ function scrubModelRequestContent(rawLog: string, options: ModelRequestScrubOpti
     return line
   })
   return out.join('\n')
+}
+
+function objectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown> : undefined
+}
+
+function skillLoadMeta(record: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (record.type !== 'tool/result' && record.type !== 'tool/ptc-dispatch') return undefined
+  const meta = objectRecord(objectRecord(record.data)?.meta)
+  return meta?.kind === 'skill-load' ? meta : undefined
+}
+
+function skillResultText(record: Record<string, unknown>): string | undefined {
+  const data = objectRecord(record.data)
+  const message = record.type === 'tool/ptc-dispatch' ? data : objectRecord(data?.message)
+  if (message?.isError === true || !Array.isArray(message?.content)) return undefined
+  const parts: string[] = []
+  for (const block of message.content) {
+    const text = objectRecord(block)
+    if (text?.type !== 'text' || typeof text.text !== 'string') return undefined
+    parts.push(text.text)
+  }
+  return parts.join('')
+}
+
+/**
+ * Reject incorrect declared counts of complete raw instructions before rewriting measured counts.
+ * Missing legacy counts and already-active receipts retain their metadata.
+ * @param original - raw event before any fixture string replacements.
+ * @param normalized - corresponding event whose text has been rewritten; updated in place.
+ * @internal
+ */
+export function normalizeSkillCharacters(original: Record<string, unknown>, normalized: Record<string, unknown>): void {
+  const meta = skillLoadMeta(original)
+  if (meta?.alreadyActive !== false || !Object.hasOwn(meta, 'instructionCharacters')) return
+  const text = skillResultText(original)
+  if (text === undefined) return
+  if (meta.instructionCharacters !== Array.from(text).length) {
+    throw new Error(`skill ${String(meta.name)} instructionCharacters does not match raw instruction text`)
+  }
+  const outputMeta = skillLoadMeta(normalized)
+  const outputText = skillResultText(normalized)
+  if (outputMeta !== undefined && outputText !== undefined) {
+    outputMeta.instructionCharacters = Array.from(outputText).length
+  }
+}
+
+/**
+ * Preserve measured skill counts and content identities across fixture string replacements.
+ * Complete direct and PTC results must carry a digest of their raw provider and text before
+ * it can be rewritten. Already-active receipts reuse only a validated full-instruction
+ * digest or the same rendered wrapper with an empty instruction body.
+ * Present complete-instruction counts must match the raw Unicode length before rewriting;
+ * missing legacy counts and already-active receipt counts remain unchanged.
+ * @param originalLog - raw records before any text or identity replacements.
+ * @param normalizedLog - corresponding records after replacements, in the same order.
+ * @returns JSONL with validated skill metadata following the normalized instruction text.
+ * @internal
+ */
+export function normalizeSkillMetadata(originalLog: string, normalizedLog: string): string {
+  const parse = (log: string): Record<string, unknown>[] => log.split('\n')
+    .filter(line => line.trim().length > 0).map(line => JSON.parse(line) as Record<string, unknown>)
+  const original = parse(originalLog)
+  const normalized = parse(normalizedLog)
+  if (original.length !== normalized.length) throw new Error('skill metadata normalization requires corresponding records')
+  const digests = new Map<string, string>()
+  for (const [index, record] of normalized.entries()) {
+    const raw = original[index] as Record<string, unknown>
+    normalizeSkillCharacters(raw, record)
+    const meta = skillLoadMeta(raw)
+    const outputMeta = skillLoadMeta(record)
+    if (meta === undefined || outputMeta === undefined || typeof meta.digest !== 'string'
+      || typeof meta.provider !== 'string') continue
+    const key = JSON.stringify([meta.name, meta.provider, meta.digest])
+    if (meta.alreadyActive === true) {
+      const digest = digests.get(key)
+      if (digest !== undefined) outputMeta.digest = digest
+      continue
+    }
+    if (meta.alreadyActive !== false) continue
+    const text = skillResultText(raw)
+    const outputText = skillResultText(record)
+    if (text === undefined || outputText === undefined) continue
+    const digest = (value: string): string => createHash('sha256')
+      .update(JSON.stringify([meta.provider, value])).digest('hex')
+    if (digest(text) !== meta.digest) throw new Error(`skill ${String(meta.name)} digest does not match raw instruction text`)
+    const normalizedDigest = digest(outputText)
+    outputMeta.digest = normalizedDigest
+    digests.set(key, normalizedDigest)
+    const emptyInstructions = (value: string): string | undefined => {
+      const open = '<skill_instructions>\n'
+      const close = '\n</skill_instructions>\n</skill_content>'
+      const start = value.indexOf(open)
+      const end = value.lastIndexOf(close)
+      return value.startsWith('<skill_content name="') && start >= 0 && end > start
+        && end + close.length === value.length
+        ? value.slice(0, start + open.length) + value.slice(end) : undefined
+    }
+    const rawEmpty = emptyInstructions(text)
+    const normalizedEmpty = emptyInstructions(outputText)
+    if (rawEmpty !== undefined && normalizedEmpty !== undefined) {
+      digests.set(JSON.stringify([meta.name, meta.provider, digest(rawEmpty)]), digest(normalizedEmpty))
+    }
+  }
+  return normalized.map(record => JSON.stringify(record)).join('\n') + '\n'
 }

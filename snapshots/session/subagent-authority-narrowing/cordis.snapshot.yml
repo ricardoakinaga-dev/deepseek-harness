@@ -38,7 +38,11 @@
   config:
     provider: spawn
     toolName: subagent
-    backgroundMode: continuable
     maxDepth: 1
     toolFilter:
       deny: [edit]
+
+# Hold child execution until the activation receipt's parent turn closes.
+- insert:
+    - id: authority-settlement-fence
+      name: '../../../packages/test-support/session-snapshot/tests/fixtures/subagent-send-message-fence.ts'

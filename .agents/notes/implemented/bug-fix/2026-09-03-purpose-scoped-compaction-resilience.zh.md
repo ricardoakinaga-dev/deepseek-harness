@@ -20,7 +20,7 @@ Fork 展示了有用的请求大小与压缩控制，但其实现改变循环和
 
 插件不发出自定义会话事件。公共 `Session.append` API 无法把插件定义事件标为可忽略，因此这种事件会在移除组合包后使历史日志不可读。当前 `compaction/summary` 字段也无法记录有效推理选择，或区分 waterfall 降低的上限与后端请求上限；在 upstream 词汇扩展存在之前，该限制保持明确。
 
-本决策扩展[压缩能力 seam](../feature/2026-06-18-compaction-capability-seam.zh.md)、[回放 token meter](../../archived/architecture/2026-07-15-replay-token-meter-service.md)、[上下文溢出恢复](../architecture/2026-07-10-after-call-compaction-pressure-and-overflow-recovery.zh.md)、[可重建请求](../architecture/2026-07-05-reconstructable-requests.zh.md)与 [profile 组合包](../architecture/2026-08-05-profile-plugin-bundles.zh.md)决策。每项仍保持活动并拥有更广泛约定；重叠只是部分关系，因此没有任何一项被完全取代或适合归档。
+本决策基于历史上的[压缩能力 seam](../../archived/feature/2026-06-18-compaction-capability-seam.md)、[回放 token meter](../../archived/architecture/2026-07-15-replay-token-meter-service.md)和[上下文溢出恢复](../../archived/architecture/2026-07-10-after-call-compaction-pressure-and-overflow-recovery.md)决策，以及仍活动的[可重建请求](../architecture/2026-07-05-reconstructable-requests.zh.md)与 [profile 组合包](../architecture/2026-08-05-profile-plugin-bundles.zh.md)决策。当前行为由 [compaction](../../../../packages/compaction/compaction/README.zh.md)、[token-meter](../../../../packages/llm/token-meter/README.zh.md) 和 [agent-loop](../../../../packages/core/agent-loop/README.zh.md) 文档定义。该策略扩展这些机制，但不取代它们更广泛的职责。
 
 ## 考虑过的替代方案
 

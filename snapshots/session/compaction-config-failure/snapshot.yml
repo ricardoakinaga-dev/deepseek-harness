@@ -6,6 +6,6 @@ recording: authored
 header:
   class: compaction-config-failure
   pin: true
-  systemPromptSource: text-turn
+  systemPromptSource: tool-call-turn
   toolSchemasSource: compaction-recovery
   changes: 1

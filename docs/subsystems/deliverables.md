@@ -11,7 +11,7 @@ Sources: [`packages/deliverables/tool-present/src/types.ts`](../../packages/deli
 ```ts type-equiv
 /** A declared filesystem file with an optional immutable copy of its presented bytes. */
 interface PresentedFile {
-  /** Original absolute path or path relative to the Session working directory. */
+  /** Absolute source path for new declarations; historical relative paths use the original Session workspace. */
   path: string
   /** Optional description supplied by the model. */
   description?: string

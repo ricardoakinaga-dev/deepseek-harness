@@ -16,7 +16,7 @@ Review the [safety notice](SAFETY.md) before running the project.
 
 ## Prerequisites
 
-Source checkouts require Node.js `^22.19.0 || >=24.0.0` and pnpm `11.11.0`, as declared in the root `package.json`. If pnpm is not installed, use Corepack with `corepack pnpm`.
+Source checkouts require Node.js `^22.19.0 || >=24.0.0` and pnpm `11.28.5`, as declared in the root `package.json`. If pnpm is not installed, use Corepack with `corepack pnpm`.
 
 ## Run
 
@@ -48,7 +48,23 @@ pnpm dsh web
 
 - Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
 - Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.
+- Join <a href="https://discord.gg/4MrtZUhpxg">DeepSeek Harness Discord community</a>.
+- Join the DeepSeek Harness WeCom group: scan the survey QR code below and complete the form; the assistant sends group invitations periodically.
+
+<table>
+  <thead>
+    <tr>
+      <th align="center">Community survey</th>
+      <th align="center">WeChat official account</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><a href="https://trtgsjkv6r.feishu.cn/share/base/form/shrcnIt5twSVdLGD52KJBckGCgg"><img src="https://cdn.deepseek.com/harness/readme/community-wecom-survey.png" alt="DeepSeek Harness Community survey QR code" width="180" height="180"></a></td>
+      <td align="center"><img src="https://cdn.deepseek.com/harness/readme/community-wechat-official-account.png" alt="DeepSeek Harness team WeChat official account QR code" width="180" height="180"></td>
+    </tr>
+  </tbody>
+</table>
 
 ## Contributing
 

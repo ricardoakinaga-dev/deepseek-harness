@@ -25,9 +25,11 @@ Use `present` to declare final files accessible through the Session filesystem, 
 <a id="use-this-package"></a>
 ## Use this package
 
+`present` validates paths against the Session's current working directory and records absolute paths, so later directory changes do not redirect delivered files.
+
 The `standard`, `ptc`, and `cordis` agent presets mount this plugin. Call `present` with `files: [{ path, description? }]` after creating the files. Files must be regular files accessible through the Session filesystem. Relative paths resolve against the Session working directory; absolute paths may name files outside it, including `/tmp` or Downloads. Missing files, directories, final symbolic links, and provider-denied paths fail the call. Files in a shell sandbox’s private `/tmp` must first be written somewhere the Session filesystem can access.
 
-Mount it in an agent's Cordis composition with `tools`, `fs`, `attachments`, and the `turnBoundary` Session projection available:
+Mount it in an agent's Cordis composition with `tools`, `fs`, `attachments`, `workingDirectory`, and the `turnBoundary` Session projection available:
 
 ```yaml
 - name: '@deepseek-ai/dsh-tool-present'
@@ -41,7 +43,7 @@ Mount it in an agent's Cordis composition with `tools`, `fs`, `attachments`, and
 | `maxFiles` | `8` | Positive maximum file count per call |
 | `maxFileBytes` | `20971520` (20 MiB) | Inclusive per-file capture limit; a positive safe integer below `Number.MAX_SAFE_INTEGER` |
 
-Both limits are validated at mount. A file above `maxFileBytes` is declared with `capture.status: too-large` and the applied byte limit; the result tells the model to retain its original. Files exactly at the limit and empty files are captured. The tool requires an agent Session with a workspace and an open turn. Delivery belongs to the calling Session; a parent must call `present` itself to declare files created by a subagent.
+Both limits are validated at mount. A file above `maxFileBytes` is declared with `capture.status: too-large` and the applied byte limit; the result tells the model to retain its original. Files exactly at the limit and empty files are captured. The tool requires an agent Session and an open turn. Delivery belongs to the calling Session; a parent must call `present` itself to declare files created by a subagent.
 
 -----
 
@@ -53,9 +55,9 @@ Both limits are validated at mount. A file above `maxFileBytes` is declared with
 
 The tool resolves paths and reads bounded raw bytes through the configured filesystem provider, including files outside the workspace. It saves files sequentially through `attachments.saveFileStream` before returning their content-addressed references. Each stored reference carries the sanitized filename, exact byte count, and SHA-256 identity. Oversized files carry an explicit non-capture outcome; other read or storage failures fail the call without publishing a delivery event. Cancellation reaches reads and streamed writes. Already committed objects from a failed, cancelled, or blocked call may remain unreferenced under the attachment store’s retention policy. Successful final `tools/result` notifications append `deliverables/presented`, including nested calls. A later enclosing program failure does not revoke an already completed declaration. Blocked results publish none. Each plugin instance records only calls it executed; scoped tools with the same name cannot publish through another instance.
 
-The pure `./types` entry declares `PresentedFile` and the Session event without importing Host runtime code. The Web consumer validates persisted declarations before displaying or opening them. The event stores no Session ID, so forked history resolves original relative paths against the viewed Session's workspace. The optional `capture` field is absent in historical declarations; absence does not imply a saved copy. Stored references remain independent of the original path.
+The pure `./types` entry declares `PresentedFile` and the Session event without importing Host runtime code. The Web consumer validates persisted declarations before displaying or opening them. New declarations store absolute paths. Legacy relative declarations retain the viewed Session's original workspace as their base.
 
-**Runtime invariant:** No companion is published. Tool and event registrations are effect-owned, and the Session log owns file declarations; the plugin maintains no independent file-content store.
+The optional `capture` field is absent in historical declarations; absence does not imply a saved copy. Stored references remain independent of the original path.
 
 </details>
 

@@ -265,7 +265,9 @@ onBeforePrepareSession(listener: (preparation: SessionPreparation) => void): () 
 
 /**
  * Subscribe to the change feed. The registration is an effect on the
- * calling context's fiber.
+ * calling context's fiber. Notifications follow the complete event fold, so
+ * listeners can read a snapshot at the same cursor. A throwing listener is
+ * logged without suppressing other listeners.
  * @param listener - called once per client-visible unit whose raw view changed by `Object.is`, per committed event.
  * @returns the exact disposer that unsubscribes.
  */

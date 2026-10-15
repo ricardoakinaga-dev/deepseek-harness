@@ -16,7 +16,7 @@ The package README promised that served files came from the configured distribut
 
 The real Loader composition fixture covers an in-root directory alias, an outside directory symlink, a Windows directory-junction equivalent, an outside missing child, and a link to the distribution parent. Outside targets return 403 without outside bytes. Existing traversal, 404, 405, MIME, authentication, and fallback-disposal behavior remains covered.
 
-The change is an `upstream-package-change`: frontend-static owns the fallback handler and no public plugin or webserver event can replace its filesystem target decision without duplicating the official owner. The implementation follows the repository's [canonical filesystem containment precedent](../feature/2026-07-14-cross-family-fs-sandbox.md).
+The change is an `upstream-package-change`: frontend-static owns the fallback handler and no public plugin or webserver event can replace its filesystem target decision without duplicating the official owner. The implementation follows the repository's [canonical filesystem containment precedent](../../archived/feature/2026-07-14-cross-family-fs-sandbox.md).
 
 ## Alternatives considered
 

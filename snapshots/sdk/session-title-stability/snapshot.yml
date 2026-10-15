@@ -1,0 +1,12 @@
+version: 1
+scenario: session-title-stability
+profile: sdk
+composition: session-title-stability
+recording: authored
+header:
+  class: session-title-stability
+  pin: true
+  systemPromptSource: session/tool-call-turn
+  toolSchemasSource: session/tool-call-turn
+replay:
+  override: true

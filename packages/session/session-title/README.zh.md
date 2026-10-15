@@ -54,11 +54,11 @@ kind: "package-reference"
 
 ### 添加提供方
 
-可选异步提供方可通过 `ctx.sessionTitle.register(provider)` 注册一个；第二次注册会立即抛出。随附的模型支持提供方是[首消息](../session-title-first-prompt-llm/README.zh.md)与[全消息](../session-title-all-prompts-llm/README.zh.md)，两者都使用共享的 [LLM（大语言模型）生成策略](../session-title-llm/README.zh.md)。提供方加载器可使用 `sessionTitleUserMessageOf(event)`，在映射查询事件时采用服务相同的人类文本消息资格规则。提供方只有在带标记、由循环构建的请求的确切路由与已记录 `request/header` 匹配时才启动，较新的修订会取代并中止旧工作。
+可选异步提供方可通过 `ctx.sessionTitle.register(provider)` 注册一个；在前一个提供方开始释放之前，第二次注册会立即抛出。因此替代提供方可以在前一个提供方排空期间激活，前一个提供方迟到的结果不会提交。随附的模型支持提供方是[首消息](../session-title-first-prompt-llm/README.zh.md)与[全消息](../../experimental/session-title-all-prompts-llm/README.zh.md)，两者都使用共享的 [LLM（大语言模型）执行模块](../session-title-llm/README.zh.md)。每次调用前，服务会捕获最新已接纳标题快照（包括它刚刚确保的回退），并作为 `request.currentTitle` 传入；提供方自行决定是否以及如何使用。提供方只有在带标记、由循环构建的请求的确切路由与已记录 `request/header` 匹配时才启动，较新的修订会取代并中止旧工作。路由不变时，活跃步骤中带标记的请求会启动待处理的自动生成，无需新的 header 事件；已接受的人类消息可以位于当前 `step/start` 之后。
 
 ### 读取标题
 
-`get(session)` 从活跃 `title` 投影返回分离的快照，`foldSessionTitle(events)` 仍是对分离或持久化事件切片的纯折叠。该投影保存恢复后所需的已接受标题事实，同时客户端视图仍只有标题字符串。服务还注册仅供 host 使用的 `titleInput` 单元——后者折叠第一条与最新一条合格消息及其计数，使调度与回退读取通过 `stateOf()` 达到 O(1)。自动 `first-prompt` 工作从该投影读取第一条消息。`all-prompts` 工作与每次显式刷新都会调用提供方的异步 `loadMessages()`，并传入该修订捕获的包含式序列上限；提供方负责加载截至该位置的有序历史。服务会在调用 `generate()` 前确认读取仍属于当前修订。
+`get(session)` 从活跃或回放会话读取折叠出的最新标题，`foldSessionTitle(events)` 是对日志的纯折叠。服务要求 `ctx.sessionProjections` 并注册两个单元：客户端可见的 `title` 单元（供客户端列表行使用的已接受标题字符串）和仅供 host 使用的 `titleInput` 单元——后者折叠第一条与最新一条合格消息及其计数，使调度与回退读取通过 `stateOf()` 达到 O(1)；某次提供方生成所需的完整合格前缀，则会在执行时从会话日志中扫描取得。显式 `refresh(session)` 在需要时物化回退，然后对当前符合条件的消息显式运行已注册提供方。
 
 ### 失败与恢复
 
@@ -90,8 +90,6 @@ kind: "package-reference"
 
 每个会话的工作状态维护一个修订计数器、一个进行中的回退，以及待处理与活跃的提供方工作。较新的用户消息、提供方 dispose（资源释放）、会话 dispose 或显式刷新都会通过 `AbortController` 中止旧工作；提供方、修订、会话或信号已陈旧的完成结果无法追加。显式刷新会在提供方工作之前预留修订号；重叠的自动／显式回退请求共享一个会话本地正在进行的追加操作。服务拆卸会取消排队工作，并在卸载完成前等待不响应取消的调用结算。
 
-不变式伴生插件会为现有会话与创建基线建立每会话索引，记录已提交的人类 `user/message` seq，之后增量添加新提交的人类消息。提交前检查会根据该索引校验标题引用。
-
 ### 规范化
 
 已接受标题会清除终端控制序列、方向性与不可见控制符以及非空白的 C0/C1 控制符；空白被规范化，按字节上限截断时绝不切断 Unicode 码点。确定性回退在 `fallbackMaxWords` 与 `fallbackMaxBytes` 内取第一条符合条件消息的开头若干词。
@@ -106,9 +104,9 @@ kind: "package-reference"
 当服务约定不够用时阅读以下页面。它们从子系统参考逐步进入在此插拔的模型支持提供方。
 
 - [会话标题子系统](../../../docs/subsystems/session-title.zh.md)——持久标题状态与提供方词汇类型。
-- [共享 LLM 标题策略](../session-title-llm/README.zh.md)——两个随附提供方共用的模型生成辅助模块。
+- [共享 LLM 执行模块](../session-title-llm/README.zh.md)——两个随附提供方共用的模型执行模块。
 - [首消息标题提供方](../session-title-first-prompt-llm/README.zh.md)——根据第一条符合条件的用户消息生成标题。
-- [全消息标题提供方](../session-title-all-prompts-llm/README.zh.md)——根据所有符合条件的用户消息生成标题。
+- [全消息标题提供方](../../experimental/session-title-all-prompts-llm/README.zh.md)——根据所有符合条件的用户消息生成标题。
 - [会话包映射](../README.zh.md)——相邻的持久化、投影、标题与遥测包。
 
 -----
@@ -139,7 +137,6 @@ kind: "package-reference"
 
 - **没有标题删除、搜索或列表索引**——不经显式 `refresh` 就解钉回自动标题、搜索与列表索引不属于此服务。
 - **至多一个提供方**——注册表有意只接受一个实现，因此部署若要组合相互竞争的标题策略，必须编写一个自行负责优先级的提供方。
-- **提供方负责读取历史**——提供方的 `loadMessages()` 必须按日志顺序返回截至请求序列的所有合格消息。标题服务会检查列表顺序及其末项是否到达请求消息，而完整读取由提供方负责。
 
 <a id="dev-note"></a>
 ### 开发备注

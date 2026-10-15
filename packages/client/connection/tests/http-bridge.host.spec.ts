@@ -32,8 +32,34 @@ function bufferedResponse() {
   })
   return { response, body: () => body }
 }
+import { Context } from '@deepseek-ai/cordis'
+import { Peer } from '../src/peer.ts'
+
+const PEER = new Peer(new Context(), { principal: { kind: 'owner' } })
 
 describe('HTTP bridge abort', () => {
+  it.each(['GET', 'HEAD'])('admits a bodyless %s while the buffered budget is full', async (method) => {
+    const limiter = new BufferedRequestLimiter(4)
+    const held = limiter.tryReserve(4)!
+    const request = Readable.from([]) as IncomingMessage
+    Object.assign(request, { url: '/api/test', method, headers: {} })
+    const { response } = bufferedResponse()
+    let dispatched = false
+    try {
+      await bridge(request, response, {
+        requestBodyMode: () => 'buffered',
+        fetch: async (input, peer) => {
+          expect(input.body).toBeNull()
+          expect(peer).toBe(PEER)
+          dispatched = true
+          return new Response(null)
+        },
+      }, PEER, 4, limiter)
+      expect(dispatched).toBe(true)
+      expect(limiter.tryReserve(1)).toBeUndefined()
+    } finally { held.release() }
+  })
+
   it('rejects concurrent buffered intake at the shared aggregate budget and releases after quiescence', async () => {
     const limiter = new BufferedRequestLimiter(4)
     const firstStarted = Promise.withResolvers<undefined>()
@@ -48,7 +74,7 @@ describe('HTTP bridge abort', () => {
         await releaseFirst.promise
         return Response.json({ accepted: true })
       },
-    }, 4, limiter)
+    }, PEER, 4, limiter)
     try {
       await firstStarted.promise
 
@@ -59,7 +85,7 @@ describe('HTTP bridge abort', () => {
           calls++
           return Response.json({ accepted: false })
         },
-      }, 4, limiter)
+      }, PEER, 4, limiter)
       expect(rejectedResponse.body()).toBe('buffered request capacity exhausted')
       expect(calls).toBe(1)
 
@@ -70,7 +96,7 @@ describe('HTTP bridge abort', () => {
       await bridge(bufferedRequest('body'), acceptedResponse.response, {
         requestBodyMode: () => 'buffered',
         fetch: async () => Response.json({ accepted: true }),
-      }, 4, limiter)
+      }, PEER, 4, limiter)
       expect(acceptedResponse.body()).toContain('accepted')
     } finally {
       releaseFirst.resolve(undefined)
@@ -97,7 +123,7 @@ describe('HTTP bridge abort', () => {
         await finishHandler.promise
         return Response.json({ aborted: request.signal.aborted })
       },
-    }, 4, limiter)
+    }, PEER, 4, limiter)
     try {
       await handlerStarted.promise
       response.response.emit('close')
@@ -107,7 +133,7 @@ describe('HTTP bridge abort', () => {
       await bridge(bufferedRequest('body'), rejectedResponse.response, {
         requestBodyMode: () => 'buffered',
         fetch: async () => Response.json({ accepted: false }),
-      }, 4, limiter)
+      }, PEER, 4, limiter)
       expect(rejectedResponse.body()).toBe('buffered request capacity exhausted')
 
       finishHandler.resolve(undefined)
@@ -116,7 +142,7 @@ describe('HTTP bridge abort', () => {
       await bridge(bufferedRequest('body'), acceptedResponse.response, {
         requestBodyMode: () => 'buffered',
         fetch: async () => Response.json({ accepted: true }),
-      }, 4, limiter)
+      }, PEER, 4, limiter)
       expect(acceptedResponse.body()).toContain('accepted')
     } finally {
       finishHandler.resolve(undefined)
@@ -152,7 +178,7 @@ describe('HTTP bridge abort', () => {
     await bridge(request, response, {
       requestBodyMode: () => 'buffered',
       fetch: () => { throw new Error('a rejected request must never reach the handler') },
-    }, 1000)
+    }, PEER, 1000)
     // The socket must not stay parked draining a body the client can trickle
     // at will after the rejection — same discipline as the chunked overrun.
     expect(status).toBe(413)
@@ -201,7 +227,7 @@ describe('HTTP bridge abort', () => {
         }
         return Response.json({ aborted: fetchRequest.signal.aborted })
       },
-    }, Number.MAX_SAFE_INTEGER)
+    }, PEER, Number.MAX_SAFE_INTEGER)
     await started
     response.emit('close')
     await pending
@@ -236,7 +262,7 @@ describe('HTTP bridge abort', () => {
     const pending = bridge(request, response, {
       requestBodyMode: () => 'buffered',
       fetch: async () => new Response(body),
-    }).then(() => { settled = true })
+    }, PEER).then(() => { settled = true })
     try {
       await expect.poll(() => settled).toBe(true)
       expect(writes).toBe(1)
@@ -269,7 +295,7 @@ describe('HTTP bridge abort', () => {
     const pending = bridge(request, response, {
       requestBodyMode: () => 'buffered',
       fetch: async () => new Response(body),
-    })
+    }, PEER)
     await started.promise
     response.emit('close')
     controller.enqueue(Uint8Array.of(1))
@@ -314,7 +340,7 @@ describe('HTTP bridge abort', () => {
         for await (const chunk of input.body) received.push(chunk)
         return new Response('stored')
       },
-    }, 1)
+    }, PEER, 1)
 
     await started
     expect(received).toEqual([])
@@ -355,7 +381,7 @@ describe('HTTP bridge abort', () => {
     await bridge(request, response, {
       requestBodyMode: () => 'streaming',
       fetch: () => Promise.resolve(new Response(null, { status: 415 })),
-    }, 1)
+    }, PEER, 1)
     expect(status).toBe(415)
     expect(headers).toMatchObject({ connection: 'close' })
     expect(destroyed).toEqual([true])

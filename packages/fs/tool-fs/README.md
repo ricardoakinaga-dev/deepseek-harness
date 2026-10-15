@@ -25,6 +25,8 @@ Use `dsh-tool-fs` to let a model read UTF-8 files with line numbers, read suppor
 <a id="use-this-package"></a>
 ## Use this package
 
+Relative paths use the Session's current working directory. A directory change affects subsequent reads and mutations without changing sandbox permission roots. Successful results return the canonical absolute path from `fs.processPath`, and root result metadata retains that operation-time path for replay and navigation.
+
 Mount the tools after a `ctx.fs` backend and, for read-before-write/edit behavior, the policy plugin. The model then gets line-numbered reads, atomic writes and edits, and — with an attachment store mounted — image reads; every result is capped, and failures carry stable codes with recovery instructions.
 
 ### Minimal composition
@@ -43,29 +45,31 @@ The policy plugin is optional: without it the tools run against the bare provide
 
 | Tool | Arguments | Behavior |
 |---|---|---|
-| `read` | `file_path`, `offset?`, `column?`, `limit?` | Line-numbered UTF-8 content with a pagination footer; `offset` is 1-based and `limit` defaults to and caps at the configured `readLimit` |
+| `read` | `file_path`, `offset?`, `limit?` | Line-numbered UTF-8 content with a pagination footer; `offset` is 1-based and `limit` defaults to and caps at the configured `readLimit` |
 | `read_image` | `file_path` | Reads and persists a PNG/JPEG/WebP/GIF source; an extension-less path (normalized attachment object paths included) is identified from its file signature; normalization can downscale it before the next model request, so the model need not create a thumbnail first |
 | `write` | `file_path`, `content` | Creates or fully replaces a file; with the policy plugin, overwriting requires a prior `read` at the unchanged version, creating does not |
 | `edit` | `file_path`, `old_string`, `new_string`, `replace_all?` | Literal replacement requiring a unique match unless `replace_all` is true; with the policy plugin, requires a prior `read` and an unchanged file |
 
-Field names are snake_case to match Claude Code and existing harness tool schemas. Successes return compact envelopes — a read window, an image reference, or a `Created file`/`Updated file` confirmation — and `write`/`edit` derive replayable diff-card metadata for UI presentation.
-
-`column` selects a positive 1-based UTF-16 code-unit position on the first requested line only; later lines start at column 1. It defaults to 1, preserves `offset`/`limit` line pagination, and skips long prefixes without buffering them on the streaming path. `readMaxLineLength` still caps file text per line; truncation names the exact `offset` and next `column`. A cut before a surrogate pair can return fewer units than the cap, and a requested column inside a pair fails. Columns beyond the line fail with `FS_NOT_FOUND`; empty lines and empty files accept column 1 only. Failed column reads emit no present-file observation; successful slices retain the normal version guard for later mutations.
-
-`readMaxBytes` includes column labels, continuation hints, and separators between selected lines; the line-number prefixes, envelope, and serialized structured metadata are additional output. When the ordinary hint exceeds the remaining budget, a shorter slice uses `... [offset=<line>,column=<next>]`. If the first selected line cannot return one complete Unicode character with its metadata, the call fails explicitly and records no present-file observation.
+Field names are snake_case to match Claude Code and existing harness tool schemas. The `write` and `edit` path descriptions ask the model to emit `file_path` before the content or replacement strings; this guides streaming presentation but does not enforce JSON member order. Successes return compact envelopes — a read window, an image reference, or a `Created file`/`Updated file` confirmation — and `write`/`edit` derive replayable diff-card metadata for UI presentation.
 
 ### Configuration
 
-All keys are optional; the defaults are the shipped read caps.
+All keys are optional. The `read`, `readImage`, `write`, and `edit` switches default to `true`; set a switch to `false` to omit that tool and its guidance. All four may be disabled. Enabling `readImage` still requires an attachment store and an image-capable model. Read caps remain validated when `read` is disabled.
 
 | Key | Default | Meaning |
 |---|---|---|
+| `read` | `true` | Register `read` and its guidance |
+| `readImage` | `true` | Register `read_image` while an attachment store is mounted |
+| `write` | `true` | Register `write` and its guidance |
+| `edit` | `true` | Register `edit` and its guidance |
 | `readLimit` | `2000` | Default and maximum lines returned by one `read` call |
-| `readMaxLineLength` | `2000` | UTF-16 code units of file text kept per line before truncation |
-| `readMaxBytes` | `51200` | Byte cap on selected line text and continuation hints; byte pressure shortens a slice or ends the window |
+| `readMaxLineLength` | `2000` | Characters kept per line before truncation |
+| `readMaxBytes` | `51200` | Byte cap on one `read` call's selected lines; overflow ends the window with a capped footer |
 | `readStreamMinSize` | `10485760` | Files at or above this size (or of unknown size) stream instead of loading whole into memory |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-fs) is the exhaustive source for every accepted field and its JSDoc.
+
+With `fs-observation-policy` mounted and `read` disabled, `write` can still create files, and successful writes or edits record the versions needed for later mutations in that session. Existing unobserved files remain protected; disabling `read` does not relax the policy. Another filesystem reader must emit `fs/observed` for an existing file to become observed.
 
 ### Policy and sandbox behavior
 
@@ -103,6 +107,7 @@ The tools are the executor; policy is an event gate. The tools inject no policy 
 | [`src/read-render.ts`](src/read-render.ts) | Cordis-free windowing and envelope formatting |
 | [`src/sandbox.ts`](src/sandbox.ts) | Escalation API shared by `write`/`edit`: policy resolution and denial-marker mapping |
 | [`src/error.ts`](src/error.ts) | Stable model-facing diagnostics for guarded-mutation failures |
+| [`src/mutation-result.ts`](src/mutation-result.ts) | Successful mutation observation and canonical result paths |
 
 ### Per-tool flow
 
@@ -137,12 +142,12 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-At assembly time, each guidance section checks `ctx.tools.get(name, scope)` and renders only while its tool is visible to that agent. The write paragraph recommends edit only while edit is visible. The text below is unchanged when all three tools are available; restrictions, their removal, and tool registration changes take effect on the next assembly. The same check works for direct agent restrictions and subagent `toolFilter`, including PTC capabilities behind `run_code`. The read-before-mutation sentences in write/edit describe the observation policy, not a requirement to invoke the tool named `read`. They remain when `read` is hidden: the policy still guards mutations, and another observing operation, such as `str_replace_editor` with `command: view`, can establish the same file observation. Tool visibility does not disable that precondition.
+At assembly time, each guidance section checks `ctx.tools.get(name, scope)` and renders only while its tool is visible to that agent. The write paragraph recommends edit only while edit is visible. The text below is unchanged when all three tools are available; restrictions, their removal, and tool registration changes take effect on the next assembly. The same check works for direct agent restrictions and historical subagent filters restored from descriptors, including PTC capabilities behind `run_code`. The read-before-mutation sentences in write/edit describe the observation policy, not a requirement to invoke the tool named `read`. They remain when `read` is hidden: the policy still guards mutations, and another observing operation, such as `str_replace_editor` with `command: view`, can establish the same file observation. Tool visibility does not disable that precondition.
 
 ##### Read guidance
 
 ```markdown
-Use the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.
+Use the read tool — not shell commands like cat, sed, head, or tail — to inspect text files. Use offset and limit to read a line range or continue a large file.
 ```
 
 ##### Write guidance
@@ -183,7 +188,7 @@ Prefix-stable while the visible tool definitions and order are unchanged. Regist
 
 #### What the model sees
 
-A successful read is exactly `<path><displayPath></path>`, newline, `<type>file</type>`, newline, `<content>`, numbered lines as `<lineNumber>: <text>`, a blank line, one footer, and `</content>`. The footer is exactly `(Output capped. Showing lines <start>-<end>. Use offset=<next> to continue.)`, `(Showing lines <start>-<end> of <total>. Use offset=<next> to continue.)`, or `(End of file - total <total> lines)`. A long line normally ends exactly `... (line truncated to <max> UTF-16 units; use offset=<line>, column=<next> to continue)`; byte pressure uses the compact `... [offset=<line>,column=<next>]` hint and can shorten the payload. A sliced line starts with `(column <column>) ` after its line-number prefix; persisted read-card text carries the same label and continuation, with optional `column`/`nextColumn` fields on each line. A cap too small for one surrogate pair fails explicitly. A missing read still returns `FS_NOT_FOUND`, but it records confirmed absence for the calling session; after an externally deleted file is re-read, a retried `write` can safely recreate it through the provider's no-replace guard.
+A successful read is exactly `<path><resolvedPath></path>`, newline, `<type>file</type>`, newline, `<content>`, numbered lines as `<lineNumber>: <text>`, a blank line, one footer, and `</content>`. The footer is exactly `(Output capped. Showing lines <start>-<end>. Use offset=<next> to continue.)`, `(Showing lines <start>-<end> of <total>. Use offset=<next> to continue.)`, or `(End of file - total <total> lines)`. A long line ends exactly `... (line truncated to <max> chars)`. A missing read still returns `FS_NOT_FOUND`, but it records confirmed absence for the calling session; after an externally deleted file is re-read, a retried `write` can safely recreate it through the provider's no-replace guard.
 
 #### Token effect
 
@@ -197,7 +202,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 #### What the model sees
 
-A successful `read_image` returns `<path><displayPath></path>`, `<type>image</type>`, and a `<content>` envelope naming the media type, normalized dimensions, and byte size, followed by the image itself as a native image block. The result is logged with its durable reference before the next model request.
+A successful `read_image` returns `<path><resolvedPath></path>`, `<type>image</type>`, and a `<content>` envelope naming the media type, normalized dimensions, and byte size, followed by the image itself as a native image block. The result is logged with its durable reference before the next model request.
 
 #### Token effect
 
@@ -211,7 +216,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 #### What the model sees
 
-Write returns the exact five-line envelope `<path><displayPath></path>`, `<type>file</type>`, `<content>`, `Created file` or `Updated file`, then `</content>`. Edit returns exactly `The file <displayPath> has been updated successfully.` or, for `replace_all`, `The file <displayPath> has been updated. All occurrences were successfully replaced.` The full write or replacement text remains in the assistant tool-call arguments.
+Write returns the exact five-line envelope `<path><resolvedPath></path>`, `<type>file</type>`, `<content>`, `Created file` or `Updated file`, then `</content>`. Edit returns exactly `The file <resolvedPath> has been updated successfully.` or, for `replace_all`, `The file <resolvedPath> has been updated. All occurrences were successfully replaced.` The full write or replacement text remains in the assistant tool-call arguments.
 
 #### Token effect
 
@@ -248,10 +253,7 @@ These limits define when the tool suite is a poor fit or needs special operation
 - **Object paths re-enter source admission** — `read_image` on a normalized attachment object re-admits its bytes as a new source, so a deployment whose `maxImageBytes`/`maxMessageImageBytes` sit below the normalized-image byte budget can refuse an object path that `ctx.attachments.readImage` still serves; shipped defaults keep the normalized budget (4 MiB) far under the source caps (20 MiB).
 - **Inline image preview rides the UI composition** — the tool-result card renders the image through the browser's `tool.call.images` slot, which the attachment presentation plugin fills; a UI without that plugin shows the result's envelope text instead.
 - **No attachment-region tool** — an agent may crop an image through another available tool when it has a filesystem path; a pasted or dragged image without a path cannot be re-read at higher resolution.
-- **Column reads scan the whole file** — each call counts all lines, including skipped prefixes and the suffix after the selected window; repeated column pages repeat that I/O and are not random-access reads.
 - **No timeout surface** — `read`/`write`/`edit` take no timeout argument and declare no timeout budget; cancellation rides `exec.signal` only ([provider rationale](../README.md)).
-
-**Runtime invariant:** No companion is published. This model-facing adapter has no independent lifecycle stream; execution relations are owned by the capability seam it calls.
 
 <a id="dev-note"></a>
 ### Dev Note

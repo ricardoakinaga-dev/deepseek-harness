@@ -377,7 +377,8 @@ export class SessionProjectionRegistry extends Service {
         }
       }
     }.bind(this), 'sessionProjections.register()')
-    return () => void dispose()
+    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous cleanup; keep the Cordis disposer so effects can adopt it.
+    return dispose
   }
 
   /**
@@ -465,7 +466,9 @@ export class SessionProjectionRegistry extends Service {
 
   /**
    * Subscribe to the change feed. The registration is an effect on the
-   * calling context's fiber.
+   * calling context's fiber. Notifications follow the complete event fold, so
+   * listeners can read a snapshot at the same cursor. A throwing listener is
+   * logged without suppressing other listeners.
    * @param listener - called once per client-visible unit whose raw view changed by `Object.is`, per committed event.
    * @returns the exact disposer that unsubscribes.
    */
@@ -806,6 +809,7 @@ export class SessionProjectionRegistry extends Service {
 
   /** Eager drive: pass one committed event through every unit; notify on changed raw view references. */
   private drive(session: Session, event: SessionEvent): void {
+    const changes: Array<{ registration: Registration; value: unknown }> = []
     for (const registration of this.registrations.values()) {
       const cell = registration.cells.get(session)
       if (cell !== undefined && cell.observedSeq >= event.seq) continue
@@ -828,10 +832,7 @@ export class SessionProjectionRegistry extends Service {
         if (this.listeners.size > 0) {
           views[1] = wire.view(next)
           if (!Object.is(views[0], views[1])) {
-            const value = wire.viewSchema.parse(views[1])
-            for (const listener of this.listeners) {
-              listener(session, registration.def.key as Extract<keyof SessionProjectionMap, string>, value, event.seq)
-            }
+            changes.push({ registration, value: wire.viewSchema.parse(views[1]) })
           }
         } else {
           views[1] = undefined
@@ -839,6 +840,16 @@ export class SessionProjectionRegistry extends Service {
       }
       // An unchanged state keeps its current view as the valid comparison
       // value for the next state change.
+    }
+    for (const { registration, value } of changes) {
+      if (this.registrations.get(registration.def.key) !== registration) continue
+      for (const listener of this.listeners) {
+        try {
+          listener(session, registration.def.key as Extract<keyof SessionProjectionMap, string>, value, event.seq)
+        } catch (error) {
+          this.ctx.logger.warn(`session projection ${JSON.stringify(registration.def.key)} listener rejected: ${String(error)}`)
+        }
+      }
     }
   }
 

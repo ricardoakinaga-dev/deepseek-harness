@@ -37,8 +37,6 @@ interface PackageAlias {
   readonly specifier: string
   /** Repository-relative source directory, e.g. `./packages/session/session/src`. */
   readonly source: string
-  /** Whether the package carries `src/invariant.ts`, which earns a second alias. */
-  readonly hasInvariant: boolean
 }
 
 /**
@@ -127,12 +125,11 @@ function collectAliases(
     bySpecifier.set(name, {
       specifier: name,
       source: `./packages/${group}/${directory}/src`,
-      hasInvariant: existsSync(join(packageDir, 'src', 'invariant.ts')),
       directory: `${group}/${directory}`,
     })
   }
   return [...bySpecifier.values()]
-    .map(({ specifier, source, hasInvariant }) => ({ specifier, source, hasInvariant }))
+    .map(({ specifier, source }) => ({ specifier, source }))
     .sort((left, right) => left.specifier.localeCompare(right.specifier))
 }
 
@@ -215,10 +212,6 @@ export function renderAliases(aliases: readonly PackageAlias[], handWritten: Rea
   for (const alias of aliases) {
     if (!handWritten.has(alias.specifier)) {
       lines.push(`      ${JSON.stringify(alias.specifier)}: [${JSON.stringify(alias.source)}]`)
-    }
-    const invariant = `${alias.specifier}/invariant`
-    if (alias.hasInvariant && !handWritten.has(invariant)) {
-      lines.push(`      ${JSON.stringify(invariant)}: [${JSON.stringify(`${alias.source}/invariant.ts`)}]`)
     }
   }
   // The region closes `paths`, so the last member carries no trailing comma.

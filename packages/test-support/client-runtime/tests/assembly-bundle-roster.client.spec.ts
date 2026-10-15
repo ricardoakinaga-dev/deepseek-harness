@@ -35,7 +35,7 @@ describe('webApp (the real web profile)', () => {
     const names = webApp.rows.map(row => row.name)
     expect(names).toContain('@deepseek-ai/dsh-client-ui-settings-general')
     expect(names).not.toContain('@deepseek-ai/dsh-llm') // Host only
-    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-schedule')
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-schedule')
     expect(names).not.toContain('@deepseek-ai/dsh-web-app') // Host runtime glue, its `/startup` row is a subpath
   })
 })
@@ -74,7 +74,7 @@ describe('bundleRoster on a scratch installation', () => {
   const scratch = new Scratch()
   afterAll(() => { rmSync(scratch.root, { recursive: true, force: true }) })
 
-  it('resolves a linked bundle dependency before an unrelated ancestor package', () => {
+  it.each([false, true])('resolves a linked bundle dependency before an unrelated ancestor package (linked first: %s)', (linkedFirst) => {
     const linked = new Scratch()
     onTestFinished(() => { rmSync(linked.root, { recursive: true, force: true }) })
     const bundle = join(linked.root, 'workspace', 'bundle')
@@ -86,7 +86,41 @@ describe('bundleRoster on a scratch installation', () => {
     linked.pkg('@t/theme', {})
     symlinkSync(bundle, join(linked.root, 'app', 'node_modules', '@t', 'linked'), 'junction')
     linked.bundle('@t/base', '- insert: []\n')
-    expect(linked.roster(['@t/base', '@t/linked'])).toEqual(['@t/theme'])
+    expect(linked.roster(linkedFirst ? ['@t/linked', '@t/base'] : ['@t/base', '@t/linked'])).toEqual(['@t/theme'])
+  })
+
+  it.each([false, true])('resolves a linked bundle registering itself (ancestor homonym: %s)', (ancestorHomonym) => {
+    const linked = new Scratch()
+    onTestFinished(() => { rmSync(linked.root, { recursive: true, force: true }) })
+    const bundle = join(linked.root, 'workspace', 'bundle')
+    const dependency = join(bundle, 'node_modules', '@t', 'theme')
+    mkdirSync(dependency, { recursive: true })
+    writeFileSync(join(bundle, 'package.json'), JSON.stringify({
+      name: '@t/linked',
+      dsh: {
+        bundle: { patch: './cordis.patch.yml' },
+        client: { platform: 'web', inject: ['@t/theme'], immediately: true },
+      },
+    }))
+    writeFileSync(join(bundle, 'cordis.patch.yml'), "- insert:\n    - id: self\n      name: '@t/linked'\n    - id: theme\n      name: '@t/theme'\n")
+    writeFileSync(join(dependency, 'package.json'), JSON.stringify({ name: '@t/theme', dsh: { client: { platform: 'web' } } }))
+    if (ancestorHomonym) {
+      const ancestor = join(linked.root, 'node_modules', '@t', 'linked')
+      mkdirSync(ancestor, { recursive: true })
+      writeFileSync(join(ancestor, 'package.json'), JSON.stringify({ name: '@t/linked' }))
+    }
+    const installed = join(linked.root, 'app', 'node_modules', '@t')
+    mkdirSync(installed, { recursive: true })
+    symlinkSync(bundle, join(installed, 'linked'), 'junction')
+
+    const expected = [
+      { name: '@t/linked', inject: ['@t/theme'], immediately: true },
+      { name: '@t/theme', inject: [], immediately: false },
+    ]
+    expect(bundleRoster(['@t/linked'], linked.anchor).rows).toEqual(expected)
+    expect(bundleRoster(['@t/linked'], join(installed, 'linked', 'package.json')).rows).toEqual(expected)
+    writeFileSync(join(bundle, 'cordis.patch.yml'), "- insert:\n    - id: absent\n      name: '@t/absent'\n")
+    expect(() => linked.roster(['@t/linked'])).toThrow('cannot resolve plugin package @t/absent')
   })
 
   it('applies the layers in order and keeps enabled browser rows once, with their dsh.client declaration', () => {

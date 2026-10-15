@@ -1,8 +1,5 @@
 - navigation "Session hierarchy": Seeded turn
-- group "Session activity":
-  - text: not running ·
-  - time: "Last recorded: turn ended, ~2mo 21d ago"
-- button "1 subagent"
 - text: Minimal mode
+- button "1 subagent"
 - button "More actions"
 - button "Open right sidebar"

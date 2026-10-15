@@ -15,6 +15,7 @@ import GoalService, {
 } from '@deepseek-ai/dsh-goal'
 import type { CreateGoalRequest, EditGoalRequest, GoalChangeMeta, GoalRef, GoalSnapshotChangeMeta, GoalView } from '@deepseek-ai/dsh-goal'
 import { createInboxStub } from '@deepseek-ai/dsh-agent-loop-testkit'
+import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -270,7 +271,7 @@ describe('GoalService creation and replay', () => {
     expect(foldGoal(session.snapshotEvents()).goal?.taskManifest).toEqual(revised.taskManifest)
   })
 
-  it('rejects a forged complete event while a required ID is pending', async () => {
+  it('rejects a forged recorded completion while a required ID is pending', async () => {
     const { ctx, agent, session } = await harness()
     const created = createGoal(ctx, agent, {
       objective: 'Complete A', requiredTasks: [{ id: 'A', criterion: 'A works' }],
@@ -280,11 +281,12 @@ describe('GoalService creation and replay', () => {
       throw new Error('expected create snapshot')
     }
     const snapshot = original.data
-    expect(() => session.append('goal/change', {
+    session.append('goal/change', {
       ...snapshot,
       operation: 'complete',
       goal: { ...snapshot.goal, revision: created.revision + 1, phase: 'complete' },
-    })).toThrow(/every required task to be ACCEPTED/)
+    })
+    expect(() => foldGoal(session.snapshotEvents())).toThrow(/every required task to be ACCEPTED/)
   })
   it('does not activate without the required projection registry', async () => {
     const ctx = new Context()
@@ -355,6 +357,17 @@ describe('GoalService creation and replay', () => {
     expect(goals.create(stub.agent, { objective: 'direct', requiredTasks: [{ id: 'done', criterion: 'direct' }] })).toMatchObject({
       objective: 'direct', maxGoalRounds: 256,
     })
+  })
+
+  it('declares no resource readers on goals/get, leaving its Session resource to the Agent lookup', async () => {
+    const ctx = new Context()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    const goals = new GoalService(ctx)
+    const marker = remoteMethods(goals).find(method => method.method === 'get')
+    expect(marker).toMatchObject({ method: 'get' })
+    expect(marker?.resources).toBeUndefined()
   })
 
   it('rejects invalid direct configuration', async () => {
@@ -756,31 +769,6 @@ describe('GoalService mutations', () => {
     })
   })
 
-  it('rejects a corrupt append while preserving the valid prefix', async () => {
-    const { ctx, agent, session } = await harness()
-    expect(ctx.goals.get(agent)).toBeUndefined()
-    const change: GoalSnapshotChangeMeta = {
-      kind: 'goal/change',
-      version: 1,
-      operation: 'create',
-      goal: {
-        id: GoalId('goal-valid-prefix'),
-        revision: 1,
-        objective: 'valid prefix',
-        phase: 'active',
-        maxGoalRounds: 4,
-      },
-      roundsStarted: 0,
-      createdAt: 12,
-      updatedAt: 12,
-    }
-    session.append('goal/change', change)
-    expect(() => {
-      session.append('goal/change', { ...change, operation: 'edit', extra: true } as never)
-    }).toThrow('snapshot change must have exactly')
-
-    expect(ctx.goals.get(agent)).toMatchObject({ id: change.goal.id, objective: 'valid prefix' })
-  })
 })
 
 describe('goal replay validation', () => {

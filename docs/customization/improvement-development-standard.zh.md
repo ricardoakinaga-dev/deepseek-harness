@@ -114,7 +114,7 @@ Skill 改变 agent 执行工作的方式；插件改变运行中的 Harness 行�
 - **使用受支持的启动路径。** 应用只能通过具名 `dsh` profile 启动。改进不得添加包 bin、demo launcher 或 SDK 参数逃逸通道。
 - **每项事实只有一个所有者。** 代码和 JSDoc 拥有 API，包 README 拥有包行为，生成 catalog 拥有清单，本标准拥有解决方案选择，Agent Note 拥有持久决策依据。
 
-进行生命周期、并发、子进程或资源销毁工作前，应用[防御模式](../defensive-patterns.zh.md)。添加包或扩展机制前，使用[包指南](../cookbook/adding-a-package.zh.md)和[扩展 cookbook](../cookbook/extension-cookbook.zh.md)。
+进行生命周期、并发、子进程或资源销毁工作前，应用[防御模式](../defensive-patterns/README.zh.md)。添加包或扩展机制前，使用[包指南](../cookbook/adding-a-package.zh.md)和[扩展 cookbook](../cookbook/extension-cookbook.zh.md)。
 
 -----
 

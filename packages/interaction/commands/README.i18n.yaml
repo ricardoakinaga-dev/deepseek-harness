@@ -18,8 +18,8 @@
   en: 6eee80c31dad122b
   zh: 8f261f844a22ddad
 /deepseek-ai-dsh-commands/use-this-package/registering-a-command:
-  en: 719301f6ec6c3036
-  zh: eb1b04e3acf7b363
+  en: 81cefbf12580c26a
+  zh: 01c49d94aca89a07
 /deepseek-ai-dsh-commands/use-this-package/command-syntax:
   en: f9160436da4939e7
   zh: 90af200afaf3bb4c
@@ -39,14 +39,11 @@
   en: 063b49f26f48d628
   zh: 2ec899aa6f01359f
 /deepseek-ai-dsh-commands/understand-the-implementation/source-map:
-  en: ba242c37bc8772b3
-  zh: e6a23578ad37275d
+  en: 1617729234228bb0
+  zh: 3bee55cd286212e3
 /deepseek-ai-dsh-commands/understand-the-implementation/lifecycle-events:
   en: c9fcc06089f8035d
   zh: 74072476994a2093
-/deepseek-ai-dsh-commands/understand-the-implementation/lifecycle-validation:
-  en: cee01281f2d2aac4
-  zh: ca45d29682272bbf
 /deepseek-ai-dsh-commands/understand-the-implementation/scoping:
   en: d2d9d05bb5efbec4
   zh: 85ab0abcf728c56d
@@ -54,8 +51,8 @@
   en: ee0efa5308dcf1e3
   zh: da5a1d938301426c
 /deepseek-ai-dsh-commands/further-exploration:
-  en: 61626a7fcd4ea04b
-  zh: 217cd5e1e360729e
+  en: c221545424b96d68
+  zh: f2e2261ac9e59dfa
 /deepseek-ai-dsh-commands/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90

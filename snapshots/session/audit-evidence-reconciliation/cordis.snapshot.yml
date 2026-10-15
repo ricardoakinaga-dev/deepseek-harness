@@ -29,3 +29,8 @@
               - id: local-llm
                 contextWindow: 32768
                 defaultMaxTokens: 8192
+
+# The recorded task delegates each audit synchronously before starting the next one.
+- insert:
+    - id: audit-child-settlement
+      name: '../../../packages/test-support/session-snapshot/tests/fixtures/subagent-settlement-barrier.ts'

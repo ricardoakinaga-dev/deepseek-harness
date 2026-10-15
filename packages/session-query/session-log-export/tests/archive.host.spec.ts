@@ -194,7 +194,7 @@ async function buildApi(
   const handler = connection.createSharedFetchHandler('/api')
   return {
     dispose: () => fiber.dispose(),
-    fetch: handler,
+    fetch: { fetch: (request: Request) => handler.fetch(request, connection.browserPeer) },
     downloads: {
       sessionLog: (
         request: { sessionId: SessionId; includeDescendants: boolean },
@@ -203,7 +203,7 @@ async function buildApi(
         const url = new URL(`http://host${SessionLogExport.SESSION_LOG_EXPORT_PATH}`)
         url.searchParams.set('sessionId', request.sessionId)
         url.searchParams.set('includeDescendants', String(request.includeDescendants))
-        return handler.fetch(new Request(url, { signal }))
+        return handler.fetch(new Request(url, { signal }), connection.browserPeer)
       },
     },
   }

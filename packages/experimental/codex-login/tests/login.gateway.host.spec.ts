@@ -1,6 +1,8 @@
 /** An OAuth answer may half-close its uplink while the Host commits the grant. */
 import { afterEach, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import { Peer } from '@deepseek-ai/dsh-client-connection'
+import RemoteAccessService from '@deepseek-ai/dsh-api-remote-access'
 import AuthorizationService from '@deepseek-ai/dsh-authorization'
 import { credentialKey } from '@deepseek-ai/dsh-credentials'
 import TypertRegistry, { type TypertContribution } from '@deepseek-ai/dsh-typert-registry'
@@ -20,6 +22,7 @@ it('keeps the OAuth attempt alive after the answer uplink ends and reports a com
   await ctx.plugin(MemoryCredentials)
   await ctx.plugin(AuthorizationService)
   await ctx.plugin(TypertRegistry)
+  await ctx.plugin(RemoteAccessService)
   await ctx.plugin(TypertGatewayService)
   await ctx.plugin(CodexLoginController)
   ctx.typert.register(TYPERT as TypertContribution)
@@ -36,6 +39,7 @@ it('keeps the OAuth attempt alive after the answer uplink ends and reports a com
   async function* uplink(): AsyncGenerator<CodexLoginReply> { yield await answer.promise }
   const stream = await ctx.typertGateway.stream({
     namespace: 'codexLogin', method: 'login', args: {}, uplink: uplink(),
+    peer: new Peer(ctx.root, { principal: { kind: 'owner' } }),
   })
   const reader = stream[Symbol.asyncIterator]()
   const notice = await reader.next()

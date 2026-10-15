@@ -54,7 +54,7 @@ async function fixture() {
   const handler = ctx.connection.createSharedFetchHandler('/api')
   const get = (query = '?sessionId=owner&seq=7&index=0', signal?: AbortSignal) => handler.fetch(new Request(
     `http://localhost/api/present.download${query}`, { signal: signal ?? null },
-  ))
+  ), ctx.connection.browserPeer)
   return { ctx, routes, file, attachment, data, readEvent, get, fiber, handler }
 }
 
@@ -142,8 +142,8 @@ it('reports missing objects without exposing host storage paths', async () => {
 })
 
 it('serves only delivery events over GET', async () => {
-  const { get, handler, readEvent } = await fixture()
-  const post = await handler.fetch(new Request('http://localhost/api/present.download?sessionId=owner&seq=7&index=0', { method: 'POST' }))
+  const { get, handler, readEvent, ctx } = await fixture()
+  const post = await handler.fetch(new Request('http://localhost/api/present.download?sessionId=owner&seq=7&index=0', { method: 'POST' }), ctx.connection.browserPeer)
   expect(post.status).toBe(404)
   expect(readEvent).not.toHaveBeenCalled()
   readEvent.mockResolvedValueOnce({ session: {}, target: { type: 'turn/start', data: { turn: 1 } } })

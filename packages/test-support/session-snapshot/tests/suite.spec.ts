@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { cpSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -17,6 +18,7 @@ import {
   sessionHeaderVersion,
   writerSnapshotName,
   stabilizeFixtureMessageIds,
+  redactSessionSnapshotIds,
   tokenizeSessionFixtureCwd,
   type HarvestedLog,
   type Scenario,
@@ -1216,6 +1218,58 @@ describe('refreshFixtureReplacements', () => {
 })
 
 describe('stabilizeRefreshLog', () => {
+  it('keeps a fresh job declaration linked to its prose until the shared identity pass', () => {
+    const jobId = 'bash-0123456789abcdef'
+    const fresh = [
+      { type: 'session', id: '{{session:1}}' },
+      { type: 'job/registered', data: { jobId } },
+      { type: 'tool/result', data: { message: { content: [{ type: 'text', text: `started background job ${jobId}` }] } } },
+      { type: 'job/settled', data: { jobId } },
+    ].map(record => JSON.stringify(record)).join('\n') + '\n'
+    const existing = fresh.replaceAll(jobId, '{{id:1}}')
+    const stable = stabilize(fresh, existing)
+    expect(stable).toBe(fresh)
+    expect(redactSessionSnapshotIds([stable])).toEqual([existing])
+  })
+
+  it.each(['tool/result', 'tool/ptc-dispatch'])('validates %s raw counts before refresh text replacement', (type) => {
+    const cwd = '/tmp/refresh-skill-cwd'
+    const text = `Skill 🐢 at ${cwd}/skills/example`
+    const normalizedText = 'Skill 🐢 at {{cwd}}/skills/example'
+    const digest = (value: string): string => createHash('sha256')
+      .update(JSON.stringify(['filesystem', value])).digest('hex')
+    const rawCount = Array.from(text).length
+    const fresh = [
+      { type: 'session', id: 'skill-session', cwd },
+      { type, data: {
+        ...(type === 'tool/result'
+          ? { message: { content: [{ type: 'text', text }] } }
+          : { content: [{ type: 'text', text }] }),
+        meta: { kind: 'skill-load', name: 'example', provider: 'filesystem', alreadyActive: false,
+          digest: digest(text), instructionCharacters: rawCount },
+      } },
+    ].map(record => JSON.stringify(record)).join('\n') + '\n'
+    const replacements = [{ from: cwd, to: '{{cwd}}' }]
+    const normalized = stabilize(fresh, '', replacements)
+    expect(normalized).toContain(normalizedText)
+    expect(normalized).toContain(`"digest":"${digest(normalizedText)}"`)
+    expect(normalized).toContain(`"instructionCharacters":${Array.from(normalizedText).length}`)
+    expect(() => stabilize(fresh.replace(digest(text), digest(normalizedText)), '', replacements))
+      .toThrow('digest does not match raw instruction text')
+    const normalizedCount = Array.from(normalizedText).length
+    expect(rawCount).not.toBe(normalizedCount)
+    for (const invalidCount of [normalizedCount, rawCount - 1]) {
+      const invalid = fresh.replace(`"instructionCharacters":${rawCount}`, `"instructionCharacters":${invalidCount}`)
+      expect(() => stabilize(invalid, '', replacements))
+        .toThrow('instructionCharacters does not match raw instruction text')
+    }
+    const legacy = fresh.replace(`,"instructionCharacters":${rawCount}`, '')
+    expect(stabilize(legacy, '', replacements)).not.toContain('instructionCharacters')
+    const receipt = fresh.replace('"alreadyActive":false', '"alreadyActive":true')
+      .replace(`"instructionCharacters":${rawCount}`, '"instructionCharacters":0')
+    expect(stabilize(receipt, '', replacements)).toContain('"instructionCharacters":0')
+  })
+
   it('preserves unpacked member times when refresh first packs a chunk run', () => {
     const fresh = [
       '{"type":"session","id":"same","createdAt":200}',

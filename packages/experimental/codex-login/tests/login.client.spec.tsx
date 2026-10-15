@@ -17,6 +17,9 @@ const standard: GlobalStandardProps = {
   useSessionRetainInfo: vi.fn() as GlobalStandardProps['useSessionRetainInfo'],
   useResource: vi.fn() as GlobalStandardProps['useResource'],
   useWorkspaces: vi.fn() as GlobalStandardProps['useWorkspaces'],
+  useRemoteAccess: vi.fn() as GlobalStandardProps['useRemoteAccess'],
+  useSessionAccess: vi.fn() as GlobalStandardProps['useSessionAccess'],
+  useWorkspaceAccess: vi.fn() as GlobalStandardProps['useWorkspaceAccess'],
 }
 
 it('opens ChatGPT sign-in, submits the callback code, and refreshes stored-grant status', async () => {

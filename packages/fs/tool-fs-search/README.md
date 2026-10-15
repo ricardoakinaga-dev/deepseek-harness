@@ -25,6 +25,8 @@ Use `dsh-tool-fs-search` to give models `glob` file discovery and `grep` content
 <a id="use-this-package"></a>
 ## Use this package
 
+Searches use the Session's current working directory, including changes made with `working_directory`.
+
 Mount the tools after a `ctx.subprocess` backend; no host `rg` install is needed, and no filesystem provider is required. The model then gets file discovery ordered with non-ignored paths first and line-oriented content search, each bounded and timeout-guarded.
 
 ### Minimal composition
@@ -216,7 +218,6 @@ These limits define when the search tools are a poor fit or need special operati
 
 - **Normal glob bounds both listings** — the ignore-respecting candidate listing can exhaust the remaining raw budget even when the pattern matches few files. Its overflow diagnostic identifies this phase: narrow `path`, add `exclude` globs, or raise the deployment cap; narrowing `pattern` cannot reduce this listing. The budget covers raw stdout bytes, not total heap usage for decoded strings, sets, or result arrays.
 
-**Runtime invariant:** No companion is published. This model-facing adapter has no independent lifecycle stream; execution relations are owned by the capability seam it calls.
 
 <a id="dev-note"></a>
 ### Dev Note

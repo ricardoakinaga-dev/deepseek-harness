@@ -4,6 +4,7 @@
  */
 
 import type { IncomingMessage } from 'node:http'
+import type { PeerScope } from '@deepseek-ai/dsh-typert-protocol'
 import { Readable } from 'node:stream'
 import type { ConnectionFetchHandler } from './rpc.ts'
 
@@ -94,13 +95,15 @@ interface BridgeServerResponse {
  * @param req - incoming node:http request.
  * @param res - node:http response the bridge writes and owns to completion.
  * @param apiHandler - fetch-shaped API carrier the request is dispatched to.
- * @param maxRequestBodyBytes - maximum bytes accepted for one buffered body.
+ * @param peer - Peer the carrier admitted the request as.
+ * @param maxRequestBodyBytes - maximum bytes buffered for a buffered route.
  * @param limiter - instance-owned aggregate budget for buffered requests.
  */
 export async function bridge(
   req: IncomingMessage,
   res: BridgeServerResponse,
   apiHandler: ConnectionFetchHandler,
+  peer: PeerScope,
   maxRequestBodyBytes = DEFAULT_MAX_REQUEST_BODY_BYTES,
   limiter = new BufferedRequestLimiter(maxRequestBodyBytes),
 ): Promise<void> {
@@ -216,7 +219,7 @@ export async function bridge(
         duplex: 'half',
       } as RequestInit & { duplex: 'half' })
     }
-    const response = await apiHandler.fetch(request)
+    const response = await apiHandler.fetch(request, peer)
     if (isAborted()) {
       await cancelResponseBody(response)
       return

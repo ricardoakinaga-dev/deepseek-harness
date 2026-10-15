@@ -46,14 +46,14 @@ Cada ID tem resultado verificável, pré-condição ou dependência, falha que d
 
 ### M05 — Limite de continuações por hook Stop
 
-- Base: [hooks-codex](../../packages/hooks/hooks-codex/src/index.ts) e hooks-claude-code registram que um bloqueio incondicional pode continuar indefinidamente.
+- Base: [hooks-codex](../../packages/experimental/hooks-codex/src/index.ts) e hooks-claude-code registram que um bloqueio incondicional pode continuar indefinidamente.
 - Execução: definir orçamento configurável ou mecanismo de loop guard que reconheça a continuação causada pelo Stop e finalize com causa observável.
 - Aceite: hook que sempre bloqueia termina no limite sem novo ciclo infinito; hook que libera permite parada normal; o limite não elimina uma continuação legítima antes de sua cota.
 - Evidência e docs: testes de turnos e snapshots model-visible quando aplicável; atualizar READMEs dos dois conectores e semântica de Stop.
 
 ### M06 — Resultado continue: false de hooks
 
-- Base: os dois [conectores de hooks](../../packages/hooks/hooks-codex/src/index.ts) registram o resultado stop sem mecanismo de parada de execução.
+- Base: os dois [conectores de hooks](../../packages/experimental/hooks-codex/src/index.ts) registram o resultado stop sem mecanismo de parada de execução.
 - Execução: decidir o significado por ponto de hook, mapear o resultado a uma parada de run/turn suportada e registrar o fato durável necessário.
 - Aceite: continue: false interrompe apenas o escopo declarado; o log e a resposta do chamador mostram a causa; outputs que não pedem parada continuam funcionando.
 - Evidência e docs: testes por dialeto e pontos de hook afetados, snapshots da saída e atualização dos dois READMEs.
@@ -168,7 +168,7 @@ Cada ID tem resultado verificável, pré-condição ou dependência, falha que d
 
 ### M21 — Hooks locais por Session
 
-- Base: [hooks-codex](../../packages/hooks/hooks-codex/src/index.ts) e hooks-claude-code registram descoberta local por Session como trabalho pendente.
+- Base: [hooks-codex](../../packages/experimental/hooks-codex/src/index.ts) e hooks-claude-code registram descoberta local por Session como trabalho pendente.
 - Execução: confirmar a regra de confiança e escopo do projeto, depois implementar descoberta por Session se o produto a exigir.
 - Aceite: hook de um projeto não aparece em Session de outro; mudança durante a Session segue a política definida; configuração malformada falha no ponto documentado.
 - Evidência e docs: casos de dois projetos, cancelamento e READMEs de ambos os conectores; se não houver requisito, registrar não aplicabilidade.

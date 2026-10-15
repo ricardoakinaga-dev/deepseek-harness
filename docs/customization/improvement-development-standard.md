@@ -114,7 +114,7 @@ The policy verifier rejects `packageRoots` when one of those non-packaged extens
 - **Use supported launch paths.** Applications launch only through named `dsh` profiles. An improvement does not add a package bin, demo launcher, or SDK argument escape.
 - **Keep one owner per fact.** Code and JSDoc own APIs, package READMEs own package behavior, generated catalogs own inventories, this standard owns solution selection, and Agent Notes own durable rationale.
 
-Before lifecycle, concurrency, subprocess, or teardown work, apply [the defensive patterns](../defensive-patterns.md). Before adding a package or extension mechanism, use [the package guide](../cookbook/adding-a-package.md) and [extension cookbook](../cookbook/extension-cookbook.md).
+Before lifecycle, concurrency, subprocess, or teardown work, apply [the defensive patterns](../defensive-patterns/README.md). Before adding a package or extension mechanism, use [the package guide](../cookbook/adding-a-package.md) and [extension cookbook](../cookbook/extension-cookbook.md).
 
 -----
 

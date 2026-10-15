@@ -60,16 +60,10 @@
       "path": "../../workspace/workspace"
     },
     {
-      "path": "../../jobs/jobs"
-    },
-    {
       "path": "../../typert/protocol"
     },
     {
       "path": "../../util/time"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
     },
     {
       "path": "../../interaction/permission-presets"
@@ -82,6 +76,9 @@
     },
     {
       "path": "../../shell/shell"
+    },
+    {
+      "path": "../../session/working-directory"
     }
   ]
 }

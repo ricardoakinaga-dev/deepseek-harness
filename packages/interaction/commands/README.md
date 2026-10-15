@@ -43,8 +43,6 @@ ctx.commands.register({
 })
 ```
 
-While a handler runs, `isActiveInvocation(invocation)` verifies the exact object issued by this runtime and rejects it after settlement or cancellation. Supplying a `definitionId` also requires the selected registered definition to match. Goal task acceptance and scope replacement require the active `/goal` definition identity before the goal service commits.
-
 The handler returns `success` or `error` plus optional UI text that the adapter renders. `recordInput` defaults to true; a command whose own authoritative domain event already carries the payload sets it to false so the session log does not duplicate the input. Registering the same name twice in one scope throws.
 
 ### Command syntax
@@ -82,18 +80,12 @@ The observable behavior is covered in [Use this package](#use-this-package); thi
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | `CommandRuntime` service: registration, scoping, dispatch, lifecycle events |
-| [`src/audit-state.ts`](src/audit-state.ts) | Shared exact-prefix command audit fold and provider leases |
 | [`src/types.ts`](src/types.ts) | Command definition, descriptor, execution, and result types |
 | [`src/brand.ts`](src/brand.ts) | Stable command-definition identities and per-execution lifecycle ids |
-| [`src/invariant.ts`](src/invariant.ts) | Invariant companion checking command lifecycle candidates before Session append |
 
 ### Lifecycle events
 
 `execute()` mints a `commandId`, appends `command/run` before the handler runs, and appends `command/done` at settlement with the outcome kind and verbatim text; the exact payload fields live in [`src/index.ts`](src/index.ts). A successful result may name an earlier non-command authoritative domain event through `sourceEventSeq`; a thrown or aborted handler settles as `kind: 'error'`. Both events are direct standalone log-only appends: no turn wraps them, and persistence drains them at ordinary checkpoints and teardown. Admission misses (invalid syntax or unknown name) log nothing.
-
-### Lifecycle validation
-
-The provider keeps run ids, command event positions, and a contiguous cursor in a fold keyed by the exact Session object. Rejected lifecycle candidates leave the fold unchanged, including when their cursor exposes a missing prefix. A committed event gap or a stale current-prefix read latches a failure. Creation baselines seed only absent folds, accepted events advance them after commit, and concurrent providers share entries through provider reference counts. Final release clears a fold; an empty Session can seed again, and an eventful Session without a current exact prefix fails closed without deprecated history reads.
 
 ### Scoping
 
@@ -113,7 +105,7 @@ Attachment enforcement happens in the executor: images are committed through `ad
 Read these pages when the package-level contract is not enough. They move from the shared command vocabulary to the design evidence and adjacent surfaces.
 
 - [Commands subsystem reference](../../../docs/subsystems/commands.md) — registry semantics, input metadata, and the `ctx.commands` Cordis surface.
-- [Command registration Agent Note](../../../.agents/notes/implemented/feature/2026-07-19-plugin-command-registration.md) — the boundary and dispatch contract behind this service.
+- [historical Command registration Agent Note](../../../.agents/notes/archived/feature/2026-07-19-plugin-command-registration.md) — the boundary and dispatch contract behind this service.
 - [Interaction group map](../README.md) — adjacent approval, permission, and question packages.
 - [Plan mode package](../../plan/plan-mode/README.md) — a shipped command producer that drives model-visible work.
 

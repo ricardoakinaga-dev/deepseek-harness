@@ -26,12 +26,8 @@ schemaVersion: 1
 id: 2026-10-15-harness-evidence-runtime-audit
 baseline: false
 changes:
-  - root: "event:deliverables/presented"
-    previous: "2026-09-11-initial"
-    after: "c2562179620a32b65cc7d1d163604db65c4332fd207e8d4e9b1bb1c48241ef1d"
-    decision: same-version
   - root: "event:runtime/audit"
-    previous: null
+    previous: "2026-10-12-session-audit-facts"
     after: "bfbddb489d486c18d305744d9c46bfb65614c1f7802397c49b73da453c894095"
     decision: same-version
   - root: "event:spill/artifact"

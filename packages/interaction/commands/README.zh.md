@@ -43,8 +43,6 @@ ctx.commands.register({
 })
 ```
 
-处理器运行期间，`isActiveInvocation(invocation)` 验证本运行时签发的确切对象；结算或取消后验证失败。传入 `definitionId` 时还会要求所选注册定义匹配。Goal 任务验收与范围替换在 goal 服务提交前要求活跃的 `/goal` 定义标识。
-
 处理器返回 `success` 或 `error`，并可附带由适配器渲染的 UI 文本。`recordInput` 默认为 true；若载荷由命令自己的权威领域事件持有，命令会将 `recordInput` 设为 false，避免会话日志重复记录该输入。同一作用域内重复注册同名命令会抛出异常。
 
 ### 命令语法
@@ -82,18 +80,12 @@ ctx.commands.register({
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | `CommandRuntime` 服务：注册、作用域、分派、生命周期事件 |
-| [`src/audit-state.ts`](src/audit-state.ts) | 按确切会话对象共享的连续命令审计折叠状态与提供方租约 |
 | [`src/types.ts`](src/types.ts) | 命令定义、描述符、执行与结果类型 |
 | [`src/brand.ts`](src/brand.ts) | 稳定命令定义标识和每次执行的生命周期 id |
-| [`src/invariant.ts`](src/invariant.ts) | 不变式伴生插件：在 Session 追加前检查命令生命周期候选事件 |
 
 ### 生命周期事件
 
 `execute()` 会生成一个 `commandId`，在处理器运行前追加 `command/run`，并在结算时追加携带结果类型与原样文本的 `command/done`；确切载荷字段见 [`src/index.ts`](src/index.ts)。成功结果可以通过 `sourceEventSeq` 指向更早的一条非命令权威领域事件；处理器抛出或被中止时以 `kind: 'error'` 结算。两个事件都作为仅用于日志的事件直接独立追加：没有轮次包裹它们，持久化机制会在常规检查点和销毁期间排空这些事件。未通过准入的输入（语法无效或名称未知）不记录任何事件。
-
-### 生命周期验证
-
-提供方会在按确切 Session 对象索引的折叠状态中保存运行 id、命令事件位置和连续游标。被拒绝的生命周期候选事件不会修改折叠状态，包括候选游标揭示前缀缺失时。已提交事件出现缺口，或当前前缀读取发现游标过期时，会锁存失败。创建基线只为尚无状态的会话播种，已接受事件会在提交后推进状态，多个提供方通过引用计数共享同一状态。最后一个租约释放时会清除状态；空 Session 可以重新播种，缺少当前精确前缀的非空 Session 会快速失败，且不会通过已弃用的历史读取来重建。
 
 ### 作用域
 
@@ -113,7 +105,7 @@ ctx.commands.register({
 当包级约定不够用时阅读以下页面。它们从共享命令词汇逐步进入设计证据与相邻表面。
 
 - [命令子系统参考](../../../docs/subsystems/commands.zh.md)——注册表语义、输入元数据与 `ctx.commands` 的 Cordis 接口面。
-- [命令注册 Agent Note](../../../.agents/notes/implemented/feature/2026-07-19-plugin-command-registration.zh.md)——此服务背后的边界与分发约定。
+- [历史命令注册 Agent Note](../../../.agents/notes/archived/feature/2026-07-19-plugin-command-registration.md)——此服务背后的边界与分发约定。
 - [交互组映射](../README.zh.md)——相邻的审批、权限与问答包。
 - [Plan mode 包](../../plan/plan-mode/README.zh.md)——一个驱动模型可见工作的已交付命令生产方。
 

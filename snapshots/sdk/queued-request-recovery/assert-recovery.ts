@@ -42,10 +42,10 @@ export function assertQueuedRecovery(result: RunResult, target: 'next-turn' | 'n
 }
 
 /**
- * Require one child final result through the foreground or automatic continuable path.
+ * Require one canonical child reply and one automatic parent delivery.
  * @param result - The parent's single public SDK activity interval.
  * @param childLog - The case-owned child Session, including its final assistant settlement.
- * @param mode - The shipped subagent mode exercised by the scenario.
+ * @param mode - Whether the scenario includes a child progress message or only a final reply.
  */
 export function assertCanonicalSubagentFinal(result: RunResult, childLog: string, mode: 'continuable' | 'one-shot'): void {
   const child = childLog.trimEnd().split('\n').slice(1).map(line => JSON.parse(line) as SessionEvent)
@@ -64,6 +64,13 @@ export function assertCanonicalSubagentFinal(result: RunResult, childLog: string
   const settled = deliveries.filter(event => event.data.source.kind === 'subagent-settled')
   const progress = deliveries.filter(event => event.data.source.kind === 'agent-message')
   const sends = child.filter(event => event.type === 'tool/call').filter(event => event.data.name === 'send_message')
+  assert.equal(settled.length, 1, 'parent must receive exactly one automatic child final')
+  assert.equal(textOf(settled[0]!.data).split(finalText).length - 1, 1)
+  const final = result.events.find(event => event.type === 'assistant/message'
+    && textOf(event.data.message) === result.finalResponse)
+  assert.ok(final !== undefined)
+  assert.ok(result.events.indexOf(settled[0]!) < result.events.indexOf(final), 'parent final must follow the automatic child final')
+  assert.deepEqual(child.filter(event => event.type === 'turn/end').map(event => event.data.reason), [{ kind: 'completed' }])
   if (mode === 'continuable') {
     assert.equal(sends.length, 1, 'child must send progress once without sending its final twice')
     const args = JSON.parse(sends[0]!.data.arguments) as { agent_id: string; message: string }
@@ -72,8 +79,6 @@ export function assertCanonicalSubagentFinal(result: RunResult, childLog: string
     assert.equal(progress.length, 1, 'parent must receive exactly one child progress message')
     assert.ok(textOf(progress[0]!.data).includes('PROGRESS_ONLY'))
     assert.ok(!textOf(progress[0]!.data).includes(finalText), 'progress must not duplicate the canonical final')
-    assert.equal(settled.length, 1, 'parent must receive exactly one automatic child final')
-    assert.equal(textOf(settled[0]!.data).split(finalText).length - 1, 1)
     const task = child.find(event => event.type === 'user/message' && event.data.source.kind === 'user')
     assert.ok(task?.type === 'user/message')
     const guidance = textOf(task.data)
@@ -83,10 +88,9 @@ export function assertCanonicalSubagentFinal(result: RunResult, childLog: string
   } else {
     assert.equal(sends.length, 0)
     assert.equal(progress.length, 0)
-    assert.equal(settled.length, 0, 'foreground one-shot must not also deliver an automatic closing notice')
     const results = result.events.filter(event => event.type === 'tool/result')
     assert.equal(results.length, 1)
     assert.equal(results[0]!.data.message.isError, false)
-    assert.equal(textOf(results[0]!.data.message).split(finalText).length - 1, 1)
+    assert.ok(!textOf(results[0]!.data.message).includes(finalText), 'admission result must not duplicate the canonical child final')
   }
 }

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import { prepareSessionSnapshotFixtureForComparison } from '@deepseek-ai/dsh-llm-replay'
@@ -276,6 +277,33 @@ Additional instructions from: nested\AGENTS.md`,
 })
 
 describe('normalizeSessionLog', () => {
+  it.each([
+    { format: 'full UUIDs', ids: ['bash-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bash-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'] },
+    { format: 'short UUIDs', ids: ['bash-aaaaaaaaaaaaaaaa', 'bash-bbbbbbbbbbbbbbbb'] },
+  ])('keeps $format distinct in single-log and single-snapshot paths', ({ ids }) => {
+    const raw = [
+      { type: 'session', version: 0, id: ctx.sessionIds[0], cwd: ctx.cwd, createdAt: 100 },
+      { type: 'user/message', data: { text: 'Keep {{id:1}} literal.' } },
+      ...ids.flatMap(jobId => [
+        { type: 'job/registered', data: { jobId, startedAt: 100 } },
+        { type: 'job/settled', data: { jobId, startedAt: 100, finishedAt: 200 } },
+      ]),
+      { type: 'tool/call', data: { arguments: JSON.stringify({ job_id: ids[0] }) } },
+      { type: 'tool/result', data: { message: { content: [{ type: 'text', text: `read ${ids[0]}` }] } } },
+    ].map(record => JSON.stringify(record)).join('\n') + '\n'
+    for (const normalize of [normalizeSessionLog, normalizeSessionSnapshot]) {
+      const output = normalize(raw, ctx)
+      const jobs = output.split('\n').filter(Boolean).map(line => JSON.parse(line) as { type: string; data: { jobId: string } })
+        .filter(record => record.type.startsWith('job/'))
+      expect(jobs.map(record => record.data.jobId)).toEqual(['{{id:2}}', '{{id:2}}', '{{id:3}}', '{{id:3}}'])
+      const call = output.split('\n').filter(Boolean).map(line => JSON.parse(line) as { type: string; data: { arguments: string } })
+        .find(record => record.type === 'tool/call')
+      expect(JSON.parse(call!.data.arguments)).toEqual({ job_id: '{{id:2}}' })
+      expect(output).toContain('read {{id:2}}')
+      expect(output).toContain('Keep {{id:1}} literal.')
+      expect(normalize(output, ctx)).toBe(output)
+    }
+  })
   it('normalizes only message-feedback item clocks', () => {
     const item = { messageId: 'answer', version: 'version', createdAt: 123, updatedAt: 456, note: 'keep 123' }
     const input = ['feedback/message-put', 'tool/result'].map(type => JSON.stringify({ type, data: { item } })).join('\n')
@@ -543,6 +571,26 @@ describe('normalizeSessionLog', () => {
     expect(out).toContain('"operation":"create","createdAt":0,"updatedAt":0')
     expect(out).toContain('"createdAt":125')
     expect(out).toContain('"operation":"resume"')
+  })
+
+  it('normalizes job lifecycle clocks while preserving user timestamps and uncertainty', () => {
+    const input = [
+      header({}),
+      { type: 'job/registered', data: { startedAt: 100, jobId: 'bash-1' } },
+      { type: 'job/settled', data: { startedAt: 100, finishedAt: 200, producerReported: false } },
+      { type: 'job/registered', data: {} },
+      { type: 'job/settled', data: null },
+      { type: 'job/settled', data: 'invalid fixture remains invalid' },
+      { type: 'tool/result', data: { startedAt: 300, finishedAt: 400 } },
+    ].map(value => typeof value === 'string' ? value : JSON.stringify(value)).join('\n') + '\n'
+    const normalized = normalizeSessionLog(input, ctx).trim().split('\n')
+      .map(line => JSON.parse(line) as { data?: unknown })
+    expect(normalized[1]?.data).toEqual({ startedAt: 0, jobId: 'bash-1' })
+    expect(normalized[2]?.data).toEqual({ startedAt: 0, finishedAt: 0, producerReported: false })
+    expect(normalized[3]?.data).toEqual({})
+    expect(normalized[4]?.data).toBeNull()
+    expect(normalized[5]?.data).toBe('invalid fixture remains invalid')
+    expect(normalized[6]?.data).toEqual({ startedAt: 300, finishedAt: 400 })
   })
 
   it('normalizes subagent catalog child creation clocks', () => {
@@ -1292,5 +1340,95 @@ describe('scrubToolSchemas', () => {
     expect(out).toContain('full prompt')
     expect(out.split('\n')[3]).toBe(toolless)
     expect(scrubToolSchemas(out)).toBe(out)
+  })
+})
+
+describe('skill metadata comparison', () => {
+  const text = `Instructions 🐢 at ${ctx.cwd}/skills/example`
+  const normalizedText = 'Instructions 🐢 at {{cwd}}/skills/example'
+  const digest = (value: string): string => createHash('sha256')
+    .update(JSON.stringify(['filesystem', value])).digest('hex')
+  const result = (type: string, instructionCharacters = Array.from(text).length, hash = digest(text)) => ({
+    type,
+    data: {
+      ...(type === 'tool/result'
+        ? { message: { content: [{ type: 'text', text }], isError: false } }
+        : { content: [{ type: 'text', text }], isError: false }),
+      meta: { kind: 'skill-load', name: 'example', provider: 'filesystem', alreadyActive: false,
+        instructionCharacters, digest: hash },
+    },
+  })
+  const compare = (events: object[]): Array<ReturnType<typeof result>> => {
+    const raw = [{ type: 'session' }, ...events].map(record => JSON.stringify(record)).join('\n') + '\n'
+    return normalizeSessionSnapshots([raw], ctx)[0]!.trim().split('\n').slice(1)
+      .map(line => JSON.parse(line) as ReturnType<typeof result>)
+  }
+
+  it.each(['tool/result', 'tool/ptc-dispatch'])('normalizes validated complete %s instructions and their Unicode count', (type) => {
+    const [normalized] = compare([result(type)])
+    expect(normalized?.data.meta.instructionCharacters).toBe(Array.from(normalizedText).length)
+    expect(normalized?.data.meta.digest).toBe(digest(normalizedText))
+    expect(JSON.stringify(normalized)).toContain(normalizedText)
+  })
+
+  it.each(['tool/result', 'tool/ptc-dispatch'])('rejects %s raw count collisions with normalized text length', (type) => {
+    const rawCount = Array.from(text).length
+    const normalizedCount = Array.from(normalizedText).length
+    expect(rawCount).not.toBe(normalizedCount)
+    for (const invalidCount of [normalizedCount, rawCount - 1]) {
+      expect(() => compare([result(type, invalidCount)]))
+        .toThrow('instructionCharacters does not match raw instruction text')
+    }
+  })
+
+  it.each(['tool/result', 'tool/ptc-dispatch'])('preserves missing legacy %s character counts', (type) => {
+    const complete = result(type)
+    const meta: Record<string, unknown> = { ...complete.data.meta }
+    delete meta.instructionCharacters
+    const [normalized] = compare([{ ...complete, data: { ...complete.data, meta } }])
+    expect(normalized?.data.meta).not.toHaveProperty('instructionCharacters')
+    expect(normalized?.data.meta.digest).toBe(digest(normalizedText))
+  })
+
+  it.each(['tool/result', 'tool/ptc-dispatch'])('preserves %s active-receipt counts without measuring receipt prose', (type) => {
+    const receipt = result(type, 0)
+    const meta = { ...receipt.data.meta, alreadyActive: true }
+    expect(compare([{ ...receipt, data: { ...receipt.data, meta } }])[0]?.data.meta.instructionCharacters).toBe(0)
+  })
+
+  it.each(['tool/result', 'tool/ptc-dispatch'])('rejects %s with a digest inconsistent with its raw instructions', (type) => {
+    expect(() => compare([result(type, Array.from(text).length, digest(normalizedText))]))
+      .toThrow('digest does not match raw instruction text')
+  })
+
+  it('validates an already-active empty-body wrapper against the preceding complete instructions', () => {
+    const wrapped = `<skill_content name="example">\n<skill_resources>\n${ctx.cwd}\n</skill_resources>\n\n<skill_instructions>\nBody 🐢\n</skill_instructions>\n</skill_content>`
+    const empty = wrapped.replace('Body 🐢', '')
+    const complete = { type: 'tool/result', data: {
+      message: { content: [{ type: 'text', text: wrapped }] },
+      meta: { ...result('tool/result').data.meta, digest: digest(wrapped), instructionCharacters: Array.from(wrapped).length },
+    } }
+    const receipt = { type: 'tool/result', data: {
+      message: { content: [{ type: 'text', text: 'Skill is already loaded.' }] },
+      meta: { ...complete.data.meta, alreadyActive: true, instructionCharacters: 0, digest: digest(empty) },
+    } }
+    expect(compare([complete, receipt])[1]?.data.meta.digest).toBe(digest(empty.replace(ctx.cwd, '{{cwd}}')))
+    receipt.data.meta.digest = digest(empty + 'corrupted')
+    expect(compare([complete, receipt])[1]?.data.meta.digest).toBe(digest(empty + 'corrupted'))
+  })
+
+  it('relates an already-active receipt to the validated complete instructions', () => {
+    const receipt = {
+      type: 'tool/result',
+      data: {
+        message: { content: [{ type: 'text', text: 'Skill is already loaded.' }] },
+        meta: { ...result('tool/result').data.meta, alreadyActive: true, instructionCharacters: 0 },
+      },
+    }
+    const [, active] = compare([result('tool/result'), receipt])
+    expect(active?.data.meta.digest).toBe(digest(normalizedText))
+    expect(active?.data.meta.instructionCharacters).toBe(0)
+    const unrelated = { ...receipt, data: { ...receipt.data, meta: { ...receipt.data.meta, digest: 'incorrect' } } }
+    expect(compare([result('tool/result'), unrelated])[1]?.data.meta.digest).toBe('incorrect')
   })
 })

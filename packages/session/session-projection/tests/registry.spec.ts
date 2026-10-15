@@ -7,7 +7,7 @@
  * and effect-tied removal of registrations and change listeners (HMR safety).
  */
 
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { z } from 'zod'
 import SessionStore, {
@@ -423,6 +423,35 @@ describe('SessionProjectionRegistry drive', () => {
     expect(seen).toEqual([{ key: 'test/marks', value: { marks: ['a'] }, seq: event.seq, sessionId: String(session.id) }])
   })
 
+  it('lets a change listener read every projection at the causing event cursor', async () => {
+    const { ctx, session } = await harness()
+    ctx.sessionProjections.register(marksUnit())
+    ctx.sessionProjections.register(stableViewUnit(state => state.value))
+    const seen: unknown[] = []
+    ctx.sessionProjections.onChanged((changedSession) => {
+      seen.push(ctx.sessionProjections.snapshot(changedSession))
+    })
+    const event = mark(session, ['a'])
+    const expected = {
+      asOfSeq: event.seq,
+      values: { 'test/marks': { marks: ['a'] }, 'test/stable-view': { marks: ['a'] } },
+    }
+    expect(seen).toEqual([expected, expected])
+  })
+
+  it('contains a throwing change listener and publishes to later subscribers', async () => {
+    const { ctx, session } = await harness()
+    ctx.sessionProjections.register(marksUnit())
+    const warning = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
+    ctx.sessionProjections.onChanged(() => { throw new Error('listener failed') })
+    const seen: unknown[] = []
+    ctx.sessionProjections.onChanged((_session, _key, value) => { seen.push(value) })
+    mark(session, ['a'])
+    expect(seen).toEqual([{ marks: ['a'] }])
+    expect(warning).toHaveBeenCalledOnce()
+    warning.mockRestore()
+  })
+
   it('does not compute a view while no change listener exists', async () => {
     const { ctx, session } = await harness()
     const view = vi.fn((state: StableViewState) => state.value)
@@ -721,6 +750,22 @@ describe('SessionProjectionRegistry drive', () => {
     mark(session, ['after-dispose'])
     expect(notifications).toEqual(['test/marks'])
     expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
+  })
+
+  it('keeps a yielded registration live until the composite finishes using it', async () => {
+    const { ctx, session } = await harness()
+    onTestFinished(async () => { await ctx.fiber.dispose() })
+    let observed: MarksState | undefined
+    const fiber = await ctx.plugin(Object.assign((inner: Context) => {
+      inner.effect(function* () {
+        yield inner.sessionProjections.register(marksUnit())
+        yield () => { observed = inner.sessionProjections.stateOf(session, 'test/marks') }
+      })
+    }, { inject: ['sessionProjections'] }))
+    mark(session, ['live'])
+    await fiber.dispose()
+    expect(observed).toEqual({ marks: ['live'] })
+    expect(ctx.sessionProjections.stateOf(session, 'test/marks')).toBeUndefined()
   })
 
   it('snapshot serves client views and excludes host-only state', async () => {

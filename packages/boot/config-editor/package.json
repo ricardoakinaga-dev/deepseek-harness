@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-config-editor",
   "description": "Persist plugin configuration through profile patches and Loader reconciliation",
-  "version": "0.2.0-rc.1",
+  "version": "0.2.1-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -18,9 +18,11 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
     "lib/types/**/*.d.ts"
   ],
@@ -35,7 +37,7 @@
   "dependencies": {
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
     "yaml": "^2.8.1",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.3.2"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

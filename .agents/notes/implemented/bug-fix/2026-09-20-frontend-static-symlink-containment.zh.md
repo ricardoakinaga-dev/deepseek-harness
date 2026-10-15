@@ -16,7 +16,7 @@ Status: implemented
 
 真实 Loader 组合 fixture 覆盖根目录内的目录别名、根目录外的目录 symlink、Windows 目录 junction 等价物、外部缺失子项，以及指向 distribution 父目录的链接。外部目标返回 403 且不返回外部字节。现有的遍历、404、405、MIME、认证与 fallback 释放行为仍有覆盖。
 
-此改动属于 `upstream-package-change`：frontend-static 拥有 fallback handler，没有公开的 plugin 或 webserver 事件可以在不复制官方所有者逻辑的情况下替代其文件系统目标判断。实现遵循仓库已有的[规范文件系统包含先例](../feature/2026-07-14-cross-family-fs-sandbox.zh.md)。
+此改动属于 `upstream-package-change`：frontend-static 拥有 fallback handler，没有公开的 plugin 或 webserver 事件可以在不复制官方所有者逻辑的情况下替代其文件系统目标判断。实现遵循仓库已有的[规范文件系统包含先例](../../archived/feature/2026-07-14-cross-family-fs-sandbox.md)。
 
 ## 考虑过的替代方案
 

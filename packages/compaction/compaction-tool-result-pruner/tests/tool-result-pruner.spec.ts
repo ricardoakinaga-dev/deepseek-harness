@@ -9,8 +9,6 @@ import SessionStore, {
   SessionSeq,
 } from '@deepseek-ai/dsh-session'
 import type { SurfaceEvent } from '@deepseek-ai/dsh-session'
-import * as SessionInvariant from '@deepseek-ai/dsh-session/invariant'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import TokenMeter from '@deepseek-ai/dsh-token-meter'
 import ToolResultPruner, {
@@ -336,22 +334,5 @@ describe('ToolResultPruner session transaction', () => {
     const replay = Session.create(session.id, session.snapshotEvents())
     expect(replay.deriveMessages()).toEqual(session.deriveMessages())
     expect(replay.surface.replaceGeneration).toBe(session.surface.replaceGeneration)
-  })
-
-  it('runs under real invariants between closed steps but not outside a turn', async () => {
-    const ctx = new Context()
-    await ctx.plugin(SessionStore)
-    await ctx.plugin(SessionProjectionRegistry)
-    await ctx.plugin(InvariantRegistry)
-    await ctx.plugin(SessionInvariant)
-    await ctx.plugin(TokenMeter)
-    const prune = new ToolResultPruner(ctx, SMALL)
-    const session = ctx.sessions.create(SessionId('invariants'))
-    appendToolStep(session, 1, 'a', [{ type: 'text', text: 'A'.repeat(100) }])
-    expect(() => prune.pruneSession(session)).toThrow(/outside any open turn/)
-    session.append('turn/start', {
-      turn: 2,
-    })
-    expect(() => prune.pruneSession(session)).not.toThrow()
   })
 })

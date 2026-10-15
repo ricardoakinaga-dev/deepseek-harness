@@ -118,12 +118,11 @@ def test_subagent_child_cannot_author_two_final_replies() -> None:
         SMOKE["assert_subagent_final"](result, child, "continuable")
 
 
-def test_foreground_one_shot_cannot_also_deliver_an_automatic_final() -> None:
+def test_final_only_child_cannot_repeat_its_automatic_final() -> None:
     result, child = subagent_result("one-shot")
-    continuable, _ = subagent_result("continuable")
-    result.events.append(next(event for event in continuable.events if event["type"] == "user/message"
+    result.events.append(next(event for event in result.events if event["type"] == "user/message"
                               and event["data"]["source"]["kind"] == "subagent-settled"))
-    with pytest.raises(AssertionError, match="foreground one-shot must not also"):
+    with pytest.raises(AssertionError, match="exactly one automatic child final"):
         SMOKE["assert_subagent_final"](result, child, "one-shot")
 
 

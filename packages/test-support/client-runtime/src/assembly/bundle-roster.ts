@@ -39,6 +39,7 @@ interface BundleLayer {
 
 /**
  * Compose the browser roster of `bundles`, applied in order.
+ * Bundle self-references use their own manifests; dependencies resolve by directory depth across bundle anchors.
  * @param bundles - bundle package names in application order.
  * @param anchor - file whose package resolution locates the bundles; default this package.
  * @param disabledContext - optional Loader evaluation scope for trusted `disabled` expressions.
@@ -132,6 +133,10 @@ function readManifest(path: string): PackageManifest {
 
 /** Resolve package manifests to real paths so linked bundles use their own dependency directories. */
 function locateManifest(anchors: readonly string[], name: string): string | undefined {
+  for (const anchor of anchors) {
+    const ownManifest = join(dirname(anchor), 'package.json')
+    if (existsSync(ownManifest) && readManifest(ownManifest).name === name) return realpathSync(ownManifest)
+  }
   const paths = anchors.map(anchor => createRequire(anchor).resolve.paths(name) ?? [])
   for (let depth = 0; depth < Math.max(...paths.map(search => search.length)); depth++) {
     for (const search of paths) {

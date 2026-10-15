@@ -42,15 +42,12 @@ Loading the plugin with no config is safe: files land in a lazily-created privat
 |---|---|---|
 | `root` | private 0700 temp dir | Root directory for spill files; set to keep them under a known location |
 | `cleanupPeriodDays` | `30` | File age in days before the one-shot startup cleanup may delete it; `0` disables cleanup |
-| `captureAttachments` | `false` | Preserve full spill bytes as attachments in the live owner Session; requires attachment and Session services |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-spill-local) is the exhaustive source for every accepted field.
 
 ### What you get back
 
 Each `saveText` call writes the full text to a fresh file and returns three fields: `locator` (the file path), `bytes` (the exact UTF-8 byte count), and `retrievalHint` — "Use read with offset/limit, or grep this path to search within it." A consumer shows that hint to the model, which can then read or search the file with its ordinary file tools.
-
-The shared base bundle enables `captureAttachments`. The backend uses the caller’s suggested name for the saved attachment and streams the saved bytes into attachment storage before appending a log-only `spill/artifact` event. Session export can recover those bytes after the temporary locator disappears. A missing live owner, unavailable storage, or capture failure rejects the call without a successful capture event. Caller cancellation is forwarded to capture; the file stream closes before the call settles. Plugin disposal aborts all pending writes, waits for storage and file-stream cleanup, and prevents later capture events. Standalone compositions keep temporary-only storage unless they explicitly enable capture.
 
 ### Where files land
 
@@ -88,7 +85,6 @@ The backend owns storage details only, on one principle: **a spilled artifact mu
 | [`src/index.ts`](src/index.ts) | Plugin entry: `Config`, the `LocalSpillStore` service, cleanup lifecycle, locator and retrieval-hint assembly |
 | [`src/cleanup.ts`](src/cleanup.ts) | One-shot age sweep, filesystem-identity checks, symlink and ownership safeguards |
 | [`src/store.ts`](src/store.ts) | Cordis-free storage mechanics: private root, session directory, safe-name encoding, exclusive write |
-| — | No runtime invariant companion is published; capture records are appended after attachment commit, and attachment storage owns byte-integrity verification. |
 
 ### File naming and write
 

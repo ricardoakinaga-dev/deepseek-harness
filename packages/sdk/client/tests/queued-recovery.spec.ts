@@ -104,14 +104,13 @@ describe('canonical subagent final evidence', () => {
       .toThrow('child must author exactly one canonical final answer')
   })
 
-  it('rejects an automatic closing notice added to the foreground one-shot result', async () => {
+  it('rejects a second automatic final notice for a child without progress', async () => {
     const result = await fixtureResult('subagent-one-shot-final', 'ONE_SHOT_PARENT_OK')
-    const continuable = await fixtureResult('subagent-canonical-final', 'PARENT_CANONICAL_OK')
-    result.events.push(continuable.events.filter(event => event.type === 'user/message')
+    result.events.push(result.events.filter(event => event.type === 'user/message')
       .find(event => event.data.source.kind === 'subagent-settled')!)
     const child = await childLog('subagent-one-shot-final')
     expect(() => { assertCanonicalSubagentFinal(result, child, 'one-shot') })
-      .toThrow('foreground one-shot must not also deliver an automatic closing notice')
+      .toThrow('parent must receive exactly one automatic child final')
   })
 })
 

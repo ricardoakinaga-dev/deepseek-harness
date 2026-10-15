@@ -1,15 +1,15 @@
 /** Explicit deliveries commit only after a successful final tool result. */
-import { mkdtemp, rm, writeFile, symlink, unlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile, symlink, unlink, realpath } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
 import { FsError } from '@deepseek-ai/dsh-fs'
 import { AttachmentError, type FileAttachmentRef } from '@deepseek-ai/dsh-attachment'
+import { provideWorkingDirectoryFixture, unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
-import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
 import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import { createScope, type Scope } from '@deepseek-ai/dsh-scope'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
@@ -56,6 +56,7 @@ async function setup(config: Partial<Present.Config> = {}) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-present-minimal-'))
   cleanups.push(() => rm(root, { recursive: true, force: true }))
   const ctx = new Context()
+  provideWorkingDirectoryFixture(ctx)
   cleanups.push(() => ctx.fiber.dispose())
   await ctx.plugin(SessionStore)
   await ctx.plugin(SystemPrompt)
@@ -87,7 +88,7 @@ describe('present', () => {
     expect(result.isError).toBe(false)
     const files = owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files
     expect(files).toEqual([{
-      path: '报告.docx', description: 'Report', capture: { status: 'stored', attachment: {
+      path: await realpath(source), description: 'Report', capture: { status: 'stored', attachment: {
         attachmentId: `sha256:${createHash('sha256').update(data).digest('hex')}`, name: '报告.docx', bytes: 4,
       } },
     }])
@@ -131,7 +132,7 @@ describe('present', () => {
     expect((await execute([{ path: 'a' }])).isError).toBe(false)
     const deliveries = owner.session.snapshotEvents().filter(event => event.type === 'deliverables/presented')
     expect(deliveries).toHaveLength(1)
-    expect(deliveries[0]?.data.files[0]?.path).toBe('a')
+    expect(deliveries[0]?.data.files[0]?.path).toBe(await realpath(join(root, 'a')))
   })
 
   it('does not publish deliveries after post-execute blocks a successful declaration', async () => {
@@ -188,9 +189,26 @@ it('declares readable files outside the Session directory using absolute and rel
   const files = [{ path: file }, { path: relative(root, file) }]
   expect((await execute(files)).isError).toBe(false)
   const captured = owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files
-  expect(captured?.map(({ path }) => ({ path }))).toEqual(files)
-  expect(captured?.[0]?.capture).toEqual(captured?.[1]?.capture)
+  expect(captured?.map(({ path }) => ({ path }))).toEqual([{ path: await realpath(file) }, { path: await realpath(file) }])
+  const references = captured?.map(file => file.capture?.status === 'stored' ? file.capture.attachment : undefined)
+  expect(references?.[0]).toBeDefined()
+  expect(references?.[1]).toEqual(references?.[0])
   expect(captured?.[0]?.capture?.status).toBe('stored')
+})
+
+it('captures the current directory file and keeps its absolute path after a directory change', async () => {
+  const { ctx, root, owner, execute } = await setup()
+  const selected = join(root, 'selected')
+  await mkdir(selected)
+  await writeFile(join(root, 'report.txt'), 'original directory')
+  await writeFile(join(selected, 'report.txt'), 'selected directory')
+  const directory = vi.spyOn(ctx.workingDirectory, 'ensure').mockResolvedValue(selected)
+  expect((await execute([{ path: 'report.txt' }])).isError).toBe(false)
+  directory.mockResolvedValue(root)
+  const file = owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files[0]
+  expect(file?.path).toBe(await realpath(join(selected, 'report.txt')))
+  if (file?.capture?.status !== 'stored') throw new Error('missing captured reference')
+  expect(Buffer.from(await storedBytes(ctx, file.capture.attachment)).toString()).toBe('selected directory')
 })
 
 it('refuses a final symlink to an ordinary file', async () => {
@@ -234,9 +252,13 @@ it('captures empty and exact-limit files but records oversized files without rea
   expect(result.isError).toBe(false)
   const files = owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files
   expect(files?.map(file => file.capture?.status)).toEqual(['stored', 'stored', 'too-large'])
-  expect(files?.[2]).toEqual({ path: 'large', capture: { status: 'too-large', maxBytes: 4 } })
+  expect(files?.[2]).toEqual({ path: await realpath(join(root, 'large')), capture: { status: 'too-large', maxBytes: 4 } })
   expect(read).toHaveBeenCalledTimes(2)
-  expect(result.content).toEqual([{ type: 'text', text: 'Presented empty\nPresented exact\nPresented large (not saved: exceeds 4 bytes; keep the original file)' }])
+  expect(result.content).toEqual([{ type: 'text', text: [
+    `Presented ${await realpath(join(root, 'empty'))}`,
+    `Presented ${await realpath(join(root, 'exact'))}`,
+    `Presented ${await realpath(join(root, 'large'))} (not saved: exceeds 4 bytes; keep the original file)`,
+  ].join('\n') }])
 })
 
 it('records an oversized outcome when a file grows before its bounded read', async () => {
@@ -249,7 +271,7 @@ it('records an oversized outcome when a file grows before its bounded read', asy
   })
   expect((await execute([{ path: 'growing' }])).isError).toBe(false)
   expect(owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files)
-    .toEqual([{ path: 'growing', capture: { status: 'too-large', maxBytes: 4 } }])
+    .toEqual([{ path: await realpath(join(root, 'growing')), capture: { status: 'too-large', maxBytes: 4 } }])
 })
 
 it('reads through the filesystem provider when metadata omits the size', async () => {

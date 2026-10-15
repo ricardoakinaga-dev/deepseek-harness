@@ -33,3 +33,8 @@
               thinkingFormat: qwen-chat-template
               chatTemplateKwargs:
                 enable_thinking: false
+
+# The recorded task delegates each audit synchronously before starting the next one.
+- insert:
+    - id: audit-child-settlement
+      name: '../../../packages/test-support/session-snapshot/tests/fixtures/subagent-settlement-barrier.ts'

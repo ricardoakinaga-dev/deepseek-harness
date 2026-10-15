@@ -224,7 +224,7 @@ As observações desta fase foram registradas na auditoria. Cada implementação
 
 **Prioridade:** P1. **Esforço:** M. **Responsável:** DEV. **solutionType proposto:** `upstream-package-change`. **Dependências:** DSH-001.
 
-**Origem e escopo:** DSH-AUD-03. [product-analytics](../../packages/client/product-analytics/package.json), [schedule-bundle](../../packages/experimental/schedule-bundle/package.json), [otel](../../packages/telemetry/otel/package.json) e seus consumidores.
+**Origem e escopo:** DSH-AUD-03. [product-analytics](../../packages/client/product-analytics/package.json), `schedule-bundle` (manifesto histórico `experimental/schedule-bundle/package.json` sob `packages/`, auditado antes da remoção do pacote), [otel](../../packages/telemetry/otel/package.json) e seus consumidores.
 
 **Entrega:** remover ou substituir `./src/*` por entradas públicas suportadas, após mapear imports e conteúdo do pacote. Preservar resolução da fonte nos testes e dos artefatos nos consumidores publicados.
 

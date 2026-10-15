@@ -2,17 +2,17 @@
   "initial": [
     {
       "name": "bash",
-      "description": "Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs in a fresh shell; pass `workdir` instead of using `cd`. Managed `$DSH_*` variables expose current harness environment facts. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.",
+      "description": "Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs in a fresh shell; pass `workdir` instead of using `cd`. Managed `$DSH_*` variables expose current harness environment facts. Long output is truncated to a preview; one file path recovers the complete output when available. Provide `description` before `command` in the arguments. Before any delete or move, verify that the resolved absolute target path is the intended one; never run it against a computed path you have not checked. An unset variable expands to an empty string, so guard variables in such paths with `${VAR:?}`. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.",
       "parameters": {
         "type": "object",
         "properties": {
-          "command": {
-            "type": "string",
-            "description": "The bash command to execute."
-          },
           "description": {
             "type": "string",
             "description": "Clear, concise description of what this command does in active voice, 5-10 words (shown in the UI). Examples: \"ls\" → \"List files in current directory\"; \"git status\" → \"Show working tree status\"; \"npm install\" → \"Install package dependencies\"."
+          },
+          "command": {
+            "type": "string",
+            "description": "The bash command to execute."
           },
           "timeoutMs": {
             "type": "number",
@@ -40,20 +40,20 @@
           }
         },
         "required": [
-          "command",
-          "description"
+          "description",
+          "command"
         ]
       }
     },
     {
       "name": "create_goal",
-      "description": "Create a persisted goal that keeps this session working across automatic continuation rounds. Use it when the direct human request is a long-running objective, even if the user did not say \"goal\"; not for single-turn work.",
+      "description": "Create a persisted goal that keeps this session working across automatic continuation rounds. Call only when the current human message contains a JSON object with exactly objective and requiredTasks. For a prose request, continue the authorized work without creating a goal.",
       "parameters": {
         "type": "object",
         "properties": {
           "objective": {
             "type": "string",
-            "description": "The concrete completion objective inferred from the direct human request."
+            "description": "Copy the exact objective string from the JSON object in the current human message."
           },
           "max_goal_rounds": {
             "type": "number",
@@ -61,7 +61,7 @@
           },
           "required_tasks": {
             "type": "array",
-            "description": "Copy every ID and criterion from the human message JSON requiredTasks array. The objective and array must match exactly.",
+            "description": "Non-empty array. Copy every ID and criterion, in order, from that human JSON requiredTasks array; do not infer, omit, or invent tasks.",
             "items": {
               "type": "object",
               "additionalProperties": false,
@@ -94,7 +94,7 @@
         "properties": {
           "file_path": {
             "type": "string",
-            "description": "Path to edit, resolved by the filesystem backend."
+            "description": "Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments."
           },
           "old_string": {
             "type": "string",
@@ -154,7 +154,7 @@
     },
     {
       "name": "glob",
-      "description": "Find files, not directories, whose paths match a glob pattern, respecting ignore rules by default. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+      "description": "Find files, not directories, whose paths match a glob pattern, respecting ignore rules by default. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved. Explicitly included ignored paths are labelled and follow non-ignored paths.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -209,7 +209,7 @@
     },
     {
       "name": "interrupt_agent",
-      "description": "Ask a subagent to stop its current work. This call returns without waiting for it to stop. You can continue a direct child's conversation later with send_message. Subagents it started will keep running.",
+      "description": "Ask a subagent to stop its current work. This call returns without waiting for it to stop. You can continue a local direct child's conversation later with send_message. External executions stop permanently and cannot receive follow-ups. Subagents it started will keep running.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -396,7 +396,7 @@
     },
     {
       "name": "skill",
-      "description": "Load the full instructions for a skill. Call it before acting on a task that names or clearly matches a skill in the session skill catalog.",
+      "description": "Load the full instructions for a skill. Call it before acting on a task that names or clearly matches a skill in the session skill catalog. An unchanged skill already present in context returns a short reference; instructions removed by compaction are loaded again.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -412,10 +412,14 @@
     },
     {
       "name": "subagent",
-      "description": "Delegate a self-contained task to a subagent (a separate agent that works in its own context) to offload focused, independent work — research, a scoped implementation, an analysis — so it does not consume this conversation's context. The subagent returns its result, not its intermediate steps. It runs in the background by default and returns a subagent id you can continue with `send_message`; you are notified when the run settles.",
+      "description": "Delegate a self-contained task to a subagent (a separate agent that works in its own context) to offload focused, independent work — research, a scoped implementation, an analysis — so it does not consume this conversation's context. The subagent returns its result, not its intermediate steps. This tool starts an independently managed subagent and immediately returns its id. The runtime notifies you when it finishes. The completion notice includes its final answer. Use `send_message` for progress or coordination, to steer it while running, or to continue its conversation after it finishes.",
       "parameters": {
         "type": "object",
         "properties": {
+          "cwd": {
+            "type": "string",
+            "description": "Initial child working directory. Relative paths use your current directory; omitted inherits it. Later directory changes in either agent are independent."
+          },
           "description": {
             "type": "string",
             "description": "A short (3-5 word) description of the delegated task, for display."
@@ -424,9 +428,32 @@
             "type": "string",
             "description": "The complete, self-contained task for the subagent. It does not share this conversation's context, so include everything it needs."
           },
-          "run_in_background": {
-            "type": "boolean",
-            "description": "Defaults to true. Set false only when your next action depends on the result."
+          "sandboxMode": {
+            "type": "string",
+            "description": "File access for this child. Omit to inherit the effective parent policy; a supplied mode may only narrow it. Approval remains disabled.",
+            "enum": [
+              "read-only",
+              "workspace-write"
+            ]
+          },
+          "toolFilter": {
+            "type": "object",
+            "description": "Additional tool restrictions for this child, intersected with deployment and parent permissions. An empty allow list removes all inherited tools.",
+            "additionalProperties": false,
+            "properties": {
+              "allow": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deny": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "required": [
@@ -437,10 +464,14 @@
     },
     {
       "name": "subagent_fork",
-      "description": "Delegate a task to a subagent that inherits this conversation: a child agent seeded with all completed turns so far (it does not see the current in-flight turn). Use this when the subtask builds on this conversation's context — a follow-up analysis, a review, a continuation — without consuming this conversation's context for the work itself. You receive its result, not its intermediate steps. This call waits for the subagent and returns its result.",
+      "description": "Delegate a task to a subagent that inherits this conversation: a child agent seeded with all completed turns so far (it does not see the current in-flight turn). Use this when the subtask builds on this conversation's context — a follow-up analysis, a review, a continuation — without consuming this conversation's context for the work itself. You receive its result, not its intermediate steps. This tool starts an independently managed subagent and immediately returns its id. The runtime notifies you when it finishes. The completion notice includes its final answer. Use `send_message` for progress or coordination, to steer it while running, or to continue its conversation after it finishes.",
       "parameters": {
         "type": "object",
         "properties": {
+          "cwd": {
+            "type": "string",
+            "description": "Initial child working directory. Relative paths use your current directory; omitted inherits it. Later directory changes in either agent are independent."
+          },
           "description": {
             "type": "string",
             "description": "A short (3-5 word) description of the delegated task, for display."
@@ -448,6 +479,33 @@
           "prompt": {
             "type": "string",
             "description": "The task for the subagent. It already sees this conversation's completed turns, so build on them freely and state only what is new."
+          },
+          "sandboxMode": {
+            "type": "string",
+            "description": "File access for this child. Omit to inherit the effective parent policy; a supplied mode may only narrow it. Approval remains disabled.",
+            "enum": [
+              "read-only",
+              "workspace-write"
+            ]
+          },
+          "toolFilter": {
+            "type": "object",
+            "description": "Additional tool restrictions for this child, intersected with deployment and parent permissions. An empty allow list removes all inherited tools.",
+            "additionalProperties": false,
+            "properties": {
+              "allow": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deny": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "required": [
@@ -668,6 +726,19 @@
       }
     },
     {
+      "name": "working_directory",
+      "description": "Read the current working directory, or change it with cd. Relative paths use the current directory. Existing shells and running processes keep their own directories.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "cd": {
+            "type": "string",
+            "description": "Existing directory to enter. Omit to read the current directory."
+          }
+        }
+      }
+    },
+    {
       "name": "write",
       "description": "Create or fully replace a UTF-8 text file.",
       "parameters": {
@@ -675,7 +746,7 @@
         "properties": {
           "file_path": {
             "type": "string",
-            "description": "Path to write, resolved by the filesystem backend."
+            "description": "Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments."
           },
           "content": {
             "type": "string",

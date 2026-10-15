@@ -1,15 +1,14 @@
-/** Authored current-protocol replay over historical Goal responses; not real-model evidence. */
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+// Keyless replay of a real two-round Goal run. Each autonomous round ends as
+// its own turn, so the first answer must keep its IconActions when Goal opens
+// round two and the final answer must own a second, distinct action row.
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterEach, describe, expect, it, onTestFailed } from 'vitest'
-import { loadReplayScript, parseSessionLog } from '@deepseek-ai/dsh-llm-replay'
-import type { StreamChunk } from '@deepseek-ai/dsh-llm'
+import { parseSessionLog } from '@deepseek-ai/dsh-llm-replay'
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-commands/types'
 import type {} from '@deepseek-ai/dsh-goal'
 import {
   assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria, compareOrRefreshGolden,
@@ -23,12 +22,9 @@ const OVERRIDE = join(SNAPSHOT_DIR, 'replay.override.json')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const UI_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ui-expanded.expected.md')
 const MODE = webSnapshotMode()
+
 const PROMPT = '做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的'
-const REQUIRED_TASKS = [
-  { id: 'two-turn-output', criterion: 'Both Goal turns display their inspected package file structures.' },
-]
-const COMMAND = `/goal create ${JSON.stringify({ objective: PROMPT, requiredTasks: REQUIRED_TASKS })}`
-const COMPLETE = 'I accept both displayed package structures. Complete the accepted goal in this turn.'
+const COMMAND = `/goal ${PROMPT}`
 
 const PACKAGE_FILES: Readonly<Record<string, string>> = {
   'packages/client/ui-conversation/README.md': '# UI conversation\n',
@@ -60,6 +56,25 @@ async function seedPackageInventory(workspaceRoot: string): Promise<void> {
   }
 }
 
+/** Await exactly the requested number of durable turn ends, then flush the session. */
+function whenTurnsSettled(scaffold: WebScaffold, count: number, timeoutMs: number): Promise<SessionId> {
+  return new Promise<SessionId>((resolve, reject) => {
+    let completed = 0
+    const timer = setTimeout(() => {
+      off()
+      reject(new Error(`only ${completed}/${count} Goal turns ended within ${timeoutMs}ms`))
+    }, timeoutMs)
+    const off = scaffold.ctx.on('session/event', (session, event: SessionEvent) => {
+      if (event.type !== 'turn/end') return
+      completed += 1
+      if (completed !== count) return
+      clearTimeout(timer)
+      off()
+      scaffold.ctx.sessions.flush(session).then(() => { resolve(session.id) }, reject)
+    })
+  })
+}
+
 /** Goal-owned round numbers in durable user-message order. */
 function goalRounds(events: readonly SessionEvent[]): number[] {
   return events.flatMap(event => event.type === 'user/message' && event.data.source.kind === 'goal'
@@ -67,205 +82,127 @@ function goalRounds(events: readonly SessionEvent[]): number[] {
     : [])
 }
 
-/** Preserve historical chunks while completing against the revision produced by human acceptance. */
-async function writeCurrentReplay(path: string): Promise<number> {
-  const script = loadReplayScript({ file: FIXTURE, overrideFile: OVERRIDE })
-  expect(script).toHaveLength(12)
-  let adapted = 0
-  const completionArgs = JSON.stringify({
-    goal_id: '{{fromRequest:goal-[0-9a-f-]+}}', revision: REQUIRED_TASKS.length + 1, action: 'complete',
-  })
-  for (const entry of script) {
-    if (entry.kind !== 'chunks') throw new Error('Goal actions fixture requires finite chunk entries')
-    entry.chunks = entry.chunks.map((chunk) => {
-      if (chunk.type === 'tool-call-delta' && chunk.name === 'update_goal') {
-        expect(JSON.parse(chunk.argumentsDelta)).toMatchObject({ action: 'complete', revision: 1 })
-        adapted += 1
-        return { ...chunk, argumentsDelta: completionArgs }
-      }
-      if (chunk.type === 'block-end' && chunk.block.type === 'tool-call' && chunk.block.name === 'update_goal') {
-        expect(JSON.parse(chunk.block.arguments)).toMatchObject({ action: 'complete', revision: 1 })
-        adapted += 1
-        return { ...chunk, block: { ...chunk.block, arguments: completionArgs } }
-      }
-      return chunk
-    })
-  }
-  expect(adapted).toBe(2)
-  await writeFile(path, JSON.stringify(script))
-  return script.length
+/** Objective written by each durable Goal creation. */
+function createdObjectives(events: readonly SessionEvent[]): string[] {
+  return events.flatMap(event => event.type === 'goal/change' && event.data.operation === 'create'
+    ? [event.data.goal.objective]
+    : [])
 }
 
-/** Cancelled turns must also release the model's acceptance barrier. */
-async function waitForAcceptance(accepted: Promise<void>, signal: AbortSignal): Promise<void> {
-  signal.throwIfAborted()
-  let abort: () => void = () => undefined
-  const cancelled = new Promise<never>((_resolve, reject) => {
-    abort = () => { reject(new Error('Goal acceptance wait was aborted')) }
-    signal.addEventListener('abort', abort, { once: true })
-  })
-  try {
-    await Promise.race([accepted, cancelled])
-    signal.throwIfAborted()
-  } finally {
-    signal.removeEventListener('abort', abort)
-  }
-}
-
-describe.skipIf(MODE === 'record')('web e2e: Goal keeps one assistant action row per completed turn', () => {
+describe('web e2e: Goal keeps one assistant action row per completed turn', () => {
   let scaffold: WebScaffold | undefined
   let browser: Browser | undefined
   let page: Page
-  let replayDir: string | undefined
-  let sessionId: SessionId | undefined
-  let releaseAcceptance: (() => void) | undefined
+  let tripwire: ReturnType<typeof watchConsole>
+  let sessionEvents: SessionEvent[]
 
   afterEach(async () => {
     const failures: unknown[] = []
-    const agent = sessionId === undefined ? undefined : scaffold?.ctx.agents.get(sessionId)
-    if (agent !== undefined) {
-      agent.cancel({ kind: 'user' })
-      releaseAcceptance?.()
-      await agent.whenIdle().catch((error: unknown) => failures.push(error))
-    }
-    releaseAcceptance = undefined
-    sessionId = undefined
     await browser?.close().catch((error: unknown) => failures.push(error))
     browser = undefined
     const closing = scaffold
     scaffold = undefined
     await closing?.close().catch((error: unknown) => failures.push(error))
-    if (replayDir !== undefined) {
-      await rm(replayDir, { recursive: true, force: true }).catch((error: unknown) => failures.push(error))
-      replayDir = undefined
-    }
-    if (failures.length > 0) throw new AggregateError(failures, 'goal-multi-turn-actions teardown failed')
+    if (failures.length === 1) throw failures[0]
+    if (failures.length > 1) throw new AggregateError(failures, 'goal-multi-turn-actions teardown failed')
   })
 
-  it('keeps actions on both completed Goal turn tails after public human acceptance', async () => {
-    const historical = parseSessionLog(await readFile(FIXTURE, 'utf8'))
-    expect(historical.flatMap(event => event.type === 'goal/change' && event.data.operation === 'create'
-      ? [event.data.goal.objective] : [])).toEqual([PROMPT])
-    expect(goalRounds(historical)).toEqual([1, 2])
-    replayDir = await mkdtemp(join(tmpdir(), 'dsh-web-goal-actions-'))
-    const currentReplay = join(replayDir, 'current.replay.override.json')
-    const expectedRequests = await writeCurrentReplay(currentReplay)
-    scaffold = await launchWebScaffold({
-      replayFixture: FIXTURE, replayOverride: currentReplay, compareReplaySession: true,
-    })
-    const world = scaffold
-    await seedPackageInventory(world.workspaceCwd)
-    const events: SessionEvent[] = []
-    world.ctx.on('session/event', (session, event: SessionEvent) => {
-      events.push(event)
-      if (event.type === 'goal/change' && event.data.operation === 'create') sessionId = session.id
-    })
-    const accepted = Promise.withResolvers<undefined>()
-    releaseAcceptance = () => { accepted.resolve(undefined) }
-    let requests = 0
-    let waitingForAcceptance = false
-    world.ctx.on('llm/stream', (options, next): AsyncIterable<StreamChunk> => {
-      requests += 1
-      return (async function* () {
-        if (requests > expectedRequests) throw new Error('Goal actions requested an unrecorded model call')
-        for await (const chunk of next()) {
-          yield chunk
-          if (chunk.type !== 'block-end' || chunk.block.type !== 'text'
-            || !chunk.block.text.startsWith('**Turn 2 / 2**')) continue
-          if (options.signal === undefined) throw new Error('Goal actions requires a turn signal')
-          waitingForAcceptance = true
-          await waitForAcceptance(accepted.promise, options.signal)
-        }
-      })()
-    }, { prepend: true })
+  /** Boot the real Web composition and connect a fresh package fixture workspace. */
+  async function launch(): Promise<void> {
+    sessionEvents = []
+    scaffold = await launchWebScaffold(
+      MODE === 'record' ? {} : { replayFixture: FIXTURE, replayOverride: OVERRIDE },
+    )
+    await seedPackageInventory(scaffold.workspaceCwd)
+    scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
-    const tripwire = watchConsole(page)
-    await page.goto(world.authenticatedUrl, { waitUntil: 'load' })
+    tripwire = watchConsole(page)
+    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
-    await connectFreshWorkspace(page, world.workspaceCwd)
-    onTestFailed(() => saveFailureShot(page, 'web-e2e-goal-multi-turn-actions'))
+    await connectFreshWorkspace(page, scaffold.workspaceCwd)
+  }
+
+  /** Submit the Goal command after arming the two-turn barrier. */
+  async function runGoal(timeoutMs: number): Promise<SessionId> {
     const input = page.locator('[data-composer-input]').first()
+    await input.waitFor({ timeout: 10_000 })
+    const settled = whenTurnsSettled(scaffold!, 2, timeoutMs)
     await input.fill(COMMAND)
     await input.press('Enter')
-    await expect.poll(() => waitingForAcceptance, { timeout: 30_000 }).toBe(true)
-    expect(requests).toBe(10)
-    expect(goalRounds(events)).toEqual([1, 2])
-    expect(events.filter(event => event.type === 'turn/end').map(event => event.data.turn)).toEqual([1])
-    const firstTail = page.locator('[data-turn-tail="1"]')
-    await firstTail.getByRole('button', { name: 'Branch into a new conversation', exact: true }).waitFor()
-    await page.getByText('Turn 2 / 2', { exact: true }).waitFor()
-    const structures = page.locator('code')
-    await expect.poll(() => structures.allTextContents(), { timeout: 10_000 })
-      .toEqual(expect.arrayContaining([expect.stringContaining('token-meter')]))
-    if (sessionId === undefined) throw new Error('Goal creation did not identify its session')
-    const agent = world.ctx.agents.get(sessionId)
-    if (agent === undefined) throw new Error('Goal actions agent is unavailable')
-    const pending = world.ctx.goals.get(agent)
-    expect(pending).toMatchObject({ phase: 'active', revision: 1,
-      taskManifest: { tasks: REQUIRED_TASKS.map(task => ({ ...task, status: 'PENDING' })) } })
-    for (const [index, task] of REQUIRED_TASKS.entries()) {
-      const doneBefore = events.filter(event => event.type === 'command/done').length
-      await input.fill(`/goal accept ${task.id}`)
-      await input.press('Enter')
-      await expect.poll(() => events.filter(event => event.type === 'command/done').length, { timeout: 10_000 })
-        .toBe(doneBefore + 1)
-      expect(events.filter(event => event.type === 'command/done').at(-1)?.data.kind).toBe('success')
-      expect(world.ctx.goals.get(agent)).toMatchObject({ phase: 'active', revision: index + 2 })
-      await expect.poll(() => input.textContent(), { timeout: 10_000 }).toBe('')
-    }
-    expect(world.ctx.goals.get(agent)?.taskManifest?.tasks.map(task => task.status)).toEqual(['ACCEPTED'])
-    // Acceptance advances the goal revision; same-turn human steering authorizes completion.
-    const steeringResponse = page.waitForResponse('**/api/session/prompt')
-    await input.fill(COMPLETE)
-    await input.press('Control+Enter')
-    const response = await steeringResponse
-    const steeringResult: unknown = await response.json()
-    expect(steeringResult).toMatchObject({ result: { ok: true, value: { accepted: true } } })
-    await page.locator('[data-pending-steering]').filter({ hasText: COMPLETE }).waitFor({ timeout: 10_000 })
-    expect(agent.inbox.nextStep.some(message => message.source.kind === 'user'
-      && message.content.some(block => block.type === 'text' && block.text === COMPLETE))).toBe(true)
-    accepted.resolve(undefined)
-    await expect.poll(() => events.filter(event => event.type === 'turn/end').length, { timeout: 30_000 }).toBeGreaterThanOrEqual(2)
-    await agent.whenIdle()
-    await world.ctx.sessions.flush(agent.session)
-    expect(events.filter(event => event.type === 'tool/result' && event.data.message.isError === true)).toEqual([])
-    expect(world.ctx.goals.get(agent)).toMatchObject({ phase: 'complete', revision: 3, roundsStarted: 2 })
-    expect(requests).toBe(expectedRequests)
-    expect(goalRounds(events)).toEqual([1, 2])
-    expect(events.filter(event => event.type === 'turn/end').map(event => event.data.reason.kind))
-      .toEqual(['completed', 'completed'])
-    expect(events.filter(event => event.type === 'request/header').map(event => event.data.reason))
-      .toEqual(['initial', 'series'])
-    expect(events.filter(event => event.type === 'command/run').map(event => event.data.args?.trim()))
-      .toEqual([COMMAND.slice('/goal '.length), 'accept two-turn-output'])
-    expect(events.flatMap(event => event.type === 'user/message' && event.data.source.kind === 'user'
-      ? event.data.content.flatMap(block => block.type === 'text' ? [block.text] : []) : []))
-      .toEqual([COMPLETE])
+    return settled
+  }
+
+  it.skipIf(MODE !== 'record')('records the two-round Goal through the real model', async () => {
+    await launch()
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-goal-multi-turn-actions-record'))
+    const sessionId = await runGoal(360_000)
+    await recordFixture(scaffold!, sessionId, FIXTURE)
+  }, 380_000)
+
+  it.skipIf(MODE === 'record')('keeps actions on both completed Goal turn tails', async () => {
+    const fixtureEvents = parseSessionLog(await readFile(FIXTURE, 'utf8'))
+    expect(createdObjectives(fixtureEvents)).toEqual([PROMPT])
+    expect(goalRounds(fixtureEvents)).toEqual([1, 2])
+
+    await launch()
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-goal-multi-turn-actions'))
+    await runGoal(120_000)
+
+    expect(sessionEvents.flatMap(event => event.type === 'turn/end' ? [event.data.turn] : []))
+      .toEqual([1, 2])
+    expect(goalRounds(sessionEvents)).toEqual([1, 2])
+    expect(sessionEvents.flatMap(event =>
+      event.type === 'request/header' ? [event.data.reason] : [])).toEqual(['initial', 'series'])
     await expect.poll(() => page.locator('[data-turn-process]').count(), { timeout: 15_000 }).toBe(2)
-    expect(await page.getByRole('button', { name: 'System prompt', exact: true }).count()).toBe(0)
-    expect(await page.locator('[data-chat-flow-kind="system-prompt"]').count()).toBe(0)
-    await expect.poll(() => page.locator('[data-turn-tail]').count(), { timeout: 15_000 }).toBe(2)
-    for (const turn of [1, 2]) {
-      const tail = page.locator(`[data-turn-tail="${turn}"]`)
-      for (const name of ['Copy', 'Good response', 'Bad response', 'Branch into a new conversation']) {
-        expect(await tail.getByRole('button', { name, exact: true }).count()).toBe(1)
+    const trigger = page.locator('[data-turn-trigger]').first()
+    const process = page.locator('[data-turn-process]').first()
+    const originalFontSize = await page.evaluate(() => document.body.style.getPropertyValue('--dsh-content-font-size'))
+    await process.click()
+    try {
+      for (const fontSize of [10, 14, 22]) {
+        await scaffold!.ctx.settings.update('ui-theme', { fontSize })
+        await expect.poll(() => page.evaluate(() => document.body.style.getPropertyValue('--dsh-content-font-size')))
+          .toBe(`${String(fontSize)}px`)
+        const group = page.locator('[data-process-activity]:visible').first()
+        const groupFontSize = await group.evaluate(element => getComputedStyle(element).fontSize)
+        expect(groupFontSize).toBe(`${String(fontSize)}px`)
+        expect(await process.evaluate(element => getComputedStyle(element).fontSize)).toBe(groupFontSize)
+        expect(await trigger.getByText('Continuing goal', { exact: true })
+          .evaluate(element => getComputedStyle(element).fontSize)).toBe(groupFontSize)
+        expect(await process.evaluate(element => element.getBoundingClientRect().top))
+          .toBe(await trigger.evaluate(element => element.getBoundingClientRect().bottom) + 16)
+        expect(await group.evaluate(element => element.getBoundingClientRect().top))
+          .toBe(await process.evaluate(element => element.getBoundingClientRect().bottom) + 16)
       }
-      expect(await tail.getByRole('button', { name: 'Branch into a new conversation', exact: true })
-        .getAttribute('aria-disabled')).toBeNull()
+    } finally {
+      await scaffold!.ctx.settings.update('ui-theme', { fontSize: Number.parseFloat(originalFontSize) })
+      await expect.poll(() => page.evaluate(() => document.body.style.getPropertyValue('--dsh-content-font-size')))
+        .toBe(originalFontSize)
+      await process.click()
     }
-    await page.locator('[data-turn-tail="2"]').getByRole('button', { name: 'Branch into a new conversation', exact: true }).focus()
-    // Harvest changed human input before the scaffold matches and validates its canonical Session.
-    if (MODE === 'refresh') await recordFixture(world, sessionId, FIXTURE)
-    await compareOrRefreshGolden(UI_EXPECTED, await captureStableAria(page, '[class*="centerCol"]', world.workspaceCwd), MODE)
-    await compareOrRefreshGolden(UI_EXPANDED_EXPECTED, await captureExpandedTurnProcessAria(
-      page, '[class*="centerCol"]', world.workspaceCwd,
-    ), MODE)
+    expect(await page.getByRole('button', { name: 'System prompt' }).count()).toBe(0)
+    expect(await page.locator(
+      '[data-chat-flow-kind="system-prompt"]',
+    ).count()).toBe(0)
+    const branchButtons = page.getByRole('button', { name: 'Branch into a new conversation' })
+    await expect.poll(() => branchButtons.count(), { timeout: 15_000 }).toBe(2)
+    expect(await branchButtons.evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-disabled'))))
+      .toEqual([null, null])
+    await branchButtons.last().focus()
+    const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold!.workspaceCwd)
+    await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
+    const expanded = await captureExpandedTurnProcessAria(
+      page,
+      '[class*="centerCol"]',
+      scaffold!.workspaceCwd,
+    )
+    await compareOrRefreshGolden(UI_EXPANDED_EXPECTED, expanded, MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-  })
+  }, 140_000)
 
-  it('keeps the historical fixture inventory unchanged', async () => {
+  it.skipIf(MODE === 'record')('keeps a closed fixture inventory', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'replay.override.json', 'session.v3.jsonl', 'ui.expected.md', 'ui-expanded.expected.md',
     ])
