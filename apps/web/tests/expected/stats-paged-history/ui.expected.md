@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": {{workspace}}
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, ~2mo 21d ago"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

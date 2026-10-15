@@ -18,7 +18,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import type { SaveTextSpill, SpillRef } from './types.ts'
 
 export { SpillLocator } from './types.ts'
-export type { SaveTextSpill, SpillOwner, SpillRef, SpillSource } from './types.ts'
+export type { SaveTextSpill, SpillArtifactEventData, SpillOwner, SpillRef, SpillSource } from './types.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -49,8 +49,8 @@ export abstract class SpillStore extends Service {
 
   /**
    * Persist `input.content` to a session-scoped spill artifact.
-   * @param input - the owner, caller-supplied source fields, suggested name, and full text to save.
-   * @returns the saved artifact's {@link SpillRef}; rejects on a storage failure.
+   * @param input - the owner, source, suggested name, full text, and optional cancellation.
+   * @returns the saved artifact's {@link SpillRef}; rejects on storage failure or cancellation.
    */
   abstract saveText(input: SaveTextSpill): Promise<SpillRef>
 }

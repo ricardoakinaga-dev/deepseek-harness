@@ -17,6 +17,7 @@
     "src/file-references.ts",
     "src/history.ts",
     "src/list.ts",
+    "src/activity.ts",
     "src/media-references.ts",
     "src/model-selection-projection.ts",
     "src/archived-session-gate.ts",

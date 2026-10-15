@@ -39,7 +39,7 @@ kind: "package-reference"
 
 插件开关只更新 profile 的 `cordis.patch.yml` 中最后一条匹配覆盖项的 `disabled`；没有匹配项时追加。匹配依据是条目 id，以及覆盖项声明的模块名称。组合包开关修改 `package.json` 的有序 `dsh.profile.bundles` 列表。关闭保留依赖；开启追加到列表末尾，可能改变配置优先级。安装新组合包除非传入 `enabled: true`，否则保持关闭。组合包安装还要求 profile owner 明确允许来源形式，并把 publisher identity 列入 allowlist；缺少或不受信的 identity 会在激活前被拒绝。home 和单次启动 patch 保留更高优先级。
 
-`inspect(spec)` 在任何东西安装之前读出 spec 指向什么：注册表包名通过 `pnpm view` 询问注册表，在 profile 目录中运行，因而与安装使用同样的注册表与代理设置；绝对路径读取其 `package.json`；git 地址或 tarball 只答复自己的形式。profile policy 先拒绝未列入 allowlist 的来源形式，再在有 manifest 的地方把 publisher 与 `allowedPublishers` 核对。答复携带名称、版本、描述以及该包是否声明组合包，否则给出 `problem`：`invalid-spec`、`already-installed`、`not-found`、`not-a-package`、`not-a-bundle`、`network` 或 `unknown`。调用方的 `signal` 或 `inspectTimeoutMs` 会结束查询。
+`inspect(spec)` 在任何东西安装之前读出 spec 指向什么：注册表包名通过 `pnpm view` 询问注册表，在 profile 目录中运行，因而与安装使用同样的注册表与代理设置；绝对路径读取其 `package.json`；git 地址或 tarball 只答复自己的形式。profile policy 先拒绝未列入 allowlist 的来源形式，再按 `dsh.bundle.publisher`、字符串 `author`、npm scope 的顺序取首个非空标识，与 `allowedPublishers` 核对。scope 保留开头的 `@`：`@trusted/bundle` 对应 `@trusted`。答复携带名称、版本、描述以及该包是否声明组合包，否则给出 `problem`：`invalid-spec`、`already-installed`、`not-found`、`not-a-package`、`not-a-bundle`、`network` 或 `unknown`。调用方的 `signal` 或 `inspectTimeoutMs` 会结束查询。
 
 已选择但无法加载的组合包仍会出现在 `listBundles` 中，并携带 `error`；`enabled` 表示保存的选择，不代表加载成功。插件页面显示错误并允许取消选择。损坏的组合包无法启用。管理组合包的文件变得不可读后仍受保护。
 

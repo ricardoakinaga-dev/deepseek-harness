@@ -1126,32 +1126,8 @@
       }
     },
     {
-      "type": "subagent/authority",
-      "seq": 47,
-      "time": 0,
-      "data": {
-        "version": 0,
-        "childId": "{{child-1}}",
-        "sandboxMode": "danger-full-access",
-        "approvalPolicy": "never",
-        "toolFilter": {
-          "allow": [
-            "snapshot_double",
-            "job_output",
-            "job_list",
-            "job_kill",
-            "cordis_inspect_list",
-            "cordis_inspect_query",
-            "subagent",
-            "workflow",
-            "run_code"
-          ]
-        }
-      }
-    },
-    {
       "type": "tool/result",
-      "seq": 48,
+      "seq": 47,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1180,7 +1156,7 @@
     },
     {
       "type": "step/end",
-      "seq": 49,
+      "seq": 48,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1189,7 +1165,7 @@
     },
     {
       "type": "step/start",
-      "seq": 50,
+      "seq": 49,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1198,17 +1174,17 @@
     },
     {
       "type": "session-log-deepseek/delivery-accepted",
-      "seq": 51,
+      "seq": 50,
       "time": 0,
       "data": {
         "sessionId": "{{parent}}",
         "sessionFormatVersion": 4,
-        "throughSeq": 50
+        "throughSeq": 49
       }
     },
     {
       "type": "assistant/message",
-      "seq": 52,
+      "seq": 51,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1332,7 +1308,7 @@
     },
     {
       "type": "tool/call",
-      "seq": 53,
+      "seq": 52,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1344,7 +1320,7 @@
     },
     {
       "type": "tool-workflow/run-start",
-      "seq": 54,
+      "seq": 53,
       "time": 0,
       "data": {
         "runId": "{{workflow-run}}",
@@ -1353,7 +1329,7 @@
     },
     {
       "type": "subagent/catalog",
-      "seq": 55,
+      "seq": 54,
       "time": 0,
       "data": {
         "version": 0,
@@ -1363,32 +1339,8 @@
       }
     },
     {
-      "type": "subagent/authority",
-      "seq": 56,
-      "time": 0,
-      "data": {
-        "version": 0,
-        "childId": "{{child-2}}",
-        "sandboxMode": "danger-full-access",
-        "approvalPolicy": "never",
-        "toolFilter": {
-          "allow": [
-            "snapshot_double",
-            "job_output",
-            "job_list",
-            "job_kill",
-            "cordis_inspect_list",
-            "cordis_inspect_query",
-            "subagent",
-            "workflow",
-            "run_code"
-          ]
-        }
-      }
-    },
-    {
       "type": "tool-workflow/agent-start",
-      "seq": 57,
+      "seq": 55,
       "time": 0,
       "data": {
         "runId": "{{workflow-run}}",
@@ -1400,7 +1352,7 @@
     },
     {
       "type": "tool-workflow/agent-end",
-      "seq": 58,
+      "seq": 56,
       "time": 0,
       "data": {
         "runId": "{{workflow-run}}",
@@ -1410,7 +1362,7 @@
     },
     {
       "type": "tool-workflow/run-end",
-      "seq": 59,
+      "seq": 57,
       "time": 0,
       "data": {
         "runId": "{{workflow-run}}",
@@ -1419,7 +1371,7 @@
     },
     {
       "type": "tool/result",
-      "seq": 60,
+      "seq": 58,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1442,13 +1394,13 @@
         }
       },
       "sourceEventSeqs": [
-        53
+        52
       ],
       "surfaceOp": "append"
     },
     {
       "type": "step/end",
-      "seq": 61,
+      "seq": 59,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1457,7 +1409,7 @@
     },
     {
       "type": "step/start",
-      "seq": 62,
+      "seq": 60,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1466,17 +1418,17 @@
     },
     {
       "type": "session-log-deepseek/delivery-accepted",
-      "seq": 63,
+      "seq": 61,
       "time": 0,
       "data": {
         "sessionId": "{{parent}}",
         "sessionFormatVersion": 4,
-        "throughSeq": 62
+        "throughSeq": 60
       }
     },
     {
       "type": "assistant/message",
-      "seq": 64,
+      "seq": 62,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1584,7 +1536,7 @@
     },
     {
       "type": "step/end",
-      "seq": 65,
+      "seq": 63,
       "time": 0,
       "data": {
         "turn": 1,
@@ -1593,7 +1545,7 @@
     },
     {
       "type": "command/run",
-      "seq": 66,
+      "seq": 64,
       "time": 0,
       "data": {
         "commandId": "{{command:1}}",
@@ -1605,7 +1557,7 @@
     },
     {
       "type": "feedback/record",
-      "seq": 67,
+      "seq": 65,
       "time": 0,
       "data": {
         "text": "The session needs a clearer explanation."
@@ -1613,7 +1565,7 @@
     },
     {
       "type": "command/done",
-      "seq": 68,
+      "seq": 66,
       "time": 0,
       "data": {
         "commandId": "{{command:1}}",
@@ -1623,7 +1575,7 @@
     },
     {
       "type": "feedback/record",
-      "seq": 69,
+      "seq": 67,
       "time": 0,
       "data": {
         "category": "other"
@@ -1631,7 +1583,7 @@
     },
     {
       "type": "feedback/message-put",
-      "seq": 70,
+      "seq": 68,
       "time": 0,
       "data": {
         "sessionId": "{{parent}}",
@@ -1648,7 +1600,7 @@
     },
     {
       "type": "feedback/message-put",
-      "seq": 71,
+      "seq": 69,
       "time": 0,
       "data": {
         "sessionId": "{{parent}}",
@@ -1664,7 +1616,7 @@
     },
     {
       "type": "feedback/message-delete",
-      "seq": 72,
+      "seq": 70,
       "time": 0,
       "data": {
         "sessionId": "{{parent}}",
@@ -1673,7 +1625,7 @@
     },
     {
       "type": "turn/end",
-      "seq": 73,
+      "seq": 71,
       "time": 0,
       "data": {
         "turn": 1,
@@ -3060,8 +3012,579 @@
       "payload": {
         "sessionId": "{{child-1}}",
         "event": {
-          "type": "agent/inbox/spliced",
+          "type": "runtime/audit",
           "seq": 3,
+          "time": 0,
+          "data": {
+            "reason": "initial",
+            "runtime": {
+              "version": "0.2.0-rc.1",
+              "versionSource": "embedded-build-observation",
+              "nodeVersion": "{{runtime.nodeVersion}}",
+              "platform": "{{runtime.platform}}",
+              "arch": "{{runtime.arch}}",
+              "launcher": {
+                "kind": "artifact",
+                "sha256": "{{runtime.launcher.sha256}}",
+                "sha256Source": "disk-observation"
+              },
+              "source": null,
+              "build": {
+                "version": "0.2.0-rc.1",
+                "inputsSource": "disk-observation",
+                "manifestSha256": "{{runtime.build.manifestSha256}}",
+                "inputsSha256": "{{runtime.build.inputsSha256}}",
+                "inputCount": 14,
+                "source": {
+                  "revision": "{{runtime.revision}}",
+                  "dirty": false,
+                  "contentSha256": "{{runtime.contentSha256}}"
+                }
+              }
+            },
+            "profile": "sdk",
+            "startedBundles": [
+              "@deepseek-ai/dsh-base",
+              "@deepseek-ai/dsh-sdk-app"
+            ],
+            "configuration": [
+              {
+                "id": "include:llm-pi-ai",
+                "plugin": "@deepseek-ai/dsh-llm-pi-ai",
+                "values": {
+                  "providers": {}
+                }
+              }
+            ],
+            "plugins": [
+              {
+                "id": "include",
+                "plugin": "cordis:include",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:agent",
+                "plugin": "@deepseek-ai/dsh-agent",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:agent-default-model",
+                "plugin": "@deepseek-ai/dsh-agent-default-model",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:agent-loop",
+                "plugin": "@deepseek-ai/dsh-agent-loop",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:approval",
+                "plugin": "@deepseek-ai/dsh-user-approval",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:attachment-local",
+                "plugin": "@deepseek-ai/dsh-attachment-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:authorization",
+                "plugin": "@deepseek-ai/dsh-authorization",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:bash-sandbox",
+                "plugin": "@deepseek-ai/dsh-bash-sandbox",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:command-compact",
+                "plugin": "@deepseek-ai/dsh-command-compact",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:command-feedback",
+                "plugin": "@deepseek-ai/dsh-command-feedback",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:commands",
+                "plugin": "@deepseek-ai/dsh-commands",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:compaction-basic",
+                "plugin": "@deepseek-ai/dsh-compaction-basic",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:config-editor",
+                "plugin": "@deepseek-ai/dsh-config-editor",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:cordis-host-runner",
+                "plugin": "@deepseek-ai/dsh-cordis-host-runner",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:cordis-tool",
+                "plugin": "@deepseek-ai/dsh-tool-cordis",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:credentials",
+                "plugin": "@deepseek-ai/dsh-credentials-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:deepseek-account",
+                "plugin": "@deepseek-ai/dsh-deepseek-account-platform",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:deepseek-llm-api-extensions",
+                "plugin": "@deepseek-ai/dsh-deepseek-llm-api-extensions",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:fs-observation-policy",
+                "plugin": "@deepseek-ai/dsh-fs-observation-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:fs-sandbox",
+                "plugin": "@deepseek-ai/dsh-fs-sandbox",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:image-offload",
+                "plugin": "@deepseek-ai/dsh-compaction-image-offload",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:jobs",
+                "plugin": "@deepseek-ai/dsh-jobs-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm",
+                "plugin": "@deepseek-ai/dsh-llm",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm-deepseek",
+                "plugin": "@deepseek-ai/dsh-llm-deepseek-api-key",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm-deepseek-account",
+                "plugin": "@deepseek-ai/dsh-llm-deepseek-account",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm-pi-ai",
+                "plugin": "@deepseek-ai/dsh-llm-pi-ai",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm-retry",
+                "plugin": "@deepseek-ai/dsh-llm-retry",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:mcp-resources",
+                "plugin": "@deepseek-ai/dsh-mcp-resources",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:otel",
+                "plugin": "@deepseek-ai/dsh-otel",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:permission",
+                "plugin": "@deepseek-ai/dsh-permission-presets",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:plugin-manager",
+                "plugin": "@deepseek-ai/dsh-plugin-manager",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:plugin-package-inventory-deepseek",
+                "plugin": "@deepseek-ai/dsh-plugin-package-inventory-deepseek",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:ptc-runtime",
+                "plugin": "@deepseek-ai/dsh-ptc-runtime-node",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:repeat-tool-reminder",
+                "plugin": "@deepseek-ai/dsh-repeat-tool-reminder",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:sandbox",
+                "plugin": "@deepseek-ai/dsh-sandbox-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:sandbox-policy",
+                "plugin": "@deepseek-ai/dsh-sandbox-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:sdk-app-startup",
+                "plugin": "@deepseek-ai/dsh-sdk-app",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:sdk-jsonrpc-server",
+                "plugin": "@deepseek-ai/dsh-sdk-jsonrpc-server",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:serial-created-fixture",
+                "plugin": "file://{{repo}}/packages/core/agent-loop/tests/fixtures/serial-created.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session",
+                "plugin": "@deepseek-ai/dsh-session",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-checkpoint-policy",
+                "plugin": "@deepseek-ai/dsh-session-checkpoint-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-log-deepseek",
+                "plugin": "@deepseek-ai/dsh-session-log-deepseek",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-persistence-jsonl",
+                "plugin": "@deepseek-ai/dsh-session-persistence-jsonl",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-projection",
+                "plugin": "@deepseek-ai/dsh-session-projection",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-projection-cache",
+                "plugin": "@deepseek-ai/dsh-session-projection-cache",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-query-sqlite",
+                "plugin": "@deepseek-ai/dsh-session-query-sqlite",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-title",
+                "plugin": "@deepseek-ai/dsh-session-title",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:settings",
+                "plugin": "@deepseek-ai/dsh-settings",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:shell-env",
+                "plugin": "@deepseek-ai/dsh-shell-env",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-feedback-producer",
+                "plugin": "file://{{repo}}/snapshots/sdk/text-turn/feedback-producer.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-image-offload",
+                "plugin": "file://{{repo}}/scripts/fixtures/python-snapshot-image-offload.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-message-feedback",
+                "plugin": "@deepseek-ai/dsh-message-feedback",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-tool",
+                "plugin": "file://{{repo}}/scripts/fixtures/python-snapshot-tool.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-workflow-order",
+                "plugin": "file://{{repo}}/scripts/fixtures/python-snapshot-workflow-order.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:spill-local",
+                "plugin": "@deepseek-ai/dsh-spill-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:spill-policy",
+                "plugin": "@deepseek-ai/dsh-spill-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:storage",
+                "plugin": "@deepseek-ai/dsh-storage",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:storage-domain",
+                "plugin": "@deepseek-ai/dsh-storage-domain",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:storage-json",
+                "plugin": "@deepseek-ai/dsh-storage-json",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:subagent",
+                "plugin": "@deepseek-ai/dsh-subagent",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:subagent-fork-in-process",
+                "plugin": "@deepseek-ai/dsh-subagent-fork-in-process",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:subagent-spawn-in-process",
+                "plugin": "@deepseek-ai/dsh-subagent-spawn-in-process",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:subprocess",
+                "plugin": "@deepseek-ai/dsh-subprocess-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:system-prompt",
+                "plugin": "@deepseek-ai/dsh-system-prompt",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:timeout-policy",
+                "plugin": "@deepseek-ai/dsh-tool-call-timeout-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:timer",
+                "plugin": "@deepseek-ai/cordis-plugin-timer",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:token-meter",
+                "plugin": "@deepseek-ai/dsh-token-meter",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tool-jobs",
+                "plugin": "@deepseek-ai/dsh-tool-jobs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tool-result-pruner",
+                "plugin": "@deepseek-ai/dsh-compaction-tool-result-pruner",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tool-subagent",
+                "plugin": "@deepseek-ai/dsh-tool-subagent",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tool-workflow",
+                "plugin": "@deepseek-ai/dsh-tool-workflow",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tools",
+                "plugin": "@deepseek-ai/dsh-tools",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:typert",
+                "plugin": "@deepseek-ai/dsh-typert-registry",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:typert-gateway",
+                "plugin": "@deepseek-ai/dsh-api-gateway",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:typert-loader",
+                "plugin": "@deepseek-ai/dsh-typert-loader",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:user-questions",
+                "plugin": "@deepseek-ai/dsh-user-questions",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:web",
+                "plugin": "@deepseek-ai/dsh-web",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:web-fetch-http",
+                "plugin": "@deepseek-ai/dsh-web-fetch-http",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:web-search-deepseek",
+                "plugin": "@deepseek-ai/dsh-web-search-deepseek",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:workflow-ptc",
+                "plugin": "@deepseek-ai/dsh-workflow-ptc",
+                "moduleSha256": null,
+                "package": null
+              }
+            ],
+            "providerRetryPolicies": [
+              {
+                "provider": "deepseek-account",
+                "policy": {
+                  "mode": "normal",
+                  "maxRetries": 5,
+                  "retryableCodes": [
+                    "EMPTY_RESPONSE",
+                    "RATE_LIMIT",
+                    "SERVER",
+                    "TIMEOUT",
+                    "TRANSPORT"
+                  ],
+                  "initialDelayMs": 500,
+                  "maxDelayMs": 10000,
+                  "jitterRatio": 0.1
+                }
+              },
+              {
+                "provider": "deepseek-official",
+                "policy": {
+                  "mode": "normal",
+                  "maxRetries": 5,
+                  "retryableCodes": [
+                    "EMPTY_RESPONSE",
+                    "RATE_LIMIT",
+                    "SERVER",
+                    "TIMEOUT",
+                    "TRANSPORT"
+                  ],
+                  "initialDelayMs": 500,
+                  "maxDelayMs": 10000,
+                  "jitterRatio": 0.1
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "session.event",
+      "payload": {
+        "sessionId": "{{child-1}}",
+        "event": {
+          "type": "agent/inbox/spliced",
+          "seq": 4,
           "time": 0,
           "data": {
             "target": "next-step",
@@ -3078,54 +3601,6 @@
                 ],
                 "source": {
                   "kind": "plugin:serial-created-fixture"
-                }
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "method": "session.event",
-      "payload": {
-        "sessionId": "{{child-1}}",
-        "event": {
-          "type": "runtime/audit",
-          "seq": 4,
-          "time": 0,
-          "data": {
-            "reason": "initial",
-            "runtime": {
-              "version": "{{runtime:version:1}}",
-              "nodeVersion": "{{runtime:nodeVersion:1}}",
-              "platform": "{{runtime:platform:1}}",
-              "arch": "{{runtime:arch:1}}",
-              "launcher": {
-                "kind": "artifact",
-                "sha256": "{{runtime:launcherSha256:1}}"
-              },
-              "source": null
-            },
-            "profile": "sdk",
-            "startedBundles": [
-              "@deepseek-ai/dsh-base",
-              "@deepseek-ai/dsh-sdk-app"
-            ],
-            "configuration": [
-              {
-                "id": "include:llm-pi-ai",
-                "plugin": "@deepseek-ai/dsh-llm-pi-ai",
-                "values": {
-                  "providers": {}
-                }
-              },
-              {
-                "id": "include:tool-result-pruner",
-                "plugin": "@deepseek-ai/dsh-compaction-tool-result-pruner",
-                "values": {
-                  "exemptTools": [
-                    "skill"
-                  ]
                 }
               }
             ]
@@ -3232,36 +3707,6 @@
             "childCreatedAt": 0,
             "mode": "one-shot",
             "label": "Check direct child"
-          }
-        }
-      }
-    },
-    {
-      "method": "session.event",
-      "payload": {
-        "sessionId": "{{parent}}",
-        "event": {
-          "type": "subagent/authority",
-          "seq": 47,
-          "time": 0,
-          "data": {
-            "version": 0,
-            "childId": "{{child-1}}",
-            "sandboxMode": "danger-full-access",
-            "approvalPolicy": "never",
-            "toolFilter": {
-              "allow": [
-                "snapshot_double",
-                "job_output",
-                "job_list",
-                "job_kill",
-                "cordis_inspect_list",
-                "cordis_inspect_query",
-                "subagent",
-                "workflow",
-                "run_code"
-              ]
-            }
           }
         }
       }
@@ -3681,7 +4126,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "tool/result",
-          "seq": 48,
+          "seq": 47,
           "time": 0,
           "data": {
             "turn": 1,
@@ -3716,7 +4161,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "step/end",
-          "seq": 49,
+          "seq": 48,
           "time": 0,
           "data": {
             "turn": 1,
@@ -3731,7 +4176,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "step/start",
-          "seq": 50,
+          "seq": 49,
           "time": 0,
           "data": {
             "turn": 1,
@@ -3746,12 +4191,12 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "session-log-deepseek/delivery-accepted",
-          "seq": 51,
+          "seq": 50,
           "time": 0,
           "data": {
             "sessionId": "{{parent}}",
             "sessionFormatVersion": 4,
-            "throughSeq": 50
+            "throughSeq": 49
           }
         }
       }
@@ -3762,7 +4207,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "assistant/message",
-          "seq": 52,
+          "seq": 51,
           "time": 0,
           "data": {
             "turn": 1,
@@ -3892,7 +4337,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "tool/call",
-          "seq": 53,
+          "seq": 52,
           "time": 0,
           "data": {
             "turn": 1,
@@ -3910,7 +4355,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "tool-workflow/run-start",
-          "seq": 54,
+          "seq": 53,
           "time": 0,
           "data": {
             "runId": "{{workflow-run}}",
@@ -3931,8 +4376,579 @@
       "payload": {
         "sessionId": "{{child-2}}",
         "event": {
-          "type": "agent/inbox/spliced",
+          "type": "runtime/audit",
           "seq": 3,
+          "time": 0,
+          "data": {
+            "reason": "initial",
+            "runtime": {
+              "version": "0.2.0-rc.1",
+              "versionSource": "embedded-build-observation",
+              "nodeVersion": "{{runtime.nodeVersion}}",
+              "platform": "{{runtime.platform}}",
+              "arch": "{{runtime.arch}}",
+              "launcher": {
+                "kind": "artifact",
+                "sha256": "{{runtime.launcher.sha256}}",
+                "sha256Source": "disk-observation"
+              },
+              "source": null,
+              "build": {
+                "version": "0.2.0-rc.1",
+                "inputsSource": "disk-observation",
+                "manifestSha256": "{{runtime.build.manifestSha256}}",
+                "inputsSha256": "{{runtime.build.inputsSha256}}",
+                "inputCount": 14,
+                "source": {
+                  "revision": "{{runtime.revision}}",
+                  "dirty": false,
+                  "contentSha256": "{{runtime.contentSha256}}"
+                }
+              }
+            },
+            "profile": "sdk",
+            "startedBundles": [
+              "@deepseek-ai/dsh-base",
+              "@deepseek-ai/dsh-sdk-app"
+            ],
+            "configuration": [
+              {
+                "id": "include:llm-pi-ai",
+                "plugin": "@deepseek-ai/dsh-llm-pi-ai",
+                "values": {
+                  "providers": {}
+                }
+              }
+            ],
+            "plugins": [
+              {
+                "id": "include",
+                "plugin": "cordis:include",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:agent",
+                "plugin": "@deepseek-ai/dsh-agent",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:agent-default-model",
+                "plugin": "@deepseek-ai/dsh-agent-default-model",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:agent-loop",
+                "plugin": "@deepseek-ai/dsh-agent-loop",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:approval",
+                "plugin": "@deepseek-ai/dsh-user-approval",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:attachment-local",
+                "plugin": "@deepseek-ai/dsh-attachment-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:authorization",
+                "plugin": "@deepseek-ai/dsh-authorization",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:bash-sandbox",
+                "plugin": "@deepseek-ai/dsh-bash-sandbox",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:command-compact",
+                "plugin": "@deepseek-ai/dsh-command-compact",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:command-feedback",
+                "plugin": "@deepseek-ai/dsh-command-feedback",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:commands",
+                "plugin": "@deepseek-ai/dsh-commands",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:compaction-basic",
+                "plugin": "@deepseek-ai/dsh-compaction-basic",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:config-editor",
+                "plugin": "@deepseek-ai/dsh-config-editor",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:cordis-host-runner",
+                "plugin": "@deepseek-ai/dsh-cordis-host-runner",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:cordis-tool",
+                "plugin": "@deepseek-ai/dsh-tool-cordis",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:credentials",
+                "plugin": "@deepseek-ai/dsh-credentials-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:deepseek-account",
+                "plugin": "@deepseek-ai/dsh-deepseek-account-platform",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:deepseek-llm-api-extensions",
+                "plugin": "@deepseek-ai/dsh-deepseek-llm-api-extensions",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:fs-observation-policy",
+                "plugin": "@deepseek-ai/dsh-fs-observation-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:fs-sandbox",
+                "plugin": "@deepseek-ai/dsh-fs-sandbox",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:image-offload",
+                "plugin": "@deepseek-ai/dsh-compaction-image-offload",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:jobs",
+                "plugin": "@deepseek-ai/dsh-jobs-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm",
+                "plugin": "@deepseek-ai/dsh-llm",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm-deepseek",
+                "plugin": "@deepseek-ai/dsh-llm-deepseek-api-key",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm-deepseek-account",
+                "plugin": "@deepseek-ai/dsh-llm-deepseek-account",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm-pi-ai",
+                "plugin": "@deepseek-ai/dsh-llm-pi-ai",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:llm-retry",
+                "plugin": "@deepseek-ai/dsh-llm-retry",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:mcp-resources",
+                "plugin": "@deepseek-ai/dsh-mcp-resources",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:otel",
+                "plugin": "@deepseek-ai/dsh-otel",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:permission",
+                "plugin": "@deepseek-ai/dsh-permission-presets",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:plugin-manager",
+                "plugin": "@deepseek-ai/dsh-plugin-manager",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:plugin-package-inventory-deepseek",
+                "plugin": "@deepseek-ai/dsh-plugin-package-inventory-deepseek",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:ptc-runtime",
+                "plugin": "@deepseek-ai/dsh-ptc-runtime-node",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:repeat-tool-reminder",
+                "plugin": "@deepseek-ai/dsh-repeat-tool-reminder",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:sandbox",
+                "plugin": "@deepseek-ai/dsh-sandbox-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:sandbox-policy",
+                "plugin": "@deepseek-ai/dsh-sandbox-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:sdk-app-startup",
+                "plugin": "@deepseek-ai/dsh-sdk-app",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:sdk-jsonrpc-server",
+                "plugin": "@deepseek-ai/dsh-sdk-jsonrpc-server",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:serial-created-fixture",
+                "plugin": "file://{{repo}}/packages/core/agent-loop/tests/fixtures/serial-created.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session",
+                "plugin": "@deepseek-ai/dsh-session",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-checkpoint-policy",
+                "plugin": "@deepseek-ai/dsh-session-checkpoint-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-log-deepseek",
+                "plugin": "@deepseek-ai/dsh-session-log-deepseek",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-persistence-jsonl",
+                "plugin": "@deepseek-ai/dsh-session-persistence-jsonl",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-projection",
+                "plugin": "@deepseek-ai/dsh-session-projection",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-projection-cache",
+                "plugin": "@deepseek-ai/dsh-session-projection-cache",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-query-sqlite",
+                "plugin": "@deepseek-ai/dsh-session-query-sqlite",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:session-title",
+                "plugin": "@deepseek-ai/dsh-session-title",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:settings",
+                "plugin": "@deepseek-ai/dsh-settings",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:shell-env",
+                "plugin": "@deepseek-ai/dsh-shell-env",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-feedback-producer",
+                "plugin": "file://{{repo}}/snapshots/sdk/text-turn/feedback-producer.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-image-offload",
+                "plugin": "file://{{repo}}/scripts/fixtures/python-snapshot-image-offload.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-message-feedback",
+                "plugin": "@deepseek-ai/dsh-message-feedback",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-tool",
+                "plugin": "file://{{repo}}/scripts/fixtures/python-snapshot-tool.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:snapshot-workflow-order",
+                "plugin": "file://{{repo}}/scripts/fixtures/python-snapshot-workflow-order.mjs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:spill-local",
+                "plugin": "@deepseek-ai/dsh-spill-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:spill-policy",
+                "plugin": "@deepseek-ai/dsh-spill-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:storage",
+                "plugin": "@deepseek-ai/dsh-storage",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:storage-domain",
+                "plugin": "@deepseek-ai/dsh-storage-domain",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:storage-json",
+                "plugin": "@deepseek-ai/dsh-storage-json",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:subagent",
+                "plugin": "@deepseek-ai/dsh-subagent",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:subagent-fork-in-process",
+                "plugin": "@deepseek-ai/dsh-subagent-fork-in-process",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:subagent-spawn-in-process",
+                "plugin": "@deepseek-ai/dsh-subagent-spawn-in-process",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:subprocess",
+                "plugin": "@deepseek-ai/dsh-subprocess-local",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:system-prompt",
+                "plugin": "@deepseek-ai/dsh-system-prompt",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:timeout-policy",
+                "plugin": "@deepseek-ai/dsh-tool-call-timeout-policy",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:timer",
+                "plugin": "@deepseek-ai/cordis-plugin-timer",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:token-meter",
+                "plugin": "@deepseek-ai/dsh-token-meter",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tool-jobs",
+                "plugin": "@deepseek-ai/dsh-tool-jobs",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tool-result-pruner",
+                "plugin": "@deepseek-ai/dsh-compaction-tool-result-pruner",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tool-subagent",
+                "plugin": "@deepseek-ai/dsh-tool-subagent",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tool-workflow",
+                "plugin": "@deepseek-ai/dsh-tool-workflow",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:tools",
+                "plugin": "@deepseek-ai/dsh-tools",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:typert",
+                "plugin": "@deepseek-ai/dsh-typert-registry",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:typert-gateway",
+                "plugin": "@deepseek-ai/dsh-api-gateway",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:typert-loader",
+                "plugin": "@deepseek-ai/dsh-typert-loader",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:user-questions",
+                "plugin": "@deepseek-ai/dsh-user-questions",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:web",
+                "plugin": "@deepseek-ai/dsh-web",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:web-fetch-http",
+                "plugin": "@deepseek-ai/dsh-web-fetch-http",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:web-search-deepseek",
+                "plugin": "@deepseek-ai/dsh-web-search-deepseek",
+                "moduleSha256": null,
+                "package": null
+              },
+              {
+                "id": "include:workflow-ptc",
+                "plugin": "@deepseek-ai/dsh-workflow-ptc",
+                "moduleSha256": null,
+                "package": null
+              }
+            ],
+            "providerRetryPolicies": [
+              {
+                "provider": "deepseek-account",
+                "policy": {
+                  "mode": "normal",
+                  "maxRetries": 5,
+                  "retryableCodes": [
+                    "EMPTY_RESPONSE",
+                    "RATE_LIMIT",
+                    "SERVER",
+                    "TIMEOUT",
+                    "TRANSPORT"
+                  ],
+                  "initialDelayMs": 500,
+                  "maxDelayMs": 10000,
+                  "jitterRatio": 0.1
+                }
+              },
+              {
+                "provider": "deepseek-official",
+                "policy": {
+                  "mode": "normal",
+                  "maxRetries": 5,
+                  "retryableCodes": [
+                    "EMPTY_RESPONSE",
+                    "RATE_LIMIT",
+                    "SERVER",
+                    "TIMEOUT",
+                    "TRANSPORT"
+                  ],
+                  "initialDelayMs": 500,
+                  "maxDelayMs": 10000,
+                  "jitterRatio": 0.1
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "session.event",
+      "payload": {
+        "sessionId": "{{child-2}}",
+        "event": {
+          "type": "agent/inbox/spliced",
+          "seq": 4,
           "time": 0,
           "data": {
             "target": "next-step",
@@ -3949,54 +4965,6 @@
                 ],
                 "source": {
                   "kind": "plugin:serial-created-fixture"
-                }
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "method": "session.event",
-      "payload": {
-        "sessionId": "{{child-2}}",
-        "event": {
-          "type": "runtime/audit",
-          "seq": 4,
-          "time": 0,
-          "data": {
-            "reason": "initial",
-            "runtime": {
-              "version": "{{runtime:version:1}}",
-              "nodeVersion": "{{runtime:nodeVersion:1}}",
-              "platform": "{{runtime:platform:1}}",
-              "arch": "{{runtime:arch:1}}",
-              "launcher": {
-                "kind": "artifact",
-                "sha256": "{{runtime:launcherSha256:1}}"
-              },
-              "source": null
-            },
-            "profile": "sdk",
-            "startedBundles": [
-              "@deepseek-ai/dsh-base",
-              "@deepseek-ai/dsh-sdk-app"
-            ],
-            "configuration": [
-              {
-                "id": "include:llm-pi-ai",
-                "plugin": "@deepseek-ai/dsh-llm-pi-ai",
-                "values": {
-                  "providers": {}
-                }
-              },
-              {
-                "id": "include:tool-result-pruner",
-                "plugin": "@deepseek-ai/dsh-compaction-tool-result-pruner",
-                "values": {
-                  "exemptTools": [
-                    "skill"
-                  ]
                 }
               }
             ]
@@ -4095,7 +5063,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "subagent/catalog",
-          "seq": 55,
+          "seq": 54,
           "time": 0,
           "data": {
             "version": 0,
@@ -4111,38 +5079,8 @@
       "payload": {
         "sessionId": "{{parent}}",
         "event": {
-          "type": "subagent/authority",
-          "seq": 56,
-          "time": 0,
-          "data": {
-            "version": 0,
-            "childId": "{{child-2}}",
-            "sandboxMode": "danger-full-access",
-            "approvalPolicy": "never",
-            "toolFilter": {
-              "allow": [
-                "snapshot_double",
-                "job_output",
-                "job_list",
-                "job_kill",
-                "cordis_inspect_list",
-                "cordis_inspect_query",
-                "subagent",
-                "workflow",
-                "run_code"
-              ]
-            }
-          }
-        }
-      }
-    },
-    {
-      "method": "session.event",
-      "payload": {
-        "sessionId": "{{parent}}",
-        "event": {
           "type": "tool-workflow/agent-start",
-          "seq": 57,
+          "seq": 55,
           "time": 0,
           "data": {
             "runId": "{{workflow-run}}",
@@ -4568,7 +5506,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "tool-workflow/agent-end",
-          "seq": 58,
+          "seq": 56,
           "time": 0,
           "data": {
             "runId": "{{workflow-run}}",
@@ -4584,7 +5522,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "tool-workflow/run-end",
-          "seq": 59,
+          "seq": 57,
           "time": 0,
           "data": {
             "runId": "{{workflow-run}}",
@@ -4599,7 +5537,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "tool/result",
-          "seq": 60,
+          "seq": 58,
           "time": 0,
           "data": {
             "turn": 1,
@@ -4622,7 +5560,7 @@
             }
           },
           "sourceEventSeqs": [
-            53
+            52
           ],
           "surfaceOp": "append"
         }
@@ -4634,7 +5572,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "step/end",
-          "seq": 61,
+          "seq": 59,
           "time": 0,
           "data": {
             "turn": 1,
@@ -4649,7 +5587,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "step/start",
-          "seq": 62,
+          "seq": 60,
           "time": 0,
           "data": {
             "turn": 1,
@@ -4664,12 +5602,12 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "session-log-deepseek/delivery-accepted",
-          "seq": 63,
+          "seq": 61,
           "time": 0,
           "data": {
             "sessionId": "{{parent}}",
             "sessionFormatVersion": 4,
-            "throughSeq": 62
+            "throughSeq": 60
           }
         }
       }
@@ -4680,7 +5618,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "assistant/message",
-          "seq": 64,
+          "seq": 62,
           "time": 0,
           "data": {
             "turn": 1,
@@ -4794,7 +5732,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "step/end",
-          "seq": 65,
+          "seq": 63,
           "time": 0,
           "data": {
             "turn": 1,
@@ -4809,7 +5747,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "command/run",
-          "seq": 66,
+          "seq": 64,
           "time": 0,
           "data": {
             "commandId": "{{command:1}}",
@@ -4827,7 +5765,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "feedback/record",
-          "seq": 67,
+          "seq": 65,
           "time": 0,
           "data": {
             "text": "The session needs a clearer explanation."
@@ -4841,7 +5779,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "command/done",
-          "seq": 68,
+          "seq": 66,
           "time": 0,
           "data": {
             "commandId": "{{command:1}}",
@@ -4857,7 +5795,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "feedback/record",
-          "seq": 69,
+          "seq": 67,
           "time": 0,
           "data": {
             "category": "other"
@@ -4871,7 +5809,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "feedback/message-put",
-          "seq": 70,
+          "seq": 68,
           "time": 0,
           "data": {
             "sessionId": "{{parent}}",
@@ -4894,7 +5832,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "feedback/message-put",
-          "seq": 71,
+          "seq": 69,
           "time": 0,
           "data": {
             "sessionId": "{{parent}}",
@@ -4916,7 +5854,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "feedback/message-delete",
-          "seq": 72,
+          "seq": 70,
           "time": 0,
           "data": {
             "sessionId": "{{parent}}",
@@ -4931,7 +5869,7 @@
         "sessionId": "{{parent}}",
         "event": {
           "type": "turn/end",
-          "seq": 73,
+          "seq": 71,
           "time": 0,
           "data": {
             "turn": 1,

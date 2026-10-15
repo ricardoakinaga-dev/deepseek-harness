@@ -606,31 +606,6 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
-    key: 'codexLoginController',
-    summary: 'Remote service installed only by the optional Codex login bundle.',
-    description: 'Remote service installed only by the optional Codex login bundle.',
-    methods: [
-      {
-        signature: '@Remote async status(): Promise<CodexLoginStatus>',
-        description: 'Report whether Codex OAuth is installed and its grant is stored.',
-        parameters: [],
-        returns: 'availability, grant presence, writability, and attempt state.',
-      },
-      {
-        signature: '@Remote({ mode: \'stream\' }) login(signal: AbortSignal): RemoteStream<CodexLoginFrame, CodexLoginReply>',
-        description: 'Start the installed Codex OAuth flow on this browser\'s private stream.',
-        parameters: [{ name: 'signal', description: 'carrier lifetime; closing the page withdraws the attempt.' }],
-        returns: 'progress, prompts, and settlement for the initiating browser.',
-      },
-      {
-        signature: '@Remote async signOut(): Promise<void>',
-        description: 'Remove the stored Codex grant while preserving any API-key record.',
-        parameters: [],
-        returns: 'after the credential store acknowledges removal.',
-      },
-    ],
-  },
-  {
     key: 'commands',
     summary: 'Human-command registry.',
     description: 'Human-command registry. Plain-context definitions are global; definitions registered through a command-injected child of an agent context shadow globals for that agent.',
@@ -1865,12 +1840,6 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Abstract process-sandbox service. confine must return enforcing argv or fail closed at wrap or runner-execution time; silent unconfined passthrough is forbidden. Functional probes arbitrate multi-runner chains and may be skipped for a sole candidate, whose own refusal remains the fail-closed end.',
     methods: [
       {
-        signature: 'describe(policy: SandboxPolicy): SandboxExecutionEnvironment | undefined',
-        description: 'Describe the runner selected for a policy without launching a user command. Providers may perform bounded selection probes. Absence makes no claim about execution-world semantics.',
-        parameters: [{ name: 'policy', description: 'fully resolved confined policy.' }],
-        returns: 'provider facts, or undefined when the provider offers no descriptor.',
-      },
-      {
         signature: 'abstract confine(argv: readonly string[], policy: SandboxPolicy, signal?: AbortSignal): Promise<ConfinedArgv>',
         description: 'Wrap `argv` so it executes confined under `policy` on this host; the caller spawns the returned argv in place of its own.',
         parameters: [{ name: 'argv', description: 'the exact argv the caller is about to spawn (program plus arguments), NOT a shell string — a shell-shaped consumer passes `[\'bash\', \'-c\', command]`.' }, { name: 'policy', description: 'the file-effect policy this execution runs under, carried per call (see {@link SandboxPolicy}).' }, { name: 'signal', description: 'cancellation while the provider resolves the policy and runner.' }],
@@ -2826,8 +2795,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'abstract saveText(input: SaveTextSpill): Promise<SpillRef>',
         description: 'Persist `input.content` to a session-scoped spill artifact.',
-        parameters: [{ name: 'input', description: 'the owner, caller-supplied source fields, suggested name, and full text to save.' }],
-        returns: 'the saved artifact\'s {@link SpillRef}; rejects on a storage failure.',
+        parameters: [{ name: 'input', description: 'the owner, source, suggested name, full text, and optional cancellation.' }],
+        returns: 'the saved artifact\'s {@link SpillRef}; rejects on storage failure or cancellation.',
       },
     ],
   },
@@ -3315,7 +3284,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'pruneSession(session: Session): PruneResult',
-        description: 'Prune every over-budget tool result from one stable current-surface snapshot, except results whose surface tool call names a configured `exemptTools` entry. Each replacement preserves the complete event data except for `content`, cites the shadowed node so replay can recover the replacement input, and is immediately preceded by a `compaction/prune` shadow-price event pricing the shadowed node through the injected token meter, so pure consumers can subtract it without per-node state.',
+        description: 'Prune every over-budget tool result from one stable current-surface snapshot. Each replacement preserves the complete event data except for `content`, cites the shadowed node so replay can recover the replacement input, and is immediately preceded by a `compaction/prune` shadow-price event pricing the shadowed node through the injected token meter, so pure consumers can subtract it without per-node state.',
         parameters: [{ name: 'session', description: 'session whose current surface is rewritten.' }],
         returns: 'landed replacements and aggregate Unicode-code-point savings.',
         throws: ['when the session rejects a replacement; replacements committed earlier in the pass remain durable.'],
@@ -3953,6 +3922,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [],
   },
   {
+    name: 'app-boot/config-settled',
+    mode: 'emit',
+    signature: '\'app-boot/config-settled\'(): void',
+    summary: 'A profile patch application attempt and its Loader lifecycle work settled, including removed fibers.',
+    description: 'A profile patch application attempt and its Loader lifecycle work settled, including removed fibers. Activation may have failed after siblings changed; listeners re-read actual active entries.',
+    parameters: [],
+  },
+  {
     name: 'approval/request',
     mode: 'waterfall',
     signature: '\'approval/request\'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>, ): Promise<ApprovalOutcome>',
@@ -4143,6 +4120,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'A watched file has no module or configuration handler.',
     description: 'A watched file has no module or configuration handler.',
     parameters: [{ name: 'url', description: 'Canonical file URL.' }],
+  },
+  {
+    name: 'hmr/config-settled',
+    mode: 'emit',
+    signature: '\'hmr/config-settled\'(filenames: readonly string[]): void',
+    summary: 'Watched Include or module attempts and their lifecycle work, including removed fibers, have settled.',
+    description: 'Watched Include or module attempts and their lifecycle work, including removed fibers, have settled. Reading, activation or rollback may have failed; listeners must inspect actual active entries.',
+    parameters: [{ name: 'filenames', description: 'Absolute Include and module paths processed by this attempt.' }],
   },
   {
     name: 'hmr/reload',
@@ -4755,18 +4740,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ClientArtifactBaseline',
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly ctimeMs: number;\n    readonly size: number;\n}',
-  },
-  {
-    name: 'CodexLoginFrame',
-    declaration: 'export type CodexLoginFrame = {\n    type: \'notice\';\n    message: string;\n    url?: string;\n    code?: string;\n} | {\n    type: \'prompt\';\n    id: string;\n    kind: \'text\' | \'secret\' | \'select\';\n    message: string;\n    placeholder?: string;\n    options?: readonly {\n        id: string;\n        label: string;\n        description?: string;\n    }[];\n} | {\n    type: \'settled\';\n    status: \'authorized\' | \'cancelled\';\n} | {\n    type: \'failed\';\n    reason: \'callback-busy\' | \'failed\';\n};',
-  },
-  {
-    name: 'CodexLoginReply',
-    declaration: 'export type CodexLoginReply = {\n    type: \'answer\';\n    id: string;\n    value: string;\n} | {\n    type: \'decline\';\n    id: string;\n};',
-  },
-  {
-    name: 'CodexLoginStatus',
-    declaration: 'export interface CodexLoginStatus {\n    available: boolean;\n    configured: boolean;\n    writable: boolean;\n    inFlight: boolean;\n}',
   },
   {
     name: 'CollectedOutput',
@@ -6265,10 +6238,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface RemoteEventHostInfo {\n    readonly home: string;\n}',
   },
   {
-    name: 'RemoteStream',
-    declaration: 'export type RemoteStream<Out, In = never> = AsyncIterable<Out> & {\n    readonly [STREAM_UPLINK]?: In;\n};',
-  },
-  {
     name: 'RenderedDocumentBytes',
     declaration: 'export interface RenderedDocumentBytes extends WorkspaceFileBytes {\n    readonly missingFonts: string[];\n    readonly generation: OfficeToPdfGeneration;\n}',
   },
@@ -6345,16 +6314,20 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface RunnerFailureRule {\n    allowedExitCodes?: readonly number[];\n    fatalSignatures: readonly string[];\n    informationalLines?: readonly string[];\n}',
   },
   {
+    name: 'RuntimeBuildIdentity',
+    declaration: 'export interface RuntimeBuildIdentity {\n    readonly version: string | null;\n    readonly inputsSource: \'disk-observation\' | null;\n    readonly manifestSha256: string;\n    readonly inputsSha256: string;\n    readonly inputCount: number;\n    readonly source: RuntimeSourceIdentity | null;\n}',
+  },
+  {
     name: 'RuntimeIdentity',
-    declaration: 'export interface RuntimeIdentity {\n    readonly version: string;\n    readonly nodeVersion: string;\n    readonly platform: string;\n    readonly arch: string;\n    readonly launcher: {\n        readonly kind: \'source\' | \'artifact\';\n        readonly sha256: string | null;\n    };\n    readonly source: {\n        readonly revision: string;\n        readonly dirty: boolean;\n    } | null;\n}',
+    declaration: 'export interface RuntimeIdentity {\n    readonly version: string | null;\n    readonly versionSource: \'embedded-build-observation\' | \'package-manifest-observation\' | \'unavailable\';\n    readonly nodeVersion: string;\n    readonly platform: string;\n    readonly arch: string;\n    readonly launcher: {\n        readonly kind: \'source\' | \'artifact\';\n        readonly sha256: string | null;\n        readonly sha256Source: \'disk-observation\';\n    };\n    readonly source: RuntimeSourceIdentity | null;\n    readonly build: RuntimeBuildIdentity | null;\n}',
+  },
+  {
+    name: 'RuntimeSourceIdentity',
+    declaration: 'export interface RuntimeSourceIdentity {\n    readonly revision: string;\n    readonly dirty: boolean;\n    readonly contentSha256: string;\n}',
   },
   {
     name: 'SandboxEnforcement',
     declaration: 'export type SandboxEnforcement = \'full\' | \'partial\';',
-  },
-  {
-    name: 'SandboxExecutionEnvironment',
-    declaration: 'export interface SandboxExecutionEnvironment {\n    runner: string;\n    enforcement: SandboxEnforcement | \'unavailable\';\n    temporaryFiles: \'host\' | \'per-call\' | \'per-session\' | \'unknown\';\n    sharesHostTemporaryFiles: boolean | \'unknown\';\n    identity: \'host\' | \'namespace-dependent\' | \'restricted-token\' | \'unknown\';\n}',
   },
   {
     name: 'SandboxExecutionPolicy',
@@ -6386,7 +6359,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SaveTextSpill',
-    declaration: 'export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n}',
+    declaration: 'export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n    signal?: AbortSignal;\n}',
   },
   {
     name: 'ScheduleCatalogEntry',
@@ -7321,16 +7294,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type StreamChunk = {\n    type: \'block-start\';\n    index: number;\n    blockType: ContentBlockType;\n} | {\n    type: \'text-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'reasoning-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'tool-call-delta\';\n    index: number;\n    id: ToolCallId;\n    name?: string;\n    argumentsDelta: string;\n} | {\n    type: \'block-end\';\n    index: number;\n    block: ContentBlock;\n} | {\n    type: \'usage\';\n    usage: TokenUsage;\n} | {\n    type: \'finish\';\n    reason: FinishReason;\n    replayState?: ReplayEnvelope;\n};',
   },
   {
-    name: 'SubagentAuthorityData',
-    declaration: 'export interface SubagentAuthorityData {\n    readonly version: 0;\n    readonly childId: SessionId;\n    readonly sandboxMode: \'read-only\' | \'workspace-write\' | \'danger-full-access\' | null;\n    readonly approvalPolicy: \'ask\' | \'never\' | null;\n    readonly toolFilter: {\n        readonly allow: readonly string[];\n    };\n}',
-  },
-  {
     name: 'SubagentCapabilities',
-    declaration: 'export interface SubagentCapabilities {\n    readonly agentOptions: boolean;\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly sandboxMode: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n}',
+    declaration: 'export interface SubagentCapabilities {\n    readonly agentOptions: boolean;\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n}',
   },
   {
     name: 'SubagentCatalogEntry',
-    declaration: 'export type SubagentCatalogEntry = {\n    readonly id: SessionId;\n    readonly createdAt: number;\n    readonly authority?: SubagentAuthorityData;\n} & ({\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n} | {\n    readonly mode: \'continuable\';\n    readonly label: string;\n} | {\n    readonly mode: \'unknown\';\n    readonly label?: string;\n});',
+    declaration: 'export type SubagentCatalogEntry = {\n    readonly id: SessionId;\n    readonly createdAt: number;\n} & ({\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n} | {\n    readonly mode: \'continuable\';\n    readonly label: string;\n} | {\n    readonly mode: \'unknown\';\n    readonly label?: string;\n});',
   },
   {
     name: 'SubagentCatalogRow',
@@ -7402,7 +7371,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentStartRequest',
-    declaration: 'export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly sandboxMode?: \'read-only\' | \'workspace-write\';\n    readonly persona?: string;\n}',
+    declaration: 'export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly persona?: string;\n}',
   },
   {
     name: 'SubagentStopReason',
@@ -7414,7 +7383,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubprocessCollect',
-    declaration: 'export interface SubprocessCollect {\n    maxBytes: number;\n    headBytes?: number;\n    spill?: {\n        maxBytes: number;\n    };\n}',
+    declaration: 'export interface SubprocessCollect {\n    maxBytes: number;\n    spill?: {\n        maxBytes: number;\n    };\n}',
   },
   {
     name: 'SubprocessCollectedOutputs',
@@ -7434,7 +7403,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubprocessOutputRead',
-    declaration: 'export interface SubprocessOutputRead {\n    text: string;\n    nextOffset: number;\n    lossy: boolean;\n    spillPath?: string;\n    preview?: CollectedOutput;\n}',
+    declaration: 'export interface SubprocessOutputRead {\n    text: string;\n    nextOffset: number;\n    lossy: boolean;\n    spillPath?: string;\n}',
   },
   {
     name: 'SubprocessOutputReader',

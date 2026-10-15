@@ -7,6 +7,7 @@
 // parallel reads in one assistant message (tool-call density for the
 // trajectory ledger/timing lanes), turn 2 a markdown-rich reply.
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import type { Browser, Page, Response } from 'playwright'
@@ -32,6 +33,21 @@ const CODE_CARD_EXPECTED = join(CODE_CARD_DIR, 'code-card.expected.md')
 const MODE = webSnapshotMode()
 const SEED_ID = 'navigation-panes-web-e2e'
 const EXPORTED_LOG_FILE = `session.v${SESSION_FORMAT_VERSION}.jsonl`
+
+function expectSingleSessionArchive(files: ReturnType<typeof unzipSync>): void {
+  expect(Object.keys(files)).toEqual([EXPORTED_LOG_FILE, 'manifest.json'])
+  const content = files[EXPORTED_LOG_FILE]!
+  const manifest: unknown = JSON.parse(strFromU8(files['manifest.json']!))
+  expect(manifest).toMatchObject({
+    format: 'dsh-session-export.v1',
+    rootSessionId: SEED_ID,
+    entries: [{
+      path: EXPORTED_LOG_FILE,
+      bytes: content.byteLength,
+      sha256: createHash('sha256').update(content).digest('hex'),
+    }],
+  })
+}
 
 // Turn 1 leads with a distinctive word: the session-title fallback takes the
 // first words of the first message, so the sidebar-search scenario has a
@@ -346,7 +362,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     // The real host streamed the ZIP; its root entry is the persisted log
     // text verbatim (the assembled seam: real route, real persistence read).
     const files = unzipSync(await readFile(await download.path()))
-    expect(Object.keys(files)).toEqual([EXPORTED_LOG_FILE])
+    expectSingleSessionArchive(files)
     const content = strFromU8(files[EXPORTED_LOG_FILE] as Uint8Array)
     expect(JSON.parse(content.split('\n')[0] ?? '')).toMatchObject({
       type: 'session', version: SESSION_FORMAT_VERSION,
@@ -383,7 +399,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
       const slashDownload = await slashDownloadPromise
       expect(slashDownload.suggestedFilename()).toBe(download.suggestedFilename())
       const slashFiles = unzipSync(await readFile(await slashDownload.path()))
-      expect(Object.keys(slashFiles)).toEqual([EXPORTED_LOG_FILE])
+      expectSingleSessionArchive(slashFiles)
       const slashContent = strFromU8(slashFiles[EXPORTED_LOG_FILE] as Uint8Array)
       expect(JSON.parse(slashContent.split('\n')[0] ?? '')).toMatchObject({
         type: 'session', version: SESSION_FORMAT_VERSION,

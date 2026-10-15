@@ -2,6 +2,9 @@
 
 - banner:
   - navigation "Session hierarchy": {{workspace}}
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -29,6 +32,9 @@
 
 - banner:
   - navigation "Session hierarchy": {{workspace}}
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

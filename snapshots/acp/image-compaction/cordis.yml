@@ -44,4 +44,5 @@
     retainTokens: 100
 
 - insert:
-    - name: './summary-image-budget.mjs'
+    - id: summary-image-budget
+      name: './summary-image-budget.mjs'

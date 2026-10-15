@@ -3,6 +3,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveExampleMode } from '@deepseek-ai/dsh-loader-smoke'
+import { readRuntimeIdentity } from '../../apps/cli/src/runtime-identity.ts'
 import {
   defineAcpSnapshotSuite,
   parseSnapshotManifest,
@@ -80,6 +82,8 @@ const scenarios: Scenario[] = controllerCases.map((controller) => {
 })
 
 defineAcpSnapshotSuite({
+  observeRuntimeIdentity: () => readRuntimeIdentity(new URL(resolveExampleMode() === 'src'
+    ? '../../apps/cli/src/profile-boot.ts' : '../../apps/cli/lib/profile-boot.js', import.meta.url).href),
   agent: {
     binScript: fileURLToPath(new URL('../../apps/cli/src/bin.ts', import.meta.url)),
     configPath: fileURLToPath(new URL('./escalation-approved/cordis.yml', import.meta.url)),

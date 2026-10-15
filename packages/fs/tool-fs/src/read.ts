@@ -24,7 +24,7 @@ export const STREAM_MIN_SIZE = 10 * 1024 * 1024
 export interface ReadToolCaps {
   /** Default and maximum number of lines returned by one call. */
   limit: number
-  /** Maximum characters returned for a single line. */
+  /** Maximum UTF-16 units of file text returned for a single line. */
   maxLineLength: number
   /** Maximum bytes returned for selected file lines. */
   maxBytes: number
@@ -36,6 +36,7 @@ export interface ReadToolCaps {
 interface ReadInput {
   filePath: string
   offset: number
+  column: number
   limit: number
 }
 
@@ -48,16 +49,18 @@ function parsePositiveInteger(value: number, name: string): number {
 
 /**
  * Validate value constraints the schema DSL can't express. `maxLimit` is the deployment's line cap.
- * @param args - the schema-validated raw tool arguments; `offset`/`limit` must be positive integers when given.
+ * @param args - schema-validated arguments; `column` counts UTF-16 units on the first requested line only.
  * @param maxLimit - the configured line cap: both the default `limit` and the largest one accepted.
- * @returns the validated input with `offset` defaulted to 1 and `limit` to `maxLimit`.
+ * @returns the validated input with `offset`/`column` defaulted to 1 and `limit` to `maxLimit`.
  */
-export function parseReadArgs(args: { file_path: string; offset?: number; limit?: number }, maxLimit: number): ReadInput {
+export function parseReadArgs(args: { file_path: string; offset?: number; column?: number; limit?: number }, maxLimit: number): ReadInput {
   if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
   const offset = args.offset === undefined ? 1 : parsePositiveInteger(args.offset, 'offset')
+  const column = args.column ?? 1
+  if (!Number.isSafeInteger(column) || column < 1) throw new Error('column must be a positive safe integer')
   const limit = args.limit === undefined ? maxLimit : parsePositiveInteger(args.limit, 'limit')
   if (limit > maxLimit) throw new Error(`limit must be less than or equal to ${maxLimit}`)
-  return { filePath: args.file_path, offset, limit }
+  return { filePath: args.file_path, offset, column, limit }
 }
 
 /**
@@ -80,6 +83,7 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
     parameters: {
       file_path: { type: 'string', required: true, description: 'Path to read, resolved by the filesystem backend.' },
       offset: { type: 'number', description: '1-based first line to return. Defaults to 1.' },
+      column: { type: 'number', description: 'Positive 1-based UTF-16 column on the first requested line only. Defaults to 1; cannot split a surrogate pair.' },
       limit: { type: 'number', description: `Maximum number of lines to return. Defaults to ${caps.limit}.` },
     },
     output: {
@@ -98,6 +102,8 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
               properties: {
                 number: { type: 'integer', required: true },
                 text: { type: 'string', required: true },
+                column: { type: 'integer' },
+                nextColumn: { type: 'integer' },
               },
             },
           },
@@ -126,7 +132,7 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
         return {
           path: value.path,
           offset: value.offset,
-          lines: value.lines.map(({ number, text }) => ({ number, text })),
+          lines: value.lines.map(line => ({ ...line })),
           totalLines: value.totalLines,
           ...lang === undefined ? {} : { lang },
         }
@@ -147,7 +153,7 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
         : [await ctx.fs.readText(target, exec.signal)]
       const window = await buildWindow(
         chunks,
-        { offset: input.offset, limit: input.limit, maxLineLength: caps.maxLineLength, maxBytes: caps.maxBytes },
+        { offset: input.offset, column: input.column, limit: input.limit, maxLineLength: caps.maxLineLength, maxBytes: caps.maxBytes },
         target.displayPath,
       )
 
@@ -195,13 +201,13 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
     // read's offset (defaulting to 1). The window reflects raw args, so an omitted limit keeps
     // the title bare instead of smuggling config into this pure presenter.
     presentCall(args): GenericCallView {
-      const { offset, limit } = args
+      const { offset, limit, column } = args
       const window = limit !== undefined && limit > 0
         ? ` (${offset ?? 1} - ${(offset ?? 1) + limit - 1})`
         : offset !== undefined ? ` (from line ${offset})` : ''
       return {
         card: 'generic',
-        title: `Read ${args.file_path}${window}`,
+        title: `Read ${args.file_path}${window}${column !== undefined && column > 1 ? ` (column ${column})` : ''}`,
         kind: 'read',
         locations: [{ path: args.file_path, line: offset ?? 1 }],
       }

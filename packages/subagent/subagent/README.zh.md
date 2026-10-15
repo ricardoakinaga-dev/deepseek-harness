@@ -70,6 +70,8 @@ kind: "package-reference"
 
 需要所选提供方不具备的能力的请求会在启动时明确报错，而不会被静默忽略。失败的子 agent 运行会返回停止原因，提供方后端还会附加安全诊断；被取消的请求以 `aborted` 结算。子 agent 相互隔离：崩溃或行为异常的子 agent 无法破坏父级会话。
 
+对于进程内可继续子级，失败请求期间被接受的唤醒输入若尚未被领取，且失败轮次已持久化关闭，会启动新轮次。失败请求已领取的输入不会被重试。显式中断会暂存此前的待处理输入，直到另一条唤醒发送到达；没有待处理工作的失败会结算，并向 parent 报告失败。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -151,11 +153,11 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-一条用户角色的父级消息，开头是结果本身——`Background subagent <child-id> finished and will do no further work unless you send it more.`，或子级被停止、耗尽额度、拒绝任务或失败时的对应句子——随后是 `Its closing message:` 与子级最终 assistant 输出中的非空文本块，保留原始内容与顺序。若结束文本与本次 Activation 中最后一条已记录到父级历史的子级消息完全相同，通知会引用该消息的 id，而不重复正文。仍在 Inbox 中的消息、投递失败的消息以及先前 Activation 的消息均不参与比较。推理与其他非文本块不会进入通知；若没有剩余的非空文本，通知会写明 `It left no closing message.`。这条由运行时生成的通知与模型编写的父子消息相互独立；后者使用 `sendMessage()` 与 `AgentMessageSource`。委派 schema 与模型控制工具归消费方包所有。
+一条用户角色的父级消息，开头是结果本身——`Background subagent <child-id> finished and will do no further work unless you send it more.`，或子级被停止、耗尽额度、拒绝任务或失败时的对应句子——随后是 `Its closing message:` 与子级最终 assistant 输出中的非空文本块，保留原始内容与顺序。推理与其他非文本块不会进入通知；若没有剩余的非空文本，通知会写明 `It left no closing message.`。这条由运行时生成的通知是最终结果通道。初始指引要求具有 `send_message` 的子级在最终回复中提供自足的结果，并使用消息传递进展或协调事项，不再发送第二份最终结果。这些由模型编写的消息保留 `AgentMessageSource` 归属；委派 schema 与模型控制工具归消费方包所有。
 
 #### Token 影响
 
-父级请求中，每个已结算的 Activation 一条通知，长度取决于子级的最终文本。对于完全重复的报告，结算通知仅保留对已投递消息的引用。
+父级请求中，每个已结算的 Activation 一条通知，长度取决于子级的最终文本。进展或协调消息增加各自的内容；最终结果从结束回复中自动投递。
 
 #### KV Cache 影响
 
@@ -192,7 +194,8 @@ You are a delegated subagent: your permission scope was fixed when you were star
 - **ACP 子级仍为一次性，且无法通过追踪枚举**——ACP 运行在父级会话语料中没有本地子会话，远程提供方需要 Activation 所有权约定才能支持可继续子级。
 - **仅允许相邻模型消息**——`sendMessage()` 要求确切在线 sender；每个 sender 都可以指定直接可继续 child，只有具备驻留可继续 Activation 的 sender 可以指定自己的直接 parent。浏览器提示使用独立的人类 Queue 或 Steer 控制路径。
 - **child 到 parent 的投递要求直接 parent 保持在线**——服务没有持久 parent mailbox；parent 缺失时会拒绝消息，而非接受无法唤醒的工作。
-- **取消收敛期间存在唤醒缺口**——中断信号发出后、driver 进入 idle 前被接受的后续消息会保持排队，直到另一条唤醒发送到达。
+- **被中断的输入保持暂存**——显式中断会保留此前的待处理输入，直到之后的唤醒发送到达；它不会自动重试被中断的工作。
+- **轮次边界写入被拒绝时保留在线工作**——写入被拒绝会暂存待处理输入，并发出 `agent/error`。宿主必须修复写入故障并处理暂存的 inbox，Activation 才能结算；保持待处理状态期间不会自动向 parent 发送通知。
 - **待处理的注入上下文会保留 Activation**——settlement 会保守地把每个 Inbox occurrence 都视为未完成。Agent 进入 idle 后停放的上下文会让 child 及其在线祖先继续驻留，直到唤醒投递将其 claim、queue 变更将其移除，或 manager teardown 将其丢弃。
 - **驻留仅限进程内**——Activation inbox 与所有权图不会在两个 harness 进程之间协调；对单个持久化存储的并发访问需要持久化邮箱与跨进程租约协议。
 - **不回放已接受但未记录的消息**——崩溃可能丢失从未写入子会话日志、已被接受的提示词；丢失的消息不会自动回放。

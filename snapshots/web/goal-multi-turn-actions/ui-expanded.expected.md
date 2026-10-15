@@ -1,5 +1,8 @@
 - banner:
-  - navigation "Session hierarchy": workspace
+  - navigation "Session hierarchy": I accept both displayed package
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"
@@ -9,8 +12,8 @@
 - navigation "Turn navigation":
   - button "Jump to turn 1"
   - button "Jump to turn 2"
-- group "Command input": /goal 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的
-- 'button "goal Goal created Status: active Objective: 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的 Rounds: 0/256 Activation: armed Commands: /goal edit <objective>, /goal pause, /goal clear"'
+- group "Command input": "/goal create {\"objective\":\"做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的\",\"requiredTasks\":[{\"id\":\"two-turn-output\",\"criterion\":\"Both Goal turns display their inspected package file structures.\"}]}"
+- 'button "goal Goal created Status: active Objective: 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的 Original objective: 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的 Original required IDs: two-turn-output Required two-turn-output: PENDING — Both Goal turns display their inspected package file structures. Rounds: 0/256 Activation: armed Commands: /goal edit <objective>, /goal pause, /goal clear, /goal accept <id>, /goal scope <JSON>"'
 - button "Continuing goal {{clock}}":
   - text: Continuing goal
   - time: {{clock}}
@@ -52,13 +55,15 @@
   - text: Continuing goal
   - time: {{clock}}
 - status: Worked
-- button "Took {{duration}}" [expanded]
+- button "Took {{duration}}" [disabled]
 - button "Ran commands" [expanded]
 - 'button "Think This is turn 2 of 2. I need to randomly pick another package and output its file structure. In the first turn I picked `packages/context/session-reference`. Let me pick a different one randomly this time."'
 - button "Bash Randomly select another package with Python"
 - 'button "Think The random pick returned the same package as turn 1. Since turn 1 already covered `session-reference`, it would be better to pick a different one for variety. Let me re-roll, excluding the already-covered package."'
 - button "Bash Re-roll excluding the package from turn 1"
 - button "Bash List all files in token-meter package"
+- group "Command input": /goal accept two-turn-output
+- 'button "goal Task accepted Status: active Objective: 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的 Original objective: 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的 Original required IDs: two-turn-output Required two-turn-output: ACCEPTED — Both Goal turns display their inspected package file structures. Rounds: 2/256 Activation: armed Commands: /goal edit <objective>, /goal pause, /goal clear, /goal scope <JSON>"'
 - 'button "Think This is turn 2 of 2. I''ve output the file structure for `packages/llm/token-meter`. Both turns are done. I should output the content, stop, and then mark the goal as complete since both turns are finished."'
 - paragraph:
   - strong: Turn 2 / 2
@@ -81,6 +86,8 @@
   - text: ）。这一轮到此结束。
 - button "Updated the plan" [expanded]
 - button "View goal 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的"
+- text: I accept both displayed package structures. Complete the accepted goal in this turn. {{clock}}
+- button "Copy"
 - paragraph: 两个 turn 均已完成，目标达成，标记 goal 为完成。
 - button "Updated the plan" [expanded]
 - button "Update goal 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的"

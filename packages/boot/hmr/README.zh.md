@@ -56,6 +56,8 @@ Chokidar 选项（包括轮询）保持原有含义。精确配置监听同时�
 
 `watchConfig()` 注册会被等待的配置处理器。`runExclusive()` 将配置变更、Loader 更新与自动重载串行化，并拒绝嵌套事务。包安装和删除在该队列之外执行。HMR 不获取包操作写锁；manifest 通知仅在有序的 `dsh.profile.bundles` 列表变化时触发重载。profile 与 home patch 变化也会触发重新组合。配置事务期间收到的文件事件在事务结束后处理。 Include 刷新和 profile 重载都通过普通的 Loader 条目更新到达插件；仅 volatile 变化由 Loader 就地提交。
 
+`hmr/config-settled` 在监听触发的刷新或替换尝试及 Loader 生命周期工作结束后携带 Include 和模块的绝对路径。HMR 保留尝试前的 fiber，并在条目被移出 Loader store 后继续等待其异步销毁，即使另一条目激活失败。文件读取、激活或回滚可能失败；此事件不保证配置已成功应用。消费者读取实际活动条目和已解析配置。无效文件若保留运行中的树，不会产生运行时审计变化；激活失败或模块回滚失败可能产生实际移除。仅表示成功的 `hmr/reload` 事件保留原有含义。销毁时关闭监听器并等待队列中的工作；正在关闭的 HMR 实例不发送结束事件。
+
 App-boot 负责 profile 解析和 patch 优先级规则。HMR 读取启动器提供的纯数据 `profileContext`，在初始化时注册 profile manifest 和两份用户 patch 的监听，并等待应用就绪后处理更改。销毁 HMR 时会关闭监听器并取消等待启动的重载。HMR 也负责模块缓存替换和重载调度。配置监听器在当前事务上下文之外启动，使后续通知可以进入队列。不发布 invariant 伴生入口，因为队列和监听注册没有独立的持久投影。
 
 被监听模块的路径沿用 Node ESM 解析所用的 `realpathSync()` 表示，包括 Windows 短目录名，使文件事件与模块缓存匹配。

@@ -6,13 +6,20 @@ import { onTestFinished } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import Timer from '@deepseek-ai/cordis-plugin-timer'
-import { boot, initProfile, readProfilePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { boot, initProfile, readProfilePatches, type ProfileContext, type RuntimeIdentity } from '@deepseek-ai/dsh-app-boot'
 import ConfigEditor from '@deepseek-ai/dsh-config-editor'
 import Hmr from '@deepseek-ai/dsh-hmr'
 import DefaultModel from '@deepseek-ai/dsh-agent-default-model'
 import Settings from '../src/index.ts'
+import * as RuntimeAudit from '../src/audit.ts'
 
-export async function configurationFixture(options: { schema?: z; apply?: (ctx: Context, config: unknown) => void; hmr?: boolean } = {}) {
+export async function configurationFixture(options: {
+  schema?: z
+  apply?: (ctx: Context, config: unknown) => void
+  hmr?: boolean
+  watchFiles?: boolean
+  runtimeIdentity?: RuntimeIdentity
+} = {}) {
   const home = realpathSync(mkdtempSync(join(tmpdir(), 'settings-config-')))
   const dir = join(home, 'profiles', 'test')
   onTestFinished(() => { rmSync(home, { recursive: true, force: true }) })
@@ -30,6 +37,7 @@ export async function configurationFixture(options: { schema?: z; apply?: (ctx: 
   ] }]))
   writeFileSync(join(dir, 'cordis.yml'), '[]\n')
   const profile: ProfileContext = {
+    ...(options.runtimeIdentity === undefined ? {} : { runtimeIdentity: options.runtimeIdentity }),
     name: 'test', startedBundles: ['test-bundle'], dir, patchPath: join(dir, 'cordis.patch.yml'),
     installAnchor: join(home, 'package.json'), cwd: home, home, overlays: [], telemetryDisabledEnv: undefined,
   }
@@ -38,17 +46,19 @@ export async function configurationFixture(options: { schema?: z; apply?: (ctx: 
     apply: options.apply ?? (() => {}),
   }
   const start = async (): Promise<Context> => {
-    const ctx = await boot('test', join(dir, 'cordis.yml'), readProfilePatches('test', profile), (ctx) => {
+    const ctx = await boot('test', join(dir, 'cordis.yml'), readProfilePatches('test', profile), async (ctx) => {
       ctx.provide('profileContext', profile)
       ctx.provide('appReady', { onReady: (listener: () => void) => { listener(); return () => {} } })
       Object.assign(ctx.loader.builtins, {
         editor: ConfigEditor, settings: Settings, model: DefaultModel, probe: Probe,
       })
+      await ctx.plugin(RuntimeAudit)
     })
     onTestFinished(async () => { await ctx.fiber.dispose() })
     if (options.hmr !== false) {
       await ctx.plugin(Timer)
-      const hmr = ctx.plugin(Hmr, { root: [], ignored: [], debounce: 0 })
+      const hmr = ctx.plugin(Hmr, { base: dir, root: options.watchFiles ? ['.'] : [], ignored: [], debounce: 0,
+        awaitWriteFinish: { stabilityThreshold: 30, pollInterval: 10 } })
       await hmr.await()
       await ctx.hmr.runExclusive(async () => {})
     }

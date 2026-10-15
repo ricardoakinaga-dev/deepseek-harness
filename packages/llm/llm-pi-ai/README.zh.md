@@ -116,7 +116,9 @@ profile 的 `models` 列表会替换而非扩展路由的已安装目录；每�
 
 ### 失败与恢复
 
-pi-ai 不提供的路由需要 `api`、`baseURL` 与非空 `models` 列表；无法服务的 profile 会在写入处被拒绝，并点名路由与模型。失败携带稳定 code：无法使用的凭据以 `INVALID_CREDENTIAL` 失败并点名路由与引用，`apiKeyEnv` 引用解析为空的路由以 `MISSING_CREDENTIAL` 失败，未配置模型以 `UNKNOWN_MODEL` 失败，终止性提供方失败则区分 `QUOTA` 与暂时性 `RATE_LIMIT`。按适配器策略，在终止响应事件之前发生的 WebSocket 关闭，若携带表示连接状况的已注册关闭码（1001、1006、1011、1012、1013 或 1014），或不带关闭码，则属于暂时性 `TRANSPORT`；关闭码 1009 以 `INVALID_REQUEST` 失败，其他任何关闭码（包括私用范围 4000–4999）除非其原因文本指明可识别的失败，否则直接失败、不重试。`GenerateOptions.stop` 以 `UNSUPPORTED_OPTION` 被拒绝，因为 pi-ai 的通用流式 UI 无法跨提供方保证它。
+pi-ai 不提供的路由需要 `api`、`baseURL` 与非空 `models` 列表；无法服务的 profile 会在写入处被拒绝，并点名路由与模型。失败携带稳定 code：无法使用的凭据以 `INVALID_CREDENTIAL` 失败并点名路由与引用，`apiKeyEnv` 引用解析为空的路由以 `MISSING_CREDENTIAL` 失败，未配置模型以 `UNKNOWN_MODEL` 失败，终止性提供方失败则区分 `QUOTA` 与暂时性 `RATE_LIMIT`。按适配器策略，在终止响应事件之前发生的 WebSocket 关闭，若携带可识别的关闭码（1000、1001、1006、1011、1012、1013 或 1014），或不带关闭码，则属于暂时性 `TRANSPORT`；关闭码 1009 以 `INVALID_REQUEST` 失败，其他任何关闭码（包括私用范围 4000–4999）除非其原因文本指明可识别的失败，否则直接失败、不重试。`GenerateOptions.stop` 以 `UNSUPPORTED_OPTION` 被拒绝，因为 pi-ai 的通用流式 UI 无法跨提供方保证它。
+
+WebSocket 在终止响应前关闭时，匹配的流启动后 pi-ai 传输诊断或 `WebSocket closed 1000` 这样的数字关闭错误会映射为 `TRANSPORT`。normal 模式下，提供方的 `retryPolicy` 限定 `dsh-llm-retry` 的恢复次数；失败尝试中的部分工具调用不会执行，重试也不会重复此前已提交的工具副作用。响应完成后的正常关闭仍视为成功。未知提供方错误仍为 `PI_AI_ERROR`，normal 模式默认不重试此类错误。
 
 Config 更新严格验证发生变化的 provider。初始加载将已存储的目录故障保留为可编辑的 provider 诊断；未更改的故障 provider 不阻止其他编辑。可用模型仍可选择，无法解析的模型在网络 I/O 前失败。修复或删除问题配置会清除其诊断。
 

@@ -61,6 +61,8 @@ The dialog reports three phases: preparing, download started, or failed. Closing
 
 Attachment collection reads declared content fields of built-in Session events and completed assistant stream blocks, including flat V4 tool-role messages. It also reads stored capture references from `deliverables/presented`, so saved deliverables export their presented bytes after the original path changes or disappears. Historical declarations and explicit oversized outcomes contribute no attachment. Files shared by content blocks and deliveries are deduplicated by digest and stored name. Unknown event payloads and unrelated fields remain unchanged in the exported log but do not cause attachment reads.
 
+Full spills captured by the configured backend through `spill/artifact` also export as files. The final `manifest.json` uses format `dsh-session-export.v1`; each entry records its archive path, kind, byte count, and SHA-256, and `spills` maps original locators to archive paths. Verify those bytes and hashes after extracting before relying on the evidence. A missing or corrupt attachment, or an invalid reference explicitly declared as stored, aborts the stream before a complete manifest is emitted. The archive never follows arbitrary paths found in report text; select evidence through `present` or a capturing spill backend. Historical logs without captures retain their existing references and cannot supply absent bytes.
+
 ### Failures
 
 The dialog shows a preparation error when the preflight fails before ZIP streaming starts — for example an unreachable or misconfigured host endpoint. A descendant or attachment read failure after the browser accepts the GET is reported by the browser download manager, not by the dialog.
@@ -84,6 +86,8 @@ The Header’s More action uses the shared compact Button, with a 28px square ta
 ### Download flow
 
 Both entry paths issue a `HEAD` preflight to the document-relative `api/session.export?...`, then hand the GET route to the browser download manager without buffering the ZIP in JavaScript. One controller owns one in-flight download per session, collapses concurrent gestures into that operation, and cancels the preflight on plugin disposal. Modal state lives in a snapshot store keyed by session, so the button and the command share one dialog per session.
+
+Reader cancellation waits for the producer and storage cleanup. Plugin disposal unregisters the Host route, aborts active preparation and ZIP streams, and waits for their completion. Direct `streamSessionLogZip` callers can await its `completed` promise after aborting or cancelling the stream.
 
 The Host route is a feature-owned exact Fetch contribution. Connection applies its Host/Origin and browser-session checks and bridges the streaming `Response`; this package owns query validation, live-session flushes, handle-based log reads and attachment reads, ZIP generation, and HTTP status semantics.
 

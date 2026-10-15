@@ -8,8 +8,8 @@
  * descendant uses `subagents/<id>/session[.vN].jsonl`; each image referenced by any included log
  * under `media/<attachmentId>.<ext>` (content-addressed, so one archive never
  * duplicates a shared image); each generic file sits under
- * `files/<prefix>/<digest>/<name>` and streams from the attachment store. No
- * manifest is written. Before each live session's log read, the SessionStore
+ * `files/<prefix>/<digest>/<name>` and streams from the attachment store. An
+ * integrity manifest is written last after all entries finish. Before each live session's log read, the SessionStore
  * flush barrier makes the current in-memory log durable; cold sessions need no
  * barrier. Request abort and response-consumer cancellation share one producer
  * signal and terminate the active compressor.
@@ -22,6 +22,7 @@
  */
 
 import { Zip, ZipDeflate } from 'fflate'
+import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type {
   AttachmentStore, FileAttachmentRef, ImageAttachmentRef,
@@ -244,9 +245,13 @@ function collectEventAttachmentRefs(
     summary?: unknown
     rawOutput?: unknown
     files?: unknown
+    attachment?: unknown
     stream?: Array<{ type?: unknown; chunk?: { type?: unknown; block?: unknown } }>
   }
   switch (row.type) {
+    case 'spill/artifact':
+      collectCapturedFile(carrier.attachment, files)
+      return
     case 'deliverables/presented':
       if (!Array.isArray(carrier.files)) return
       for (const file of carrier.files) {
@@ -254,9 +259,7 @@ function collectEventAttachmentRefs(
         const capture: unknown = (file as { capture?: unknown }).capture
         if (typeof capture !== 'object' || capture === null || Array.isArray(capture)) continue
         const saved = capture as { status?: unknown; attachment?: unknown }
-        if (saved.status !== 'stored' || typeof saved.attachment !== 'object' || saved.attachment === null) continue
-        const ref = saved.attachment as FileAttachmentRef
-        files.set(`${String(ref.attachmentId)}\u0000${ref.name}`, ref)
+        if (saved.status === 'stored') collectCapturedFile(saved.attachment, files)
       }
       return
     case 'user/message': case 'tool/ptc-dispatch':
@@ -291,6 +294,53 @@ function collectEventAttachmentRefs(
       }
     }
   }
+}
+
+/** Declared durable captures must carry a usable reference rather than silently under-export. */
+function collectCapturedFile(value: unknown, files: Map<string, FileAttachmentRef>): void {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)
+    || !('attachmentId' in value) || typeof value.attachmentId !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(value.attachmentId)
+    || !('name' in value) || typeof value.name !== 'string' || value.name.length === 0
+    || !('bytes' in value) || typeof value.bytes !== 'number' || !Number.isSafeInteger(value.bytes) || value.bytes < 0) {
+    throw new Error('capture attachment reference is invalid')
+  }
+  const ref = value as FileAttachmentRef
+  files.set(`${String(ref.attachmentId)}\u0000${ref.name}`, ref)
+}
+
+interface ArchiveManifestEntry {
+  path: string
+  kind: 'session' | 'image' | 'file'
+  bytes: number
+  sha256: string
+}
+
+/** Hash one already-bounded log or image without keeping another byte copy. */
+function manifestEntry(path: string, kind: ArchiveManifestEntry['kind'], data: string | Uint8Array): ArchiveManifestEntry {
+  return {
+    path, kind, bytes: typeof data === 'string' ? Buffer.byteLength(data, 'utf8') : data.byteLength,
+    sha256: createHash('sha256').update(data).digest('hex'),
+  }
+}
+
+/** Map declared spill locators to captured archive members without resolving local paths. */
+function spillMappings(content: string): Array<{ locator: string; path: string }> {
+  const result: Array<{ locator: string; path: string }> = []
+  for (const line of content.split('\n')) {
+    if (line.length === 0) continue
+    let parsed: unknown
+    try { parsed = JSON.parse(line) } catch { continue }
+    if (typeof parsed !== 'object' || parsed === null || !('type' in parsed) || parsed.type !== 'spill/artifact'
+      || !('data' in parsed) || typeof parsed.data !== 'object' || parsed.data === null) continue
+    const data = parsed.data
+    if (!('locator' in data) || typeof data.locator !== 'string' || !('attachment' in data)
+      || typeof data.attachment !== 'object' || data.attachment === null) continue
+    const ref = data.attachment
+    if (!('attachmentId' in ref) || typeof ref.attachmentId !== 'string'
+      || !('name' in ref) || typeof ref.name !== 'string' || !('bytes' in ref) || typeof ref.bytes !== 'number') continue
+    result.push({ locator: data.locator, path: fileEntryPath(ref as FileAttachmentRef) })
+  }
+  return result
 }
 
 /**
@@ -348,7 +398,8 @@ export function sessionLogZipFilename(sessionId: string): string {
  * after the consumer moves on), then every distinct attachment referenced by
  * the included logs. Images are read and verified as bounded stored objects;
  * generic files remain streamed through the ZIP writer. The host holds at most
- * one descendant log, one image, and one file chunk beyond the root.
+ * one descendant log, one image, and one file chunk beyond the root. Consumers
+ * must fully consume each chunked entry before requesting the next entry.
  * @param deps - the mounted export services (the caller answered 500 before this runs).
  * @param rootContent - the already-serialized root log (read by the caller so
  * the missing-session path can answer cleanly before streaming starts).
@@ -356,6 +407,7 @@ export function sessionLogZipFilename(sessionId: string): string {
  * @param includeDescendants - whether to include every subagent descendant.
  * @param signal - optional cancellation forwarded to lineage, persistence, and attachment reads.
  * @returns the export entries in zip order.
+ * @throws when an entry's chunks are not consumed before requesting the next entry, or a stored artifact cannot be verified.
  */
 export async function* sessionLogZipEntries(
   deps: SessionLogExportReady,
@@ -366,12 +418,16 @@ export async function* sessionLogZipEntries(
 ): AsyncGenerator<SessionLogZipEntry> {
   const media = new Map<string, ImageAttachmentRef>()
   const files = new Map<string, FileAttachmentRef>()
+  const entries: ArchiveManifestEntry[] = []
+  const spills: Array<{ locator: string; path: string }> = []
   const rememberAttachments = (content: string): void => {
     const refs = attachmentRefsInArtifact(content)
     for (const [id, ref] of refs.images) media.set(id, ref)
     for (const [id, ref] of refs.files) files.set(id, ref)
+    spills.push(...spillMappings(content))
   }
   rememberAttachments(rootContent)
+  entries.push(manifestEntry(SESSION_LOG_FILENAME, 'session', rootContent))
   yield { path: SESSION_LOG_FILENAME, content: rootContent }
   if (includeDescendants) {
     const seen = new Set<SessionId>([sessionId])
@@ -390,8 +446,10 @@ export async function* sessionLogZipEntries(
           throw new Error(`subagent "${id}" has no stored log`)
         }
         rememberAttachments(content)
+        const path = `subagents/${safeSessionIdSegment(id)}/${SESSION_LOG_FILENAME}`
+        entries.push(manifestEntry(path, 'session', content))
         yield {
-          path: `subagents/${safeSessionIdSegment(id)}/${SESSION_LOG_FILENAME}`,
+          path,
           content,
         }
         yield* collect(node.descendants)
@@ -405,15 +463,34 @@ export async function* sessionLogZipEntries(
     signal?.throwIfAborted()
     const stored = await deps.attachments.readImage(ref, signal)
     signal?.throwIfAborted()
-    yield { path: mediaEntryPath(ref), data: stored.data }
+    const path = mediaEntryPath(ref)
+    entries.push(manifestEntry(path, 'image', stored.data))
+    yield { path, data: stored.data }
   }
   for (const ref of files.values()) {
     signal?.throwIfAborted()
-    yield {
-      path: fileEntryPath(ref),
-      chunks: deps.attachments.readFileStream(ref, signal),
+    const path = fileEntryPath(ref)
+    const progress = { consumed: false }
+    const chunks = async function* (): AsyncGenerator<Uint8Array> {
+      const hash = createHash('sha256')
+      let bytes = 0
+      for await (const chunk of deps.attachments.readFileStream(ref, signal)) {
+        hash.update(chunk)
+        bytes += chunk.byteLength
+        yield chunk
+      }
+      entries.push({ path, kind: 'file', bytes, sha256: hash.digest('hex') })
+      progress.consumed = true
     }
+    yield {
+      path, chunks: chunks(),
+    }
+    if (!progress.consumed) throw new Error(`export entry "${path}" must be fully consumed before advancing`)
   }
+  signal?.throwIfAborted()
+  yield { path: 'manifest.json', content: `${JSON.stringify({
+    format: 'dsh-session-export.v1', rootSessionId: sessionId, entries, spills,
+  }, null, 2)}\n` }
 }
 
 /** How many code units of Session-log text one zip push carries (bounded encode memory). */
@@ -553,7 +630,7 @@ async function pushArtifactChunks(
  * @param includeDescendants - whether to include every subagent descendant.
  * @param compressionLevel - validated fflate DEFLATE level for every ZIP entry.
  * @param signal - request cancellation combined with response-consumer cancellation.
- * @returns the zip byte stream.
+ * @returns the ZIP stream with a completion promise that settles after producer cleanup.
  */
 export function streamSessionLogZip(
   deps: SessionLogExportReady,
@@ -562,18 +639,19 @@ export function streamSessionLogZip(
   includeDescendants: boolean,
   compressionLevel: SessionLogCompressionLevel,
   signal: AbortSignal,
-): ReadableStream<Uint8Array> {
+): ReadableStream<Uint8Array> & { readonly completed: Promise<void> } {
   const consumerAbort = new AbortController()
   const producerSignal = AbortSignal.any([signal, consumerAbort.signal])
   let zip: Zip | undefined
   let zipTerminated = false
+  let completed: Promise<void> = Promise.resolve()
   const capacity = new ResponseCapacityGate()
   const terminateZip = (): void => {
     if (zip === undefined || zipTerminated) return
     zipTerminated = true
     zip.terminate()
   }
-  return new ReadableStream<Uint8Array>({
+  const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       // fflate invokes the callback synchronously per compressed chunk, so a
       // single push can enqueue ahead of a slow consumer; the capacity gate
@@ -590,7 +668,7 @@ export function streamSessionLogZip(
         if (final) controller.close()
       })
       zip = archive
-      void (async () => {
+      completed = (async () => {
         try {
           for await (const entry of sessionLogZipEntries(deps, rootContent, sessionId, includeDescendants, producerSignal)) {
             const deflate = new ZipDeflate(entry.path, { level: compressionLevel })
@@ -621,9 +699,11 @@ export function streamSessionLogZip(
         reason instanceof Error ? reason : new Error('session log export stream cancelled'),
       )
       terminateZip()
+      return completed
     },
   }, {
     highWaterMark: RESPONSE_HIGH_WATER_MARK_BYTES,
     size: chunk => chunk.byteLength,
   })
+  return Object.assign(stream, { completed })
 }

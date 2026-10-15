@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Use one run_code program to
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - text: PTC mode
   - button "More actions"
   - button "Open right sidebar"
@@ -38,13 +41,13 @@
 - button "Preview report.txt in sidebar"
 - text: report.txt delivered report
 - link "Saved copy · Download":
-  - /url: api/present.download?sessionId=session-{{uuid}}&seq=22&index=0
+  - /url: api/present.download?sessionId=session-{{uuid}}&seq=20&index=0
 - button "Open in Test Editor"
 - button "More ways to open"
 - button "Preview 说明.txt in sidebar"
 - text: 说明.txt delivered note
 - link "Saved copy · Download":
-  - /url: api/present.download?sessionId=session-{{uuid}}&seq=22&index=1
+  - /url: api/present.download?sessionId=session-{{uuid}}&seq=20&index=1
 - button "Open in Test Editor"
 - button "More ways to open"
 - button "Copy"

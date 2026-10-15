@@ -2,6 +2,8 @@
 
 These invented records demonstrate a source disagreement and an unavailable test. The revision, file paths, and observations are illustrative; replace them with current source evidence for a real audit. Save each JSON object as a separate file before reconciliation.
 
+Before broad checks, save the command and declared prerequisites in a preflight JSON file, then run `node scripts/audit-evidence/isolated-candidate.ts --spec FILE --artifacts EXISTING_DIRECTORY --run`. The artifact parent must be outside the source candidate. Save `candidate.json`, the separate preflight facts, supervisor prerequisite and runner records, command start/settlement records, `original-after.json` and `result.json` with the audit records; use the candidate SHA-256 alongside HEAD as the source revision identity. A UID/mode mismatch or unavailable runner blocks execution. Preserve the `BLOCKED` observation and pending scope instead of substituting host facts or counting skipped checks as passing. The [procedure and field rules](../../../../scripts/audit-evidence/README.md#filesystem-preflight-and-isolated-candidates) own the details.
+
 `requirements.json`:
 
 ```json

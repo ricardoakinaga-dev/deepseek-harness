@@ -6,6 +6,36 @@
   min-width: 0;
 }
 
+.currentActivity {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 336px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.currentActivity > :first-child {
+  flex: none;
+}
+
+.executionText,
+.executionSummary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.executionSummary {
+  display: block;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .switcherRoot {
   min-width: 0;
   margin-left: 6px;

@@ -63,7 +63,7 @@ Storage is grouped by the owning session: forked sessions inherit existing locat
 
 ### Failures and recovery
 
-`saveText` rejects only on a real storage failure — permissions, no space left, or a backend that is down. The caller decides how to degrade: the shipped policy treats a rejection as best-effort, logs a warning, and keeps the original inline result, so a spill failure never turns a successful tool call into an error or hides content. If no backend is mounted, there is nothing to save; load `dsh-spill-local` or another backend in the composition.
+`saveText` rejects on storage failure or caller cancellation through the optional `signal`. The caller decides how to degrade: the shipped policy treats a rejection as best-effort, logs a warning, and keeps the original inline result. If no backend is mounted, there is nothing to save; load `dsh-spill-local` or another backend in the composition. A capturing backend appends the log-only `spill/artifact` event with the source, locator, and durable file attachment after saving the full bytes; supporting exporters use that declaration without resolving temporary paths. Existing logs without that event remain readable.
 
 -----
 

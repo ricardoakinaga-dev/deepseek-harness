@@ -16,6 +16,7 @@ import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
 import * as StorageJson from '@deepseek-ai/dsh-storage-json'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import * as SubagentFork from '@deepseek-ai/dsh-subagent-fork-in-process'
+import * as SubagentControl from '@deepseek-ai/dsh-tool-subagent-control'
 import type { ContentBlock, GenerateOptions, MessageId, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { ToolCallId, createUserMessage, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -2744,6 +2745,107 @@ describe('continuable adjacent-Agent delivery', () => {
 })
 
 describe('continuable settlement delivery', () => {
+  it('delivers one final result automatically while preserving attributed progress messages', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('progress', 'send_message', { agent_id: 'parent', message: 'found the cause; applying the fix' }),
+      textResponse('final result with validation'),
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    cleanups.unshift(() => ctx.fiber.dispose())
+    parkParent(ctx, parent)
+    await ctx.plugin(SubagentControl)
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await waitNoActivation(ctx, started.childId)
+    await parent.whenIdle()
+
+    const persisted = await loadStoredSession(ctx.sessionPersistence, started.childId)
+    const guidance = userTexts(persisted.events)
+    expect(persisted.events.some(event => event.type === 'user/message'
+      && event.data.content.some(block => block.type === 'text'
+        && block.text.includes('it will be delivered to your parent automatically when you finish.')))).toBe(true)
+    expect(guidance).toEqual(['child task'])
+    const received = parent.session.snapshotEvents().flatMap(event => event.type === 'agent/inbox/spliced' ? event.data.inserted : [])
+    const progress = received.filter(input => input.source.kind === 'agent-message')
+    expect(progress).toHaveLength(1)
+    expect(progress[0]!.source).toMatchObject({ kind: 'agent-message', senderSessionId: started.childId })
+    expect(progress[0]!.content).toEqual([
+      { type: 'text', text: `Agent ${started.childId} sent a message: ` },
+      { type: 'text', text: 'found the cause; applying the fix' },
+    ])
+    const results = received.filter(input => input.source.kind === 'subagent-settled')
+    expect(results).toHaveLength(1)
+    expect(results[0]!.source).toMatchObject({ kind: 'subagent-settled', senderSessionId: started.childId })
+    expect(results[0]!.content).toEqual([
+      { type: 'text', text: `Background subagent ${started.childId} finished and will do no further work unless you send it more.` },
+      { type: 'text', text: 'Its closing message:' },
+      { type: 'text', text: 'final result with validation' },
+    ])
+    expect(adapter.requests).toHaveLength(2)
+  })
+
+  it('reports a failed request with no pending wake instead of retrying it', async () => {
+    const { ctx, parent, adapter } = await setup([
+      [{ type: 'finish', reason: { kind: 'error', failure: { message: 'WebSocket closed', code: 'TRANSPORT' } } }],
+    ])
+    cleanups.unshift(() => ctx.fiber.dispose())
+    parkParent(ctx, parent)
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await waitNoActivation(ctx, started.childId)
+    await parent.whenIdle()
+
+    expect(adapter.requests).toHaveLength(1)
+    const notices = parent.session.snapshotEvents().flatMap(event => event.type === 'agent/inbox/spliced'
+      ? event.data.inserted.filter(input => input.source.kind === 'subagent-settled') : [])
+    expect(notices).toHaveLength(1)
+    expect(notices[0]!.content).toEqual([
+      { type: 'text', text: `Background subagent ${started.childId} failed before it finished.` },
+      { type: 'text', text: 'It left no closing message.' },
+    ])
+    const persisted = await loadStoredSession(ctx.sessionPersistence, started.childId)
+    expect(persisted.events.filter(event => event.type === 'turn/end')).toMatchObject([
+      { data: { reason: { kind: 'error', error: { code: 'TRANSPORT' } } } },
+    ])
+  })
+
+  it.each(['queue', 'steer'] as const)('runs accepted %s input after a request fails without another send', async (delivery) => {
+    const releaseFailure = Promise.withResolvers<undefined>()
+    const adapter = new GatedAdapter([
+      { chunks: [{ type: 'finish', reason: { kind: 'error', failure: { message: 'WebSocket closed', code: 'TRANSPORT' } } }], gate: releaseFailure.promise },
+      { chunks: textResponse('recovered answer') },
+      { chunks: textResponse('continued answer') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    cleanups.unshift(() => ctx.fiber.dispose())
+    cleanups.unshift(async () => { releaseFailure.resolve(undefined) })
+    parkParent(ctx, parent)
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(1) })
+    const child = ctx.agents.get(started.childId)!
+
+    const accepted = await humanPrompt(ctx, parent, child.id, 'accepted during request', delivery)
+    expect([...child.inbox.nextTurn, ...child.inbox.nextStep].map(input => input.id)).toEqual([accepted.messageId])
+    releaseFailure.resolve(undefined)
+    await child.whenIdle()
+
+    expect(adapter.requests).toHaveLength(2)
+    expect(userTexts(child.session.snapshotEvents())).toEqual(['child task', 'accepted during request'])
+    expect(child.session.snapshotEvents().flatMap(event => event.type === 'turn/end' ? [event.data.reason.kind] : []))
+      .toEqual(['error', 'completed'])
+    await waitNoActivation(ctx, child.id)
+    const notices = parent.session.snapshotEvents().flatMap(event => event.type === 'agent/inbox/spliced'
+      ? event.data.inserted.filter(input => input.source.kind === 'subagent-settled') : [])
+    expect(notices).toHaveLength(1)
+    expect(notices[0]!.content).toContainEqual({ type: 'text', text: 'recovered answer' })
+
+    await ctx.subagents.sendMessage(parent, child.id, message('continue later'), { signal: testSignal })
+    await waitNoActivation(ctx, child.id)
+    const persisted = await loadStoredSession(ctx.sessionPersistence, child.id)
+    expect(userTexts(persisted.events).filter(text => text === 'accepted during request')).toHaveLength(1)
+    expect(persisted.events.filter(event => event.type === 'user/message' && event.data.id === accepted.messageId))
+      .toHaveLength(1)
+    expect(adapter.requests).toHaveLength(3)
+  })
+
   it('tells the parent what the child finished with, without being asked', async () => {
     const { ctx, parent } = await setup([textResponse('the answer'), textResponse('parent ack')])
     const started = await ctx.subagents.startContinuable(startSpec(parent))

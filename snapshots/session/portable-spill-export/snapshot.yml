@@ -1,0 +1,12 @@
+version: 1
+scenario: portable-spill-export
+profile: headless
+composition: portable-spill-export
+recording: authored
+header:
+  class: portable-spill-export
+  pin: true
+replay:
+  override: true
+workspace:
+  final: true

@@ -1,5 +1,9 @@
 - banner:
   - navigation "Session hierarchy": "Run two shell commands: wait"
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
+    - text: "· Recorded failure: ABORTED_BEFORE_DISPATCH"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

@@ -81,12 +81,20 @@
 - text: 此主机没有可用的桌面，无法使用外部程序打开文件或文件夹；文件仍可在侧边栏预览
 - button "在侧边栏预览 intro.md"
 - text: intro.md 标题已改为「项目说明」
+- link "已保存副本 · 下载":
+  - /url: api/present.download?sessionId=session-{{uuid}}&seq=33&index=0
 - button "在侧边栏预览 src/util.ts"
 - text: util.ts 新增 add 两数相加函数
+- link "已保存副本 · 下载":
+  - /url: api/present.download?sessionId=session-{{uuid}}&seq=33&index=1
 - button "在侧边栏预览 app.local"
 - text: app.local 新增配置文件，内容 mode=demo
+- link "已保存副本 · 下载":
+  - /url: api/present.download?sessionId=session-{{uuid}}&seq=33&index=2
 - button "在侧边栏预览 notes.txt"
 - text: notes.txt 末尾追加了 done 一行
+- link "已保存副本 · 下载":
+  - /url: api/present.download?sessionId=session-{{uuid}}&seq=33&index=3
 - button "复制"
 - button "好的回答"
 - button "有问题的回答"

@@ -67,6 +67,16 @@ afterEach(() => {
 })
 
 describe('AUD-09 quality report', () => {
+  it.each(['TEST_TIMED_OUT', 'OUTPUT_LIMIT_EXCEEDED'] as const)('accepts an executed preflight blocked by %s', (code) => {
+    const input: QualityPreflight = { schemaVersion: 1, auditId: 'audit-1', revision, checks: [
+      { id: 'executed', result: { status: 'BLOCKED', category: 'execution', executed: true,
+        issues: [{ code, subject: 'node', remedy: 'Inspect incomplete execution evidence.' }], currentSources: [] } },
+    ] }
+    expect(buildQualityReport(corpus(), reconciliation(), input).preflight).toMatchObject({
+      blockedCount: 1, passedCount: 0, failures: [{ id: 'executed', status: 'BLOCKED', category: 'execution' }],
+    })
+  })
+
   it('requires raw child Sessions before a closed report becomes resolved', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'dsh-quality-raw-'))
     directories.push(directory)
@@ -233,6 +243,7 @@ describe('AUD-09 quality report', () => {
   it('recomputes the recorded keyless candidate from child reports and preflight results', () => {
     const root = resolve('snapshots/session/audit-evidence-reconciliation')
     const records = resolve('scripts/audit-evidence/fixtures')
+    const historicalRoot = join(records, 'candidate-keyless-recording')
     const read = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'))
     const sourceRevision = createHash('sha256')
     for (const name of ['a24-03.test.ts', 'a24-03.ts', 'a24-07.ts']) {
@@ -270,9 +281,12 @@ describe('AUD-09 quality report', () => {
       }
       return value as CandidateEvent
     }
-    const snapshots = ['session.v4.jsonl', 'session.1.v4.jsonl', 'session.2.v4.jsonl']
+    const snapshotFiles = ['session.v4.jsonl', 'session.1.v4.jsonl', 'session.2.v4.jsonl']
+    const snapshots = snapshotFiles
       .map(name => readFileSync(join(root, name), 'utf8').trimEnd().split('\n').map(parseEvent))
-    const snapshotHeaders = snapshots.map(events => events[0]?.createdAt)
+    const historicalSnapshots = snapshotFiles
+      .map(name => readFileSync(join(historicalRoot, name), 'utf8').trimEnd().split('\n').map(parseEvent))
+    const snapshotHeaders = historicalSnapshots.map(events => events[0]?.createdAt)
     if (snapshotHeaders.some(timestamp => typeof timestamp !== 'number')) throw new Error('missing snapshot creation time')
     const rawParent = rawCorpus.sessions.find(item => item.role === 'parent')
     const rawChildren = rawCorpus.sessions.filter(item => item.role === 'child')
@@ -282,9 +296,9 @@ describe('AUD-09 quality report', () => {
     expect(rawChildren.every(item => item.parentSessionId === rawParent?.sessionId)).toBe(true)
     expect(recordingLink.revision).toBe(revisionHash)
     expect(recordingLink.sessions.map(item => item.snapshotFile))
-      .toEqual(['session.v4.jsonl', 'session.1.v4.jsonl', 'session.2.v4.jsonl'])
+      .toEqual(snapshotFiles.map(name => `candidate-keyless-recording/${name}`))
     for (const link of recordingLink.sessions) {
-      const bytes = readFileSync(join(root, link.snapshotFile))
+      const bytes = readFileSync(join(records, link.snapshotFile))
       expect(createHash('sha256').update(bytes).digest('hex')).toBe(link.snapshotSha256)
       const rawSession = rawCorpus.sessions.find(item => item.sessionId === link.rawSessionId)
       expect(rawSession).toMatchObject({ sha256: link.rawSessionSha256, createdAt: link.createdAt, role: link.role })
@@ -296,6 +310,7 @@ describe('AUD-09 quality report', () => {
         !('content' in writeArgs) || typeof writeArgs.content !== 'string') throw new Error('invalid linked write')
       expect(writeArgs.file_path).toBe(link.write.file)
       expect(createHash('sha256').update(writeArgs.content).digest('hex')).toBe(link.write.contentSha256)
+      expect(JSON.parse(writeArgs.content)).toEqual(read(join(root, 'workspace.expected', link.write.file)))
     }
     for (const [index, name] of ['infra.json', 'web.json'].entries()) {
       const write = snapshots[index + 1]?.find(event => event.type === 'tool/call' && event.data?.name === 'write')

@@ -18,9 +18,12 @@
  * @module @deepseek-ai/dsh-session-snapshot/suite
  */
 
-import { readFile, readdir, writeFile } from 'node:fs/promises'
+import { lstat, readFile, readdir, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { resolveExampleMode } from '@deepseek-ai/dsh-loader-smoke'
+import { assertFreshRuntimeAuditIdentity } from './runtime-audit.ts'
+import { verifyRuntimeAuditOracle, withRuntimeAuditOracle } from './runtime-audit-oracle.ts'
 import { isSurfaceEligibleType } from '@deepseek-ai/dsh-session/surface'
 import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import { describe, expect, it } from 'vitest'
@@ -57,6 +60,23 @@ const SYSTEM_PROMPT_SNAPSHOT = 'system-prompt.expected.md'
 
 /** The structured tool-schema snapshot beside its owning header pin. */
 const TOOL_SCHEMAS_SNAPSHOT = 'tool-schemas.expected.json'
+
+/** Write an owned sidecar or verify a borrowed symbolic-link target without changing it.
+ * @param path Sidecar path; symbolic links refer to another scenario's read-only output.
+ * @param content Complete normalized sidecar expected from the current scenario.
+ * @returns Resolves after writing the owned file or verifying the borrowed bytes; mismatches reject.
+ */
+export async function writeSnapshotSidecar(path: string, content: string): Promise<void> {
+  const entry = await lstat(path).catch((error: unknown) => {
+    if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
+    return undefined
+  })
+  if (entry?.isSymbolicLink()) {
+    expect(await readFile(path, 'utf8'), `borrowed sidecar differs: ${path}`).toBe(content)
+    return
+  }
+  await writeFile(path, content)
+}
 
 /** Return the dedicated tool-schema sidecar for one child fixture index. */
 function childToolSchemasSnapshot(index: number): string {
@@ -280,6 +300,11 @@ export interface SnapshotSuiteOptions {
    * caller owns; `pwshOnly` scenarios skip when this is not true).
    */
   hasPwsh?: boolean
+  /** Observe the named profile's public entry immediately before each subprocess starts.
+   * Test-only protocol fixtures may omit this because they do not run a Harness profile.
+   * @returns The independently observed runtime identity expected in each new persisted Session.
+   */
+  observeRuntimeIdentity?: () => object
 }
 
 /** One scenario's generated claim on a shared snapshot file. */
@@ -1328,6 +1353,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
         // and refresh never write or compare a current-writer session for it.
         const comparesLog = scenario.comparesLog ?? (scenario.hasModelTurn
           && manifest.sessionFormat === undefined)
+        const expectedRuntimeIdentity = options.observeRuntimeIdentity?.()
         const result = await runScenario(input, {
           agent,
           mode: childMode,
@@ -1347,6 +1373,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
 
         reconcileCatalogCreationTimes(result.sessionLogs.map(log => log.content), 'validate')
         for (const log of result.sessionLogs) {
+          if (expectedRuntimeIdentity !== undefined) assertFreshRuntimeAuditIdentity(log.content, expectedRuntimeIdentity)
           expect(unknownToolCallIds(log.content), `session ${log.id}: snapshot scenarios must not accept UNKNOWN_TOOL`)
             .toEqual([])
         }
@@ -1361,6 +1388,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
           ],
           cwd: result.cwd,
           cwdAliases: result.cwdAliases,
+          repositoryRoot: dirname(agent.tsconfigPath),
         }
 
         const childSchemaPins = new Set(scenario.pinsChildToolSchemas ?? [])
@@ -1397,8 +1425,8 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
               existingFixtures[index] as string,
               refreshReplacements,
               ctx,
-            ))))
-            : result.sessionLogs.map(log => scrubSessionSnapshot(portableFixture(log.content)))
+            )), ctx))
+            : result.sessionLogs.map(log => scrubSessionSnapshot(portableFixture(log.content), ctx))
           const outputFixtures = redactSessionSnapshotIds(stabilizeFixtureMessageIds(
             reconcileCatalogCreationTimes(freshFixtures, 'preserve-headers'), existingFixtures,
           ))
@@ -1415,7 +1443,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
             const promptSource = promptSourceByClass.get(classOf(scenario)) ?? scenario
             const promptPath = join(snapshotsDir, promptSource.name, SYSTEM_PROMPT_SNAPSHOT)
             claimSharedSnapshot(promptClaims, promptPath, scenario.name, promptSnapshot)
-            await writeFile(promptPath, promptSnapshot)
+            await writeSnapshotSidecar(promptPath, promptSnapshot)
 
             const schemaSets = toolSchemasFrom(pinningHeaderPayloads(primary.content, ctx))
             expect(schemaSets.length, `${mode} produced a tool-schema count that differs from 1 + expectedHeaderChanges`)
@@ -1428,7 +1456,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
             const schemaSource = schemaSourceByClass.get(classOf(scenario)) ?? scenario
             const schemaPath = join(snapshotsDir, schemaSource.name, TOOL_SCHEMAS_SNAPSHOT)
             claimSharedSnapshot(schemaClaims, schemaPath, scenario.name, toolSchemasSnapshot)
-            await writeFile(schemaPath, toolSchemasSnapshot)
+            await writeSnapshotSidecar(schemaPath, toolSchemasSnapshot)
           }
           for (const index of childSchemaPins) {
             const log = result.sessionLogs[index]
@@ -1440,7 +1468,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
             ))
             expect(schemaSets.length, `${mode}: child ${index} produced no tool schemas to snapshot`)
               .toBeGreaterThan(0)
-            await writeFile(join(dir, childToolSchemasSnapshot(index)), formatToolSchemasSnapshot(
+            await writeSnapshotSidecar(join(dir, childToolSchemasSnapshot(index)), formatToolSchemasSnapshot(
               schemaSets[0] as unknown[],
               schemaSets.slice(1),
             ))
@@ -1452,7 +1480,7 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
             const prompts = normalizedSystemPrompts((log as HarvestedLog).content, ctx)
             expect(prompts.length, `${mode}: child ${index} produced no system prompt to snapshot`)
               .toBeGreaterThan(0)
-            await writeFile(
+            await writeSnapshotSidecar(
               join(dir, childSystemPromptSnapshot(index)),
               formatSystemPromptSnapshot(prompts[0] as string),
             )
@@ -1478,9 +1506,15 @@ export function defineAcpSnapshotSuite(options: SnapshotSuiteOptions): void {
           const fixtureCtx: NormalizeContext = {
             sessionIds: fixtureContexts.flatMap(context => context.sessionIds),
             cwd: (fixtureContexts[0] as NormalizeContext).cwd,
+            repositoryRoot: dirname(agent.tsconfigPath),
           }
           const actualSnapshots = normalizeSessionSnapshots(harvested, ctx, { nativeWriterOutput: true })
-          const expectedSnapshots = normalizeSessionSnapshots(fixtures, fixtureCtx, { nativeWriterOutput: true })
+          const runtimeOracle = await verifyRuntimeAuditOracle(
+            dir, resolveExampleMode() === 'src' ? 'source' : 'artifact', actualSnapshots, mode !== 'replay',
+          )
+          const expectedSnapshots = withRuntimeAuditOracle(
+            normalizeSessionSnapshots(fixtures, fixtureCtx, { nativeWriterOutput: true }), runtimeOracle,
+          )
           for (const [index, actual] of actualSnapshots.entries()) {
             expect(actual, `${fixtureFiles[index]} mismatch`).toEqual(expectedSnapshots[index])
           }

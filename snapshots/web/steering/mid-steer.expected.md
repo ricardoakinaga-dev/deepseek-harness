@@ -1,5 +1,9 @@
 - banner:
   - navigation "Session hierarchy": Use the ask_user_question tool to
+  - group "Session activity":
+    - text: Waiting for a response ·
+    - time: "Last recorded: tool called, {{duration}} ago"
+    - text: "· Outstanding tools: ask_user_question"
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"

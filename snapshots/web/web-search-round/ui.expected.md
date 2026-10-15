@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Use web_search once with queries
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"

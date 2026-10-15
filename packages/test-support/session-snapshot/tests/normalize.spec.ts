@@ -1,8 +1,6 @@
-import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import { prepareSessionSnapshotFixtureForComparison } from '@deepseek-ai/dsh-llm-replay'
-import { stabilizeRefreshLog } from '../src/suite.ts'
 import {
   type NormalizeContext,
   extractSnapshotSpillPaths,
@@ -28,187 +26,23 @@ const ctx: NormalizeContext = {
   cwd: '/tmp/acp-snap-cwd-abc123',
 }
 
-describe('runtime and skill metadata normalization', () => {
-  const jsonl = (...records: object[]) => records.map(record => JSON.stringify(record)).join('\n') + '\n'
-  const identity = {
-    version: '0.2.0', nodeVersion: 'v24.20.0', platform: 'linux', arch: 'x64',
-    launcher: { kind: 'source', sha256: 'a'.repeat(64) },
-    source: { revision: 'b'.repeat(40), dirty: true },
-  }
-  const configuration = [{ id: 'policy', values: { effort: 'high', version: '0.2.0', digest: 'a'.repeat(64) } }]
-  const audit = (runtime: unknown) => ({
-    type: 'runtime/audit', data: { reason: 'initial', runtime, profile: 'headless', startedBundles: ['base'], configuration },
-  })
-  const skill = (text: string, digest = createHash('sha256').update(JSON.stringify(['filesystem', text])).digest('hex')) => ({
-    type: 'tool/result', data: {
-      message: { isError: false, content: [{ type: 'text', text }] },
-      meta: { kind: 'skill-load', name: 'example', provider: 'filesystem', digest,
-        instructionCharacters: Array.from(text).length, alreadyActive: false },
-    },
-  })
-
-  const parseSkill = (line: string) => JSON.parse(line) as ReturnType<typeof skill>
-
-  it('normalizes initial runtime identity without erasing configuration, kind or availability', () => {
-    const output = normalizeSessionLog(jsonl(audit(identity)), ctx)
-    expect(JSON.parse(output)).toEqual(audit({
-      version: '{{runtime:version}}', nodeVersion: '{{runtime:nodeVersion}}',
-      platform: '{{runtime:platform}}', arch: '{{runtime:arch}}',
-      launcher: { kind: 'source', sha256: '{{runtime:launcherSha256}}' },
-      source: { revision: '{{runtime:sourceRevision}}', dirty: false },
-    }))
-    const another = { ...identity, version: '9', nodeVersion: 'v22', platform: 'darwin', arch: 'arm64',
-      launcher: { kind: 'source', sha256: 'c'.repeat(64) }, source: { revision: 'd'.repeat(40), dirty: false } }
-    expect(normalizeSessionLog(jsonl(audit(another)), ctx)).toBe(output)
-    const artifact = { ...identity, launcher: { kind: 'artifact', sha256: null }, source: null }
-    expect((JSON.parse(normalizeSessionLog(jsonl(audit(artifact)), ctx)) as ReturnType<typeof audit>).data.runtime).toMatchObject({
-      launcher: { kind: 'artifact', sha256: null }, source: null,
-    })
-    expect(normalizeSessionLog(jsonl(audit(null)), ctx)).toBe(jsonl(audit(null)))
-    expect(normalizeSessionLog(output, ctx)).toBe(output)
-  })
-
-  it('retains runtime lookalikes, reload payloads, missing fields and unexpected types', () => {
-    const raw = jsonl(
-      { type: 'custom/event', data: audit(identity).data },
-      { type: 'runtime/audit', data: { ...audit(identity).data, reason: 'reload' } },
-      { type: 'runtime/audit', data: null },
-      audit({ version: null, nodeVersion: 24, source: { dirty: 'yes', revision: 123 }, launcher: { sha256: 123 } }),
-      audit({}), audit([]),
-    )
-    expect(normalizeSessionLog(raw, ctx)).toBe(raw)
-  })
-
-  it('writes portable runtime identity through the shared canonical and retained-writer scrubber', () => {
-    const user = { type: 'user/message', data: { content: [{ type: 'text', text: identity.source.revision }], runtime: identity } }
-    const reload = { type: 'runtime/audit', data: { reason: 'reload', configuration } }
-    const raw = jsonl({ type: 'session', id: 'owner', cwd: ctx.cwd }, audit(identity), user, reload, audit(null))
-    const stable = stabilizeRefreshLog(raw, raw, [], ctx)
-    const output = scrubSessionSnapshot(tokenizeSessionFixtureCwd(stable))
-    const rows = output.trim().split('\n').map(line => JSON.parse(line) as ReturnType<typeof audit>)
-    expect(rows[1]?.data.runtime).toEqual({
-      version: '{{runtime:version}}', nodeVersion: '{{runtime:nodeVersion}}',
-      platform: '{{runtime:platform}}', arch: '{{runtime:arch}}',
-      launcher: { kind: 'source', sha256: '{{runtime:launcherSha256}}' },
-      source: { revision: '{{runtime:sourceRevision}}', dirty: false },
-    })
-    expect(rows[1]?.data.configuration).toEqual(configuration)
-    expect(rows[2]).toEqual(user)
-    expect(rows[3]).toEqual(reload)
-    expect(rows[4]).toEqual(audit(null))
-    expect(scrubSessionSnapshot(output)).toBe(output)
-  })
-
-  it('preserves digest equality, changed instructions and the distinct reuse digest', () => {
-    const first = skill('full instructions')
-    const changed = skill('different instructions')
-    const reused = skill('Already loaded.', 'c'.repeat(64))
-    reused.data.meta.alreadyActive = true
-    reused.data.meta.instructionCharacters = 0
-    const raw = jsonl(first, first, changed, reused)
-    const output = normalizeSessionLog(raw, ctx)
-    const rows = output.trim().split('\n').map(parseSkill)
-    expect(rows.map(row => row.data.meta.digest)).toEqual([
-      '{{skillDigest:1}}', '{{skillDigest:1}}', '{{skillDigest:2}}', '{{skillDigest:3}}',
-    ])
-    expect(rows[3]!.data.meta).toMatchObject({ alreadyActive: true, instructionCharacters: 0 })
-    expect(normalizeSessionLog(output, ctx)).toBe(output)
-  })
-
-  it('shares digest identity across parent and child logs and reserves existing tokens', () => {
-    const first = skill('parent')
-    const second = skill('child')
-    const logs = [
-      jsonl({ type: 'session', id: 'parent' }, first, second),
-      jsonl({ type: 'session', id: 'child' }, second, first),
+describe('owned spill capture locators', () => {
+  it('normalizes only a capture under the observed private root and retains unrelated paths', () => {
+    const root = '/tmp/owned-spill-abc'
+    const locator = `${root}/session-${'a'.repeat(12)}/${'b'.repeat(12)}-grep-results.txt`
+    const rows = [
+      { type: 'session', version: SESSION_FORMAT_VERSION },
+      { type: 'spill/artifact', data: { locator, attachment: { name: 'grep-results.txt' } } },
+      { type: 'spill/artifact', data: { locator: locator.replace(root, '/tmp/other-spill') } },
+      { type: 'user/message', data: { locator, content: locator } },
     ]
-    const output = normalizeSessionSnapshots(logs, ctx)
-    expect(output[0]?.match(/\{\{skillDigest:\d+\}\}/g)).toEqual(['{{skillDigest:1}}', '{{skillDigest:2}}'])
-    expect(output[1]?.match(/\{\{skillDigest:\d+\}\}/g)).toEqual(['{{skillDigest:2}}', '{{skillDigest:1}}'])
-    expect(normalizeSessionSnapshots(output, ctx)).toEqual(output)
-    const mixed = normalizeSessionLog(jsonl(first, skill('retained', '{{skillDigest:1}}')), ctx)
-    expect(mixed.match(/\{\{skillDigest:\d+\}\}/g)).toEqual(['{{skillDigest:2}}', '{{skillDigest:1}}'])
-    expect(normalizeSessionLog(mixed, ctx)).toBe(mixed)
-  })
-
-  it.each(['/tmp/a-long-workspace', String.raw`C:\Users\runner\Temp\workspace`])(
-    'adjusts measured Unicode character counts after normalizing cwd %s', (cwd) => {
-      const context = { sessionIds: [], cwd }
-      const rawText = `<skill_content>😀 ${cwd}/SKILL.md\nread ${cwd}/next</skill_content>`
-      const raw = jsonl(skill(rawText))
-      const output = normalizeSessionLog(raw, context)
-      const result = parseSkill(output).data
-      expect(result.message.content[0]!.text).toBe('<skill_content>😀 {{cwd}}/SKILL.md\nread {{cwd}}/next</skill_content>')
-      expect(result.meta.instructionCharacters).toBe(Array.from(result.message.content[0]!.text).length)
-      expect(result.meta.instructionCharacters).not.toBe(result.message.content[0]!.text.length)
-      expect(normalizeSessionLog(output, context)).toBe(output)
-      const portable = tokenizeSessionFixtureCwd(jsonl({ type: 'session', cwd }, skill(rawText)))
-      const saved = parseSkill(portable.trim().split('\n')[1]!).data
-      expect(saved.meta.instructionCharacters).toBe(Array.from(saved.message.content[0]!.text).length)
-      expect(tokenizeSessionFixtureCwd(portable)).toBe(portable)
-    },
-  )
-
-  it('measures all text blocks together and leaves an incorrect count visible', () => {
-    const first = `${ctx.cwd}/a 😀`
-    const second = `\n${ctx.cwd}/b`
-    const event = skill(first + second)
-    event.data.message.content = [{ type: 'text', text: first }, { type: 'text', text: second }]
-    const result = parseSkill(normalizeSessionLog(jsonl(event), ctx)).data
-    expect(result.meta.instructionCharacters).toBe(Array.from('{{cwd}}/a 😀\n{{cwd}}/b').length)
-    event.data.meta.instructionCharacters += 1
-    const raw = jsonl(event)
-    expect(parseSkill(normalizeSessionLog(raw, ctx)).data.meta.instructionCharacters).toBe(event.data.meta.instructionCharacters)
-    const portable = tokenizeSessionFixtureCwd(jsonl({ type: 'session', cwd: ctx.cwd }, event))
-    expect(parseSkill(portable.trim().split('\n')[1]!).data.meta.instructionCharacters).toBe(event.data.meta.instructionCharacters)
-  })
-
-  it.each([0, 1])('preserves measured counts through refresh path replacement with count error %i', (error) => {
-    const freshText = `<skill_content>😀 ${ctx.cwd}/office-skills/office-pptx</skill_content>`
-    const fixtureText = freshText.replaceAll(ctx.cwd, '{{cwd}}')
-    const event = skill(freshText)
-    event.data.meta.instructionCharacters += error
-    const fresh = jsonl({ type: 'session', id: 'owner', cwd: ctx.cwd }, event)
-    const existing = jsonl({ type: 'session', id: 'owner', cwd: '{{cwd}}' }, skill('previous instructions'))
-    const stable = stabilizeRefreshLog(fresh, existing, [{ from: ctx.cwd, to: '{{cwd}}' }], ctx)
-    const output = tokenizeSessionFixtureCwd(stable)
-    const result = parseSkill(output.trim().split('\n')[1]!).data
-    expect(result.message.content[0]!.text).toBe(fixtureText)
-    expect(result.meta.instructionCharacters).toBe(error === 0
-      ? Array.from(fixtureText).length : event.data.meta.instructionCharacters)
-    expect(tokenizeSessionFixtureCwd(output)).toBe(output)
-  })
-
-  it('preserves unmeasurable, reused and failed counts plus missing or malformed digest values', () => {
-    const event = skill(`${ctx.cwd}/instructions`)
-    const variants = [
-      { ...event.data, message: { content: [{ type: 'image' }] } },
-      { ...event.data, message: { content: [{ type: 'text', text: 12 }] } },
-      { ...event.data, message: null },
-      { ...event.data, message: { ...event.data.message, isError: true } },
-      { ...event.data, meta: { ...event.data.meta, alreadyActive: true } },
-      { ...event.data, meta: { ...event.data.meta, digest: null } },
-      { ...event.data, meta: { ...event.data.meta, digest: 'bad digest' } },
-      { ...event.data, meta: { kind: 'skill-load', alreadyActive: true, instructionCharacters: 0 } },
-    ]
-    const output = normalizeSessionLog(jsonl(...variants.map(data => ({ type: 'tool/result', data }))), ctx)
-    const metas = output.trim().split('\n').map(line => parseSkill(line).data.meta)
-    for (const meta of metas.slice(0, 5)) expect(meta.instructionCharacters).toBe(event.data.meta.instructionCharacters)
-    expect(metas[5]!.digest).toBeNull()
-    expect(metas[6]!.digest).toBe('bad digest')
-    expect(metas[7]).not.toHaveProperty('digest')
-    expect(normalizeSessionLog(output, ctx)).toBe(output)
-  })
-
-  it('does not redact ordinary text, other metadata, or skill-load lookalikes', () => {
-    const event = skill('body', 'a'.repeat(64))
-    const raw = jsonl(
-      { type: 'custom/event', data: event.data },
-      { type: 'tool/result', data: { meta: { ...event.data.meta, kind: 'other' } } },
-      { type: 'tool/result', data: { meta: null, presentationMeta: event.data.meta } },
-      { type: 'assistant/message', data: { text: event.data.meta.digest, meta: event.data.meta } },
-    )
-    expect(normalizeSessionLog(raw, ctx)).toBe(raw)
+    const log = rows.map(row => JSON.stringify(row)).join('\n')
+    const scrubbed = scrubSessionSnapshot(log, { spillRoot: root }).split('\n').map(line => JSON.parse(line) as { data: { locator: string } })
+    expect(scrubbed[1]!.data.locator).toBe('{{spillLocator:grep-results.txt}}')
+    expect(scrubbed[2]).toEqual(rows[2])
+    expect(scrubbed[3]).toEqual(rows[3])
+    expect(normalizeSessionLog(log, { ...ctx, spillRoot: root })).toContain('"locator":"{{spillLocator:grep-results.txt}}"')
+    expect(scrubSessionSnapshot(log)).toContain(locator)
   })
 })
 

@@ -43,12 +43,16 @@ The policy plugin is optional: without it the tools run against the bare provide
 
 | Tool | Arguments | Behavior |
 |---|---|---|
-| `read` | `file_path`, `offset?`, `limit?` | Line-numbered UTF-8 content with a pagination footer; `offset` is 1-based and `limit` defaults to and caps at the configured `readLimit` |
+| `read` | `file_path`, `offset?`, `column?`, `limit?` | Line-numbered UTF-8 content with a pagination footer; `offset` is 1-based and `limit` defaults to and caps at the configured `readLimit` |
 | `read_image` | `file_path` | Reads and persists a PNG/JPEG/WebP/GIF source; an extension-less path (normalized attachment object paths included) is identified from its file signature; normalization can downscale it before the next model request, so the model need not create a thumbnail first |
 | `write` | `file_path`, `content` | Creates or fully replaces a file; with the policy plugin, overwriting requires a prior `read` at the unchanged version, creating does not |
 | `edit` | `file_path`, `old_string`, `new_string`, `replace_all?` | Literal replacement requiring a unique match unless `replace_all` is true; with the policy plugin, requires a prior `read` and an unchanged file |
 
 Field names are snake_case to match Claude Code and existing harness tool schemas. Successes return compact envelopes — a read window, an image reference, or a `Created file`/`Updated file` confirmation — and `write`/`edit` derive replayable diff-card metadata for UI presentation.
+
+`column` selects a positive 1-based UTF-16 code-unit position on the first requested line only; later lines start at column 1. It defaults to 1, preserves `offset`/`limit` line pagination, and skips long prefixes without buffering them on the streaming path. `readMaxLineLength` still caps file text per line; truncation names the exact `offset` and next `column`. A cut before a surrogate pair can return fewer units than the cap, and a requested column inside a pair fails. Columns beyond the line fail with `FS_NOT_FOUND`; empty lines and empty files accept column 1 only. Failed column reads emit no present-file observation; successful slices retain the normal version guard for later mutations.
+
+`readMaxBytes` includes column labels, continuation hints, and separators between selected lines; the line-number prefixes, envelope, and serialized structured metadata are additional output. When the ordinary hint exceeds the remaining budget, a shorter slice uses `... [offset=<line>,column=<next>]`. If the first selected line cannot return one complete Unicode character with its metadata, the call fails explicitly and records no present-file observation.
 
 ### Configuration
 
@@ -57,8 +61,8 @@ All keys are optional; the defaults are the shipped read caps.
 | Key | Default | Meaning |
 |---|---|---|
 | `readLimit` | `2000` | Default and maximum lines returned by one `read` call |
-| `readMaxLineLength` | `2000` | Characters kept per line before truncation |
-| `readMaxBytes` | `51200` | Byte cap on one `read` call's selected lines; overflow ends the window with a capped footer |
+| `readMaxLineLength` | `2000` | UTF-16 code units of file text kept per line before truncation |
+| `readMaxBytes` | `51200` | Byte cap on selected line text and continuation hints; byte pressure shortens a slice or ends the window |
 | `readStreamMinSize` | `10485760` | Files at or above this size (or of unknown size) stream instead of loading whole into memory |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-fs) is the exhaustive source for every accepted field and its JSDoc.
@@ -179,7 +183,7 @@ Prefix-stable while the visible tool definitions and order are unchanged. Regist
 
 #### What the model sees
 
-A successful read is exactly `<path><displayPath></path>`, newline, `<type>file</type>`, newline, `<content>`, numbered lines as `<lineNumber>: <text>`, a blank line, one footer, and `</content>`. The footer is exactly `(Output capped. Showing lines <start>-<end>. Use offset=<next> to continue.)`, `(Showing lines <start>-<end> of <total>. Use offset=<next> to continue.)`, or `(End of file - total <total> lines)`. A long line ends exactly `... (line truncated to <max> chars)`. A missing read still returns `FS_NOT_FOUND`, but it records confirmed absence for the calling session; after an externally deleted file is re-read, a retried `write` can safely recreate it through the provider's no-replace guard.
+A successful read is exactly `<path><displayPath></path>`, newline, `<type>file</type>`, newline, `<content>`, numbered lines as `<lineNumber>: <text>`, a blank line, one footer, and `</content>`. The footer is exactly `(Output capped. Showing lines <start>-<end>. Use offset=<next> to continue.)`, `(Showing lines <start>-<end> of <total>. Use offset=<next> to continue.)`, or `(End of file - total <total> lines)`. A long line normally ends exactly `... (line truncated to <max> UTF-16 units; use offset=<line>, column=<next> to continue)`; byte pressure uses the compact `... [offset=<line>,column=<next>]` hint and can shorten the payload. A sliced line starts with `(column <column>) ` after its line-number prefix; persisted read-card text carries the same label and continuation, with optional `column`/`nextColumn` fields on each line. A cap too small for one surrogate pair fails explicitly. A missing read still returns `FS_NOT_FOUND`, but it records confirmed absence for the calling session; after an externally deleted file is re-read, a retried `write` can safely recreate it through the provider's no-replace guard.
 
 #### Token effect
 
@@ -244,6 +248,7 @@ These limits define when the tool suite is a poor fit or needs special operation
 - **Object paths re-enter source admission** — `read_image` on a normalized attachment object re-admits its bytes as a new source, so a deployment whose `maxImageBytes`/`maxMessageImageBytes` sit below the normalized-image byte budget can refuse an object path that `ctx.attachments.readImage` still serves; shipped defaults keep the normalized budget (4 MiB) far under the source caps (20 MiB).
 - **Inline image preview rides the UI composition** — the tool-result card renders the image through the browser's `tool.call.images` slot, which the attachment presentation plugin fills; a UI without that plugin shows the result's envelope text instead.
 - **No attachment-region tool** — an agent may crop an image through another available tool when it has a filesystem path; a pasted or dragged image without a path cannot be re-read at higher resolution.
+- **Column reads scan the whole file** — each call counts all lines, including skipped prefixes and the suffix after the selected window; repeated column pages repeat that I/O and are not random-access reads.
 - **No timeout surface** — `read`/`write`/`edit` take no timeout argument and declare no timeout budget; cancellation rides `exec.signal` only ([provider rationale](../README.md)).
 
 **Runtime invariant:** No companion is published. This model-facing adapter has no independent lifecycle stream; execution relations are owned by the capability seam it calls.

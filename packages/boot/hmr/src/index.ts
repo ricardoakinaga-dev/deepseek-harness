@@ -33,6 +33,12 @@ declare module '@deepseek-ai/cordis' {
      * @param reloads Replaced plugins and their module locations.
      */
     'hmr/reload'(reloads: Map<Plugin, Reload>): void
+    /** Watched Include or module attempts and their lifecycle work, including removed fibers, have settled.
+     * Reading, activation or rollback may have failed; listeners must inspect actual active entries.
+     * @mode emit
+     * @param filenames Absolute Include and module paths processed by this attempt.
+     */
+    'hmr/config-settled'(filenames: readonly string[]): void
   }
 }
 
@@ -271,6 +277,7 @@ class Hmr extends Service {
         const batch = [...changed]
         changed.clear()
         const includes = new Set<Include>()
+        const previousFibers = [...loader.entries()].flatMap(entry => entry.fiber === undefined ? [] : [entry.fiber])
         let fullReload = false
         for (const path of batch) {
           const filename = canonicalPath(resolve(watchBaseDir, path))
@@ -295,11 +302,21 @@ class Hmr extends Service {
           loader.exit()
           return
         }
-        for (const include of includes) await include.refresh()
-        if (this.stashed.size > 0) {
-          try { await this.partialReload() } finally { this.stashed.clear() }
+        const filenames = new Set([...includes].map(include => include.filename))
+        try {
+          for (const include of includes) await include.refresh()
+          if (this.stashed.size > 0) {
+            for (const url of this.stashed) filenames.add(fileURLToPath(url))
+            try { await this.partialReload() } finally { this.stashed.clear() }
+          }
+        } finally {
+          await loader.await()
+          await Promise.allSettled(previousFibers.map(fiber => fiber.await()))
+          await loader.await()
+          if (filenames.size > 0 && !this.closing) {
+            this.ctx.emit('hmr/config-settled', [...filenames])
+          }
         }
-        await loader.await()
       }).catch((error: unknown) => { this.ctx.logger.warn(error) })
     }, this.config.debounce)
     this.watcher.on('change', (path) => { changed.add(path); dispatch() })

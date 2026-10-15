@@ -3,11 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { makeTranslate, RemoteError, sessionSnapshot } from '@deepseek-ai/dsh-client-test-runtime'
 import type {
-  SessionListState, SessionSummary, SessionSnapshot,
+  SessionListState, SessionSummary, SessionSnapshot, SessionProjectionMap,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SubagentAddress, SubagentCatalogRow } from '@deepseek-ai/dsh-subagent/client'
 import type { SubagentAuthorityData } from '@deepseek-ai/dsh-subagent/client'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import {
   SubagentCatalogAction, SubagentHeaderLineage,
@@ -16,6 +16,12 @@ import {
 import { SubagentReadOnlyComposer } from '../src/client/SubagentReadOnlyComposer.tsx'
 import type {} from '../src/client/index.ts'
 import { en, zh } from '../src/client/locales.ts'
+
+declare module '@deepseek-ai/dsh-client-ui-session/client' {
+  interface SessionPendingInteractionMap {
+    'activity-fixture': { readonly key: string; readonly kind: 'activity-fixture'; readonly sessionId: SessionId }
+  }
+}
 
 afterEach(() => {
   cleanup()
@@ -154,6 +160,139 @@ function HeaderCatalog(props: SubagentHeaderLineageProps) {
     </>
   )
 }
+
+type RecordedActivity = SessionProjectionMap['sessionActivity']
+
+function recorded(seq = 0, time = 0): RecordedActivity {
+  return {
+    last: { seq: SessionSeq(seq), time, kind: 'tool/call' },
+    tools: [{ callId: 'read-call' as RecordedActivity['tools'][number]['callId'], name: 'read' }],
+    error: null,
+  }
+}
+
+function activityProps(
+  activity: RecordedActivity | undefined,
+  running: boolean | undefined,
+  options: { waiting?: boolean; stale?: boolean } = {},
+): SubagentCatalogActionProps {
+  const base = props(undefined)
+  const initial = base.useSessions(state => state)
+  const statuses: SessionStatusSnapshot = new Map([[PARENT, {
+    running, completionUnread: false,
+    pendingInteraction: options.waiting ? { key: 'answer', kind: 'activity-fixture', sessionId: PARENT } : undefined,
+  }]])
+  return {
+    ...base,
+    useSessions: select => select({ ...initial, projectionsBySession: {
+      [PARENT]: {
+        values: activity === undefined ? {} : { sessionActivity: activity },
+        state: options.stale ? 'error' : 'idle',
+        error: options.stale ? new RemoteError('gateway/internal', 'disconnected', {}) : null,
+      },
+    } }),
+    useSessionStatus: select => select(statuses),
+  }
+}
+
+describe('Session activity', () => {
+  it('shows current execution and recorded tool names even without children or model prose', () => {
+    render(<SubagentCatalogAction {...activityProps(recorded(), true)} />)
+    const activity = screen.getByRole('group', { name: '会话活动' })
+    expect(activity.tabIndex).toBe(0)
+    expect(activity.textContent).toContain('正在运行')
+    expect(activity.textContent).toContain('待完成工具：read')
+    expect(activity.textContent).toContain('工具调用')
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(activity.querySelector('time')?.dateTime).toBe('1970-01-01T00:00:00.000Z')
+  })
+
+  it('distinguishes an absent projection, an empty own history, and a known inactive session in both locales', () => {
+    const view = render(<SubagentCatalogAction {...activityProps(undefined, undefined)} />)
+    expect(screen.getByRole('group', { name: '会话活动' }).textContent).toBe('当前状态未知 · 活动记录不可用')
+    view.rerender(<SubagentCatalogAction {...activityProps({ last: null, tools: [], error: null }, false)} />)
+    expect(screen.getByRole('group', { name: '会话活动' }).textContent).toBe('当前未运行 · 尚无活动记录')
+    view.rerender(<SubagentCatalogAction {...activityProps(undefined, undefined)} t={makeTranslate(en)} />)
+    expect(screen.getByRole('group', { name: 'Session activity' }).textContent).toBe('Current status unknown · Activity unavailable')
+  })
+
+  it('uses actual pending interactions for waiting and never treats recorded calls as live on cold or failed reads', () => {
+    const view = render(<SubagentCatalogAction {...activityProps(recorded(), true, { waiting: true })} />)
+    let group = screen.getByRole('group', { name: '会话活动' })
+    expect(group.textContent).toContain('等待响应')
+    expect(group.querySelector('[data-state="warning"]')).not.toBeNull()
+    view.rerender(<SubagentCatalogAction {...activityProps(recorded(), false)} />)
+    group = screen.getByRole('group', { name: '会话活动' })
+    expect(group.textContent).toContain('记录中未完成的工具：read')
+    expect(group.textContent).not.toContain('等待响应')
+    view.rerender(<SubagentCatalogAction {...activityProps(recorded(), true, { stale: true })} />)
+    expect(group.textContent).toContain('记录中未完成的工具：read')
+    expect(group.textContent).toContain('刷新失败，记录可能已过时')
+  })
+
+  it('clears a recorded failure when a newer projection replaces it and does not resurrect a removed key from cached hints', () => {
+    const failed: RecordedActivity = { ...recorded(), error: { seq: SessionSeq(0), time: 0, source: 'turn', code: 'OVERLOADED' } }
+    const base = activityProps(failed, false)
+    const state = base.useSessions(value => value)
+    const view = render(<SubagentCatalogAction {...base} />)
+    const group = screen.getByRole('group', { name: '会话活动' })
+    expect(group.textContent).toContain('已记录失败：OVERLOADED')
+    view.rerender(<SubagentCatalogAction {...activityProps({ ...recorded(1), tools: [] }, true)} />)
+    expect(group.textContent).not.toContain('OVERLOADED')
+    view.rerender(<SubagentCatalogAction {...activityProps(undefined, undefined)}
+      useSessions={select => select({ ...state,
+        byId: { ...state.byId, [PARENT]: { ...summary(PARENT, 0), projectionValues: { sessionActivity: failed } } },
+        projectionsBySession: { [PARENT]: { state: 'idle', error: null, values: {} } },
+      })}
+    />)
+    expect(group.textContent).toContain('活动记录不可用')
+    expect(group.textContent).not.toContain('OVERLOADED')
+  })
+
+  it('advances only its display clock, survives a backwards wall clock, clamps future timestamps, and releases the timer', () => {
+    vi.useFakeTimers()
+    const now = 2_000_000_000_000
+    vi.setSystemTime(now)
+    const input = activityProps(recorded(0, now), true)
+    const view = render(<SubagentCatalogAction {...input} />)
+    const group = screen.getByRole('group', { name: '会话活动' })
+    expect(vi.getTimerCount()).toBe(1)
+    act(() => { vi.advanceTimersByTime(2_000) })
+    expect(group.textContent).toContain('2秒前')
+    vi.setSystemTime(now - 10_000)
+    act(() => { vi.advanceTimersByTime(1_000) })
+    expect(group.textContent).toContain('3秒前')
+    view.rerender(<SubagentCatalogAction {...activityProps(recorded(1, now + 60_000), true)} />)
+    expect(group.textContent).toContain('0秒前')
+    expect(group.textContent).not.toContain('-')
+    expect(input.refreshProjection).not.toHaveBeenCalled()
+    view.rerender(<SubagentCatalogAction {...activityProps({ last: null, tools: [], error: null }, false)} />)
+    expect(vi.getTimerCount()).toBe(0)
+    view.unmount()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('shows child activity in the existing tree and releases its clock when the catalog closes', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(10_000)
+    const base = props(catalog({ entries: [{ id: CHILD, mode: 'continuable', label: 'worker', activity: 'running' }] }))
+    const state = base.useSessions(value => value)
+    const live: SessionStatusSnapshot = new Map([[CHILD, { running: true, completionUnread: false, pendingInteraction: undefined }]])
+    const view = render(<SubagentCatalogAction {...base}
+      useSessions={select => select({ ...state,
+        byId: { [CHILD]: { ...summary(CHILD, 0), projectionValues: { sessionActivity: recorded(0, 10_000) } } },
+      })}
+      useSessionStatus={select => select(live)}
+    />)
+    fireEvent.click(screen.getByRole('button', { name: '1 个子智能体，正在运行' }))
+    const row = screen.getByRole('treeitem', { name: /worker.*待完成工具：read/ })
+    act(() => { vi.advanceTimersByTime(2_000) })
+    expect(row.getAttribute('aria-label')).toContain('2秒前')
+    fireEvent.keyDown(screen.getByRole('tree'), { key: 'Escape' })
+    expect(vi.getTimerCount()).toBe(0)
+    view.unmount()
+  })
+})
 
 describe('SubagentHeaderLineage', () => {
   it.each([en, zh])('localizes publication authority and includes published infrastructure tools', (dictionary) => {
@@ -770,7 +909,7 @@ describe('SubagentHeaderLineage', () => {
     fireEvent.click(screen.getByRole('button', { name: '展开 worker 的下级子智能体' }))
 
     expect(deferred.refreshProjection).toHaveBeenCalledWith(CHILD)
-    expect(screen.getByRole('group').getAttribute('aria-busy')).toBe('true')
+    expect(within(screen.getByRole('tree')).getByRole('group').getAttribute('aria-busy')).toBe('true')
     expect(screen.getByText('正在加载子智能体…')).toBeTruthy()
     expect(screen.queryByRole('treeitem', { name: '正在加载子智能体' })).toBeNull()
 
@@ -795,7 +934,7 @@ describe('SubagentHeaderLineage', () => {
       }),
     }, summaries)
     view.rerender(<HeaderCatalog {...ready} />)
-    expect(screen.getByRole('group').getAttribute('aria-busy')).toBeNull()
+    expect(within(screen.getByRole('tree')).getByRole('group').getAttribute('aria-busy')).toBeNull()
     expect(screen.getByRole('treeitem', { name: /indexer/ }).querySelector('[data-state="idle"]')).not.toBeNull()
     expect(screen.getByRole('treeitem', { name: /critic/ }).querySelector('[data-state="ongoing"]')).not.toBeNull()
     expect(screen.queryByText('正在加载子智能体…')).toBeNull()

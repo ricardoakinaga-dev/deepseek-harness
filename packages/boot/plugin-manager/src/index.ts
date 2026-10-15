@@ -134,7 +134,7 @@ function stringField(manifest: object, field: string): string | undefined {
   return typeof value === 'string' ? value : undefined
 }
 
-/** Read the publisher identity the owner allowlists for one package. */
+/** Read a declared publisher, then string author, then the canonical npm @scope. */
 function publisherOf(manifest: object, packageName?: string): string | undefined {
   const dsh = (manifest as { dsh?: unknown }).dsh
   /*! v8 ignore next -- public inspection and installation paths validate that a bundle object exists before publisher identity is read. */
@@ -146,7 +146,7 @@ function publisherOf(manifest: object, packageName?: string): string | undefined
   if (typeof declared === 'string' && declared.trim() !== '') return declared.trim()
   const author = stringField(manifest, 'author')
   if (author !== undefined && author.trim() !== '') return author.trim()
-  if (packageName?.startsWith('@')) return packageName.slice(1).split('/')[0]
+  if (packageName?.startsWith('@')) return packageName.split('/')[0]
   return undefined
 }
 

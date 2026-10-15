@@ -16,7 +16,7 @@ import { z } from 'zod'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader, UserMessage } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
@@ -168,6 +168,41 @@ function seedMessages(session: Session, count: number): void {
 const remote = (ctx: Context) => createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
 
 describe('session.history projections block', () => {
+  it('serves recorded activity and outstanding tools without assistant prose', async () => {
+    const { ctx, session } = await harness(true)
+    session.append('turn/start', { turn: 1 })
+    session.append('step/start', { turn: 1, step: 1 })
+    session.append('tool/call', { turn: 1, step: 1, callId: ToolCallId('activity-read'), name: 'read', arguments: '{}' })
+    const snapshot = await opening(remote(ctx), session.id)
+    expect(snapshot.projections.values['sessionActivity']).toMatchObject({
+      last: { seq: 2, kind: 'tool/call' },
+      tools: [{ callId: 'activity-read', name: 'read' }],
+      error: null,
+    })
+  })
+
+  it('rebuilds cold activity and closes orphaned calls without activating an Agent', async () => {
+    const ctx = new Context()
+    ownedContexts.add(ctx)
+    await mountAgentLoopTestDependencies(ctx)
+    await mountAgentLoopTestHarness(ctx)
+    const id = SessionId('cold-activity')
+    const meta: SessionHeader = { version: SESSION_FORMAT_VERSION, id, createdAt: 1, cwd: '/tmp', isSeeded: false }
+    const events: SessionEvent[] = [
+      { type: 'turn/start', seq: SessionSeq(0), time: 2, data: { turn: 1 } },
+      { type: 'step/start', seq: SessionSeq(1), time: 3, data: { turn: 1, step: 1 } },
+      { type: 'tool/call', seq: SessionSeq(2), time: 4, data: { turn: 1, step: 1, callId: ToolCallId('orphan'), name: 'bash', arguments: '{}' } },
+    ]
+    ctx.provide('sessionPersistence', testSessionPersistence(ctx, {
+      list: () => Promise.resolve([meta]),
+      inspect: () => Promise.resolve({ meta, events, inheritedEventCount: SessionLogOffset(0) }),
+    }) as never)
+    const snapshot = await opening(remote(ctx), id)
+    expect(snapshot.projections.values.sessionActivity).toMatchObject({ last: { kind: 'turn/end' }, tools: [], error: null })
+    expect(ctx.agents.get(id)).toBeUndefined()
+    expect(ctx.sessions.get(id)).toBeUndefined()
+  })
+
   it('keeps the v0 numeric seed cut on the wire while logical headers expose only lineage', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
@@ -375,6 +410,9 @@ describe('session.history projections block', () => {
       done: false,
       value: { type: 'projection', key: 'sessionListMetadata' },
     })
+    await expect(iterator.next()).resolves.toMatchObject({
+      done: false, value: { type: 'projection', key: 'sessionActivity' },
+    })
     const extra = iterator.next()
     const quiet = Symbol('quiet')
     expect(await Promise.race([
@@ -439,6 +477,9 @@ describe('session.history projections block', () => {
     expect(changed).toMatchObject({
       done: false,
       value: { type: 'projection', key: 'sessionListMetadata' },
+    })
+    await expect(iterator.next()).resolves.toMatchObject({
+      done: false, value: { type: 'projection', key: 'sessionActivity' },
     })
     abort.abort()
     await iterator.return?.()
@@ -757,16 +798,17 @@ describe('session.list projections column', () => {
 })
 
 describe('Session control projection frames', () => {
-  /** Drain frames until `count` projection replacements arrive. */
+  /** Drain frames until the named units have supplied `count` replacements. */
   async function collect(
     iterable: AsyncIterable<SessionControlFrame>,
     count: number,
     abort: AbortController,
+    keys: readonly string[],
   ): Promise<SessionControlFrame[]> {
     const frames: SessionControlFrame[] = []
     for await (const frame of iterable) {
       frames.push(frame)
-      if (frames.filter(candidate => candidate.type === 'projection').length >= count) abort.abort()
+      if (frames.filter(candidate => candidate.type === 'projection' && keys.includes(candidate.key)).length >= count) abort.abort()
     }
     return frames
   }
@@ -780,7 +822,7 @@ describe('Session control projection frames', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
     const abort = new AbortController()
     const stream = proxy.control(abort.signal)
-    const collected = collect(stream, 5, abort)
+    const collected = collect(stream, 5, abort, ['test/last-user', 'sessionListMetadata'])
 
     const now = vi.spyOn(Date, 'now').mockReturnValue(100)
     seedMessages(session, 1)

@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": workspace
+  - group "Session activity":
+    - text: not running ·
+    - time: No activity recorded yet
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"
@@ -7,7 +10,7 @@
     - tab "Chat" [selected]
     - tab "Trajectory"
 - group "Command input": /goal
-- 'button "goal No goal is currently set. Usage: /goal [<objective>|clear|edit <objective>|pause|resume]"'
+- 'button "goal No goal is currently set. Usage: /goal [create <JSON>|accept <id>|scope <JSON>|clear|edit <objective>|pause|resume]"'
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
 - 'button "Access mode, current: Workspace Write"': Workspace Write

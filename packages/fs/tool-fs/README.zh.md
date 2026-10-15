@@ -43,12 +43,16 @@ kind: "package-reference"
 
 | 工具 | 参数 | 行为 |
 |---|---|---|
-| `read` | `file_path`、`offset?`、`limit?` | 带行号的 UTF-8 内容与分页 footer；`offset` 从 1 开始，`limit` 默认为配置的 `readLimit`，上限也为该值 |
+| `read` | `file_path`、`offset?`、`column?`、`limit?` | 带行号的 UTF-8 内容与分页 footer；`offset` 从 1 开始，`limit` 默认为配置的 `readLimit`，上限也为该值 |
 | `read_image` | `file_path` | 读取并持久保存 PNG/JPEG/WebP/GIF 源图；无扩展名路径（包括规范化附件对象路径）按文件签名识别格式；规范化可在下一次模型请求前缩小图片，因此模型无需先创建缩略图 |
 | `write` | `file_path`、`content` | 创建或完整替换文件；有策略插件时，覆盖要求先在未变版本上执行 `read`，创建不需要 |
 | `edit` | `file_path`、`old_string`、`new_string`、`replace_all?` | 字面量替换，除非 `replace_all` 为 true 否则要求唯一匹配；有策略插件时，要求先执行 `read` 且文件未变 |
 
 字段名使用 snake_case，与 Claude Code 和现有 harness 工具 schema 一致。成功返回紧凑信封——读取窗口、图像引用或 `Created file`/`Updated file` 确认——`write`/`edit` 还会派生可回放的 diff 卡片元数据供 UI 展示。
+
+`column` 在首个请求行上选择从 1 开始的正整数 UTF-16 代码单元位置；后续行从第 1 列开始。默认值为 1，保留 `offset`/`limit` 的按行分页语义，流式路径跳过长前缀时不缓冲它们。`readMaxLineLength` 仍限制每行文件文本；截断说明给出精确的 `offset` 和下一个 `column`。为保留代理对，截断可能少于上限；请求代理对内部的列会失败。超出行长的列以 `FS_NOT_FOUND` 失败；空行与空文件仅接受第 1 列。列读取失败时不发出文件存在观测；成功切片仍为后续修改保留通常的版本守卫。
+
+`readMaxBytes` 包含列标签、续读提示与所选行之间的分隔符；行号前缀、信封与序列化的结构化元数据属于额外输出。当普通提示超出剩余预算时，更短的切片使用 `... [offset=<line>,column=<next>]`。如果首个所选行连同元数据无法返回一个完整 Unicode 字符，调用会明确失败，且不记录文件存在观测。
 
 ### 配置
 
@@ -57,8 +61,8 @@ kind: "package-reference"
 | 键 | 默认值 | 含义 |
 |---|---|---|
 | `readLimit` | `2000` | 一次 `read` 调用返回的默认和最大行数 |
-| `readMaxLineLength` | `2000` | 每行截断前保留的字符数 |
-| `readMaxBytes` | `51200` | 一次 `read` 调用所选行的字节上限；溢出时以「已达上限」footer 结束窗口 |
+| `readMaxLineLength` | `2000` | 截断前每行保留的文件文本 UTF-16 代码单元数 |
+| `readMaxBytes` | `51200` | 所选行文本与续读提示的字节上限；字节预算不足时缩短切片或结束窗口 |
 | `readStreamMinSize` | `10485760` | 大于等于该大小或大小未知的文件采用流式读取，而不是整体加载到内存 |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-fs)是每个受支持字段及其 JSDoc 的穷尽式真源。
@@ -179,7 +183,7 @@ Read a file before editing it (the default fs-observation-policy requires it), u
 
 #### 模型看到的内容
 
-成功读取结果精确为 `<path><displayPath></path>`、换行、`<type>file</type>`、换行、`<content>`、形如 `<lineNumber>: <text>` 的编号行、一个空行、一条 footer 和 `</content>`。footer 精确为 `(Output capped. Showing lines <start>-<end>. Use offset=<next> to continue.)`、`(Showing lines <start>-<end> of <total>. Use offset=<next> to continue.)` 或 `(End of file - total <total> lines)`。长行结尾精确为 `... (line truncated to <max> chars)`。读取缺失目标仍返回 `FS_NOT_FOUND`，但会为调用会话记录确认缺失；外部删除的文件被重新读取后，重试的 `write` 可以通过提供方的不替换防护安全地重新创建该文件。
+成功读取结果精确为 `<path><displayPath></path>`、换行、`<type>file</type>`、换行、`<content>`、形如 `<lineNumber>: <text>` 的编号行、一个空行、一条 footer 和 `</content>`。footer 精确为 `(Output capped. Showing lines <start>-<end>. Use offset=<next> to continue.)`、`(Showing lines <start>-<end> of <total>. Use offset=<next> to continue.)` 或 `(End of file - total <total> lines)`。长行通常精确以 `... (line truncated to <max> UTF-16 units; use offset=<line>, column=<next> to continue)` 结尾；字节预算不足时使用紧凑提示 `... [offset=<line>,column=<next>]`，并可能缩短正文。切片行在行号前缀后以 `(column <column>) ` 开头；持久化读取卡片文本保留同样的标签与续读说明，每行可带 `column`/`nextColumn` 字段。上限无法容纳一个代理对时会明确失败。读取缺失目标仍返回 `FS_NOT_FOUND`，但会为调用会话记录确认缺失；外部删除的文件被重新读取后，重试的 `write` 可以通过提供方的不替换防护安全地重新创建该文件。
 
 #### Token 影响
 
@@ -244,6 +248,7 @@ Read a file before editing it (the default fs-observation-policy requires it), u
 - **对象路径重新走源准入**：对规范化附件对象调用 `read_image` 会把其字节作为新来源重新准入，因此把 `maxImageBytes`/`maxMessageImageBytes` 配置得低于规范化图片字节预算的部署可能拒绝 `ctx.attachments.readImage` 仍可读取的对象路径；默认配置下规范化预算（4 MiB）远低于源上限（20 MiB）。
 - **内嵌图像预览依赖 UI 组合**：工具结果卡片经由浏览器的 `tool.call.images` 槽位渲染图像，由附件呈现插件填充；未组合该插件的 UI 改为显示结果的信封文本。
 - **没有附件区域工具**：agent 在拥有文件系统路径时可以通过其他可用工具裁剪图片；没有路径的粘贴或拖入图片无法按更高分辨率重新读取。
+- **列读取扫描整个文件**——每次调用都会统计所有行，包括跳过的前缀与所选窗口之后的后缀；重复列分页会重复这些 I/O，不是随机访问读取。
 - **没有超时接口**：`read`/`write`/`edit` 不接受超时参数，也不声明超时预算；取消只通过 `exec.signal` 传递（见[提供方理由](../README.zh.md)）。
 
 **运行时不变式：** 不发布伴生入口。这个模型侧 adapter 没有独立 lifecycle stream；执行关系由它调用的 capability seam 负责。

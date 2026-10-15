@@ -38,11 +38,15 @@ Settings 启动后、Loader 完成所有条目的加载时，早期版本留在 
 
 每个表单报告 `autoGenerate`（默认开启），供按 schema 生成页面的客户端使用；目前没有已发布的客户端这样做。自带页面的插件在 `apply` 中于可选的 `ctx.inject(['settings'], ...)` 子级内以 effect 注册 `configure({ auto: false }, ctx.fiber)`：子级指明策略所属的插件 fiber，迟加载或被替换的 Settings 服务也会采用该策略，业务插件无需 Settings 即可运行。策略不移除配置读写。
 
-存在 Session 和 Agent 服务时，Settings 为每个已发布智能体的会话（包括子会话与恢复的会话）及 Settings 激活时已存在的智能体记录 `runtime/audit`。等待完成的 `agent/created` 钩子在所有 Session 创建观察者收到基线后验证并追加；失败会拒绝智能体发布。没有已发布智能体的独立 Session 不生成执行审计记录。初始记录包含 profile、启动组合包名称与启动器身份。源码启动分别记录 Git 修订、工作树是否有改动，以及启动器模块的 SHA-256；编译产物启动只记录该模块的哈希。哈希均不代表所有依赖的字节。无法获取的身份信息为 `null`。
+`runtimeAudit` 插件命名空间独立于 SettingsForms 和 ConfigEditor 观察执行。存在 Session 和 Agent 服务时，它会为每个已发布的 agent session 记录 `runtime/audit`，包括子 session、恢复的 session，以及观察器激活时已运行的 agent。等待完成的 `agent/created` 钩子在 Session 创建观察者收到基线后追加记录；审计失败会拒绝发布 agent。未发布 agent 的 Session 不会收到执行审计。初始记录包含 profile、启动 bundle、[启动器标识](../../../apps/cli/README.zh.md#runtime-identity)，以及所有活动 Loader 条目，包括嵌套 Include。未知信息保持 `null`，已有记录不会被重写。
 
-插件作者通过 `.extra('extra', { audit: true })` 将字段加入审计。结构投影读取活动 Loader 条目解析后的 Config，包括 schema 默认值及 volatile 引用；未标记字段与对象中的未知字段被排除。标记沿已声明的对象、字典和数组字段传播。审计子树包含 `secret` 或 `credential-ref` 角色或无限制 schema 时，在记录前拒绝。Config 之外的插件专有转换不在检查范围内。
+当前 Loader 保留模块命名空间，但不保存对应已加载代的源字节或包清单。因此模块哈希和包标识保持 `null`；当前解析结果和磁盘内容无法识别 Node 缓存中的代码，包括 HMR 失败后恢复的代码。启动器哈希通过 `sha256Source` 表示磁盘观测；`build.inputsSource` 同样限定后续磁盘读取，而非编译器已消耗的输入标识。`versionSource` 标识观测到的包清单或嵌入式构建。缺少这些限定字段的历史记录保持不变。
 
-Profile 成功重载或可选 HMR 服务成功替换模块后，只追加审计值发生变化的条目；`values: null` 表示移除。只修改未标记字段不产生审计事件。记录是普通的已声明 Session 事件，需要读取器识别 `runtime/audit`，并保留在导出的日志中。仅配置的组合无需 Session 或 Agent 服务即可运行。
+插件所有者通过 `.extra('extra', { audit: true })` 将字段纳入审计。投影读取活动 Loader 条目已解析的 Config，包括 schema 默认值和 volatile 引用；未标记字段和未知字段均被排除。标记沿已声明的容器传播，联合类型仅选择通过验证的分支。包含 `secret` 或 `credential-ref` 角色（包括字典键 schema）或无约束 schema 的审计子树会在记录前失败。该配置投影不会检查 Config 之外的转换。
+
+`providerRetryPolicies` 通过 LLM 服务记录每条已注册路由的有效策略，包括原生 DeepSeek 默认值和 pi-ai 策略。观察器仅复制重试模式、次数与错误码以及退避字段；凭据、请求头和适配器选项均被排除。该清单独立于 schema 选择的配置；即使 provider 拒绝注册变更，后者仍描述已声明的 Config 值。`null` 表示 LLM 服务不可用，空列表表示没有已注册路由。缺少此字段的历史记录保留未知策略标识。
+
+profile patch、Include 刷新或可选 HMR 模块替换尝试结束，或 LLM 注册变化后，审计记录包含发生变化的配置条目；`values: null` 表示移除条目。结束通知在 Loader 工作完成后报告实际活动状态，包括另一条目激活或模块回滚失败前发生的其他条目变化或移除；解析失败若保留运行中的树，不会产生变化。profile 成功通知保持独立。插件清单变化或模块替换成功时会附加完整的活动清单，即使已加载字节标识仍然未知。已注册策略清单变化时会附加完整的 `providerRetryPolicies` 快照。若组合与有效策略不变且没有替换模块，仅修改未标记字段不会产生审计事件。这些已声明的 Session 事件保留在导出日志中，读取器必须识别 `runtime/audit`。仅配置的组合无需 Session 或 Agent 服务。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现

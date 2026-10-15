@@ -20,6 +20,7 @@
 export {
   redactSessionSnapshotIds,
 } from './identity.ts'
+export { assertFreshRuntimeAuditIdentity, assertRuntimeAuditIdentity, normalizeRuntimeAudit } from './runtime-audit.ts'
 export {
   runScenario,
   snapshotSpillRoot,
@@ -103,6 +104,7 @@ export {
   stabilizeFixtureMessageIds,
   stabilizeRefreshLog,
   systemPromptPrecedesRequests,
+  writeSnapshotSidecar,
   type Scenario,
   type SnapshotSuiteOptions,
 } from './suite.ts'
@@ -117,3 +119,4 @@ export {
   type WorkspaceSymlinkSnapshot,
   type WorkspaceTextFileSnapshot,
 } from './workspace.ts'
+export { verifyRuntimeAuditOracle, withRuntimeAuditNotificationOracle, withRuntimeAuditOracle } from './runtime-audit-oracle.ts'

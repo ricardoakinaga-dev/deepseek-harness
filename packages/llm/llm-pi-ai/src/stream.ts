@@ -31,16 +31,15 @@ export function mapUsage(usage: PiUsage): TokenUsage {
   }
 }
 
-// XXX(pi-ai upstream): pi-ai flattens the caught error to `error.message`
-// (api/anthropic-messages.js: `errorMessage = error instanceof Error ?
-// error.message : JSON.stringify(error)`), discarding the original Error and its
-// `cause` chain before it reaches us. undici carries the actionable transport
-// detail on `cause` (e.g. `SocketError: other side closed`) but hands the fetch
-// wrapper a bare `terminated`, so we are left pattern-matching terse words here.
-// If pi-ai ever forwards the original Error (or a fetch/dispatcher hook that lets
-// us capture the cause ourselves), classify on `code`/`cause` instead of text.
-// The same flattening drops the numeric `code` of pi-ai's `WebSocketCloseError`,
-// so WebSocket closes are classified from its `WebSocket closed <code>` wording.
+// pi-ai retains selected transport failures in diagnostics. Other providers
+// flatten the caught Error to errorMessage, losing its code and cause chain.
+function hasTransportFailure(message: AssistantMessage): boolean {
+  return message.diagnostics?.some(diagnostic => diagnostic.type === 'provider_transport_failure'
+    && diagnostic.details?.eventsEmitted === true
+    && diagnostic.details.phase === 'after_message_stream_start'
+    && diagnostic.error?.message === message.errorMessage) === true
+}
+
 function classifyPiAiError(message: string): string {
   if (/\b(?:401|403)\b/.test(message)) return 'AUTH'
   if (isQuotaExceededError(message)) return QUOTA_EXCEEDED_CODE
@@ -74,13 +73,14 @@ function classifyPiAiError(message: string): string {
 
 /**
  * WebSocket close codes the adapter retries as `TRANSPORT`. RFC 6455 section
- * 7.4.1 defines 1001 going away, 1006 abnormal closure (reported locally), and
+ * 7.4.1 defines 1000 normal closure, 1001 going away, 1006 abnormal closure (reported locally), and
  * 1011 internal error; the IANA close-code registry adds 1012 service restart,
  * 1013 try again later, and 1014 bad gateway. Retrying them is adapter policy:
- * other codes, including the private-use 4000-4999 range whose meaning RFC 6455
+ * a normal close before the terminal response is incomplete too. Other codes,
+ * including the private-use 4000-4999 range whose meaning RFC 6455
  * section 7.4.2 leaves to applications, are not retried.
  */
-const TRANSIENT_WEBSOCKET_CLOSE_CODES: ReadonlySet<number> = new Set([1001, 1006, 1011, 1012, 1013, 1014])
+const TRANSIENT_WEBSOCKET_CLOSE_CODES: ReadonlySet<number> = new Set([1000, 1001, 1006, 1011, 1012, 1013, 1014])
 
 /** RFC 6455 close code for a message too big to process; resending it cannot succeed. */
 const MESSAGE_TOO_BIG_CLOSE_CODE = 1009
@@ -111,9 +111,14 @@ function classifyWebSocketClose(message: string): string | undefined {
  *   `contextWindow`, and zero-output `length` usage that fills the window map
  *   to `CONTEXT_WINDOW_EXCEEDED`; a `stop` with no content blocks maps to an
  *   `EMPTY_RESPONSE` error, while terminal `pending` and `deferred` states map
- *   to non-retryable `PI_AI_ERROR` failures.
+ *   to non-retryable `PI_AI_ERROR` failures. Failed streams with matching
+ *   post-start transport diagnostics or retryable WebSocket close text map to
+ *   `TRANSPORT`; successful terminal responses remain successful.
  */
 export function mapStopReason(message: AssistantMessage, contextWindow?: number): FinishReason {
+  if (message.stopReason === 'error' && hasTransportFailure(message)) {
+    return { kind: 'error', failure: { message: message.errorMessage ?? 'pi-ai transport failure', code: 'TRANSPORT' } }
+  }
   const piAiOverflow = isContextOverflow(message, contextWindow)
   const harnessOverflow = message.stopReason === 'error'
     && message.errorMessage !== undefined

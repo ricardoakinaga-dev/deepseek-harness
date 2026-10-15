@@ -7,7 +7,7 @@
 
 import { FsError } from '@deepseek-ai/dsh-fs'
 
-/** Default maximum characters returned for a single line (the `readMaxLineLength` config). */
+/** Default maximum UTF-16 units returned for a single line (the `readMaxLineLength` config). */
 export const READ_MAX_LINE_LENGTH = 2000
 
 /** Default maximum bytes returned for selected file lines (the `readMaxBytes` config). */
@@ -17,11 +17,13 @@ export const READ_MAX_BYTES = 50 * 1024
 export interface ReadWindow {
   /** 1-based first line to return. */
   offset: number
+  /** 1-based UTF-16 column on the first requested line only; omitted means 1. */
+  column?: number
   /** Maximum number of lines to return. */
   limit: number
-  /** Maximum characters returned for a single line; overflow is truncated with a suffix. */
+  /** Maximum UTF-16 units of file text per line; overflow includes a continuation suffix. */
   maxLineLength: number
-  /** Maximum bytes of selected output; overflow stops the scan and marks `truncatedByBytes`. */
+  /** Maximum bytes of selected line text, including column labels and continuation hints. */
   maxBytes: number
 }
 
@@ -29,8 +31,12 @@ export interface ReadWindow {
 export interface FileTextLine {
   /** 1-based line number in the file. */
   number: number
-  /** Line text without its trailing newline. */
+  /** Selected text with any column label and continuation suffix, without its trailing newline. */
   text: string
+  /** First selected UTF-16 column when the line starts after column 1. */
+  column?: number
+  /** Next UTF-16 column when file text remains beyond the returned slice. */
+  nextColumn?: number
 }
 
 /** The windowed result {@link buildWindow} produces from a file's decoded text. */
@@ -66,10 +72,6 @@ function newAccumulator(): WindowAccumulator {
   return { lines: [], totalLines: 0, outputBytes: 0, truncatedByBytes: false }
 }
 
-function truncateLine(line: string, maxLineLength: number): string {
-  return line.length > maxLineLength ? `${line.substring(0, maxLineLength)}... (line truncated to ${maxLineLength} chars)` : line
-}
-
 function lineByteSize(line: string, currentLineCount: number): number {
   return Buffer.byteLength(line, 'utf8') + (currentLineCount > 0 ? 1 : 0)
 }
@@ -78,23 +80,71 @@ function consumeLine(acc: WindowAccumulator, rawLine: string, request: ReadWindo
   acc.totalLines += 1
   if (acc.truncatedByBytes || acc.totalLines < request.offset || acc.lines.length >= request.limit) return
 
-  const text = truncateLine(rawLine, request.maxLineLength)
-  const bytes = lineByteSize(text, acc.lines.length)
-  if (acc.outputBytes + bytes > request.maxBytes) {
-    acc.truncatedByBytes = true
-    return
+  const column = acc.totalLines === request.offset ? request.column ?? 1 : 1
+  let end = Math.min(rawLine.length, request.maxLineLength)
+  if (isHighSurrogate(rawLine.charCodeAt(end - 1)) && isLowSurrogate(rawLine.charCodeAt(end))) end -= 1
+  if (end === 0 && rawLine.length > 0) throw new Error('readMaxLineLength cannot fit the UTF-16 surrogate pair at the requested column')
+  const prefix = column > 1 ? `(column ${column}) ` : ''
+
+  function lineAt(end: number, compact: boolean): FileTextLine {
+    const nextColumn = rawLine.length > end ? column + end : undefined
+    const suffix = nextColumn === undefined ? '' : compact
+      ? `... [offset=${acc.totalLines},column=${nextColumn}]`
+      : `... (line truncated to ${request.maxLineLength} UTF-16 units; use offset=${acc.totalLines}, column=${nextColumn} to continue)`
+    return {
+      number: acc.totalLines,
+      text: `${prefix}${rawLine.slice(0, end)}${suffix}`,
+      ...column > 1 ? { column } : {},
+      ...nextColumn === undefined ? {} : { nextColumn },
+    }
   }
-  acc.outputBytes += bytes
-  acc.lines.push({ number: acc.totalLines, text })
+
+  const remaining = request.maxBytes - acc.outputBytes
+  const fits = (line: FileTextLine): boolean => lineByteSize(line.text, acc.lines.length) <= remaining
+  let line = lineAt(end, false)
+  if (!fits(line)) {
+    let low = 0
+    let high = end
+    let selected: FileTextLine | undefined
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2)
+      const cut = isHighSurrogate(rawLine.charCodeAt(middle - 1)) && isLowSurrogate(rawLine.charCodeAt(middle))
+        ? middle - 1 : middle
+      const candidate = lineAt(cut, true)
+      if (fits(candidate)) {
+        if (cut > 0) selected = candidate
+        low = middle + 1
+      } else {
+        high = middle - 1
+      }
+    }
+    if (selected === undefined) {
+      if (acc.lines.length === 0) {
+        throw new Error(`readMaxBytes ${request.maxBytes} cannot fit one Unicode character with its column and continuation metadata; increase readMaxBytes and retry`)
+      }
+      acc.truncatedByBytes = true
+      return
+    }
+    line = selected
+  }
+  acc.outputBytes += lineByteSize(line.text, acc.lines.length)
+  acc.lines.push(line)
 }
 
-function stripCarriageReturn(line: string): string {
-  return line.endsWith('\r') ? line.slice(0, -1) : line
+function isHighSurrogate(unit: number): boolean {
+  return unit >= 0xD800 && unit <= 0xDBFF
+}
+
+function isLowSurrogate(unit: number): boolean {
+  return unit >= 0xDC00 && unit <= 0xDFFF
 }
 
 function finish(acc: WindowAccumulator, request: ReadWindow, displayPath: string): WindowResult {
   if (!acc.truncatedByBytes && request.offset > acc.totalLines && !(acc.totalLines === 0 && request.offset === 1)) {
     throw new FsError(`offset ${request.offset} is out of range for "${displayPath}" (${acc.totalLines} lines)`, 'FS_NOT_FOUND')
+  }
+  if (acc.totalLines === 0 && (request.column ?? 1) > 1) {
+    throw new FsError(`column ${request.column} is out of range for "${displayPath}" (empty file)`, 'FS_NOT_FOUND')
   }
   return { lines: acc.lines, totalLines: acc.totalLines, truncatedByBytes: acc.truncatedByBytes }
 }
@@ -102,7 +152,11 @@ function finish(acc: WindowAccumulator, request: ReadWindow, displayPath: string
 /**
  * Build one window from streamed or whole-file chunks, enforcing line and byte caps while still
  * scanning to an exact total line count, and throwing `FS_NOT_FOUND` when the requested offset is
- * past EOF.
+ * past EOF. Columns and line caps count UTF-16 code units; a column inside a surrogate pair
+ * fails, and a capped line ends before a pair that would cross the cap. Skipped prefixes are
+ * counted without buffering. Empty lines accept column 1 only. Byte pressure can shorten a
+ * slice and compact its continuation hint; a budget too small for one Unicode character plus
+ * its metadata fails instead of returning an empty successful window.
  * @param chunks - decoded text chunks in file order; chunk boundaries carry no meaning.
  * @param request - the resolved window; the caller has already applied its defaults and caps.
  * @param displayPath - the caller-facing path used in the offset-out-of-range error.
@@ -114,19 +168,43 @@ export async function buildWindow(
   displayPath: string,
 ): Promise<WindowResult> {
   const acc = newAccumulator()
-  // One char past the truncation point is enough to prove a line overflows.
-  const lineBufferCap = request.maxLineLength + 1
+  // Two units distinguish a complete surrogate pair from a split pair at the cap.
+  const lineBufferCap = request.maxLineLength + 2
   let lineBuffer = ''
+  let lineLength = 0
+  let lastUnit = Number.NaN
+  let precedingUnit = Number.NaN
 
   function appendToLineBuffer(segment: string): void {
-    if (lineBuffer.length >= lineBufferCap) return
-    lineBuffer += segment
-    if (lineBuffer.length > lineBufferCap) lineBuffer = lineBuffer.slice(0, lineBufferCap)
+    if (segment.length === 0) return
+    const number = acc.totalLines + 1
+    const skip = number === request.offset ? (request.column ?? 1) - 1 : 0
+    const start = Math.max(0, skip - lineLength)
+    if (number >= request.offset && acc.lines.length < request.limit && !acc.truncatedByBytes
+      && start < segment.length && lineBuffer.length < lineBufferCap) {
+      if (lineBuffer.length === 0) precedingUnit = start > 0 ? segment.charCodeAt(start - 1) : lastUnit
+      lineBuffer += segment.slice(start, start + lineBufferCap - lineBuffer.length)
+    }
+    lineLength += segment.length
+    lastUnit = segment.charCodeAt(segment.length - 1)
   }
 
   function flushLine(): void {
-    consumeLine(acc, stripCarriageReturn(lineBuffer), request)
+    const length = lineLength - (lastUnit === 13 ? 1 : 0)
+    const column = acc.totalLines + 1 === request.offset ? request.column ?? 1 : 1
+    if (acc.totalLines + 1 === request.offset) {
+      if (column > Math.max(1, length)) {
+        throw new FsError(`column ${column} is out of range for line ${request.offset} of "${displayPath}" (${length} UTF-16 units)`, 'FS_NOT_FOUND')
+      }
+      if (column > 1 && isHighSurrogate(precedingUnit) && isLowSurrogate(lineBuffer.charCodeAt(0))) {
+        throw new Error(`column ${column} splits a UTF-16 surrogate pair on line ${request.offset} of "${displayPath}"`)
+      }
+    }
+    consumeLine(acc, lineBuffer.slice(0, Math.max(0, length - column + 1)), request)
     lineBuffer = ''
+    lineLength = 0
+    lastUnit = Number.NaN
+    precedingUnit = Number.NaN
   }
 
   for await (const chunk of chunks) {
@@ -139,7 +217,7 @@ export async function buildWindow(
     }
     appendToLineBuffer(chunk.slice(startPos))
   }
-  if (lineBuffer.length > 0) flushLine()
+  if (lineLength > 0) flushLine()
   return finish(acc, request, displayPath)
 }
 
@@ -210,8 +288,10 @@ export interface FsReadMeta {
  */
 function isFileTextLine(value: unknown): value is FileTextLine {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
-  const { number, text } = value as Record<string, unknown>
+  const { number, text, column, nextColumn } = value as Record<string, unknown>
   return typeof number === 'number' && Number.isInteger(number) && number >= 1 && typeof text === 'string'
+    && (column === undefined || typeof column === 'number' && Number.isSafeInteger(column) && column > 1)
+    && (nextColumn === undefined || typeof nextColumn === 'number' && Number.isSafeInteger(nextColumn) && nextColumn > (typeof column === 'number' ? column : 1))
 }
 
 /**

@@ -9,8 +9,8 @@
   en: 6cc2cd9ced70bb09
   zh: 1c0e6cb4ba2ed637
 /tool-schema-catalog/tool-package-map:
-  en: 54118ca1a6cb5178
-  zh: cf000f20c585259e
+  en: b52bb9b4ce45bdb2
+  zh: a2304a7335354558
 /tool-schema-catalog/deepseek-ai-dsh-plugin-manager:
   en: e0143916bb634762
   zh: e0143916bb634762
@@ -72,20 +72,20 @@
   en: 408ff0a5189bd7ec
   zh: 408ff0a5189bd7ec
 /tool-schema-catalog/deepseek-ai-dsh-tool-bash/bash:
-  en: 6af894afab9dfa60
-  zh: b1f96a09098175d2
+  en: 67ee2b8d4997bd1b
+  zh: 82d1fb17b619c364
 /tool-schema-catalog/deepseek-ai-dsh-tool-present:
   en: f656575e6df094f6
   zh: f656575e6df094f6
 /tool-schema-catalog/deepseek-ai-dsh-tool-present/present:
   en: 13be3ddd6aa29bb2
-  zh: 8bf664b8bd0a3fd4
+  zh: 6cd260bb36eebe08
 /tool-schema-catalog/deepseek-ai-dsh-tool-pwsh:
   en: b222fc05f3f8ee4a
   zh: b222fc05f3f8ee4a
 /tool-schema-catalog/deepseek-ai-dsh-tool-pwsh/pwsh:
   en: 9d7055b9fb8ba9de
-  zh: eca3c3cf2a5f808d
+  zh: 0647025c36e80237
 /tool-schema-catalog/deepseek-ai-dsh-tool-cordis:
   en: 76c7c62f9029b6f5
   zh: 76c7c62f9029b6f5
@@ -132,8 +132,8 @@
   en: 703fea005ce84c50
   zh: 703fea005ce84c50
 /tool-schema-catalog/deepseek-ai-dsh-tool-fs-search/glob:
-  en: 02405308c2d134da
-  zh: b7e77d16f2e9afba
+  en: 597ac8ea353f8439
+  zh: d60316555a6f224c
 /tool-schema-catalog/deepseek-ai-dsh-tool-fs-search/grep:
   en: 6e1f7da62cc9a35b
   zh: ee7f3081887f8067
@@ -162,8 +162,8 @@
   en: 74fff3741e7c13de
   zh: 74fff3741e7c13de
 /tool-schema-catalog/deepseek-ai-dsh-tool-goal/create-goal:
-  en: 43d8f13a31c989c0
-  zh: 824902b0dbc5c8e4
+  en: 9ae877cdf8a641a3
+  zh: f83c3c09e80e4190
 /tool-schema-catalog/deepseek-ai-dsh-tool-goal/get-goal:
   en: 0b517f13dfde11fe
   zh: b7ee7482e8ecde56
@@ -201,8 +201,8 @@
   en: 927a5ac0974b7642
   zh: 927a5ac0974b7642
 /tool-schema-catalog/deepseek-ai-dsh-tool-skill/skill:
-  en: ae7b3256b14b48c3
-  zh: 07d1a5fb933b35fc
+  en: 9b159d5831855afb
+  zh: 275ee82af0e0f59a
 /tool-schema-catalog/deepseek-ai-dsh-tool-session-query:
   en: eac1dff4b6d9e195
   zh: eac1dff4b6d9e195

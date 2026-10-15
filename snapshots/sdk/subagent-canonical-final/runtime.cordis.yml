@@ -1,0 +1,11 @@
+- id: tool-subagent
+  config:
+    provider: spawn
+    toolName: subagent
+    backgroundMode: continuable
+    enableRunInBackground: true
+    maxDepth: 1
+
+- insert:
+    - id: snapshot-canonical-final-fence
+      name: './settlement-fence.mjs'

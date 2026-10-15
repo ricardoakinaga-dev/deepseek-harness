@@ -6,6 +6,7 @@ import {
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SubagentAddress, SubagentAuthorityData } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import {
   IconChevronDownOutlineRegular, IconChevronRightOutlineRegular, IconRefreshOutlineRegular, StateDot, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -21,6 +22,7 @@ type SubagentCatalogSnapshot = Omit<SessionProjectionSnapshot, 'values' | 'state
     activity: 'running' | 'inactive'
     authority?: SubagentAuthorityData
   })[]
+  recordedActivity: SessionProjectionMap['sessionActivity'] | undefined
 }
 type Catalogs = Readonly<Record<SessionId, SubagentCatalogSnapshot>>
 
@@ -41,6 +43,7 @@ interface CatalogRowsProps {
   catalog: SubagentCatalogSnapshot
   catalogs: Catalogs
   summaries: Readonly<Record<SessionId, SessionSummary>>
+  statuses: SessionStatusSnapshot
   expanded: ReadonlySet<SessionId>
   level: number
   openChild: (address: SubagentAddress) => void
@@ -167,6 +170,86 @@ function formatExactDuration(ms: number, t: TranslateNS<typeof NS>): string {
     })
 }
 
+/** Local display time advances monotonically; closing the owner releases its only timer. */
+function useActivityClock(enabled: boolean): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!enabled) return
+    const wall = Date.now()
+    const started = performance.now()
+    const update = (): void => { setNow(wall + Math.max(0, performance.now() - started)) }
+    update()
+    const timer = setInterval(update, 1_000)
+    return () => { clearInterval(timer) }
+  }, [enabled])
+  return now
+}
+
+/** Facts stay distinct: a recorded call alone never establishes current execution or waiting. */
+function executionFacts(
+  activity: SessionProjectionMap['sessionActivity'] | undefined,
+  running: boolean | undefined,
+  waiting: boolean,
+  stale: boolean,
+  now: number,
+  t: TranslateNS<typeof NS>,
+) {
+  const status = waiting ? t('execution.waiting')
+    : running === true ? t('activity.running')
+      : running === false ? t('activity.inactive') : t('execution.unknown')
+  const details = [status]
+  const last = activity?.last
+  const dateTime = last === undefined || last === null ? undefined : new Date(last.time).toISOString()
+  const lastText = activity === undefined ? t('execution.unavailable')
+    : last === null || last === undefined ? t('execution.empty')
+      : t('execution.last', { event: t(`execution.event.${last.kind}`), duration: formatDuration(Math.max(0, now - last.time), t) })
+  details.push(lastText)
+  if (activity !== undefined && activity.tools.length > 0) {
+    details.push(t(running === true && !stale ? 'execution.tools' : 'execution.recordedTools', {
+      tools: activity.tools.map(tool => tool.name).join(', '),
+    }))
+  }
+  const failure = activity?.error
+  if (failure !== undefined && failure !== null) {
+    details.push(failure.code === null ? t('execution.failure') : t('execution.failureCode', { code: failure.code }))
+  }
+  if (stale) details.push(t('execution.stale'))
+  const state: Parameters<typeof StateDot>[0]['state'] = failure !== undefined && failure !== null ? 'error'
+    : waiting || stale ? 'warning' : running === true ? 'ongoing' : 'idle'
+  return { details, lastText, dateTime, state }
+}
+
+/** Selected-session activity also remains visible when there are no child conversations. */
+function CurrentActivity({ sessionId, useSessions, useSessionStatus, t }: Pick<
+  SubagentCatalogActionProps, 'sessionId' | 'useSessions' | 'useSessionStatus' | 't'
+>) {
+  const activity = useSessions((state) => {
+    const snapshot = state.projectionsBySession[sessionId]
+    return snapshot === undefined
+      ? state.byId[sessionId]?.projectionValues?.sessionActivity
+      : snapshot.values.sessionActivity
+  })
+  const stale = useSessions(state => state.projectionsBySession[sessionId]?.state === 'error')
+  const status = useSessionStatus(state => state.get(sessionId))
+  const now = useActivityClock(activity?.last !== undefined && activity.last !== null)
+  const facts = executionFacts(activity, status?.running, status?.pendingInteraction !== undefined, stale, now, t)
+  const exact = facts.dateTime === undefined ? facts.details.join(' · ')
+    : `${facts.details.join(' · ')} · ${t('execution.recordedAt', { time: facts.dateTime })}`
+  return (
+    <Tooltip label={exact} side="bottom" portal>
+      <div role="group" aria-label={t('execution.label')} tabIndex={0} className={css.currentActivity}>
+        <StateDot state={facts.state} />
+        <span className={css.executionText}>
+          {facts.details[0]}
+          {' · '}
+          <time dateTime={facts.dateTime}>{facts.lastText}</time>
+          {facts.details.slice(2).map((detail, index) => <span key={index}>{' · '}{detail}</span>)}
+        </span>
+      </div>
+    </Tooltip>
+  )
+}
+
 function SubagentSwitcherIcon() {
   return (
     <svg
@@ -211,16 +294,16 @@ function authorityText(authority: SubagentAuthorityData | undefined, t: Translat
 
 /** Render one catalog level and recurse only through explicitly expanded rows. */
 function CatalogRows({
-  parentSessionId, currentSessionId, catalog, catalogs, summaries, expanded, level,
+  parentSessionId, currentSessionId, catalog, catalogs, summaries, statuses, expanded, level,
   openChild, openChildAside, refreshProjection, toggleBranch, closeCatalog, t,
 }: CatalogRowsProps & { t: TranslateNS<typeof NS> }) {
-  const [now, setNow] = useState(() => Date.now())
   const running = catalog.entries.some(entry => entry.activity === 'running')
-  useEffect(() => {
-    if (!running) return
-    const timer = setInterval(() => { setNow(Date.now()) }, 1_000)
-    return () => { clearInterval(timer) }
-  }, [running])
+  const recorded = catalog.entries.some((entry) => {
+    const child = catalogs[entry.id]
+    const activity = child === undefined ? summaries[entry.id]?.projectionValues?.sessionActivity : child.recordedActivity
+    return activity?.last !== undefined && activity.last !== null
+  })
+  const now = useActivityClock(running || recorded)
   const emptyLoading = catalog.state === 'loading' && catalog.entries.length === 0
   const reserveDisclosure = catalog.entries.some(entry => !isKnownLeaf(catalogs[entry.id]))
   return (
@@ -263,6 +346,11 @@ function CatalogRows({
           .filter(value => value !== undefined)
           .join(' · ')
         const authority = authorityText(entry.authority, t)
+        const status = statuses.get(entry.id)
+        const facts = executionFacts(
+          childCatalog === undefined ? summary?.projectionValues?.sessionActivity : childCatalog.recordedActivity,
+          status?.running, status?.pendingInteraction !== undefined, childCatalog?.state === 'error', now, t,
+        )
         const totalTokens = tokenTotal(summary?.projectionValues?.tokenUsage)
         const durationMs = activityDuration(
           summary,
@@ -323,7 +411,7 @@ function CatalogRows({
               tabIndex={0}
               aria-level={level}
               aria-current={isCurrent || undefined}
-              aria-label={[label, secondary, authority, metrics].filter(value => value !== '').join(' ')}
+              aria-label={[label, secondary, authority, ...facts.details, metrics].filter(value => value !== '').join(' ')}
               {...knownLeaf ? {} : { 'aria-expanded': isExpanded }}
               className={css.row}
               onClick={open}
@@ -344,12 +432,14 @@ function CatalogRows({
                 )}
               <div className={css.clickarea}>
                 <span className={css.rowActivitySlot}>
-                  <StateDot state={entry.activity === 'running' ? 'ongoing' : completed ? 'done' : 'idle'} />
+                  <StateDot state={facts.state === 'error' || facts.state === 'warning' ? facts.state
+                    : entry.activity === 'running' ? 'ongoing' : completed ? 'done' : 'idle'} />
                 </span>
                 <span className={css.content}>
                   <span className={`${css.label} ${isCurrent ? css.currentLabel : ''}`}>{label}</span>
                   <span className={css.summary}>{secondary}</span>
                   <span className={css.authority} data-subagent-authority>{authority}</span>
+                  <span className={css.executionSummary}>{facts.details.join(' · ')}</span>
                 </span>
                 {metrics !== '' && (
                   <span className={css.metrics}>
@@ -394,6 +484,7 @@ function CatalogRows({
                       catalog={childCatalog}
                       catalogs={catalogs}
                       summaries={summaries}
+                      statuses={statuses}
                       expanded={expanded}
                       level={level + 1}
                       openChild={openChild}
@@ -470,6 +561,7 @@ function CatalogDropdown({
       ? snapshot.values.subagentCatalog === undefined ? 'loading' : 'ready'
       : snapshot.state,
     error: snapshot.error,
+    recordedActivity: snapshot.values.sessionActivity,
     entries: (snapshot.values.subagentCatalog ?? []).map(entry => ({
       ...entry, activity: (statuses.get(entry.id)?.running ?? summaries[entry.id]?.running) === true ? 'running' as const : 'inactive' as const,
     })),
@@ -497,7 +589,7 @@ function CatalogDropdown({
   const totalCountKey = directCount === 1 ? 'count.total.one' : 'count.total.other'
   const runningCountKey = runningCount === 1 ? 'count.running.one' : 'count.running.other'
   const presentedCatalog: SubagentCatalogSnapshot | undefined = catalog ?? (variant === 'switcher'
-    ? { entries: [], state: 'loading', error: null }
+    ? { entries: [], state: 'loading', error: null, recordedActivity: undefined }
     : undefined)
 
   const cancelHoverClose = (): void => {
@@ -727,6 +819,7 @@ function CatalogDropdown({
               catalog={presentedCatalog}
               catalogs={catalogs}
               summaries={summaries}
+              statuses={statuses}
               expanded={expanded}
               level={1}
               openChild={openChild}
@@ -743,35 +836,37 @@ function CatalogDropdown({
   )
 }
 
-/** Full props for the root-session catalog entry in the header actions band. */
+/** Full props for selected-session activity and the root-session catalog action. */
 export type SubagentCatalogActionProps =
   PropsRuntime<'conversation.session.header.actions'> & SubagentCatalogInjected & PropsLocale<typeof NS>
 
 /**
- * Session-header catalog action for root sessions: the descendant count and
- * its dropdown at the start of the header actions band. Child sessions render nothing
- * here — their breadcrumb switcher in the lineage slot owns the same
- * navigation.
+ * Selected-session execution activity and the root's descendant catalog. A child's
+ * navigation stays in its breadcrumb switcher; its execution activity remains here.
  * @param props - Session standard props plus the catalog actions and translator.
- * @returns The count dropdown, or null on a child session.
+ * @returns The activity summary and, on root sessions, the descendant-count dropdown.
  */
 export function SubagentCatalogAction({
   sessionId, useSessions, useSessionStatus, openChild, openChildAside, refreshProjection, t,
 }: SubagentCatalogActionProps) {
   const isChild = useSessions(state => state.byId[sessionId]?.origin === 'subagent')
-  if (isChild) return null
   return (
-    <CatalogDropdown
-      key={sessionId}
-      rootSessionId={sessionId}
-      variant="count"
-      useSessions={useSessions}
-      useSessionStatus={useSessionStatus}
-      openChild={openChild}
-      openChildAside={openChildAside}
-      refreshProjection={refreshProjection}
-      t={t}
-    />
+    <>
+      <CurrentActivity key={`activity:${sessionId}`} sessionId={sessionId} useSessions={useSessions} useSessionStatus={useSessionStatus} t={t} />
+      {!isChild && (
+        <CatalogDropdown
+          key={sessionId}
+          rootSessionId={sessionId}
+          variant="count"
+          useSessions={useSessions}
+          useSessionStatus={useSessionStatus}
+          openChild={openChild}
+          openChildAside={openChildAside}
+          refreshProjection={refreshProjection}
+          t={t}
+        />
+      )}
+    </>
   )
 }
 

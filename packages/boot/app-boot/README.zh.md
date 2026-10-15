@@ -145,6 +145,10 @@ Loader 结算后，app-boot 在仅 optional 条目未激活时输出警告。如
 
 启动错误还保留未激活条目的元数据和原始启动警告、错误记录，不保留 Loader tree。其 `entries` 和 `startup` 字段不可枚举：直接访问和完整诊断报告保留这些字段，常规错误检查输出则省略它们。只有等待条目时没有 `cause`；存在已记录错误时，`AggregateError` 保留其原始值。收集器在 Loader 挂载前通过 logger 收集导入错误，因为这些导入尚无 failed Fiber。启动结算后会移除临时 exporter。
 
+启动器通过 `ProfileContext` 提供可选的运行时标识；无法观测启动器的嵌入程序应省略此字段。新记录将启动器哈希和 `build.inputsSource` 限定为磁盘观测，既无法识别 Node 缓存中正在执行的模块代，也无法识别编译器已消耗的输入字节。版本标识所观测的源码包清单或已验证构建清单；未捕获版本的旧产物报告 `null`。缺少限定字段的构建清单具有未知的输入标识；历史记录保留缺失的限定字段。[CLI](../../../apps/cli/README.zh.md#runtime-identity) 负责观测和输出验证；[Settings](../../settings/settings/README.zh.md) 负责持久审计记录。
+
+`app-boot/config-settled` 在当前 Loader 任务和已移除 fiber 的工作完成后，报告 profile patch 应用尝试结束。它不保证激活成功：某条目失败前，其他条目可能已经改变或消失。监听者重新读取实际活动条目。`app-boot/config-reload` 仍只表示成功；协调或结束观测失败时不发送此信号。应用前文件解析失败不会改变条目，也不会发送这两个信号。
+
 ### Helper 行为
 
 每个导出各负责启动的一个阶段：配置解析与快照回放、分层环境加载、明确报错的保护机制、激活审计、patch 解析、根 include 挂载、配置 dump 渲染、profile 组合，以及 harness 源码段落。各导出的约定在代码中，不在本 README——见 [`src/index.ts`](src/index.ts) 与 [`src/profile.ts`](src/profile.ts)。

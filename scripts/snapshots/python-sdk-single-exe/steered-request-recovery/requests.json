@@ -1,0 +1,71 @@
+[
+  {
+    "model": "smoke-model",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Complete one todo update, then finish the accepted input after the request failure."
+          },
+          {
+            "type": "text",
+            "text": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically \u2014 do not request sandbox escalation (do not set `sandbox_permissions`)."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "model": "smoke-model",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Complete one todo update, then finish the accepted input after the request failure."
+          },
+          {
+            "type": "text",
+            "text": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically \u2014 do not request sandbox escalation (do not set `sandbox_permissions`)."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "queued-complete",
+            "name": "todo_write",
+            "input": {
+              "todos": []
+            }
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "queued-complete",
+            "content": [
+              {
+                "type": "text",
+                "text": "Updated todo list: 0 pending, 0 in progress, 0 completed."
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "text",
+            "text": "Finish the accepted input without repeating the completed tool."
+          }
+        ]
+      }
+    ]
+  }
+]

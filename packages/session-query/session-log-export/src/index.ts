@@ -84,21 +84,38 @@ export function apply(ctx: Context, config: Config = {}): void {
       ? REQUESTED
       : { kind: 'error', text: 'The Web /export command does not accept a path.' }),
   }), 'session-log-download: command')
-  connectionOf(ctx).fetch.register({
-    path: SESSION_LOG_EXPORT_PATH,
-    methods: ['GET', 'HEAD'],
-    requestBody: 'buffered',
-    fetch: async (request) => {
-      const response = await sessionLogExportResponse(
-        ctx,
-        request,
-        config.compressionLevel ?? DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
-      )
-      if (request.method === 'GET') return response
-      await response.body?.cancel()
-      return new Response(null, { status: response.status, headers: response.headers })
-    },
-  })
+  ctx.effect(() => {
+    const lifetime = new AbortController()
+    const active = new Set<Promise<unknown>>()
+    const track = <T>(operation: Promise<T>): Promise<T> => {
+      active.add(operation)
+      const settled = (): void => { active.delete(operation) }
+      void operation.then(settled, settled)
+      return operation
+    }
+    const unregister = connectionOf(ctx).fetch.register({
+      path: SESSION_LOG_EXPORT_PATH,
+      methods: ['GET', 'HEAD'],
+      requestBody: 'buffered',
+      fetch: request => track((async () => {
+        const response = await sessionLogExportResponse(
+          ctx,
+          request,
+          config.compressionLevel ?? DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
+          lifetime.signal,
+          track,
+        )
+        if (request.method === 'GET') return response
+        await response.body?.cancel()
+        return new Response(null, { status: response.status, headers: response.headers })
+      })()),
+    })
+    return async () => {
+      const removed = unregister()
+      lifetime.abort(new Error('session log export disposed'))
+      await Promise.allSettled([removed, ...active])
+    }
+  }, 'session-log-download: route and producers')
 }
 
 function connectionOf(ctx: Context): SessionLogConnection {
@@ -109,7 +126,11 @@ async function sessionLogExportResponse(
   ctx: Context,
   request: Request,
   compressionLevel: SessionLogCompressionLevel,
+  lifetime: AbortSignal,
+  track: <T>(operation: Promise<T>) => Promise<T>,
 ): Promise<Response> {
+  const signal = AbortSignal.any([request.signal, lifetime])
+  signal.throwIfAborted()
   const url = new URL(request.url)
   const query = Object.fromEntries(url.searchParams)
   const sessionIdValue = query['sessionId']
@@ -136,11 +157,11 @@ async function sessionLogExportResponse(
   }
   let rootContent: string | undefined
   try {
-    await flushLiveSessionLog(deps, sessionId, request.signal)
-    rootContent = await readSessionLogText(deps.sessionPersistence, sessionId, request.signal)
-    request.signal.throwIfAborted()
+    await flushLiveSessionLog(deps, sessionId, signal)
+    rootContent = await readSessionLogText(deps.sessionPersistence, sessionId, signal)
+    signal.throwIfAborted()
   } catch {
-    request.signal.throwIfAborted()
+    signal.throwIfAborted()
     // Root preparation failure (flush, open, or read): answer 500 without
     // echoing the error, which may carry absolute host paths into the
     // browser error bar.
@@ -149,15 +170,17 @@ async function sessionLogExportResponse(
   if (rootContent === undefined) {
     return new Response('session not found', { status: 404 })
   }
+  const stream = streamSessionLogZip(
+    ready,
+    rootContent,
+    sessionId,
+    descendantsValue === 'true',
+    compressionLevel,
+    signal,
+  )
+  void track(stream.completed)
   const response = new Response(
-    streamSessionLogZip(
-      ready,
-      rootContent,
-      sessionId,
-      descendantsValue === 'true',
-      compressionLevel,
-      request.signal,
-    ),
+    stream,
     {
       headers: {
         'content-type': 'application/zip',

@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
-import { prepareSessionSnapshotFixtureForComparison } from '@deepseek-ai/dsh-llm-replay'
+import { deriveReplayScript, parseSessionLog, prepareSessionSnapshotFixtureForComparison, type ReplayEntry } from '@deepseek-ai/dsh-llm-replay'
 import {
   SESSION_FORMAT_VERSION, SessionId as sessionId, SessionLogOffset, SessionSeq,
   type SessionEvent, type SessionHeader, type SessionId,
@@ -44,31 +44,33 @@ const NESTED_PROMPT = 'Give one concrete event sourcing example.'
 const FOLLOWUP = 'Now give the same explanation to a human reader.'
 const POST_FORK_FOLLOWUP = 'Continue the original conversation after the fork.'
 
-function childFixture(source: string, fixtureId: string, withContinuation: boolean): string {
+function childFixture(source: string, fixtureId: string, turnCount: number): string {
   const [header, ...eventLines] = source.trimEnd().split('\n')
   if (header === undefined) throw new Error('base replay fixture has no header')
   const childHeaderValue = JSON.parse(header) as Record<string, unknown>
   childHeaderValue.id = fixtureId
   childHeaderValue.createdAt = 1784998084442
   const childHeader = JSON.stringify(childHeaderValue)
-  if (!withContinuation) return [childHeader, ...eventLines, ''].join('\n')
-  const seqOffset = eventLines.length
-  const continued = eventLines.map((line) => {
-    const event = JSON.parse(line) as {
-      type: string
-      seq: number
-      data: Record<string, unknown>
-    }
-    const data = { ...event.data }
-    if (data.turn === 1) data.turn = 2
-    if (event.type === 'session/title' && Array.isArray(data.messageSeqs)) {
-      data.messageSeqs = data.messageSeqs.map((seq: unknown) => {
-        if (typeof seq !== 'number') throw new Error('base replay fixture title has a non-numeric message seq')
-        return seq + seqOffset
-      })
-    }
-    return JSON.stringify({ ...event, seq: event.seq + seqOffset, data })
-  })
+  const continued: string[] = []
+  for (let turn = 2; turn <= turnCount; turn++) {
+    const seqOffset = eventLines.length * (turn - 1)
+    continued.push(...eventLines.map((line) => {
+      const event = JSON.parse(line) as {
+        type: string
+        seq: number
+        data: Record<string, unknown>
+      }
+      const data = { ...event.data }
+      if (data.turn === 1) data.turn = turn
+      if (event.type === 'session/title' && Array.isArray(data.messageSeqs)) {
+        data.messageSeqs = data.messageSeqs.map((seq: unknown) => {
+          if (typeof seq !== 'number') throw new Error('base replay fixture title has a non-numeric message seq')
+          return seq + seqOffset
+        })
+      }
+      return JSON.stringify({ ...event, seq: event.seq + seqOffset, data })
+    }))
+  }
   return [childHeader, ...eventLines, ...continued, ''].join('\n')
 }
 
@@ -98,6 +100,7 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
   let page: Page
   let sidecarRoot: string
   let childId: SessionId
+  let parentId: SessionId
   let oneShotId: SessionId
   let grandchildId: SessionId
   let liveReferenceOptions: string[]
@@ -113,9 +116,23 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     )
     sidecarRoot = await mkdtemp(join(tmpdir(), 'dsh-web-subagent-'))
     const childFixturePath = join(sidecarRoot, 'child.jsonl')
-    await writeFile(childFixturePath, childFixture(baseFixture, 'recorded-subagent', true))
+    await writeFile(childFixturePath, childFixture(baseFixture, 'recorded-subagent', 3))
+    const acknowledgement: ReplayEntry = { kind: 'chunks', chunks: [
+      { type: 'block-start', index: 0, blockType: 'text' },
+      { type: 'text-delta', index: 0, text: 'Delegated result received.' },
+      { type: 'block-end', index: 0, block: { type: 'text', text: 'Delegated result received.' } },
+      { type: 'usage', usage: { inputTokens: 10, outputTokens: 5 } },
+      { type: 'finish', reason: { kind: 'stop' } },
+    ] }
+    // Initial, human follow-up, and post-fork child turns each return a result to the parent.
+    const parentOverride = join(sidecarRoot, 'parent.override.json')
+    await writeFile(parentOverride, JSON.stringify([
+      ...deriveReplayScript(parseSessionLog(baseFixture)),
+      acknowledgement, acknowledgement, acknowledgement,
+    ]))
     scaffold = await launchWebScaffold({
       replayFixture: selectedBaseFixture,
+      replayOverride: parentOverride,
       compareReplaySession: false,
       replayChildFixtures: [childFixturePath],
       paceMs: 25,
@@ -133,6 +150,7 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
 
     const parent = scaffold.ctx.agents.roots()[0]
     if (parent === undefined) throw new Error('fresh workspace did not publish its parent Agent')
+    parentId = parent.id
     const parentSettled = scaffold.whenTurnSettled()
     const parentInput = page.locator('[data-composer-input][contenteditable="true"]').first()
     await parentInput.fill(PARENT_PROMPT)
@@ -394,9 +412,15 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     await page.getByRole('button', { name: `Expand ${LABEL} descendants` }).click()
     const childRow = page.getByRole('treeitem', { name: new RegExp(LABEL) })
     expect(await childRow.locator('[data-subagent-authority]').textContent()).toBe(publishedAuthority)
-    const childLabel = await childRow.getAttribute('aria-label')
+    const duration = childRow.locator('[title]')
+    expect(await duration.count()).toBe(1)
+    const exactDuration = await duration.getAttribute('title')
+    const compactDuration = await duration.textContent()
+    expect(exactDuration).toBeTruthy()
+    expect(compactDuration).toBeTruthy()
     await page.waitForTimeout(1_100)
-    expect(await childRow.getAttribute('aria-label')).toBe(childLabel)
+    expect(await duration.getAttribute('title')).toBe(exactDuration)
+    expect(await duration.textContent()).toBe(compactDuration)
     await page.getByRole('treeitem', { name: new RegExp(NESTED_LABEL) }).waitFor({ timeout: 15_000 })
     expect(await page.getByRole('treeitem', { name: new RegExp(NESTED_LABEL) })
       .locator('[data-subagent-authority]').textContent()).toBe('Authority unconfirmed: no publication record')
@@ -666,9 +690,13 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
       const events = await readPersistedEvents(scaffold, childId)
       const messageIndex = events.findIndex(event => event.type === 'user/message'
         && event.data.content.some(block => block.type === 'text' && block.text === POST_FORK_FOLLOWUP))
-      return messageIndex >= 0 && events.slice(messageIndex + 1).some(event => event.type === 'turn/end')
+      return messageIndex >= 0 && events.slice(messageIndex + 1).some(event => event.type === 'turn/end'
+        && event.data.reason.kind === 'completed')
     }, { timeout: 30_000 }).toBe(true)
     expect(scaffold.ctx.agents.get(forkId)).not.toBeUndefined()
     await expect.poll(() => scaffold.ctx.agents.get(childId), { timeout: 10_000 }).toBeUndefined()
+    await expect.poll(async () => (await readPersistedEvents(scaffold, parentId))
+      .filter(event => event.type === 'turn/end' && event.data.reason.kind === 'completed').length,
+    { timeout: 10_000 }).toBe(4)
   })
 })

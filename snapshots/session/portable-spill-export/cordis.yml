@@ -1,0 +1,18 @@
+- id: tool-fs-search
+  config:
+    sampleOverCapGlobResults: false
+    globMaxResults: 1
+    grepMaxMatches: 1
+- id: spill-local
+  config:
+    root: !!js process.env.DSH_SNAPSHOT_SPILL_ROOT
+    cleanupPeriodDays: 0
+    captureAttachments: true
+- insert:
+    - id: tool-present
+      name: '@deepseek-ai/dsh-tool-present'
+    - id: snapshot-spill-locators
+      name: ../../../scripts/snapshot-spill-locators.ts
+      config:
+        root: !!js process.env.DSH_SNAPSHOT_SPILL_ROOT
+        locatorRoot: !!js process.env.DSH_SNAPSHOT_SPILL_LOCATOR_ROOT

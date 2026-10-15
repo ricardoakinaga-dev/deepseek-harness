@@ -53,6 +53,15 @@ profile 目录包含一个 `package.json`，其中记录树外插件依赖，以
 
 `config/examples/` 交付 GitHub 评审 webhook、记忆 MCP 服务器与运行时 Cordis 工具的可选覆盖层。它们绝不属于默认 profile；设置与安全说明由[用户指南](../../docs/user/guide/index.zh.md)和[开发实战指南](../../docs/user/develop/practice/index.zh.md)负责。
 
+<a id="runtime-identity"></a>
+## 运行时标识
+
+每次 profile 启动都会记录 Node、平台、架构及启动器文件的观测信息。观测对象是公开的 profile 引导入口：源码启动对应 `profile-boot.ts`，构建产物对应 `profile-boot.js`，即使打包后代码在共享 chunk 中执行也是如此。新记录将 `launcher.sha256Source` 标为 `disk-observation`：SHA-256 对应 profile 初始化时读取的文件，可能不同于 Node 缓存中正在执行的模块。已加载启动器的字节标识不可用。受 Git 跟踪的源码启动还会观测 Git 修订、工作区脏状态，以及跟踪文件和未被忽略文件的路径、条目种类、权限位（包括 setuid、setgid 和 sticky）与内容摘要。符号链接的字面目标按原始字节取哈希，源码观察不会改写 Git 索引字节。Git 缺失、启动器未被跟踪、文件不可读、Git 路径不是 UTF-8 或存在子模块时，源码标识不可用。缺少限定字段的历史记录保留未知的观测依据。
+
+CLI 打包器在每个输出模块中嵌入 format-2 清单。`build.inputsSource: disk-observation` 标记在 `generateBundle` 期间读取的输入文件摘要；这些文件可能不同于编译器已消耗的字节，后者的标识不可用。所有输出同伴模块共享一次输入、版本及检出目录观测，即使写入各个尾部清单之间磁盘文件发生变化。版本来自与输入摘要对应的同一份 CLI 包清单观测字节；输出代码摘要验证已输出的字节。产物验证既不读取相邻检出的 Git 状态，也不读取当前安装的包版本。`versionSource` 区分 `embedded-build-observation`、仅源码使用的 `package-manifest-observation` 以及 `unavailable`。缺少限定字段的旧清单报告未知的输入标识；format 1 的版本也未知。输出被修改、清单格式错误或同伴模块不匹配时，会报错要求重新构建。磁盘观测无法识别缓存中执行的代码、编译器已消耗的输入字节或外部依赖字节；[Settings](../../packages/settings/settings/README.zh.md) 记录活动插件和选定配置。
+
+profile 启动器独立于配置表单挂载运行时审计观察器，包括 `sdk-minimal` 和自定义 profile。它记录嵌套 Include 中的活动 Loader 条目、所有者选择的 Config 值，以及 LLM 注册表中的有效 provider 重试策略。由于 Loader 不保存缓存模块代的字节快照，已加载插件的字节和包元数据仍然未知。[Settings 审计参考](../../packages/settings/settings/README.zh.md) 定义这些记录和重载行为。
+
 ## 开发
 
 生产运行需要已构建的包与前端产物。请在仓库根目录单独运行 `pnpm run build`，然后使用 `pnpm dsh <args...>` 运行 TypeScript 入口并转发所有参数；模块解析约定以[源码执行参考](reference/README.zh.md#source-execution)为准。

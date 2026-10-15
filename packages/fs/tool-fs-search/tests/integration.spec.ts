@@ -25,6 +25,7 @@ const testToolSignal = new AbortController().signal
 
 let dir: string
 let ctx: Context
+let searchFiber: Awaited<ReturnType<Context['plugin']>>
 
 let callCounter = 0
 function call(name: string, args: unknown, agentObj?: object) {
@@ -64,7 +65,7 @@ describe('search tools over the real subprocess service + the packaged rg', () =
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
     await ctx.plugin(LocalSubprocessRuntime)
-    await ctx.plugin(ToolFsSearch, { sampleOverCapGlobResults: true })
+    searchFiber = await ctx.plugin(ToolFsSearch, { sampleOverCapGlobResults: true })
   })
 
   afterEach(async () => {
@@ -87,7 +88,7 @@ describe('search tools over the real subprocess service + the packaged rg', () =
         await limited.plugin(ToolFsSearch, { sampleOverCapGlobResults: true, rawOutputMaxBytes: 256 })
         const result = await limited.tools.execute({
           signal: testToolSignal, callId: ToolCallId('narrow-ignore'), name: 'glob',
-          arguments: { pattern: '*.ts' }, agent: agent() as never,
+          arguments: { pattern: '*.ts', include_ignored: true }, agent: agent() as never,
         })
         expect(result.isError, text(result)).toBe(false)
         const lines = text(result).split('\n')
@@ -104,7 +105,7 @@ describe('search tools over the real subprocess service + the packaged rg', () =
     it('labels ignored paths while retaining their real names and prioritizing non-ignored matches', async () => {
       await writeFile(join(dir, '.gitignore'), 'src/alpha.ts\n')
       await writeFile(join(dir, '.ignore'), 'src/beta.ts\n')
-      const result = await call('glob', { pattern: '*.ts' }, agent())
+      const result = await call('glob', { pattern: '*.ts', include_ignored: true }, agent())
       expect(result.isError).toBe(false)
       const lines = text(result).split('\n')
       expect(lines).toContain(`${join('src', 'alpha.ts')} [ignored by ignore rules]`)
@@ -112,15 +113,65 @@ describe('search tools over the real subprocess service + the packaged rg', () =
       expect(lines.indexOf('.hidden.ts')).toBeLessThan(lines.indexOf(`${join('src', 'alpha.ts')} [ignored by ignore rules]`))
     })
 
-    it('discovers files by pattern, sorted by modification time, hidden included, .git excluded', async () => {
+    it.each([0, 1])('enforces the combined real-listing budget with %s extra byte required', async (overBy) => {
+      const listing = `${[join('src', 'alpha.ts'), join('src', 'beta.ts')].join('\n')}\n`
+      const rawOutputMaxBytes = Buffer.byteLength(listing) * 2 - overBy
+      await searchFiber.dispose()
+      searchFiber = await ctx.plugin(ToolFsSearch, { sampleOverCapGlobResults: true, rawOutputMaxBytes })
+      const result = await call('glob', { pattern: '*.ts', path: 'src' }, agent())
+      expect(result.isError).toBe(overBy > 0)
+      if (overBy === 0) expect(text(result).split('\n')).toEqual(listing.trimEnd().split('\n'))
+      else {
+        expect(result.error).toMatchObject({ info: { code: 'SEARCH_RAW_OUTPUT_OVERFLOW' } })
+        expect(text(result)).toContain('ignore-respecting candidate listing')
+        expect(text(result)).toContain('narrowing pattern does not reduce this listing')
+      }
+    })
+
+    it('discovers source files by pattern, sorted by modification time, hidden and VCS metadata excluded', async () => {
       const result = await call('glob', { pattern: '**/*.ts' }, agent())
       expect(result.isError).toBe(false)
       const paths = text(result).split('\n')
       expect(paths.indexOf(join('src', 'alpha.ts'))).toBeLessThan(paths.indexOf(join('src', 'beta.ts')))
-      expect(paths).toContain('.hidden.ts')
+      expect(paths).not.toContain('.hidden.ts')
       expect(paths).toContain(join('spaced dir', "wei'rd name.ts"))
       expect(paths).not.toContain(join('.git', 'config.ts'))
       expect(paths).not.toContain('notes.md')
+    })
+
+    it('respects ignore rules and admits ignored and hidden files only on explicit inclusion', async () => {
+      await writeFile(join(dir, '.gitignore'), 'node_modules/\n.next/\nvenv/\nignored.ts\n')
+      await writeFile(join(dir, 'ignored.ts'), 'ignored\n')
+      for (const name of ['node_modules', '.next', 'venv', 'generated']) {
+        await mkdir(join(dir, name))
+        await writeFile(join(dir, name, 'artifact.ts'), 'generated\n')
+      }
+      const normal = text(await call('glob', { pattern: '**/*.ts' }, agent())).split('\n')
+      expect(normal).toContain(join('src', 'alpha.ts'))
+      expect(normal).toContain(join('generated', 'artifact.ts'))
+      for (const path of ['ignored.ts', '.hidden.ts', ...['node_modules', '.next', 'venv'].map(name => join(name, 'artifact.ts'))]) {
+        expect(normal).not.toContain(path)
+      }
+      const included = text(await call('glob', { pattern: '**/*.ts', include_ignored: true }, agent())).split('\n')
+      expect(included).toContain('.hidden.ts')
+      expect(included).toContain('ignored.ts [ignored by ignore rules]')
+      for (const name of ['node_modules', '.next', 'venv']) expect(included).toContain(`${join(name, 'artifact.ts')} [ignored by ignore rules]`)
+      expect(included).not.toContain(join('.git', 'config.ts'))
+      const excluded = text(await call('glob', {
+        pattern: '**/*.ts', include_ignored: true,
+        exclude: ['**/node_modules/**', '**/.next/**', '**/venv/**', '**/generated/**'],
+      }, agent())).split('\n')
+      expect(excluded).toContain('.hidden.ts')
+      for (const name of ['node_modules', '.next', 'venv', 'generated']) expect(excluded).not.toContain(join(name, 'artifact.ts'))
+      expect(text(await call('glob', { pattern: '*.ts', exclude: ['**/generated/**'] }, agent()))).not.toContain('artifact.ts')
+    })
+
+    it('respects .gitignore in a workspace without Git metadata', async () => {
+      await rm(join(dir, '.git'), { recursive: true })
+      await writeFile(join(dir, '.gitignore'), 'src/\nnotes.md\n')
+      const result = await call('glob', { pattern: '*' }, agent())
+      expect(result.isError).toBe(false)
+      expect(text(result).split('\n')).toEqual([join('spaced dir', "wei'rd name.ts")])
     })
 
     it('scopes to a directory search root (path arg)', async () => {
@@ -128,14 +179,29 @@ describe('search tools over the real subprocess service + the packaged rg', () =
       expect(text(result).split('\n').sort()).toEqual([join('src', 'alpha.ts'), join('src', 'beta.ts')])
     })
 
+    it('keeps exclusion expressions inert and retains ripgrep path-depth semantics', async () => {
+      const canary = join(dir, 'pwned')
+      const result = await call('glob', { pattern: 'src/*.ts', exclude: ['$(touch pwned)', '`touch pwned`', '--flag'] }, agent())
+      expect(result.isError).toBe(false)
+      expect(text(result).split('\n').sort()).toEqual([join('src', 'alpha.ts'), join('src', 'beta.ts')])
+      expect(existsSync(canary)).toBe(false)
+      expect(text(await call('glob', { pattern: 'src' }, agent()))).toBe('No files found')
+    })
+
+    it('classifies an invalid exclusion glob as SEARCH_INVALID_PATTERN', async () => {
+      const result = await call('glob', { pattern: '*', exclude: ['['] }, agent())
+      expect(result.isError).toBe(true)
+      expect(result.error).toMatchObject({ info: { code: 'SEARCH_INVALID_PATTERN' } })
+    })
+
     it('reports zero discoveries as No files found', async () => {
       expect(text(await call('glob', { pattern: '*.nomatch' }, agent()))).toBe('No files found')
     })
 
-    it('excludes VCS internals even when the search root IS the VCS directory', async () => {
+    it.each([false, true])('excludes VCS internals at their search root with include_ignored=%s', async (include_ignored) => {
       // The prune glob alone never matches root-prefixed paths when rg is
       // rooted at .git; the paired contents glob keeps the exclusion airtight.
-      expect(text(await call('glob', { pattern: '*', path: '.git' }, agent()))).toBe('No files found')
+      expect(text(await call('glob', { pattern: '*', path: '.git', include_ignored }, agent()))).toBe('No files found')
     })
 
     it('classifies an invalid glob as SEARCH_INVALID_PATTERN', async () => {

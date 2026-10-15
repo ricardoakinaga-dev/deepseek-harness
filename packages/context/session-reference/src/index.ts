@@ -329,7 +329,7 @@ export class SessionReferenceResolver extends TypertRemoteService {
 
     const rendered = this.renderSources(prepared, maxReferenceBytes)
     const omissions = await settleWithCancellation(Promise.all(rendered.map((source, index) =>
-      prepareReferenceOmission(this.ctx.get('spillStore'), agent.session.id, source, index),
+      prepareReferenceOmission(this.ctx.get('spillStore'), agent.session.id, source, index, signal),
     )), signal)
     assertNotCancelled(signal)
     const notices = omissions.filter(notice => notice !== undefined)

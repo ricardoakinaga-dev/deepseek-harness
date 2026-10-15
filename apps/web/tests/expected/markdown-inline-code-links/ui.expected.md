@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Inline code links
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - button "More actions"
   - tablist:
     - tab "Chat" [selected]

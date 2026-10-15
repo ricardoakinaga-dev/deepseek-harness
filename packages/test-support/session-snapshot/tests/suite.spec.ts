@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -43,6 +43,7 @@ import {
   stdoutExpectedVariants,
   systemPromptPrecedesRequests,
   unknownToolCallIds,
+  writeSnapshotSidecar,
 } from '../src/suite.ts'
 
 /**
@@ -65,6 +66,50 @@ const AGENT = {
 }
 
 const REPLAY_DIR = fileURLToPath(new URL('./fixtures/suite', import.meta.url))
+
+describe('snapshot sidecar ownership', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-sidecar-owner-'))
+  afterAll(() => { rmSync(root, { recursive: true, force: true }) })
+
+  it('creates and refreshes an owned regular file', async () => {
+    const path = join(root, 'owned')
+    await writeSnapshotSidecar(path, 'first\n')
+    await writeSnapshotSidecar(path, 'second\n')
+    expect(readFileSync(path, 'utf8')).toBe('second\n')
+  })
+
+  it.skipIf(process.platform === 'win32')('preserves matching borrowed bytes and modification time', async () => {
+    const owner = join(root, 'owner')
+    const alias = join(root, 'matching-alias')
+    writeFileSync(owner, 'shared\n')
+    utimesSync(owner, 0, 0)
+    symlinkSync(owner, alias)
+    await writeSnapshotSidecar(alias, 'shared\n')
+    expect(readFileSync(owner, 'utf8')).toBe('shared\n')
+    expect(lstatSync(owner).mtimeMs).toBe(0)
+    expect(lstatSync(alias).isSymbolicLink()).toBe(true)
+  })
+
+  it.skipIf(process.platform === 'win32')('rejects a stale borrowed sidecar without repairing its owner', async () => {
+    const owner = join(root, 'stale-owner')
+    const alias = join(root, 'stale-alias')
+    writeFileSync(owner, 'owner version\n')
+    utimesSync(owner, 0, 0)
+    symlinkSync(owner, alias)
+    await expect(writeSnapshotSidecar(alias, 'new version\n')).rejects.toThrow(/borrowed sidecar/)
+    expect(readFileSync(owner, 'utf8')).toBe('owner version\n')
+    expect(lstatSync(owner).mtimeMs).toBe(0)
+  })
+
+  it.skipIf(process.platform === 'win32')('rejects a missing borrowed owner without creating it', async () => {
+    const owner = join(root, 'absent-owner')
+    const alias = join(root, 'broken-alias')
+    symlinkSync(owner, alias)
+    await expect(writeSnapshotSidecar(alias, 'new version\n')).rejects.toThrow()
+    expect(existsSync(owner)).toBe(false)
+    expect(lstatSync(alias).isSymbolicLink()).toBe(true)
+  })
+})
 
 function stabilize(
   fresh: string,
@@ -183,6 +228,35 @@ describe('defineAcpSnapshotSuite: record mode', () => {
 describe('defineAcpSnapshotSuite: refresh mode', () => {
   defineAcpSnapshotSuite({ agent: AGENT, snapshotsDir: refreshDir, scenarios: REPLAY_SCENARIOS, mode: 'refresh' })
 })
+
+if (process.platform !== 'win32') {
+  const borrowedDir = mkdtempSync(join(tmpdir(), 'acp-snap-borrowed-suite-'))
+  const ownerDir = mkdtempSync(join(tmpdir(), 'acp-snap-header-owner-'))
+  cpSync(REPLAY_DIR, borrowedDir, { recursive: true })
+  const names = ['system-prompt.expected.md', 'tool-schemas.expected.json']
+  for (const name of names) {
+    const alias = join(borrowedDir, 'pin-turn', name)
+    const owner = join(ownerDir, name)
+    writeFileSync(owner, readFileSync(alias))
+    utimesSync(owner, 0, 0)
+    rmSync(alias)
+    symlinkSync(owner, alias)
+  }
+  afterAll(async () => {
+    await rm(borrowedDir, { recursive: true, force: true })
+    await rm(ownerDir, { recursive: true, force: true })
+  })
+  describe('defineAcpSnapshotSuite: borrowed-header refresh', () => {
+    defineAcpSnapshotSuite({ agent: AGENT, snapshotsDir: borrowedDir, scenarios: REPLAY_SCENARIOS, mode: 'refresh' })
+    it('keeps both external header owners unchanged through the complete refresh', () => {
+      for (const name of names) {
+        expect(readFileSync(join(ownerDir, name))).toEqual(readFileSync(join(REPLAY_DIR, 'pin-turn', name)))
+        expect(lstatSync(join(ownerDir, name)).mtimeMs).toBe(0)
+        expect(lstatSync(join(borrowedDir, 'pin-turn', name)).isSymbolicLink()).toBe(true)
+      }
+    })
+  })
+}
 
 describe('defineAcpSnapshotSuite: refresh write-back', () => {
   it('rewrites stdout and comparable logs from a replay-mode child run', () => {

@@ -2,7 +2,7 @@
   "initial": [
     {
       "name": "bash",
-      "description": "Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs in a fresh shell; pass `workdir` instead of using `cd`. Managed `$DSH_*` variables expose current harness environment facts. Long output is truncated to a preview; one file path recovers the complete output when available. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.",
+      "description": "Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs in a fresh shell; pass `workdir` instead of using `cd`. Managed `$DSH_*` variables expose current harness environment facts. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -47,13 +47,13 @@
     },
     {
       "name": "create_goal",
-      "description": "Create a persisted goal that keeps this session working across automatic continuation rounds. Call only when the current human message contains a JSON object with exactly objective and requiredTasks. For a prose request, continue the authorized work without creating a goal.",
+      "description": "Create a persisted goal that keeps this session working across automatic continuation rounds. Use it when the direct human request is a long-running objective, even if the user did not say \"goal\"; not for single-turn work.",
       "parameters": {
         "type": "object",
         "properties": {
           "objective": {
             "type": "string",
-            "description": "Copy the exact objective string from the JSON object in the current human message."
+            "description": "The concrete completion objective inferred from the direct human request."
           },
           "max_goal_rounds": {
             "type": "number",
@@ -61,7 +61,7 @@
           },
           "required_tasks": {
             "type": "array",
-            "description": "Non-empty array. Copy every ID and criterion, in order, from that human JSON requiredTasks array; do not infer, omit, or invent tasks.",
+            "description": "Copy every ID and criterion from the human message JSON requiredTasks array. The objective and array must match exactly.",
             "items": {
               "type": "object",
               "additionalProperties": false,
@@ -154,7 +154,7 @@
     },
     {
       "name": "glob",
-      "description": "Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths, non-ignored first and in modification-time order within each group; a larger result keeps the first paths and reports where the complete list was saved. Ignored paths are labelled using ripgrep ignore rules, including .gitignore and .ignore; this does not indicate Git tracking status.",
+      "description": "Find files, not directories, whose paths match a glob pattern, respecting ignore rules by default. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -165,6 +165,17 @@
           "path": {
             "type": "string",
             "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+          },
+          "include_ignored": {
+            "type": "boolean",
+            "description": "Include hidden and ignored files. Defaults to false; VCS metadata stays excluded."
+          },
+          "exclude": {
+            "type": "array",
+            "description": "Positive globs to exclude, e.g. [\"**/node_modules/**\", \"**/.next/**\", \"**/venv/**\"]. At most 32 globs and 8192 UTF-8 bytes total.",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -383,6 +394,10 @@
             "type": "number",
             "description": "1-based first line to return. Defaults to 1."
           },
+          "column": {
+            "type": "number",
+            "description": "Positive 1-based UTF-16 column on the first requested line only. Defaults to 1; cannot split a surrogate pair."
+          },
           "limit": {
             "type": "number",
             "description": "Maximum number of lines to return. Defaults to 2000."
@@ -453,7 +468,7 @@
     },
     {
       "name": "skill",
-      "description": "Load the full instructions for a skill. Call it before acting on a task that names or clearly matches a skill in the session skill catalog. An unchanged skill already present in context returns a short reference; instructions removed by compaction are loaded again.",
+      "description": "Load the full instructions for a skill. Call it before acting on a task that names or clearly matches a skill in the session skill catalog.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -481,33 +496,6 @@
             "type": "string",
             "description": "The complete, self-contained task for the subagent. It does not share this conversation's context, so include everything it needs."
           },
-          "sandboxMode": {
-            "type": "string",
-            "description": "File access for this child. Omit to inherit the effective parent policy; a supplied mode may only narrow it. Approval remains disabled.",
-            "enum": [
-              "read-only",
-              "workspace-write"
-            ]
-          },
-          "toolFilter": {
-            "type": "object",
-            "description": "Additional tool restrictions for this child, intersected with deployment and parent permissions. An empty allow list removes all inherited tools.",
-            "additionalProperties": false,
-            "properties": {
-              "allow": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "deny": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
-          },
           "run_in_background": {
             "type": "boolean",
             "description": "Defaults to true. Set false only when your next action depends on the result."
@@ -532,33 +520,6 @@
           "prompt": {
             "type": "string",
             "description": "The task for the subagent. It already sees this conversation's completed turns, so build on them freely and state only what is new."
-          },
-          "sandboxMode": {
-            "type": "string",
-            "description": "File access for this child. Omit to inherit the effective parent policy; a supplied mode may only narrow it. Approval remains disabled.",
-            "enum": [
-              "read-only",
-              "workspace-write"
-            ]
-          },
-          "toolFilter": {
-            "type": "object",
-            "description": "Additional tool restrictions for this child, intersected with deployment and parent permissions. An empty allow list removes all inherited tools.",
-            "additionalProperties": false,
-            "properties": {
-              "allow": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "deny": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
           }
         },
         "required": [

@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Load the editing-cordis-compositions ski
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, ~3mo 7d ago"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

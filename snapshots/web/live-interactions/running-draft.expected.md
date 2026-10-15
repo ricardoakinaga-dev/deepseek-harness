@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Reply with a one-sentence description
+  - group "Session activity":
+    - text: running ·
+    - time: "Last recorded: input recorded, {{duration}} ago"
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"

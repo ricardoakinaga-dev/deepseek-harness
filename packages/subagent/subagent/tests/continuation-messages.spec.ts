@@ -1,12 +1,29 @@
 import { describe, expect, it } from 'vitest'
 import { ToolCallId, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { createSettlementMessage } from '../src/continuation-messages.ts'
+import { createSettlementMessage, withContinuableReturnGuidance } from '../src/continuation-messages.ts'
 
 const childId = SessionId('settled-child')
 const summary = { type: 'text', text: `Background subagent ${childId} finished and will do no further work unless you send it more.` }
 const reasoning: ContentBlock = { type: 'reasoning', text: 'private child reasoning' }
 const toolCall: ContentBlock = { type: 'tool-call', id: ToolCallId('child-call'), name: 'read', arguments: '{}' }
+
+describe('continuable final-result guidance', () => {
+  it('uses the final reply for automatic result delivery and reserves sends for progress', () => {
+    const prompt: ContentBlock[] = [{ type: 'text', text: 'task' }]
+    const content = withContinuableReturnGuidance(SessionId('parent"\nagent'), prompt)
+    expect(content.slice(0, 1)).toEqual(prompt)
+    expect(content[1]).toEqual({
+      type: 'text',
+      text: 'Your parent agent id is "parent\\"\\nagent". Put your self-contained final result in your final reply; '
+        + 'it will be delivered to your parent automatically when you finish. Use '
+        + 'send_message({ agent_id: "parent\\"\\nagent", message: "<progress or coordination>" }) '
+        + 'when a finding changes what the parent should do next. Do not send a second copy of your final result. '
+        + 'The parent shares your workspace but does not automatically receive your transcript, tool output, or reasoning. '
+        + 'Sending a message does not end your turn.',
+    })
+  })
+})
 
 describe('continuable settlement content', () => {
   it.each([

@@ -189,7 +189,7 @@ it.each(['github:acme/connected', 'https://github.com/acme/connected.git', 'git+
   'installs %s through real Git and pnpm with private repository SSH fallback', async (spec) => {
     const pnpm = fileURLToPath(new URL('../../../../apps/desktop/node_modules/pnpm/bin/pnpm.mjs', import.meta.url))
     const env = { GIT_CONFIG_GLOBAL: '', GIT_CONFIG_NOSYSTEM: '1' }
-    const { manager, dir, connection } = await fixture('startup', false, undefined, {}, {
+    const { manager, dir, connection } = await fixture('startup', false, undefined, { allowedPublishers: ['test', '@test'] }, {
       command: process.execPath, args: ['--expose-internals', pnpm], env,
     })
     connection.mockRestore()
@@ -571,6 +571,52 @@ it('runs a real pnpm dependency script only after approval and retry', async () 
   expect(readFileSync(built, 'utf8')).toBe('built')
 })
 
+it.each(['path', 'registry'] as const)('inspects canonical npm scope publishers from %s metadata and denies a different scope', async (kind) => {
+  const { manager, profile } = await fixture('startup', false, undefined, {
+    allowedSources: [kind], allowedPublishers: ['@trusted'], fallbackRegistries: [],
+  })
+  const local = join(profile.home, 'scoped-package')
+  mkdirSync(local)
+  const view = vi.spyOn(operations, 'viewProfilePackage')
+  onTestFinished(() => { view.mockRestore() })
+  const inspect = (name: string) => {
+    const manifest = { name, version: '1.0.0', dsh: { bundle: { patch: './cordis.patch.yml' } } }
+    if (kind === 'path') {
+      writeFileSync(join(local, 'package.json'), JSON.stringify(manifest))
+      return manager.inspect(local)
+    }
+    view.mockResolvedValueOnce({ exitCode: 0, stdout: JSON.stringify(manifest), stderr: '', timedOut: false })
+    return manager.inspect(name)
+  }
+  expect(await inspect('@trusted/bundle')).toEqual({
+    status: 'accepted', kind, name: '@trusted/bundle', version: '1.0.0', bundle: true, registry: null,
+  })
+  expect(await inspect('@other/bundle')).toMatchObject({
+    status: 'refused', problem: 'invalid-spec', reason: 'bundle "@other/bundle" publisher "@other" is not allowlisted',
+  })
+})
+
+it.each([
+  { name: '@other/bundle', publisher: '@trusted', author: 'other-author', accepted: true, identity: '@trusted' },
+  { name: '@trusted/bundle', publisher: 'other-publisher', author: '@trusted', accepted: false, identity: 'other-publisher' },
+  { name: '@other/bundle', publisher: undefined, author: '@trusted', accepted: true, identity: '@trusted' },
+  { name: '@trusted/bundle', publisher: undefined, author: 'other-author', accepted: false, identity: 'other-author' },
+])('keeps publisher and author metadata precedence over scope fallback: $identity ($accepted)', async ({ name, publisher, author, accepted, identity }) => {
+  const { manager, profile } = await fixture('startup', false, undefined, {
+    allowedSources: ['path'], allowedPublishers: ['@trusted'],
+  })
+  const local = join(profile.home, 'declared-package')
+  mkdirSync(local)
+  writeFileSync(join(local, 'package.json'), JSON.stringify({
+    name, author, dsh: { bundle: { patch: './cordis.patch.yml', publisher } },
+  }))
+  const result = await manager.inspect(local)
+  if (accepted) expect(result).toMatchObject({ status: 'accepted', name, bundle: true })
+  else expect(result).toEqual({
+    status: 'refused', problem: 'invalid-spec', reason: `bundle "${name}" publisher "${identity}" is not allowlisted`,
+  })
+})
+
 it('denies unconfigured sources and refuses untrusted or unverifiable publishers', async () => {
   const denied = await fixture('startup', false, undefined, { allowedSources: [], allowedPublishers: [] })
   expect(await denied.manager.inspect('github:acme/untrusted-bundle')).toEqual({
@@ -617,7 +663,7 @@ it('denies unconfigured sources and refuses untrusted or unverifiable publishers
     name: '@scope/no-publisher', dsh: { bundle: { patch: './cordis.patch.yml' } },
   }))
   expect(await manager.inspect(scoped)).toEqual({
-    status: 'refused', problem: 'invalid-spec', reason: 'bundle "@scope/no-publisher" publisher "scope" is not allowlisted',
+    status: 'refused', problem: 'invalid-spec', reason: 'bundle "@scope/no-publisher" publisher "@scope" is not allowlisted',
   })
 })
 

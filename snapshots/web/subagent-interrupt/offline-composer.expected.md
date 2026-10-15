@@ -3,13 +3,16 @@
     - button "Ask a research subagent to"
     - text: /
     - 'button "Switch subagent: event-sourcing researcher"': event-sourcing researcher
+  - group "Session activity":
+    - text: running ·
+    - time: "Last recorded: input recorded, {{duration}} ago"
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- text: "Explain event sourcing in one sentence.Your parent agent id is \"session-{{uuid}}\". Before you finish, send your result to that agent with send_message({ agent_id: \"session-{{uuid}}\", message: \"<self-contained result>\" }). The parent shares your workspace but does not automatically receive your transcript, tool output, or reasoning. Send earlier messages as well when a finding changes what the parent should do next; sending a message does not end your turn. {{clock}}"
+- text: "Explain event sourcing in one sentence.Your parent agent id is \"session-{{uuid}}\". Put your self-contained final result in your final reply; it will be delivered to your parent automatically when you finish. Use send_message({ agent_id: \"session-{{uuid}}\", message: \"<progress or coordination>\" }) when a finding changes what the parent should do next. Do not send a second copy of your final result. The parent shares your workspace but does not automatically receive your transcript, tool output, or reasoning. Sending a message does not end your turn. {{clock}}"
 - button "Copy"
 - paragraph: partial
 - status: Deep diving...

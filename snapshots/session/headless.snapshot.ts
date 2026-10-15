@@ -9,12 +9,20 @@ import { basename, delimiter, dirname, isAbsolute, join, relative, sep } from 'n
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import ts from 'typescript'
-import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
+import { createHash } from 'node:crypto'
+import { unzipSync, strFromU8 } from 'fflate'
+import { Context } from '@deepseek-ai/cordis'
+import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
+import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
+import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
+import { readSessionLogText, streamSessionLogZip } from '@deepseek-ai/dsh-session-log-export'
 import { releasedV0SessionFormatCodec } from '@deepseek-ai/dsh-session-format-v0-to-v1'
 import type { SessionFormatEvent, SessionFormatMigrationContext } from '@deepseek-ai/dsh-session-format'
 import { assertWorkspaceOutsideTemp, outsideTempWorkspaceParent } from '../../scripts/snapshot-workspace-parent.ts'
 import {
   assertPersistedSessionVersion,
+  assertFreshRuntimeAuditIdentity,
   assertSessionFixtureVersion,
   captureExpectedWorkspaceSnapshot,
   captureWorkspaceSnapshot,
@@ -45,18 +53,23 @@ import {
   stabilizeRefreshLog,
   tokenizeSessionFixtureCwd,
   writesCurrentSessionFixtures,
+  verifyRuntimeAuditOracle,
+  withRuntimeAuditOracle,
   type HarvestedLog,
   type NormalizeContext,
   type SnapshotManifest,
   type WorkspaceSnapshotEntry,
 } from '@deepseek-ai/dsh-session-snapshot'
-import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
+import { LOADER_SMOKE_TEST_TIMEOUT_MS, resolveExampleMode, runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
 import { resolvePwshPath } from '@deepseek-ai/dsh-pwsh-local'
 import { parseSessionLog, prepareSessionSnapshotFixtureForComparison } from '@deepseek-ai/dsh-llm-replay'
+import { readRuntimeIdentity } from '../../apps/cli/src/runtime-identity.ts'
+import { startWebSocketRecoveryPeer } from '../../packages/test-support/session-snapshot/tests/fixtures/websocket-recovery.ts'
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url))
 const snapshotsRoot = fileURLToPath(new URL('./', import.meta.url))
 const dshBin = join(repoRoot, 'apps/cli/src/bin.ts')
+const runtimeMode = resolveExampleMode() === 'src' ? 'source' : 'artifact'
 const tsconfigPath = join(repoRoot, 'tsconfig.json')
 const editingCordisSkill = join(
   repoRoot,
@@ -175,9 +188,11 @@ function headerOf(log: string): JsonObject {
   return records(log)[0] ?? {}
 }
 
-function contextOf(logs: readonly string[]): NormalizeContext {
+function contextOf(logs: readonly string[], spillRoot?: string): NormalizeContext {
   const headers = logs.map(headerOf)
   return {
+    repositoryRoot: repoRoot,
+    ...spillRoot === undefined ? {} : { spillRoot },
     sessionIds: headers.flatMap(header => typeof header.id === 'string' ? [header.id] : []),
     cwd: typeof headers[0]?.cwd === 'string' ? headers[0].cwd : '\0missing-cwd\0',
   }
@@ -228,6 +243,60 @@ async function primaryFixtureFile(dir: string): Promise<string> {
   return primary
 }
 
+/** Verify a cold persisted export after removing every original source and temporary spill. */
+async function verifyPortableSpillExport(cwd: string, spillRoot: string, log: SessionLog): Promise<void> {
+  const events = parseSessionLog(log.content)
+  const captures = events.filter(event => event.type === 'spill/artifact')
+  expect(captures).toHaveLength(2)
+  expect(captures.map(event => event.data.source.kind === 'tool' ? event.data.source.toolName : undefined).sort()).toEqual(['glob', 'grep'])
+  const deliveries = events.filter(event => event.type === 'deliverables/presented')
+  expect(deliveries.flatMap(event => event.data.files)).toMatchObject([{ path: 'report.txt', capture: { status: 'stored' } }])
+  for (const capture of captures) expect((await readFile(capture.data.locator)).byteLength).toBe(capture.data.attachment.bytes)
+  await rm(spillRoot, { recursive: true, force: true })
+  for (const name of ['a.txt', 'b.txt', 'report.txt']) await rm(join(cwd, name))
+  if (typeof log.header.id !== 'string') throw new Error('portable export has no Session id')
+  const id = SessionId(log.header.id)
+  const ctx = new Context()
+  let bytes: Uint8Array
+  try {
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(JsonlSessionPersistence, { root: join(cwd, '.dsh', 'sessions'), compression: 'none' })
+    await ctx.plugin(LocalAttachmentStore, { dshHome: join(cwd, '.dsh') })
+    await ctx.plugin(SqliteSessionQueryEngine, { path: ':memory:', openAt: 'never' })
+    expect(ctx.sessions.get(id)).toBeUndefined()
+    const content = await readSessionLogText(ctx.sessionPersistence, id)
+    if (content === undefined) throw new Error('cold portable Session is absent')
+    expect(parseSessionLog(content)).toEqual(events)
+    const stream = streamSessionLogZip({
+      sessionPersistence: ctx.sessionPersistence, sessionQuery: ctx.sessionQuery,
+      attachments: ctx.attachments, sessions: ctx.sessions,
+    }, content, id, false, 6, new AbortController().signal)
+    bytes = new Uint8Array(await new Response(stream).arrayBuffer())
+    await stream.completed
+  } finally { await ctx.fiber.dispose() }
+  const members = unzipSync(bytes)
+  const manifest = JSON.parse(strFromU8(members['manifest.json']!)) as {
+    format: string
+    rootSessionId: string
+    entries: Array<{ path: string; bytes: number; sha256: string }>
+    spills: Array<{ locator: string; path: string }>
+  }
+  expect(manifest.format).toBe('dsh-session-export.v1')
+  expect(manifest.rootSessionId).toBe(id)
+  expect(manifest.entries.map(entry => entry.path).sort()).toEqual(Object.keys(members).filter(path => path !== 'manifest.json').sort())
+  for (const entry of manifest.entries) {
+    const member = members[entry.path]!
+    expect(member.byteLength).toBe(entry.bytes)
+    expect(createHash('sha256').update(member).digest('hex')).toBe(entry.sha256)
+  }
+  expect(manifest.spills.map(spill => spill.locator).sort()).toEqual(captures.map(event => event.data.locator).sort())
+  const recovered = manifest.spills.map(spill => strFromU8(members[spill.path]!)).join('\n')
+  expect(recovered).toContain('EVIDENCE ação alpha')
+  expect(recovered).toContain('EVIDENCE 🐢 beta')
+  expect(recovered).toContain('report.txt')
+  expect(Object.values(members).some(member => strFromU8(member) === 'SELECTED_EVIDENCE\n')).toBe(true)
+}
+
 async function writeSessionFixtures(
   scenario: HeadlessScenario,
   actualLogs: readonly SessionLog[],
@@ -245,7 +314,7 @@ async function writeSessionFixtures(
     const stable = tokenizeSessionFixtureCwd(mode === 'refresh'
       ? stabilizeRefreshLog(log.content, prior[index] as string, replacements, ctx)
       : log.content)
-    return scrubSessionSnapshot(prepareSessionSnapshotFixtureForComparison(stable))
+    return scrubSessionSnapshot(prepareSessionSnapshotFixtureForComparison(stable), ctx)
   })
   const output = redactSessionSnapshotIds(stabilizeFixtureMessageIds(fresh, prior))
   await Promise.all(output.map((content, index) => writeFile(join(scenario.dir, names[index] as string), content)))
@@ -1116,9 +1185,11 @@ describe('headless recorded-session snapshots', () => {
       let actualLogs: SessionLog[] = []
       let initialWorkspace: WorkspaceSnapshotEntry[] | undefined
       let finalWorkspace: WorkspaceSnapshotEntry[] | undefined
+      let expectedRuntimeIdentity: ReturnType<typeof readRuntimeIdentity> | undefined
       const spillRoot = await mkdtemp(join(tmpdir(), 'acp-snap-spill-'))
       const locatorRoot = snapshotSpillRoot(join(scenario.dir, fixtureFiles[0] as string))
       const mcpDemo = scenario.name === 'plugin-manager-mcp' ? await startHttpMcpFixture() : undefined
+      const websocketPeer = scenario.name === 'websocket-transport-recovery' ? await startWebSocketRecoveryPeer() : undefined
       let result: Awaited<ReturnType<typeof runLoaderSmoke>>
       try {
         result = await runLoaderSmoke({
@@ -1161,6 +1232,10 @@ describe('headless recorded-session snapshots', () => {
             NODE_OPTIONS: [process.env.NODE_OPTIONS, '--disable-warning=ExperimentalWarning'].filter(Boolean).join(' '),
             DSH_TELEMETRY_DISABLED: '1',
             ...(mcpDemo === undefined ? {} : { DSH_MCP_DEMO_URL: mcpDemo.url }),
+            ...(websocketPeer === undefined ? {} : {
+              DSH_H02_WS_URL: websocketPeer.url,
+              DSH_H02_CODEX_TOKEN: `test.${Buffer.from(JSON.stringify({ 'https://api.openai.com/auth': { chatgpt_account_id: 'local-snapshot' } })).toString('base64url')}.test`,
+            }),
           },
           prepare: async (cwd) => {
             if (scenario.manifest.workspace?.parent === 'outside-temp') assertWorkspaceOutsideTemp(cwd)
@@ -1179,9 +1254,28 @@ describe('headless recorded-session snapshots', () => {
             initialWorkspace = await captureWorkspaceSnapshot(cwd, {
               ignoredRootEntries: RUNTIME_WORKSPACE_ENTRIES,
             })
+            expectedRuntimeIdentity = readRuntimeIdentity(new URL(runtimeMode === 'source'
+              ? '../../apps/cli/src/profile-boot.ts' : '../../apps/cli/lib/profile-boot.js', import.meta.url).href)
           },
           inspect: async (cwd) => {
             actualLogs = await persistedSessions(cwd)
+            if (expectedRuntimeIdentity === undefined) throw new Error('snapshot launch identity was not observed')
+            for (const log of actualLogs) {
+              assertFreshRuntimeAuditIdentity(log.content, expectedRuntimeIdentity)
+            }
+            if (websocketPeer !== undefined) {
+              expect(websocketPeer.requests).toHaveLength(3)
+              expect(websocketPeer.httpRequests).toEqual([])
+              const events = records(actualLogs[0]!.content)
+              expect(events.filter(event => event.type === 'llm/retry')).toMatchObject([
+                { data: { retry: 1, failure: { code: 'TRANSPORT', message: 'WebSocket closed 1000' } } },
+              ])
+              expect(events.filter(event => event.type === 'tool/call')).toHaveLength(1)
+              expect(events.filter(event => event.type === 'tool/result')).toMatchObject([
+                { data: { message: { isError: false } } },
+              ])
+              expect(await readFile(join(cwd, 'once.txt'), 'utf8')).toBe('once\n')
+            }
             if (retainedToolInput !== undefined) {
               verifyToolResultWriterParity(primaryFixture, actualLogs[0]!.content)
             }
@@ -1196,6 +1290,9 @@ describe('headless recorded-session snapshots', () => {
             }
             if (scenario.name === 'session-query-spill') {
               await verifySessionQuerySpill(actualLogs[0]!.content, spillRoot, locatorRoot)
+            }
+            if (scenario.name === 'portable-spill-export') {
+              await verifyPortableSpillExport(cwd, spillRoot, actualLogs[0]!)
             }
             if (scenario.name === 'mcp-resources' || scenario.name === 'mcp-resources-ptc') {
               verifyMcpResources(actualLogs[0]!.content, scenario.name === 'mcp-resources-ptc')
@@ -1217,6 +1314,7 @@ describe('headless recorded-session snapshots', () => {
           },
         })
       } finally {
+        await websocketPeer?.close()
         await mcpDemo?.close()
         await rm(spillRoot, { recursive: true, force: true })
       }
@@ -1224,7 +1322,7 @@ describe('headless recorded-session snapshots', () => {
       const stderrLog = mode === 'replay' ? primaryFixture : actualLogs[0]?.content
       if (stderrLog === undefined) throw new Error(`${scenario.name}: stderr projection has no primary session`)
       const expectedStderr = stderrFromSession(stderrLog)
-      const actualContext = contextOf(actualLogs.map(log => log.content))
+      const actualContext = contextOf(actualLogs.map(log => log.content), spillRoot)
 
       if (writesCurrentSessionFixtures(scenario.manifest, mode)) {
         fixtures = await writeSessionFixtures(
@@ -1248,14 +1346,7 @@ describe('headless recorded-session snapshots', () => {
         expect(writerFiles, 'native writer oracle inventory').toEqual(scenario.manifest.sessionFormat === undefined
           ? [] : fixtures.map((_, index) => writerSnapshotName(index)).sort())
       }
-      let expected = fixtures
-      if (retainedToolInput !== undefined) {
-        expected = await fixtureSessions(scenario)
-        for (const content of expected) {
-          expect(sessionHeaderVersion(content, 'historical-input current-writer oracle')).toBe(SESSION_FORMAT_VERSION)
-        }
-        expect(await fixtureSessions(scenario, [retainedToolInput]), 'historical replay input remains unchanged').toEqual(fixtures)
-      }
+      let expected = retainedToolInput === undefined ? fixtures : await fixtureSessions(scenario)
       if (scenario.manifest.sessionFormat !== undefined) {
         if (mode === 'refresh') await writeSessionFixtures(scenario, actualLogs, fixtures, actualContext)
         expected = await Promise.all(fixtures.map((_, index) => readFile(join(scenario.dir, writerSnapshotName(index)), 'utf8')))
@@ -1265,7 +1356,10 @@ describe('headless recorded-session snapshots', () => {
         expect(await fixtureSessions(scenario), 'historical replay input remains unchanged').toEqual(fixtures)
       }
       const actualSnapshots = normalizeSessionSnapshots(actualLogs.map(log => log.content), actualContext, { nativeWriterOutput: true })
-      const expectedSnapshots = normalizeSessionSnapshots(expected, contextOf(expected), { nativeWriterOutput: true })
+      const runtimeOracle = await verifyRuntimeAuditOracle(scenario.dir, runtimeMode, actualSnapshots, mode !== 'replay')
+      const expectedSnapshots = withRuntimeAuditOracle(
+        normalizeSessionSnapshots(expected, contextOf(expected), { nativeWriterOutput: true }), runtimeOracle,
+      )
       for (const [index, actual] of actualSnapshots.entries()) {
         const actualRecords = records(actual)
         const expectedRecords = scenario.name === 'session-reference-spill' && index === 0

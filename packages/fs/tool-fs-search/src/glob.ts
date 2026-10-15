@@ -14,7 +14,7 @@ import { sep } from 'node:path'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, SearchResultView, ToolResult } from '@deepseek-ai/dsh-tools'
 import type { SpillRef } from '@deepseek-ai/dsh-spill'
-import { runRipgrep, toWorkdirRelative, trySaveFormattedResult } from './search-core.ts'
+import { SearchError, runRipgrep, toWorkdirRelative, trySaveFormattedResult } from './search-core.ts'
 import { globSearchMeta, searchViewFromMeta } from './presentation.ts'
 import { acceptedDirectCallValue } from './direct-call.ts'
 
@@ -26,9 +26,8 @@ export const GLOB_MAX_RESULTS = 100
 
 /**
  * Directory names ripgrep must never descend into for a discovery listing: VCS
- * metadata stores. `--no-ignore --hidden` would otherwise surface them in every
- * broad search. Each name is excluded with TWO negated `--glob`s (see
- * {@link buildGlobCommand}): an any-depth directory glob that matches — and
+ * metadata stores, including explicit ignored-file discovery. Each name is excluded with two
+ * negated `--glob`s (see {@link buildGlobCommand}): an any-depth directory glob that matches — and
  * prunes — the directory during traversal, and a contents glob that still
  * excludes the internals when the search root itself is at or inside the
  * directory (an explicit `path` of `.git` or `sub/.git`), where the prune glob
@@ -44,7 +43,7 @@ export interface GlobToolCaps {
   maxResults: number
   /** Max bytes of serialized `presentationMeta`; trailing paths drop past it. */
   maxMetaBytes: number
-  /** Cap on the complete raw `rg` stdout the tool will parse. */
+  /** Combined raw byte cap on normal discovery listings; explicit inclusion caps discovery and retained classification separately. */
   rawOutputMaxBytes: number
   /** Terminate-escalation grace period (ms) for the search process. */
   graceMs: number
@@ -58,20 +57,41 @@ export interface GlobToolCaps {
 export interface GlobInput {
   pattern: string
   path?: string
+  /** Include hidden files and bypass ignore files; defaults to false after parsing. */
+  include_ignored?: boolean
+  /** Positive globs excluded in both discovery modes, after the match pattern. */
+  exclude?: string[]
 }
 
 /**
- * Validate value constraints the schema DSL can't express: a non-blank
- * `pattern`, and a non-blank `path` when given. Throws a plain `Error` (an
- * ordinary tool argument error) otherwise.
+ * Validate nonblank arguments and the exclusion protocol: at most 32 positive globs totaling
+ * at most 8192 UTF-8 bytes. NUL is unavailable in subprocess argv. Invalid values throw an
+ * ordinary tool argument error before spawning.
  *
  * @param args - the schema-validated `glob` arguments.
- * @returns the accepted input, unchanged.
+ * @returns accepted arguments with `include_ignored` defaulted to false.
  */
-export function parseGlobArgs(args: { pattern: string; path?: string }): GlobInput {
+export function parseGlobArgs(args: GlobInput): GlobInput {
   if (args.pattern.trim().length === 0) throw new Error('pattern must be a non-empty string')
   if (args.path !== undefined && args.path.trim().length === 0) throw new Error('path must be a non-empty string when given')
-  return { pattern: args.pattern, ...args.path !== undefined ? { path: args.path } : {} }
+  if (args.pattern.includes('\0') || args.path?.includes('\0')) throw new Error('pattern and path must not contain NUL')
+  if (args.exclude !== undefined) {
+    if (args.exclude.length > 32) throw new Error('exclude accepts at most 32 globs')
+    let bytes = 0
+    for (const pattern of args.exclude) {
+      if (pattern.trim().length === 0 || pattern.startsWith('!') || pattern.includes('\0')) {
+        throw new Error('exclude entries must be non-empty positive globs without NUL; omit the leading !')
+      }
+      bytes += Buffer.byteLength(pattern, 'utf8')
+    }
+    if (bytes > 8192) throw new Error('exclude globs must total at most 8192 UTF-8 bytes')
+  }
+  return {
+    pattern: args.pattern,
+    include_ignored: args.include_ignored ?? false,
+    ...args.path !== undefined ? { path: args.path } : {},
+    ...args.exclude !== undefined ? { exclude: args.exclude } : {},
+  }
 }
 
 /**
@@ -79,20 +99,27 @@ export function parseGlobArgs(args: { pattern: string; path?: string }): GlobInp
  * model-controlled value ({@link GlobInput.pattern}, {@link GlobInput.path})
  * is a plain argv element — no shell layer exists, so no quoting applies; the
  * search root rides behind `--` so a leading-dash path can never be parsed as
- * a flag. `--sort=modified` orders by modification time, `--no-ignore
- * --hidden` searches ignored and hidden files, and
- * {@link GLOB_VCS_EXCLUDES} keeps VCS metadata out.
+ * a flag. `--sort=modified` orders by modification time. Explicit `include_ignored` searches
+ * ignored and hidden files. Positive ripgrep globs override ignore rules, so normal discovery
+ * also intersects these matches with an unfiltered, ignore-respecting listing. Exclusions and
+ * {@link GLOB_VCS_EXCLUDES} keep VCS metadata out.
  *
  * @param input - the validated arguments.
  * @returns the complete ripgrep argument vector (excluding the binary itself).
  */
 export function buildGlobCommand(input: GlobInput): string[] {
+  return globCommand(input, true)
+}
+
+/** Omit the positive glob for the ignore-respecting candidate listing. */
+function globCommand(input: GlobInput, matchPattern: boolean): string[] {
   const parts = [
     '--files',
-    `--glob=${input.pattern}`,
+    ...matchPattern ? [`--glob=${input.pattern}`] : [],
     '--sort=modified',
-    '--no-ignore',
-    '--hidden',
+    '--no-require-git',
+    ...input.include_ignored === true ? ['--no-ignore', '--hidden'] : [],
+    ...input.exclude?.map(pattern => `--glob=!${pattern}`) ?? [],
     // Two negated globs per VCS name: the bare form prunes the directory
     // during traversal; the /** form still excludes the contents when the
     // search root is AT or INSIDE the directory (where the bare form,
@@ -321,10 +348,9 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
   const overCapDescription = caps.sampleOverCapGlobResults ? 'is sampled across top-level entries' : 'keeps the first paths'
   const tool = defineTool({
     name: 'glob',
-    description: 'Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. '
-      + `Returns up to ${caps.maxResults} paths, non-ignored first and in modification-time order within each group; a larger result ${overCapDescription} `
-      + 'and reports where the complete list was saved. '
-      + 'Ignored paths are labelled using ripgrep ignore rules, including .gitignore and .ignore; this does not indicate Git tracking status.',
+    description: 'Find files, not directories, whose paths match a glob pattern, respecting ignore rules by default. '
+      + `Returns up to ${caps.maxResults} paths in modification-time order; a larger result ${overCapDescription} `
+      + 'and reports where the complete list was saved. Explicitly included ignored paths are labelled and follow non-ignored paths.',
     parameters: {
       pattern: {
         type: 'string',
@@ -333,6 +359,8 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
           + 'A pattern with no "/" matches the basename at any depth, so "*" and "*.ts" both search the whole tree; include a separator to anchor the depth.',
       },
       path: { type: 'string', description: 'Directory to search in. Defaults to the session workspace; a relative path resolves against it.' },
+      include_ignored: { type: 'boolean', description: 'Include hidden and ignored files. Defaults to false; VCS metadata stays excluded.' },
+      exclude: { type: 'array', items: { type: 'string' }, description: 'Positive globs to exclude, e.g. ["**/node_modules/**", "**/.next/**", "**/venv/**"]. At most 32 globs and 8192 UTF-8 bytes total.' },
     },
     timeoutMs: caps.timeoutMs,
     output: {
@@ -357,12 +385,30 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
       const root = input.path === undefined ? '.' : toWorkdirRelative(input.path, run.workdir)
       if (run.noMatches) return { root, paths: [], ignoredPaths: [] }
 
+      // Positive --glob rules override ignore files and hidden-file filtering. The second
+      // listing has only negative globs, so it supplies the ordinary discovery candidates.
+      let allowed: Set<string> | undefined
+      if (input.include_ignored !== true) {
+        const remaining = caps.rawOutputMaxBytes - Buffer.byteLength(run.stdout, 'utf8')
+        const overflow = `glob ignore-respecting candidate listing cannot fit the remaining ${remaining} bytes of the ${caps.rawOutputMaxBytes}-byte raw output budget; narrow path or add exclude globs, or increase rawOutputMaxBytes; narrowing pattern does not reduce this listing`
+        if (remaining === 0) throw new SearchError(overflow, 'SEARCH_RAW_OUTPUT_OVERFLOW')
+        try {
+          const candidates = await runRipgrep(ctx, exec, 'glob', globCommand(input, false), remaining, caps.graceMs, caps.stderrMaxBytes)
+          allowed = new Set(candidates.stdout.split('\n'))
+        } catch (error: unknown) {
+          if (!(error instanceof SearchError) || error.code !== 'SEARCH_RAW_OUTPUT_OVERFLOW') throw error
+          throw new SearchError(overflow, 'SEARCH_RAW_OUTPUT_OVERFLOW', { cause: error })
+        }
+      }
+
       const all: string[] = []
       for (const line of run.stdout.split('\n')) {
-        if (line.length === 0) continue
+        if (line.length === 0 || allowed !== undefined && !allowed.has(line)) continue
         const displayPath = toWorkdirRelative(line, run.workdir)
         all.push(displayPath)
       }
+      if (input.include_ignored !== true) return { root, paths: all, ignoredPaths: [] }
+
       // Positive --glob patterns override ignore rules. Classify against a
       // second listing without that override, retaining only discovered candidates.
       const respectedArgs = buildGlobCommand(input).filter(arg =>

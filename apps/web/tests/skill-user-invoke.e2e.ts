@@ -35,6 +35,8 @@ const ARGS_TEXT = `@"${FILE_NAME}" and confirm the fixture wiring`
 const REPLY = 'USER_INVOKE_REPLY acknowledged; following the injected skill.'
 
 async function seedUserOnlySkill(workspaceCwd: string): Promise<void> {
+  // Project skill discovery stops at the nearest Git marker inside this fixture.
+  await mkdir(join(workspaceCwd, 'workspace', '.git'), { recursive: true })
   const directory = join(workspaceCwd, 'workspace', '.agents', 'skills', SKILL_NAME)
   await mkdir(directory, { recursive: true })
   await writeFile(join(directory, 'SKILL.md'), [
