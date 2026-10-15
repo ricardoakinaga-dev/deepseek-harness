@@ -61,6 +61,10 @@ AccountDetails.balance projects recharge wallets in value and promotional wallet
 
 Bonus notification queries return an AccountBonusBatch with the current Platform account id and eligible orders in server order. AccountBonusNotification retains the server message and expiry without projecting credentials. Acknowledgment carries the expected account id and order id; the Host refuses it after an account change. Both notification operations use the initiating UI language through x-client-locale, without a language query parameter.
 
+## OpenAI Codex login
+
+The optional [Codex login bundle](../../packages/experimental/codex-login/README.md) adds a Web control for the `llm-pi-ai/openai-codex` authorization flow. `CodexLoginStatus` reports OAuth availability, whether a grant is stored, credential-store writability, and whether an attempt is running; it carries no token. `CodexLoginFrame` carries progress notices, manual-code prompts, and settlement only to the initiating browser. `CodexLoginReply` returns a prompt answer or decline on that browser's Remote stream. Closing the stream withdraws its attempt, while signing out deletes only a grant record.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -129,6 +133,35 @@ async begin(request: AuthorizationRequest): Promise<AuthorizationOutcome>
 ```
 
 Source: [`packages/credentials/authorization/src/index.ts`](../../packages/credentials/authorization/src/index.ts)
+
+<a id="ctxcodexlogincontroller--codexlogincontroller"></a>
+
+### `ctx.codexLoginController` — `CodexLoginController`
+
+Remote service installed only by the optional Codex login bundle.
+
+```ts cordis-catalog
+/** Report whether Codex OAuth is installed and its grant is stored.
+ * @returns availability, grant presence, writability, and attempt state.
+ */
+@Remote async status(): Promise<CodexLoginStatus>
+
+/**
+ * Start the installed Codex OAuth flow on this browser's private stream.
+ * @param signal - carrier lifetime; closing the page withdraws the attempt.
+ * @returns progress, prompts, and settlement for the initiating browser.
+ */
+@Remote({ mode: 'stream' }) login(signal: AbortSignal): RemoteStream<CodexLoginFrame, CodexLoginReply>
+
+/** Remove the stored Codex grant while preserving any API-key record.
+ * @returns after the credential store acknowledges removal.
+ */
+@Remote async signOut(): Promise<void>
+```
+
+Types: [RemoteStream](typert.md)
+
+Source: [`packages/experimental/codex-login/src/index.ts`](../../packages/experimental/codex-login/src/index.ts)
 
 <a id="ctxcredentials--credentialprovider-abstract-seam"></a>
 

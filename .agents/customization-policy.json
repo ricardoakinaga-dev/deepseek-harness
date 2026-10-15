@@ -890,6 +890,7 @@
         "packages/client/hmr/package.json",
         "packages/client/locale/package.json",
         "packages/client/modules/package.json",
+        "packages/client/product-analytics/package.json",
         "packages/client/resources/package.json",
         "packages/client/ui-agent-preset/package.json",
         "packages/client/ui-attachment/package.json",
@@ -967,6 +968,7 @@
         "packages/experimental/computer-use-cua-driver-mcp/package.json",
         "packages/experimental/computer-use-cua-driver-native/package.json",
         "packages/experimental/inspector/package.json",
+        "packages/experimental/schedule-bundle/package.json",
         "packages/experimental/tool-agent-team/package.json",
         "packages/experimental/webworker-runtime/package.json",
         "packages/extensions/cordis-client-runner/package.json",
@@ -1079,6 +1081,7 @@
         "packages/subagent/tool-subagent/package.json",
         "packages/subprocess/subprocess/package.json",
         "packages/subprocess/win32-process/package.json",
+        "packages/telemetry/otel/package.json",
         "packages/terminal/terminal-bash/package.json",
         "packages/terminal/terminal/package.json",
         "packages/terminal/tool-terminal/package.json",
@@ -1536,6 +1539,32 @@
         "packages/runtime-diagnostics/invariants/README.i18n.yaml",
         "packages/core/tools/tsconfig.json",
         "packages/schedule/schedule/src/projection.ts"
+      ]
+    },
+    {
+      "id": "openai-codex-login",
+      "kind": "extension",
+      "solutionType": "plugin-and-bundle",
+      "status": "active",
+      "summary": "Offer OpenAI Codex account login in the Models page through the existing authorization flow and an optional Web bundle.",
+      "optIn": true,
+      "packageRoots": [
+        "packages/experimental/codex-login/"
+      ],
+      "paths": [
+        "packages/experimental/codex-login/",
+        "docs/user/guide/providers.md",
+        "docs/user/guide/providers.zh.md",
+        "docs/user/guide/providers.i18n.yaml",
+        "docs/subsystems/credentials.md",
+        "docs/subsystems/credentials.zh.md",
+        "docs/subsystems/credentials.i18n.yaml",
+        "docs/capability-seams.md",
+        "docs/capability-seams.zh.md",
+        "docs/capability-seams.i18n.yaml",
+        "scripts/gen-doc-graphs.ts",
+        "apps/web/tests/codex-login.e2e.ts",
+        "apps/web/tests/expected/codex-login/"
       ]
     },
     {

@@ -246,6 +246,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Validates bounded browser audio before provider dispatch.',
   },
   {
+    key: 'codexLoginController',
+    pkg: 'experimental-codex-login',
+    title: 'Optional Codex login Remote',
+    mode: 'core',
+    note: 'Carries one browser-owned authorization conversation over a duplex stream and leaves grants in the Host credential store.',
+  },
+  {
     key: 'sessionController',
     pkg: 'api-session-controller',
     title: 'Host Session Remote controller',
