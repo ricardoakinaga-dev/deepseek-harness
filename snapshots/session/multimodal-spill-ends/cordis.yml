@@ -36,7 +36,8 @@
     maxInlineTokens: 1000
 
 - insert:
-    - name: './fixture.mjs'
+    - id: multimodal-spill-fixture
+      name: './fixture.mjs'
 
 - id: spill-local
   name: '@deepseek-ai/dsh-spill-local'

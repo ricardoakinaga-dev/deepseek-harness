@@ -78,7 +78,7 @@ import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
 import * as ToolWorkspaceDependencies from '@deepseek-ai/dsh-tool-workspace-dependencies'
 import { githubSlug } from './verify-md-links.ts'
 
-/** Attachment seam marker that makes the attachments-conditional `read_image` schema harvestable. */
+/** Attachment seam marker for schema-only image reads and file deliveries. */
 class CatalogAttachmentStore extends AttachmentStore {
   readonly imageLimits: ImageAttachmentLimits = Object.freeze({
     maxImageBytes: 1,
@@ -304,10 +304,11 @@ const TOOL_PACKAGES: ToolPackage[] = [
     pkg: '@deepseek-ai/dsh-tool-present',
     dir: 'tool-present',
     source: 'packages/deliverables/tool-present/src/index.ts',
-    requires: ['ctx.tools', 'ctx.fs', 'ctx.sessionProjections'],
-    writes: ['tool/call', 'deliverables/presented after a successful final result', 'tool/result'],
+    requires: ['ctx.tools', 'ctx.fs', 'ctx.attachments', 'ctx.sessionProjections'],
+    writes: ['tool/call', 'durable file attachment within the configured byte limit', 'deliverables/presented after a successful final result', 'tool/result'],
     async mount(ctx) {
       await ctx.plugin(LocalFileSystem)
+      await ctx.plugin(CatalogAttachmentStore)
       await ctx.plugin(ToolPresent)
     },
     note: 'Deliveries belong to the calling Session; Web ui-deliverables supplies source-file opening and cards.',

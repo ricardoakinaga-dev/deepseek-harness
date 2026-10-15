@@ -348,7 +348,10 @@ describe('web e2e: queue row actions', () => {
     const input = page.locator('[data-composer-input]').first()
     const settled = scaffold.whenTurnSettled()
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
-    await input.fill('/goal Keep the composer context panels aligned')
+    await input.fill(`/goal create ${JSON.stringify({
+      objective: 'Keep the composer context panels aligned',
+      requiredTasks: [{ id: 'panel-order', criterion: 'Confirm Todo, Goal and Queue order and alignment' }],
+    })}`)
     await input.press('Enter')
     await expect.poll(() => existsSync(readyFile), { timeout: 15_000 }).toBe(true)
     await page.locator('[data-goal-bar]').waitFor({ timeout: 10_000 })

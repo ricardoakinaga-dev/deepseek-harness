@@ -1,0 +1,5 @@
+- insert:
+    - id: snapshot-queued-request-recovery
+      name: '../queued-request-recovery/request-failure.mjs'
+      config:
+        mode: steer

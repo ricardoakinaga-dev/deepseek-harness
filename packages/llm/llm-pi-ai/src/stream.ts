@@ -31,14 +31,15 @@ export function mapUsage(usage: PiUsage): TokenUsage {
   }
 }
 
-// XXX(pi-ai upstream): pi-ai flattens the caught error to `error.message`
-// (api/anthropic-messages.js: `errorMessage = error instanceof Error ?
-// error.message : JSON.stringify(error)`), discarding the original Error and its
-// `cause` chain before it reaches us. undici carries the actionable transport
-// detail on `cause` (e.g. `SocketError: other side closed`) but hands the fetch
-// wrapper a bare `terminated`, so we are left pattern-matching terse words here.
-// If pi-ai ever forwards the original Error (or a fetch/dispatcher hook that lets
-// us capture the cause ourselves), classify on `code`/`cause` instead of text.
+// pi-ai retains selected transport failures in diagnostics. Other providers
+// flatten the caught Error to errorMessage, losing its code and cause chain.
+function hasTransportFailure(message: AssistantMessage): boolean {
+  return message.diagnostics?.some(diagnostic => diagnostic.type === 'provider_transport_failure'
+    && diagnostic.details?.eventsEmitted === true
+    && diagnostic.details.phase === 'after_message_stream_start'
+    && diagnostic.error?.message === message.errorMessage) === true
+}
+
 function classifyPiAiError(message: string): string {
   if (/\b(?:401|403)\b/.test(message)) return 'AUTH'
   if (isQuotaExceededError(message)) return QUOTA_EXCEEDED_CODE
@@ -57,7 +58,7 @@ function classifyPiAiError(message: string): string {
   // truncation, not a model-level error.
   if (/stream ended (?:before|without)\b/i.test(message)) return 'TRANSPORT'
   if (/\b(?:network|connection|socket|fetch)\b|\bECONN[A-Z]+\b/i.test(message)
-    || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(message)
+    || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed (?:unexpectedly|[1-4]\d{3}))\b/i.test(message)
     // undici renders a mid-stream socket drop as a bare `terminated` (its
     // `cause` — the real SocketError — was flattened away upstream); Node's
     // stream layer says `Premature close`.
@@ -75,9 +76,14 @@ function classifyPiAiError(message: string): string {
  *   `contextWindow`, and zero-output `length` usage that fills the window map
  *   to `CONTEXT_WINDOW_EXCEEDED`; a `stop` with no content blocks maps to an
  *   `EMPTY_RESPONSE` error, while terminal `pending` and `deferred` states map
- *   to non-retryable `PI_AI_ERROR` failures.
+ *   to non-retryable `PI_AI_ERROR` failures. Failed streams with matching
+ *   post-start transport diagnostics or numeric WebSocket close text map to
+ *   `TRANSPORT`; successful terminal responses remain successful.
  */
 export function mapStopReason(message: AssistantMessage, contextWindow?: number): FinishReason {
+  if (message.stopReason === 'error' && hasTransportFailure(message)) {
+    return { kind: 'error', failure: { message: message.errorMessage ?? 'pi-ai transport failure', code: 'TRANSPORT' } }
+  }
   const piAiOverflow = isContextOverflow(message, contextWindow)
   const harnessOverflow = message.stopReason === 'error'
     && message.errorMessage !== undefined

@@ -102,7 +102,7 @@ export function apply(ctx: Context, config: Config): void {
       if (spillStore === undefined) throw new Error('no ctx.spillStore backend loaded')
       const ref: SpillRef = await spillStore.saveText({
         owner: { sessionId: owner }, source: { kind: 'tool', toolName, callId, label },
-        suggestedName: `${toolName}.txt`, content: fullText(content),
+        suggestedName: `${toolName}.txt`, content: fullText(content), signal: exec.signal,
       })
       const totalBytes = content.reduce((total, block) => total + (block.type === 'text' ? Buffer.byteLength(block.text, 'utf8') : 0), 0)
       const notice = (bytes: number, count: number): Extract<RetainableBlock, { type: 'text' }> => ({

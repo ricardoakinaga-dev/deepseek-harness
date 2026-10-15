@@ -105,7 +105,7 @@
     },
     {
       "name": "glob",
-      "description": "Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 4 paths in modification-time order; a larger result is sampled across top-level entries and reports where the complete list was saved.",
+      "description": "Find files, not directories, whose paths match a glob pattern, respecting ignore rules by default. Returns up to 4 paths in modification-time order; a larger result is sampled across top-level entries and reports where the complete list was saved.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -116,6 +116,17 @@
           "path": {
             "type": "string",
             "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+          },
+          "include_ignored": {
+            "type": "boolean",
+            "description": "Include hidden and ignored files. Defaults to false; VCS metadata stays excluded."
+          },
+          "exclude": {
+            "type": "array",
+            "description": "Positive globs to exclude, e.g. [\"**/node_modules/**\", \"**/.next/**\", \"**/venv/**\"]. At most 32 globs and 8192 UTF-8 bytes total.",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -193,6 +204,10 @@
           "offset": {
             "type": "number",
             "description": "1-based first line to return. Defaults to 1."
+          },
+          "column": {
+            "type": "number",
+            "description": "Positive 1-based UTF-16 column on the first requested line only. Defaults to 1; cannot split a surrogate pair."
           },
           "limit": {
             "type": "number",

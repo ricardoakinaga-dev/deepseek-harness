@@ -1,0 +1,25 @@
+# Authored local provider scenario; the controller supplies an ephemeral TCP peer.
+- id: llm-deepseek
+  disabled: true
+- id: plugin-package-inventory-deepseek
+  disabled: true
+- id: session-title-llm
+  disabled: true
+- id: llm-pi-ai
+  config:
+    providers:
+      openai-codex:
+        apiKeyEnv: DSH_H02_CODEX_TOKEN
+        baseURL: !!js process.env.DSH_H02_WS_URL
+        transport: websocket
+        cacheRetention: none
+        retryPolicy:
+          mode: normal
+          maxRetries: 1
+          backoff: { initialDelayMs: 1, maxDelayMs: 1, jitterRatio: 0 }
+        models:
+          - id: gpt-5.4
+- id: session-persistence-jsonl
+  config:
+    root: !!js dshHomePath('sessions')
+    compression: none

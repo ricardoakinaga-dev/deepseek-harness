@@ -400,6 +400,7 @@ export async function trySaveFormattedResult(
     source: { kind: 'tool', toolName: exec.name, callId: exec.callId, label: 'result' },
     suggestedName,
     content,
+    signal: exec.signal,
   }
   try {
     return await spillStore.saveText(save)

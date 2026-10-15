@@ -1,4 +1,5 @@
-/** Recorded source-file delivery, edits, reload, deletion, and Session ZIP behavior. */
+/** Recorded deliveries preserve saved bytes through source edits, reload, deletion, and Session ZIP export. */
+import { createHash } from 'node:crypto'
 import { readFile, unlink, mkdir, mkdtemp, writeFile, rm, realpath } from 'node:fs/promises'
 import { join, delimiter } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,6 +20,16 @@ import { connectFreshWorkspace, expandTurnProcesses, newEnglishPage, scrollIntoV
 const DIR = fileURLToPath(new URL('../../../snapshots/web/present', import.meta.url))
 const FIXTURE = join(DIR, 'session.v3.jsonl')
 const MODE = webSnapshotMode()
+const ORIGINAL_FILES = [
+  { path: 'report.txt', description: 'delivered report', content: 'DELIVERED_REPORT\n' },
+  { path: '说明.txt', description: 'delivered note', content: 'DELIVERED_NOTE\n' },
+] as const
+const DECLARATIONS = ORIGINAL_FILES.map(({ path, description, content }) => ({
+  path, description, capture: { status: 'stored', attachment: {
+    attachmentId: `sha256:${createHash('sha256').update(content).digest('hex')}`,
+    name: path, bytes: Buffer.byteLength(content),
+  } },
+}))
 const PROMPT = 'Use one run_code program to do the following in order. Call present for missing.txt and catch its error without creating that file. '
   + 'Use bash to run exactly `printf "DELIVERED_REPORT\\n" > report.txt; printf "DELIVERED_NOTE\\n" > 说明.txt`. '
   + 'Call present for report.txt and 说明.txt. After present succeeds, deliberately throw the string "AFTER_PRESENT" (not an Error object) from that same run_code program. '
@@ -38,6 +49,22 @@ describe.skipIf(process.platform === 'win32' || release().toLowerCase().includes
   let openLog: string
   const opened = async (): Promise<Array<{ path: string; content: string | null; action: 'open' | 'reveal' }>> => (await readFile(openLog, 'utf8')).split('\n').filter(Boolean).map(line => JSON.parse(line) as { path: string; content: string | null; action: 'open' | 'reveal' })
   const downloads: string[] = []
+  const downloadSavedCopies = async (): Promise<void> => {
+    const beforeOpen = (await opened()).length
+    for (const file of ORIGINAL_FILES) {
+      const pending = page.waitForEvent('download')
+      await page.locator('[data-presented-file]').filter({ hasText: file.path })
+        .getByRole('link', { name: 'Saved copy · Download', exact: true }).click()
+      const download = await pending
+      expect(download.suggestedFilename()).toBe(file.path)
+      const path = await download.path()
+      if (path === null) throw new Error('Saved-copy download has no completed file')
+      expect(await download.failure()).toBeNull()
+      expect(await readFile(path)).toEqual(Buffer.from(file.content))
+      await download.delete()
+    }
+    expect(await opened()).toHaveLength(beforeOpen)
+  }
 
   beforeAll(async () => {
     nativeRoot = await mkdtemp(join(tmpdir(), 'dsh-present-native-'))
@@ -108,20 +135,18 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       .toEqual(['report.txt', '说明.txt'])
     for (const event of events) {
       if (event.type === 'deliverables/presented') {
-        expect(event.data.files).toEqual([
-          { path: 'report.txt', description: 'delivered report' },
-          { path: '说明.txt', description: 'delivered note' },
-        ])
+        expect(event.data.files).toEqual(DECLARATIONS)
       }
     }
     expect(events.some(event => event.type === 'tool/ptc-dispatch' && event.data.name === 'present' && event.data.isError)).toBe(true)
     expect(events.some(event => event.type === 'tool/result' && event.data.message.isError)).toBe(true)
   }, 200_000)
 
-  it('opens current source files after edits and reload, and reports deletion without downloading', async () => {
+  it('opens current sources while saved-copy downloads survive edits, reload, and deletion', async () => {
     await writeFile(join(cwd, 'report.txt'), 'EDITED_REPORT\n')
     await writeFile(join(cwd, '说明.txt'), 'EDITED_NOTE\n')
     for (const reload of [false, true]) {
+      const beforeDownloads = downloads.length
       if (reload) {
         const warningStart = tripwire.warnings.length
         await page.reload({ waitUntil: 'load' })
@@ -157,7 +182,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
         expect(await column.locator('[data-dockkit-tab]').filter({ hasText: name }).count()).toBe(1)
       }
       expect(await opened()).toHaveLength(beforePreview)
-      expect(downloads).toEqual([])
+      expect(downloads).toHaveLength(beforeDownloads)
       await page.getByRole('button', { name: 'Collapse right sidebar', exact: true }).click()
       const beforeReveal = (await opened()).length
       await row.locator('[data-presented-file]').filter({ hasText: 'report.txt' }).getByRole('button', { name: 'More ways to open', exact: true }).click()
@@ -175,22 +200,10 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
         expect(await opened()).toHaveLength(count + 1)
         expect((await opened()).at(-1)).toEqual({ action: 'open', path: await realpath(join(cwd, name)), content: bytes })
       }
+      expect(downloads).toHaveLength(beforeDownloads)
+      await downloadSavedCopies()
     }
-    expect(downloads).toEqual([])
-    const response = await page.request.get(new URL(`/api/session.export?sessionId=${sessionId}`, scaffold.authenticatedUrl).href)
-    expect(response.status()).toBe(200)
-    const entries = unzipSync(await response.body())
-    expect(Object.keys(entries)).toHaveLength(1)
-    const exported = strFromU8(Object.values(entries)[0]!)
-    expect(exported).toContain('deliverables/presented')
-    const declarations = exported.trim().split('\n').map(line => JSON.parse(line) as SessionEvent)
-      .filter(event => event.type === 'deliverables/presented')
-    expect(declarations).toHaveLength(1)
-    expect(declarations[0]!.data.files).toEqual([
-      { path: 'report.txt', description: 'delivered report' },
-      { path: '说明.txt', description: 'delivered note' },
-    ])
-    expect(exported).not.toContain('EDITED_REPORT')
+    expect(downloads).toEqual(['report.txt', '说明.txt', 'report.txt', '说明.txt'])
     if (MODE !== 'record') {
       await expect.poll(() => page.locator('[data-presented-file] [role="status"]').count(), { timeout: 10_000 }).toBe(0)
       const aria = await captureExpandedTurnProcessAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
@@ -235,6 +248,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
           'report title',
         )
         const description = requiredElement(report.querySelector<HTMLElement>('[data-presented-description]'), 'report description')
+        const saved = requiredElement(report.querySelector<HTMLAnchorElement>('a[download]'), 'saved-copy download')
         const open = requiredElement(
           report.querySelector<HTMLButtonElement>('[data-open-target] button'),
           'report open action',
@@ -251,6 +265,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
           answerToPresented: presentedRect.top - answerRect.bottom,
           presentedToActions: actionsRect.top - presentedRect.bottom,
           cardHeight: firstCard.height,
+          savedCopyContained: saved.getBoundingClientRect().bottom <= firstCard.bottom,
           cardColumnGap: secondCardRect.left - firstCard.right,
           gridColumnGap: gridStyle.columnGap,
           gridRowGap: gridStyle.rowGap,
@@ -262,7 +277,8 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       })
       expect(geometry.answerToPresented).toBeCloseTo(16, 1)
       expect(geometry.presentedToActions).toBeCloseTo(20, 1)
-      expect(geometry.cardHeight).toBeCloseTo(60, 1)
+      expect(geometry.cardHeight).toBeCloseTo(76, 1)
+      expect(geometry.savedCopyContained).toBe(true)
       expect(geometry.cardColumnGap).toBeCloseTo(10, 1)
       expect(geometry.gridColumnGap).toBe('10px')
       expect(geometry.gridRowGap).toBe('10px')
@@ -274,7 +290,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       await page.locator('[data-sidebar-collapsed="true"]').waitFor({ state: 'attached' })
       const row = page.locator('[data-presented-files-row]')
       await scrollIntoView(row)
-      for (const card of await row.getByRole('button').all()) {
+      for (const card of await row.locator('button, a[download]').all()) {
         const bounds = await card.boundingBox()
         expect(bounds).not.toBeNull()
         expect(bounds!.x).toBeGreaterThanOrEqual(0)
@@ -282,14 +298,33 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       }
     }
     const beforeDelete = (await opened()).length
-    await unlink(join(cwd, 'report.txt'))
+    for (const file of ORIGINAL_FILES) await unlink(join(cwd, file.path))
     const missing = page.waitForResponse(response => response.url().includes('/api/present.open?') && response.request().method() === 'POST')
     await page.locator('[data-presented-file]').filter({ hasText: 'report.txt' })
       .getByRole('button', { name: 'Open in Test Editor', exact: true }).click()
     expect((await missing).status()).toBe(404)
     await page.getByText('Could not open. Click to retry.', { exact: true }).waitFor()
     expect(await opened()).toHaveLength(beforeDelete)
-    expect(downloads).toEqual([])
+    expect(downloads).toEqual(['report.txt', '说明.txt', 'report.txt', '说明.txt'])
+    await downloadSavedCopies()
+    expect(downloads).toEqual(['report.txt', '说明.txt', 'report.txt', '说明.txt', 'report.txt', '说明.txt'])
+    const response = await page.request.get(new URL(`/api/session.export?sessionId=${sessionId}`, scaffold.authenticatedUrl).href)
+    expect(response.status()).toBe(200)
+    const entries = unzipSync(await response.body())
+    expect(Object.keys(entries)).toHaveLength(4)
+    expect(entries['manifest.json']).toBeDefined()
+    const log = Object.entries(entries).find(([path]) => /^session\.v\d+\.jsonl$/u.test(path))
+    if (log === undefined) throw new Error('Session ZIP is missing its root log')
+    const exported = strFromU8(log[1])
+    const declarations = exported.trim().split('\n').map(line => JSON.parse(line) as SessionEvent)
+      .filter(event => event.type === 'deliverables/presented')
+    expect(declarations).toHaveLength(1)
+    expect(declarations[0]!.data.files).toEqual(DECLARATIONS)
+    for (const file of ORIGINAL_FILES) {
+      const digest = createHash('sha256').update(file.content).digest('hex')
+      expect(entries[`files/${digest.slice(0, 2)}/${digest}/${file.path}`]).toEqual(new Uint8Array(Buffer.from(file.content)))
+    }
+    expect(exported).not.toContain('EDITED_REPORT')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })

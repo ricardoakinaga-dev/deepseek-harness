@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": "Using ONE run_code program: run"
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - text: PTC mode
   - button "More actions"
   - button "Open right sidebar"

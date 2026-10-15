@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Load the editing-cordis-compositions ski
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, ~3mo 7d ago"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -26,5 +29,5 @@
 - 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "1 turns 2 steps"
+- button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
 - button "310 tok · Cache hit 0%": 310 tokCache hit 0%

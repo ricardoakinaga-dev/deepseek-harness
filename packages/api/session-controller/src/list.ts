@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-session-projection-cache'
 import { SessionQueryError, type SessionSearchCursor } from '@deepseek-ai/dsh-session-query'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
+import { sessionActivityProjectionDefinition } from './activity.ts'
 import {
   SESSION_SEARCH_RESULT_LIMIT,
   SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS,
@@ -84,6 +85,7 @@ export class ApiSessionList {
       wire: { viewSchema: sessionListMetadataSchema, view: state => state },
       stateVersion: 1,
     })
+    ctx.sessionProjections.register(sessionActivityProjectionDefinition)
     ctx.inject(['attachments'], (attachmentCtx) => {
       ctx.sessionProjections.register<'imageLimits', null>({
         key: 'imageLimits',

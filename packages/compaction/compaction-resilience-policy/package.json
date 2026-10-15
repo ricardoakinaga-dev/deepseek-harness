@@ -2,7 +2,7 @@
   "name": "@deepseek-ai/dsh-compaction-resilience-policy",
   "private": true,
   "description": "Purpose-scoped compaction deadlines and loop-request context admission for the DeepSeek Harness",
-  "version": "0.1.7-rc.2",
+  "version": "0.2.0-rc.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ricardoakinaga-dev/deepseek-harness.git",

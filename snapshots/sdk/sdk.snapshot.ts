@@ -62,8 +62,12 @@ import {
   type SdkPromptContentBlock,
 } from '@deepseek-ai/dsh-sdk-client'
 import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
+import { assertCanonicalSubagentFinal, assertQueuedRecovery } from './queued-request-recovery/assert-recovery.ts'
+import { readRuntimeIdentity } from '../../apps/cli/src/runtime-identity.ts'
+import { assertFreshRuntimeAuditIdentity, verifyRuntimeAuditOracle, withRuntimeAuditNotificationOracle, withRuntimeAuditOracle } from './runtime-audit-oracle.ts'
 
 const corpusRoot = fileURLToPath(new URL('../', import.meta.url))
+const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url))
 
 const MINIMAL_SYSTEM_PROMPT = 'You are the environment-selected minimal software engineer.'
 const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
@@ -134,6 +138,19 @@ const SDK_ASSERTIONS: Readonly<Record<string, SdkAssertions>> = {
   },
   'tool-scheduler-recovery': {
     patches: [fileURLToPath(new URL('./tool-scheduler-recovery/runtime.cordis.yml', import.meta.url))],
+  },
+  'queued-request-recovery': {
+    patches: [fileURLToPath(new URL('./queued-request-recovery/runtime.cordis.yml', import.meta.url))],
+  },
+  'steered-request-recovery': {
+    patches: [fileURLToPath(new URL('./steered-request-recovery/runtime.cordis.yml', import.meta.url))],
+  },
+  'subagent-canonical-final': {
+    patches: [fileURLToPath(new URL('./subagent-canonical-final/runtime.cordis.yml', import.meta.url))],
+    expectedFinalResponse: 'PARENT_CANONICAL_OK',
+  },
+  'subagent-one-shot-final': {
+    expectedFinalResponse: 'ONE_SHOT_PARENT_OK',
   },
   'tool-error-details': {
     patches: [fileURLToPath(new URL('./tool-error-details/runtime.cordis.yml', import.meta.url))],
@@ -211,7 +228,9 @@ const corpus = await collectCorpus()
 const scenarioByKey = new Map(corpus.map(scenario => [scenario.key, scenario]))
 const sdkScenarios = corpus
   .filter(scenario => scenario.manifest.profile === 'sdk')
-  .sort((left, right) => left.name.localeCompare(right.name))
+  .sort((left, right) => (recording || refreshing
+    ? Number(right.manifest.header.pin === true) - Number(left.manifest.header.pin === true) : 0)
+    || left.name.localeCompare(right.name))
 const compositionOwners = new Map<string, CorpusScenario>()
 const headerPins = new Map<string, CorpusScenario>()
 for (const scenario of corpus) {
@@ -331,6 +350,7 @@ function contextOf(logs: readonly { content: string; header: Record<string, unkn
   return {
     sessionIds: logs.flatMap(log => typeof log.header.id === 'string' ? [log.header.id] : []),
     cwd,
+    repositoryRoot,
   }
 }
 
@@ -339,6 +359,7 @@ function contextOfContents(contents: readonly string[]): NormalizeContext {
   return {
     sessionIds: headers.flatMap(header => typeof header.id === 'string' ? [header.id] : []),
     cwd: typeof headers[0]?.cwd === 'string' ? headers[0].cwd : '\0no-cwd\0',
+    repositoryRoot,
   }
 }
 
@@ -444,8 +465,14 @@ function modelFromSession(log: string): { provider: string; model: string } {
 
 function turnActions(log: string): TurnAction[] {
   const actions: TurnAction[] = []
+  const internallyQueued = new Set<string>()
   let current: TurnAction | undefined
   for (const record of records(log)) {
+    if (record.type === 'agent/inbox/spliced' && current !== undefined) {
+      const inserted = (record.data as { inserted: Array<{ id: string }> }).inserted
+      for (const message of inserted) internallyQueued.add(message.id)
+      continue
+    }
     if (record.type === 'turn/start') {
       const data = record.data as JsonObject | undefined
       if (typeof data?.turn !== 'number') throw new Error('SDK snapshot turn/start has no turn')
@@ -455,7 +482,8 @@ function turnActions(log: string): TurnAction[] {
     if (record.type === 'user/message' && current !== undefined && current.content === undefined) {
       const data = record.data as JsonObject | undefined
       const source = data?.source as JsonObject | undefined
-      if (source?.kind === 'user' && Array.isArray(data?.content)) {
+      if (source?.kind === 'user' && Array.isArray(data?.content)
+        && !internallyQueued.has(String(data?.id))) {
         current = { turn: current.turn, content: data.content as JsonObject[] }
       }
       continue
@@ -551,6 +579,7 @@ async function runScenario(scenario: CorpusScenario): Promise<{
   initialWorkspace: WorkspaceSnapshotEntry[]
   finalWorkspace: WorkspaceSnapshotEntry[]
   cwd: string
+  runtimeMode: 'source' | 'artifact'
 }> {
   const cwd = await mkdtemp(join(tmpdir(), `sdk-snapshot-${scenario.name}-`))
   const dshHome = join(cwd, '.dsh')
@@ -624,6 +653,9 @@ async function runScenario(scenario: CorpusScenario): Promise<{
     const results: RunResult[] = []
     const sessionId = 'fixture-root-session'
     const liveSessions: (string | undefined)[] = [sessionId]
+    const launcher = existsSync(new URL('../../apps/cli/lib/bin.js', import.meta.url))
+      ? '../../apps/cli/lib/profile-boot.js' : '../../apps/cli/src/profile-boot.ts'
+    const expectedRuntime = readRuntimeIdentity(new URL(launcher, import.meta.url).href)
     await harness.start()
     const subscription = harness.client.subscribeSessionTree(sessionId)
     const observe = (notification: HarnessNotification): void => {
@@ -676,10 +708,12 @@ async function runScenario(scenario: CorpusScenario): Promise<{
       persistedLogs(sessionsRoot),
       ...(childSessionsRoot === undefined ? [] : [persistedLogs(childSessionsRoot)]),
     ])).flat()
+    for (const log of logs) assertFreshRuntimeAuditIdentity(log.content, expectedRuntime)
     const finalWorkspace = await captureWorkspaceSnapshot(cwd, {
       ignoredRootEntries: RUNTIME_WORKSPACE_ENTRIES,
     })
-    return { results, notifications, observedMethods, logs, initialWorkspace, finalWorkspace, cwd }
+    return { results, notifications, observedMethods, logs, initialWorkspace, finalWorkspace, cwd,
+      runtimeMode: expectedRuntime.launcher.kind }
   } finally {
     await harness.close()
     await rm(cwd, { recursive: true, force: true })
@@ -696,7 +730,9 @@ function orderLogs(logs: PersistedLog[], expectedCount: number, separateDshSdkCh
   const children = logs.filter(log => typeof log.header.parentSession === 'string')
     .sort((left, right) => Number(left.header.createdAt) - Number(right.header.createdAt))
   expect(parents).toHaveLength(1)
-  expect(children).toHaveLength(expectedCount - 1)
+  const failures = parents.flatMap(log => records(log.content).filter(event => event.type === 'tool/result'
+    && (event.data as { message: { isError?: boolean } }).message.isError === true))
+  expect(children, `child Session inventory; parent tool failures: ${JSON.stringify(failures)}`).toHaveLength(expectedCount - 1)
   return [...parents, ...children]
 }
 
@@ -844,7 +880,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         expect(writerFiles, 'native writer oracle inventory').toEqual(retained
           ? files.map((_, index) => writerSnapshotName(index)).sort() : [])
       }
-      const { results, notifications, observedMethods, logs, initialWorkspace, finalWorkspace, cwd } = await runScenario(scenario)
+      const { results, notifications, observedMethods, logs, initialWorkspace, finalWorkspace, cwd, runtimeMode } = await runScenario(scenario)
       const ordered = orderLogs(
         logs,
         recording ? logs.length : files.length,
@@ -852,6 +888,8 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
       )
       reconcileCatalogCreationTimes(ordered.map(log => log.content), 'validate')
       const actualContext = contextOf(ordered, cwd)
+      const actualSnapshots = normalizeSessionSnapshots(ordered.map(log => log.content), actualContext, { nativeWriterOutput: true })
+      const runtimeOracle = await verifyRuntimeAuditOracle(scenarioDir, runtimeMode, actualSnapshots, recording || refreshing)
       if (scenario.name === 'goal-manifest-command') {
         const changes = records(ordered[0]!.content).filter(event => event.type === 'goal/change')
         expect(changes.map(event => (event.data as JsonObject)['operation'])).toEqual([
@@ -927,6 +965,16 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
           ['tool', 'scheduler-complete', false], ['tool', 'scheduler-fail', true], ['tool', 'scheduler-unstarted', true],
         ])
         expect(events.filter(event => event.type === 'todo/write')).toHaveLength(1)
+      }
+      if (scenario.name === 'queued-request-recovery' || scenario.name === 'steered-request-recovery') {
+        expect(results, 'one send owns both the failed turn and replacement turn').toHaveLength(1)
+        assertQueuedRecovery(results[0]!, scenario.name === 'queued-request-recovery' ? 'next-turn' : 'next-step')
+      }
+      if (scenario.name === 'subagent-canonical-final' || scenario.name === 'subagent-one-shot-final') {
+        expect(results, 'one public SDK run owns the child final delivery').toHaveLength(1)
+        expect(ordered).toHaveLength(2)
+        assertCanonicalSubagentFinal(results[0]!, ordered[1]!.content,
+          scenario.name === 'subagent-canonical-final' ? 'continuable' : 'one-shot')
       }
       if (scenario.name === 'subagent-activation-limit') {
         expect(ordered).toHaveLength(2)
@@ -1015,8 +1063,8 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
 
       // Persisted transcripts match the committed fixtures.
       const expectedContext = contextOfContents(expectedContents)
-      const actualSnapshots = normalizeSessionSnapshots(ordered.map(log => log.content), actualContext, { nativeWriterOutput: true })
-      const expectedSnapshots = normalizeSessionSnapshots(expectedContents, expectedContext, { nativeWriterOutput: true })
+      const canonicalExpectedSnapshots = normalizeSessionSnapshots(expectedContents, expectedContext, { nativeWriterOutput: true })
+      const expectedSnapshots = withRuntimeAuditOracle(canonicalExpectedSnapshots, runtimeOracle)
       expect(actualSnapshots.map(records), `${scenario.name}: sessions`).toEqual(expectedSnapshots.map(records))
       await verifyHeaders(scenario, ordered, actualContext, assertions.dshSdkChild?.agentConfig)
 
@@ -1035,7 +1083,9 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
           notificationComparisonRecords(normalizedNotifications, ordered.map(log => log.content)),
           `${scenario.name}: notifications`,
         )
-          .toEqual(notificationComparisonRecords(expectedNotifications, expectedContents))
+          .toEqual(withRuntimeAuditNotificationOracle(
+            notificationComparisonRecords(expectedNotifications, expectedContents), canonicalExpectedSnapshots, runtimeOracle,
+          ))
         expect(normalizedResult).toBe(await readFile(resultExpectedPath, 'utf8'))
       }
 

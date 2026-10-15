@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-10-15-harness-evidence-runtime-audit.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-10-15-harness-evidence-runtime-audit.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-10-15-harness-evidence-runtime-audit:
+  en: ab1e18f663157c92
+  zh: 8b083c1ec03ad324
+/2026-10-15-harness-evidence-runtime-audit/summary:
+  en: 46916db762eaafe1
+  zh: 8be8e9939c6ebb95
+/2026-10-15-harness-evidence-runtime-audit/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-10-15-harness-evidence-runtime-audit/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-10-15-harness-evidence-runtime-audit/compatibility:
+  en: 7cd898efe9dbada9
+  zh: d574b75c7cf82f2d
+/2026-10-15-harness-evidence-runtime-audit/verification:
+  en: 3852cbe7bb4dcb67
+  zh: 53c700f5ea71cccb
+/2026-10-15-harness-evidence-runtime-audit/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

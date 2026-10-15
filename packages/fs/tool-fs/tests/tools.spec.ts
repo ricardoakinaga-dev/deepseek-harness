@@ -725,7 +725,7 @@ describe('read caps are plugin config', () => {
     const { ctx, fs } = await setupWith({ readMaxLineLength: 4 })
     fs.files.set('key:a.txt', 'abcdefgh')
     const result = await call(ctx, 'read', { file_path: 'a.txt' })
-    expect(text(result)).toContain('1: abcd... (line truncated to 4 chars)')
+    expect(text(result)).toContain('1: abcd... (line truncated to 4 UTF-16 units; use offset=1, column=5 to continue)')
   })
 
   it('a configured readMaxBytes caps the window at the configured bytes', async () => {

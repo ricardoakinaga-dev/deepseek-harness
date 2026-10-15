@@ -10,11 +10,14 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
+import { createReadStream } from 'node:fs'
 import { resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import z from '@deepseek-ai/schemastery'
 import { SpillLocator, SpillStore } from '@deepseek-ai/dsh-spill'
 import type { SaveTextSpill, SpillRef } from '@deepseek-ai/dsh-spill'
+import type {} from '@deepseek-ai/dsh-attachment'
+import type {} from '@deepseek-ai/dsh-session'
 import { gatherSweepRoots, sweepSpillRoots } from './cleanup.ts'
 import type { SweepRoot, WarnFn } from './cleanup.ts'
 import { privateRoot, saveTextFile } from './store.ts'
@@ -46,6 +49,8 @@ export interface Config {
    * ages out.
    */
   cleanupPeriodDays?: number
+  /** Capture full spill bytes as Session attachments. Requires attachments and a live owner Session. */
+  captureAttachments?: boolean
 }
 
 /** The shape after schemastery applied the defaults. */
@@ -66,6 +71,7 @@ export class LocalSpillStore extends SpillStore {
   static Config: z<Config> = z.object({
     root: z.string(),
     cleanupPeriodDays: z.number().step(1).min(0).default(30),
+    captureAttachments: z.boolean().default(false),
   })
 
   /** Resolved absolute spill root (config `root`, else the private default), fixed at construction. */
@@ -79,6 +85,8 @@ export class LocalSpillStore extends SpillStore {
    * it; `undefined` when cleanup is disabled (`cleanupPeriodDays === 0`).
    */
   private cleanup: Promise<void> | undefined
+  private readonly lifetime = new AbortController()
+  private readonly writes = new Set<Promise<SpillRef>>()
 
   constructor(ctx: Context, config: Config) {
     super(ctx)
@@ -97,7 +105,10 @@ export class LocalSpillStore extends SpillStore {
         const warn: WarnFn = (message) => { this.ctx.logger.warn(message) }
         this.cleanup = this.runCleanup(warn)
       }
-      yield async () => { await this.cleanup }
+      yield async () => {
+        this.lifetime.abort(new Error('spill store disposed'))
+        await Promise.allSettled([...this.writes, this.cleanup])
+      }
     }.bind(this), 'spill-local cleanup sweep')
   }
 
@@ -146,13 +157,52 @@ export class LocalSpillStore extends SpillStore {
     return tmpdir()
   }
 
-  async saveText(input: SaveTextSpill): Promise<SpillRef> {
+  saveText(input: SaveTextSpill): Promise<SpillRef> {
+    const signal = input.signal === undefined ? this.lifetime.signal : AbortSignal.any([input.signal, this.lifetime.signal])
+    const write = this.saveOwnedText({ ...input, signal })
+    this.writes.add(write)
+    const settled = (): void => { this.writes.delete(write) }
+    void write.then(settled, settled)
+    return write
+  }
+
+  private async saveOwnedText(input: SaveTextSpill): Promise<SpillRef> {
+    input.signal?.throwIfAborted()
+    const attachments = this.config.captureAttachments ? this.ctx.get('attachments') : undefined
+    const sessions = this.config.captureAttachments ? this.ctx.get('sessions') : undefined
+    const session = sessions?.get(input.owner.sessionId)
+    if (this.config.captureAttachments && (attachments === undefined || session === undefined)) {
+      throw new Error('spill capture requires attachments and the live owner Session')
+    }
     const saved = await saveTextFile({
       root: this.root,
       sessionId: input.owner.sessionId,
       suggestedName: input.suggestedName,
       content: input.content,
     })
+    input.signal?.throwIfAborted()
+    if (attachments !== undefined && session !== undefined) {
+      const source = createReadStream(saved.path)
+      try {
+        const attachment = await attachments.saveFileStream({
+          data: source, name: input.suggestedName,
+          ...input.signal === undefined ? {} : { signal: input.signal },
+        })
+        input.signal?.throwIfAborted()
+        session.append('spill/artifact', {
+          source: input.source, locator: SpillLocator(saved.path), attachment,
+        })
+      } finally {
+        await new Promise<undefined>((resolve) => {
+          if (source.closed) {
+            resolve(undefined)
+            return
+          }
+          source.once('close', () => { resolve(undefined) })
+          source.destroy()
+        })
+      }
+    }
     return {
       locator: SpillLocator(saved.path),
       bytes: saved.bytes,

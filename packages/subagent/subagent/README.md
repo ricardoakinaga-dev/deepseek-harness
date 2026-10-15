@@ -66,6 +66,8 @@ Every exact live Agent can use `sendMessage()` with a direct continuable child; 
 
 Requests that need a capability the chosen provider lacks fail loudly at start rather than being silently ignored. A failed child run returns a stop reason, and provider backends add a safe diagnostic; a cancelled request settles as `aborted`. Children are isolated: a crashed or misbehaving child cannot corrupt the parent's session.
 
+For in-process continuable children, waking input accepted during a failed request starts a fresh turn if it remains unclaimed and the failed turn closes durably. The failed request's claimed input is not retried. An explicit interrupt parks earlier pending input until another waking send; a failure without pending work settles and reports the failure to the parent.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -147,11 +149,11 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-One user-role parent message opening with the outcome — `Background subagent <child-id> finished and will do no further work unless you send it more.`, or the matching line for a child that was stopped, ran out of room, declined, or failed — followed by `Its closing message:` and the nonempty text blocks from the child's final assistant output, preserving their content and order. Reasoning and other nontext blocks are excluded; when no nonempty text remains, the notice says `It left no closing message.` This runtime-owned notice is distinct from model-authored parent/child messages, which use `sendMessage()` and `AgentMessageSource`; delegation schemas and model controls belong to the Consumer packages.
+One user-role parent message opening with the outcome — `Background subagent <child-id> finished and will do no further work unless you send it more.`, or the matching line for a child that was stopped, ran out of room, declined, or failed — followed by `Its closing message:` and the nonempty text blocks from the child's final assistant output, preserving their content and order. Reasoning and other nontext blocks are excluded; when no nonempty text remains, the notice says `It left no closing message.` This runtime-owned notice is the final-result channel. Initial guidance tells children with `send_message` to put the self-contained result in their final reply and use messages for progress or coordination, without sending a second final copy. Those model-authored messages retain `AgentMessageSource` attribution; delegation schemas and model controls belong to the Consumer packages.
 
 #### Token effect
 
-One notice per settled Activation in the parent's request, sized by the child's final text. A child that sends its own message and then settles costs the parent both.
+One notice per settled Activation in the parent's request, sized by the child's final text. Progress or coordination messages add their own content; the final result is delivered automatically from the closing reply.
 
 #### KV Cache effect
 
@@ -188,7 +190,8 @@ These limits define when the seam is a poor fit or needs special operational car
 - **ACP children remain one-shot and are not trace-enumerable** — an ACP run has no local child session in the parent's session corpus, and remote providers need an Activation ownership contract before they can support continuable children.
 - **Adjacent model messaging only** — `sendMessage()` requires an exact live sender; every sender may target a direct continuable child, while only a sender with a resident continuable Activation may target its direct parent. Browser prompts use a separate human Queue-or-Steer control path.
 - **A direct parent must remain live for child-to-parent delivery** — the service has no durable parent mailbox; a missing parent rejects the message instead of accepting work it cannot wake.
-- **Wake gap during cancellation convergence** — a follow-up accepted after an interrupt signal but before the driver becomes idle stays queued until another waking send.
+- **Interrupted input stays parked** — an explicit interrupt preserves earlier pending input until a later waking send; it does not retry interrupted work automatically.
+- **Rejected turn-boundary writes retain live work** — a rejected write parks pending input and emits `agent/error`. The host must repair the write failure and resolve the parked inbox before the Activation can settle; no automatic parent notice is sent while it remains pending.
 - **Pending injected context retains an Activation** — settlement conservatively treats every Inbox occurrence as unfinished. Context parked after the Agent becomes idle keeps the child and its live ancestors resident until a waking delivery claims it, a queue mutation removes it, or manager teardown discards it.
 - **Process-local residency** — the Activation inbox and ownership graph do not coordinate two harness processes; concurrent access to one persistence store needs a durable mailbox and cross-process lease protocol.
 - **No replay of accepted-but-unlogged messages** — a crash can lose an accepted prompt that never reached the child's session log; the lost message is not replayed automatically.

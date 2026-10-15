@@ -1,5 +1,9 @@
 /** Explicit deliveries commit only after a successful final tool result. */
-import { mkdtemp, rm, writeFile, symlink } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile, symlink, unlink } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
+import { FsError } from '@deepseek-ai/dsh-fs'
+import { AttachmentError, type FileAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -14,7 +18,6 @@ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
-import type { PresentedFile } from '../src/types.ts'
 import * as Present from '../src/index.ts'
 
 const cleanups: Array<() => Promise<unknown>> = []
@@ -49,7 +52,7 @@ async function agent(ctx: Context, cwd: string | undefined): Promise<Agent> {
 }
 
 
-async function setup() {
+async function setup(config: Partial<Present.Config> = {}) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-present-minimal-'))
   cleanups.push(() => rm(root, { recursive: true, force: true }))
   const ctx = new Context()
@@ -59,34 +62,44 @@ async function setup() {
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(LocalFileSystem, { cwd: root })
+  await ctx.plugin(LocalAttachmentStore, { dshHome: join(root, 'home') })
   await ctx.plugin(SessionProjectionRegistry)
   ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
-  const fiber = ctx.plugin(Present, { maxFiles: 2 })
+  const fiber = ctx.plugin(Present, { maxFileBytes: Present.Config().maxFileBytes, maxFiles: 2, ...config })
   await fiber
   const owner = await agent(ctx, root)
   owner.session.append('turn/start', { turn: 1 })
-  const execute = (files: unknown) => ctx.tools.execute({
-    signal: new AbortController().signal, callId: ToolCallId(`call-${++callNumber}`),
+  const execute = (files: unknown, signal = new AbortController().signal) => ctx.tools.execute({
+    signal, callId: ToolCallId(`call-${++callNumber}`),
     name: 'present', arguments: { files }, agent: owner,
   })
   return { ctx, owner, root, fiber, execute }
 }
 
 describe('present', () => {
-  it('declares binary files without reading or copying contents, and records one delivery', async () => {
+  it('preserves presented binary bytes and their digest after source edits and deletion', async () => {
     const { ctx, owner, root, execute, fiber } = await setup()
     const data = Uint8Array.of(80, 75, 0, 255)
-    await writeFile(join(root, '报告.docx'), data)
+    const source = join(root, '报告.docx')
+    await writeFile(source, data)
     const read = vi.spyOn(ctx.fs, 'readBytes')
     const result = await execute([{ path: '报告.docx', description: 'Report' }])
     expect(result.isError).toBe(false)
+    const files = owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files
+    expect(files).toEqual([{
+      path: '报告.docx', description: 'Report', capture: { status: 'stored', attachment: {
+        attachmentId: `sha256:${createHash('sha256').update(data).digest('hex')}`, name: '报告.docx', bytes: 4,
+      } },
+    }])
     if (result.isError) throw new Error('present failed')
-    const files = (result.value as unknown as { files: PresentedFile[] }).files
-    expect(files).toHaveLength(1)
-    expect(owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files).toEqual(files)
-    expect(files).toEqual([{ path: '报告.docx', description: 'Report' }])
-    expect(read).not.toHaveBeenCalled()
-    expect(ctx.get('attachments')).toBeUndefined()
+    expect(result.value).toEqual({ turn: 1, files })
+    expect(read).toHaveBeenCalledWith(expect.anything(), expect.any(AbortSignal), 20 * 1024 * 1024)
+    const capture = files?.[0]?.capture
+    if (capture?.status !== 'stored') throw new Error('missing captured reference')
+    await writeFile(source, 'edited')
+    expect(await storedBytes(ctx, capture.attachment)).toEqual(data)
+    await unlink(source)
+    expect(await storedBytes(ctx, capture.attachment)).toEqual(data)
     await fiber.dispose()
     expect(ctx.tools.get('present', owner)).toBeUndefined()
   })
@@ -113,7 +126,7 @@ describe('present', () => {
 
   it('records once when ancestor and agent scopes both mount present', async () => {
     const { owner, root, execute } = await setup()
-    await owner.ctx.plugin(Present, { maxFiles: 2 })
+    await owner.ctx.plugin(Present, { maxFileBytes: Present.Config().maxFileBytes, maxFiles: 2 })
     await writeFile(join(root, 'a'), 'a')
     expect((await execute([{ path: 'a' }])).isError).toBe(false)
     const deliveries = owner.session.snapshotEvents().filter(event => event.type === 'deliverables/presented')
@@ -149,7 +162,7 @@ describe('present', () => {
 
 it('validates deployment limits before registering the tool', () => {
   for (const config of [{ maxFiles: 0 }, { maxFiles: 1.5 }, { maxFiles: Number.POSITIVE_INFINITY }]) {
-    expect(() => { Present.apply(new Context(), config) }).toThrow('positive integer maxFiles')
+    expect(() => { Present.apply(new Context(), { ...config, maxFileBytes: 20 * 1024 * 1024 }) }).toThrow('positive integer maxFiles')
   }
 })
 
@@ -174,7 +187,10 @@ it('declares readable files outside the Session directory using absolute and rel
   await writeFile(file, 'external report')
   const files = [{ path: file }, { path: relative(root, file) }]
   expect((await execute(files)).isError).toBe(false)
-  expect(owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files).toEqual(files)
+  const captured = owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files
+  expect(captured?.map(({ path }) => ({ path }))).toEqual(files)
+  expect(captured?.[0]?.capture).toEqual(captured?.[1]?.capture)
+  expect(captured?.[0]?.capture?.status).toBe('stored')
 })
 
 it('refuses a final symlink to an ordinary file', async () => {
@@ -191,4 +207,98 @@ it('refuses a file replaced by a directory after inspecting its final component'
   const directory = await ctx.fs.stat(await ctx.fs.resolve(root))
   vi.spyOn(ctx.fs, 'stat').mockResolvedValueOnce(directory)
   expect((await execute([{ path: 'source' }])).isError).toBe(true)
+})
+
+async function storedBytes(ctx: Context, ref: FileAttachmentRef): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = []
+  for await (const chunk of ctx.attachments.readFileStream(ref)) chunks.push(chunk)
+  return new Uint8Array(Buffer.concat(chunks))
+}
+
+it('validates the capture byte limit at schema parse and direct registration', () => {
+  expect(Present.Config().maxFileBytes).toBe(20 * 1024 * 1024)
+  expect(Present.Config({ maxFiles: 2, maxFileBytes: 1 }).maxFileBytes).toBe(1)
+  for (const maxFileBytes of [0, -1, 1.5, Number.POSITIVE_INFINITY, Number.NaN, Number.MAX_SAFE_INTEGER]) {
+    expect(() => Present.Config({ maxFiles: 2, maxFileBytes })).toThrow()
+    expect(() => { Present.apply(new Context(), { maxFiles: 2, maxFileBytes }) }).toThrow('positive integer maxFileBytes')
+  }
+})
+
+it('captures empty and exact-limit files but records oversized files without reading them', async () => {
+  const { ctx, root, owner, execute } = await setup({ maxFiles: 3, maxFileBytes: 4 })
+  await writeFile(join(root, 'empty'), '')
+  await writeFile(join(root, 'exact'), 'éé')
+  await writeFile(join(root, 'large'), 'ééx')
+  const read = vi.spyOn(ctx.fs, 'readBytes')
+  const result = await execute([{ path: 'empty' }, { path: 'exact' }, { path: 'large' }])
+  expect(result.isError).toBe(false)
+  const files = owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files
+  expect(files?.map(file => file.capture?.status)).toEqual(['stored', 'stored', 'too-large'])
+  expect(files?.[2]).toEqual({ path: 'large', capture: { status: 'too-large', maxBytes: 4 } })
+  expect(read).toHaveBeenCalledTimes(2)
+  expect(result.content).toEqual([{ type: 'text', text: 'Presented empty\nPresented exact\nPresented large (not saved: exceeds 4 bytes; keep the original file)' }])
+})
+
+it('records an oversized outcome when a file grows before its bounded read', async () => {
+  const { ctx, root, owner, execute } = await setup({ maxFileBytes: 4 })
+  await writeFile(join(root, 'growing'), 'a')
+  const read = ctx.fs.readBytes.bind(ctx.fs)
+  vi.spyOn(ctx.fs, 'readBytes').mockImplementationOnce(async (...args) => {
+    await writeFile(join(root, 'growing'), '12345')
+    return read(...args)
+  })
+  expect((await execute([{ path: 'growing' }])).isError).toBe(false)
+  expect(owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files)
+    .toEqual([{ path: 'growing', capture: { status: 'too-large', maxBytes: 4 } }])
+})
+
+it('reads through the filesystem provider when metadata omits the size', async () => {
+  const { ctx, root, owner, execute } = await setup()
+  await writeFile(join(root, 'source'), 'bytes')
+  const info = await ctx.fs.stat(await ctx.fs.resolve('source'))
+  if (info === undefined) throw new Error('fixture file missing')
+  const { size: _size, ...withoutSize } = info
+  vi.spyOn(ctx.fs, 'stat').mockResolvedValueOnce(withoutSize)
+  expect((await execute([{ path: 'source' }])).isError).toBe(false)
+  expect(owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files[0]?.capture?.status).toBe('stored')
+})
+
+it('publishes no declaration when a later filesystem read is denied', async () => {
+  const { ctx, root, owner, execute } = await setup()
+  await writeFile(join(root, 'first'), 'one')
+  await writeFile(join(root, 'denied'), 'two')
+  const read = ctx.fs.readBytes.bind(ctx.fs)
+  vi.spyOn(ctx.fs, 'readBytes').mockImplementationOnce(read).mockRejectedValueOnce(new FsError('denied', 'FS_IO_ERROR'))
+  expect((await execute([{ path: 'first' }, { path: 'denied' }])).isError).toBe(true)
+  expect(owner.session.snapshotEvents().some(event => event.type === 'deliverables/presented')).toBe(false)
+})
+
+it('publishes no declaration when attachment storage refuses the write', async () => {
+  const { ctx, root, owner, execute } = await setup()
+  await writeFile(join(root, 'source'), 'bytes')
+  vi.spyOn(ctx.attachments, 'saveFileStream').mockRejectedValueOnce(new AttachmentError('unsupported', 'ATTACHMENT_FILES_UNSUPPORTED'))
+  expect((await execute([{ path: 'source' }])).isError).toBe(true)
+  expect(owner.session.snapshotEvents().some(event => event.type === 'deliverables/presented')).toBe(false)
+})
+
+it.each(['read', 'write'] as const)('publishes no declaration when cancelled during capture %s', async (phase) => {
+  const { ctx, root, owner, execute } = await setup()
+  await writeFile(join(root, 'source'), 'bytes')
+  const controller = new AbortController()
+  const cancellation = new Error('capture cancelled')
+  if (phase === 'read') {
+    vi.spyOn(ctx.fs, 'readBytes').mockImplementationOnce(async () => {
+      controller.abort(cancellation)
+      throw cancellation
+    })
+  } else {
+    const save = ctx.attachments.saveFileStream.bind(ctx.attachments)
+    vi.spyOn(ctx.attachments, 'saveFileStream').mockImplementationOnce(async (input) => {
+      const ref = await save(input)
+      controller.abort(cancellation)
+      return ref
+    })
+  }
+  expect((await execute([{ path: 'source' }], controller.signal)).isError).toBe(true)
+  expect(owner.session.snapshotEvents().some(event => event.type === 'deliverables/presented')).toBe(false)
 })

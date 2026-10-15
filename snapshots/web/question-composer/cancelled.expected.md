@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Use the ask_user_question tool to
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

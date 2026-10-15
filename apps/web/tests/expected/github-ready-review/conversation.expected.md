@@ -10,6 +10,9 @@
 
 - banner:
   - navigation "Session hierarchy": Review deepseek-ai/deepseek-harness#314
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"

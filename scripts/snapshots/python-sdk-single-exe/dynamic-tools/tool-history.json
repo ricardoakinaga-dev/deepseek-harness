@@ -30,7 +30,7 @@
   "events": [
     {
       "type": "request/header",
-      "seq": 11,
+      "seq": 12,
       "time": 0,
       "data": {
         "header": {
@@ -56,7 +56,6 @@
             "job_list",
             "job_output",
             "list_agents",
-            "load_workspace_dependencies",
             "read",
             "read_image",
             "send_message",
@@ -76,7 +75,7 @@
     },
     {
       "type": "request/context",
-      "seq": 12,
+      "seq": 13,
       "time": 0,
       "data": {
         "provider": "deepseek-official",
@@ -86,7 +85,7 @@
     },
     {
       "type": "request/header",
-      "seq": 20,
+      "seq": 21,
       "time": 0,
       "data": {
         "header": {
@@ -112,7 +111,6 @@
             "job_list",
             "job_output",
             "list_agents",
-            "load_workspace_dependencies",
             "read",
             "read_image",
             "send_message",
@@ -133,7 +131,7 @@
     },
     {
       "type": "developer/message",
-      "seq": 21,
+      "seq": 22,
       "time": 0,
       "data": {
         "turn": 1,
@@ -151,13 +149,13 @@
           "role": "developer",
           "id": "{{messageId}}"
         },
-        "headerSeq": 20
+        "headerSeq": 21
       },
       "surfaceOp": "append"
     },
     {
       "type": "request/header",
-      "seq": 28,
+      "seq": 29,
       "time": 0,
       "data": {
         "header": {
@@ -183,7 +181,6 @@
             "job_list",
             "job_output",
             "list_agents",
-            "load_workspace_dependencies",
             "read",
             "read_image",
             "send_message",
@@ -203,7 +200,7 @@
     },
     {
       "type": "developer/message",
-      "seq": 29,
+      "seq": 30,
       "time": 0,
       "data": {
         "turn": 1,

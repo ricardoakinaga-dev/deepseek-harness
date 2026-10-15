@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import runpy
 import subprocess
 import urllib.request
@@ -18,6 +19,184 @@ SESSION_FORMAT_VERSION = int(
     (ROOT / "packages/core/session/src/types.ts").read_text(encoding="utf-8")
     .split("export const SESSION_FORMAT_VERSION = ", 1)[1].splitlines()[0]
 )
+
+
+def runtime_audit() -> dict[str, object]:
+    return {"type": "runtime/audit", "data": {
+        "reason": "initial", "profile": "sdk", "startedBundles": ["default"],
+        "runtime": {
+            "version": "0.0.0.dev0", "nodeVersion": "v24.4.0", "platform": "linux", "arch": "x64",
+            "launcher": {"kind": "source", "sha256": "a" * 64},
+            "source": {"revision": "b" * 40, "dirty": True, "contentSha256": "c" * 64},
+            "build": None,
+        },
+        "configuration": [{"id": "tools", "values": {"mode": "both"}}],
+        "plugins": [{"id": "tools", "plugin": "@deepseek-ai/dsh-tools", "moduleSha256": "d" * 64,
+                     "package": {"name": "@deepseek-ai/dsh-tools", "version": "0.0.0.dev0", "manifestSha256": "e" * 64}}],
+    }}
+
+
+def test_runtime_audit_checks_raw_identity_before_stabilizing_scalars() -> None:
+    audit = runtime_audit()
+    header = {"type": "session", "version": SESSION_FORMAT_VERSION, "isSeeded": False}
+    expected = json.loads(json.dumps(audit["data"]["runtime"]))
+    assert SMOKE["assert_runtime_audit_identity"]([header, audit], expected) == 1
+    normalized = SMOKE["normalize_snapshot_value"](audit, [])
+    runtime = normalized["data"]["runtime"]
+    assert runtime == {
+        "version": "0.0.0.dev0", "nodeVersion": "{{runtime.nodeVersion}}", "platform": "{{runtime.platform}}", "arch": "{{runtime.arch}}",
+        "launcher": {"kind": "source", "sha256": "{{runtime.launcher.sha256}}"},
+        "source": {"revision": "{{runtime.revision}}", "dirty": False, "contentSha256": "{{runtime.contentSha256}}"}, "build": None,
+    }
+    assert audit["data"]["runtime"] == expected
+    assert normalized["data"]["profile"] == audit["data"]["profile"]
+    assert normalized["data"]["configuration"] == audit["data"]["configuration"]
+    assert normalized["data"]["plugins"] == [{
+        "id": "tools", "plugin": "@deepseek-ai/dsh-tools", "moduleSha256": "{{plugin.moduleSha256}}",
+        "package": {"name": "@deepseek-ai/dsh-tools", "version": "0.0.0.dev0", "manifestSha256": "{{plugin.manifestSha256}}"},
+    }]
+    with pytest.raises(AssertionError, match="differs from the launch-time observation"):
+        SMOKE["assert_runtime_audit_identity"]([header, normalized], expected)
+    expected["source"]["dirty"] = False
+    with pytest.raises(AssertionError, match="differs from the launch-time observation"):
+        SMOKE["assert_runtime_audit_identity"]([header, audit], expected)
+
+
+@pytest.mark.parametrize("verified", [True, False])
+def test_fresh_session_requires_own_audit_after_inherited_history(verified: bool) -> None:
+    audit = runtime_audit()
+    expected = audit["data"]["runtime"] if verified else None
+    inherited = json.loads(json.dumps(audit))
+    inherited["data"]["runtime"]["nodeVersion"] = "historical-node"
+    header = {"type": "session", "version": SESSION_FORMAT_VERSION, "isSeeded": True}
+    seed = [header, inherited, {"type": "session/end-seed", "data": {"inherited": True}}]
+    check = SMOKE["assert_runtime_audit_identity"]
+    assert check([*seed, audit], expected) == (1 if verified else 0)
+    with pytest.raises(AssertionError, match="no own initial runtime audit"):
+        check(seed, expected)
+    with pytest.raises(AssertionError, match="no own initial runtime audit"):
+        check([{**header, "isSeeded": False}], expected)
+    with pytest.raises(AssertionError, match="no inherited end-seed marker"):
+        check([header, audit], expected)
+
+
+def test_runtime_identity_check_does_not_assess_historical_recordings() -> None:
+    with pytest.raises(AssertionError, match="expected current Session format"):
+        SMOKE["assert_runtime_audit_identity"]([
+            {"type": "session", "version": SESSION_FORMAT_VERSION - 1, "isSeeded": False}, runtime_audit(),
+        ], runtime_audit()["data"]["runtime"])
+
+
+def test_runtime_audit_preserves_unavailable_facts_and_build_membership() -> None:
+    audit = runtime_audit()
+    runtime = audit["data"]["runtime"]
+    runtime["source"] = None
+    runtime["launcher"] = {"kind": "artifact", "sha256": None}
+    runtime["build"] = {"manifestSha256": "a" * 64, "inputsSha256": "b" * 64, "inputCount": 17, "source": None}
+    audit["data"]["plugins"].append({"id": "external", "plugin": "./plugin.mjs", "moduleSha256": None, "package": None})
+    normalized = SMOKE["normalize_snapshot_value"](audit, [])
+    assert normalized["data"]["runtime"]["build"] == {
+        "manifestSha256": "{{runtime.build.manifestSha256}}", "inputsSha256": "{{runtime.build.inputsSha256}}", "inputCount": 17, "source": None,
+    }
+    assert normalized["data"]["runtime"]["launcher"] == {"kind": "artifact", "sha256": None}
+    assert normalized["data"]["runtime"]["source"] is None
+    assert normalized["data"]["plugins"][-1] == audit["data"]["plugins"][-1]
+    assert SMOKE["normalize_snapshot_value"](normalized, []) == normalized
+
+
+def test_runtime_audit_tokens_only_declared_repository_module_specifiers(tmp_path: Path) -> None:
+    root = tmp_path / "checkout with spaces"
+    module = root / "snapshots/sdk/fixture with spaces.mjs"
+    text = module.as_uri()
+    audit = runtime_audit()
+    audit["data"]["plugins"][0]["plugin"] = text
+    audit["data"]["configuration"] = [{"plugin": str(module), "values": {"plugin": text}}]
+    audit["data"]["userText"] = text
+    SMOKE["normalize_runtime_audit"](audit, root)
+    assert audit["data"]["plugins"][0]["plugin"] == "file://{{repo}}/snapshots/sdk/fixture%20with%20spaces.mjs"
+    assert audit["data"]["configuration"] == [{
+        "plugin": "{{repo}}/snapshots/sdk/fixture with spaces.mjs", "values": {"plugin": text},
+    }]
+    assert audit["data"]["userText"] == text
+
+
+@pytest.mark.parametrize("field", ["launcher", "source", "plugin", "manifest"])
+def test_runtime_audit_rejects_malformed_identity_before_masking(field: str) -> None:
+    audit = runtime_audit()
+    if field == "launcher":
+        audit["data"]["runtime"]["launcher"]["sha256"] = "broken"
+    elif field == "source":
+        audit["data"]["runtime"]["source"]["revision"] = "broken"
+    elif field == "plugin":
+        audit["data"]["plugins"][0]["moduleSha256"] = "broken"
+    else:
+        audit["data"]["plugins"][0]["package"]["manifestSha256"] = "broken"
+    with pytest.raises(AssertionError, match="runtime audit"):
+        SMOKE["normalize_snapshot_value"](audit, [])
+
+
+def test_runtime_manifest_is_bound_to_exact_executable_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    executable = tmp_path / "dsh"
+    executable.write_bytes(b"test executable")
+    manifest = tmp_path / "runtime-identity.json"
+    expected = runtime_audit()["data"]["runtime"]
+    manifest.write_text(json.dumps({"format": 1, "executableSha256": hashlib.sha256(executable.read_bytes()).hexdigest(), "runtime": expected}))
+    monkeypatch.setenv("DSH_SMOKE_RUNTIME_IDENTITY_FILE", str(manifest))
+    assert SMOKE["expected_runtime_identity"](executable) == expected
+    executable.write_bytes(b"replaced executable")
+    with pytest.raises(AssertionError, match="does not match the executable bytes"):
+        SMOKE["expected_runtime_identity"](executable)
+    with pytest.raises(AssertionError, match="no own initial runtime audit"):
+        SMOKE["assert_runtime_audit_identity"]([], expected)
+
+
+def test_absent_runtime_manifest_reports_exact_identity_unverified(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.delenv("DSH_SMOKE_RUNTIME_IDENTITY_FILE", raising=False)
+    assert SMOKE["expected_runtime_identity"](tmp_path / "dsh") is None
+    assert "exact runtime identity unverified" in capsys.readouterr().out
+
+
+def test_runtime_mode_oracles_keep_one_session_owner_for_both_modes(tmp_path: Path) -> None:
+    source = SMOKE["normalize_snapshot_value"](runtime_audit(), [])
+    artifact = json.loads(json.dumps(source))
+    runtime = artifact["data"]["runtime"]
+    runtime["launcher"]["kind"] = "artifact"
+    runtime["source"] = None
+    runtime["build"] = {"inputCount": 17, "source": None}
+    name = SMOKE["snapshot_session_filename"](0, SESSION_FORMAT_VERSION)
+
+    def files(event: dict[str, object]) -> dict[str, str]:
+        return {
+            "result.json": json.dumps({"events": [event], "notifications": [{"method": "session.event", "payload": {"event": {**event, "seq": 3, "time": 0}}}]}),
+            name: SMOKE["render_jsonl"]([{"type": "session", "version": SESSION_FORMAT_VERSION, "id": "mode-owner"}, event]),
+        }
+
+    compare = SMOKE["compare_snapshot_files"]
+    with pytest.raises(FileNotFoundError, match="runtime-audit.source.expected"):
+        compare(files(source), False, tmp_path, tuple(files(source)))
+    compare(files(source), True, tmp_path, tuple(files(source)))
+    original = (tmp_path / "runtime-audit.source.expected.jsonl").read_bytes()
+    with pytest.raises(FileNotFoundError, match="runtime-audit.artifact.expected"):
+        compare(files(artifact), False, tmp_path, tuple(files(artifact)))
+    compare(files(artifact), True, tmp_path, tuple(files(artifact)))
+    compare(files(source), False, tmp_path, tuple(files(source)))
+    compare(files(artifact), False, tmp_path, tuple(files(artifact)))
+    assert (tmp_path / "runtime-audit.source.expected.jsonl").read_bytes() == original
+    changed = json.loads(json.dumps(source))
+    changed["data"]["configuration"] = []
+    with pytest.raises(AssertionError, match="runtime audit oracle differs"):
+        compare(files(changed), False, tmp_path, tuple(files(changed)))
+
+
+def test_runtime_mode_substitution_rejects_missing_or_extra_audit_rows() -> None:
+    event = SMOKE["normalize_snapshot_value"](runtime_audit(), [])
+    name = SMOKE["snapshot_session_filename"](0, SESSION_FORMAT_VERSION)
+    text = SMOKE["render_jsonl"]([{"type": "session", "version": SESSION_FORMAT_VERSION}, event])
+    replace = SMOKE["with_runtime_audit_oracle"]
+    with pytest.raises(AssertionError, match="missing Session role"):
+        replace(name, text, {0: text}, [])
+    with pytest.raises(AssertionError, match="count differs"):
+        replace(name, text, {0: text}, [{"session": 0, "event": event}] * 2)
 
 
 def live_result(**overrides: object) -> RunResult:

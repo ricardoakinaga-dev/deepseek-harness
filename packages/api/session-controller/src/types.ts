@@ -5,9 +5,9 @@ import type {
   AttachmentIdType, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType,
 } from '@deepseek-ai/dsh-attachment'
 import type { Branded } from '@deepseek-ai/dsh-brand'
-import type { LlmAttemptId, MessageId } from '@deepseek-ai/dsh-llm/brand'
+import type { LlmAttemptId, MessageId, ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 import type { TextBlock } from '@deepseek-ai/dsh-llm'
-import type { SessionId, SessionSeqCursor } from '@deepseek-ai/dsh-session/types'
+import type { SessionId, SessionLogOffset, SessionSeq, SessionSeqCursor } from '@deepseek-ai/dsh-session/types'
 import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
@@ -16,6 +16,8 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionStateMap {
     /** Host state persisted for cold Session list summaries. */
     sessionListMetadata: SessionListMetadata
+    /** Own-session execution activity, excluding the fork-inherited prefix. */
+    sessionActivity: SessionActivityState
     /** Host state for the boot-constant image-limit view. */
     imageLimits: null
     /** Durable model selection already used by a request and still pending for a later request. */
@@ -24,6 +26,8 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionMap {
     /** Persisted facts used to summarize a Session without activating it. */
     sessionListMetadata: SessionListMetadata
+    /** Recorded execution activity; live running and waiting state have separate owners. */
+    sessionActivity: SessionActivityProjection
     /** Image-intake limits enforced by the Session prompt endpoint. */
     imageLimits: ImageAttachmentLimits
     /** Durable model selection already used and selected for the next request. */
@@ -47,6 +51,45 @@ export interface SessionListMetadata {
   readonly blank: boolean
   /** Latest human-authored prompt time in the folded prefix. */
   readonly lastPromptAt: number | null
+}
+
+/** One recorded execution milestone; sequence order owns recency even when the clock reverses. */
+export interface SessionActivityStamp {
+  readonly seq: SessionSeq
+  /** Host epoch milliseconds when the event was recorded. */
+  readonly time: number
+  readonly kind: 'turn/start' | 'turn/end' | 'step/start' | 'step/end'
+    | 'user/message' | 'assistant/message' | 'assistant/attempt' | 'tool/call' | 'tool/result'
+}
+
+/** An invocation with a recorded call and no recorded result in the current step. */
+export interface SessionActivityTool {
+  readonly callId: ToolCallId
+  readonly name: string
+}
+
+/** Recorded failure since the latest step or turn began; a completed turn clears it. */
+export interface SessionActivityError {
+  readonly seq: SessionSeq
+  readonly time: number
+  readonly source: 'tool' | 'turn'
+  /** Machine-readable failure identity, or null when the tool supplied none. */
+  readonly code: string | null
+}
+
+/** Execution facts reconstructed without parsing assistant prose or treating an open call as live. */
+export interface SessionActivityProjection {
+  /** Latest own-session execution milestone, or null before one is recorded. */
+  readonly last: SessionActivityStamp | null
+  /** Outstanding recorded calls; only live status can establish that work is still running. */
+  readonly tools: readonly SessionActivityTool[]
+  readonly error: SessionActivityError | null
+}
+
+/** Persisted activity fold and its immutable fork cut. */
+export interface SessionActivityState {
+  readonly inheritedEventCount: SessionLogOffset
+  readonly value: SessionActivityProjection
 }
 
 /**

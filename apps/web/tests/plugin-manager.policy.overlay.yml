@@ -1,0 +1,5 @@
+# This fixture exercises inspection and installation forms with an owned local bundle.
+- id: plugin-manager
+  config:
+    allowedSources: [registry, path, git, tarball]
+    allowedPublishers: ['@deepseek-ai', '@fixture']

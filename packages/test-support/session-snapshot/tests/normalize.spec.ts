@@ -26,6 +26,26 @@ const ctx: NormalizeContext = {
   cwd: '/tmp/acp-snap-cwd-abc123',
 }
 
+describe('owned spill capture locators', () => {
+  it('normalizes only a capture under the observed private root and retains unrelated paths', () => {
+    const root = '/tmp/owned-spill-abc'
+    const locator = `${root}/session-${'a'.repeat(12)}/${'b'.repeat(12)}-grep-results.txt`
+    const rows = [
+      { type: 'session', version: SESSION_FORMAT_VERSION },
+      { type: 'spill/artifact', data: { locator, attachment: { name: 'grep-results.txt' } } },
+      { type: 'spill/artifact', data: { locator: locator.replace(root, '/tmp/other-spill') } },
+      { type: 'user/message', data: { locator, content: locator } },
+    ]
+    const log = rows.map(row => JSON.stringify(row)).join('\n')
+    const scrubbed = scrubSessionSnapshot(log, { spillRoot: root }).split('\n').map(line => JSON.parse(line) as { data: { locator: string } })
+    expect(scrubbed[1]!.data.locator).toBe('{{spillLocator:grep-results.txt}}')
+    expect(scrubbed[2]).toEqual(rows[2])
+    expect(scrubbed[3]).toEqual(rows[3])
+    expect(normalizeSessionLog(log, { ...ctx, spillRoot: root })).toContain('"locator":"{{spillLocator:grep-results.txt}}"')
+    expect(scrubSessionSnapshot(log)).toContain(locator)
+  })
+})
+
 describe('normalizeStdout', () => {
   it('rewrites JSON-RPC ids to a stable first-seen sequence', () => {
     const raw = [

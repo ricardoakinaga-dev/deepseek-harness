@@ -42,12 +42,15 @@ kind: "package-reference"
 |---|---|---|
 | `root` | 私有 0700 临时目录 | spill 文件的根目录；设置后可将文件保存在已知位置 |
 | `cleanupPeriodDays` | `30` | 文件在一次性启动清理中可被删除前需经过的天数；`0` 禁用清理 |
+| `captureAttachments` | `false` | 将完整 spill 字节保存为当前所属 Session 的附件；需要附件和 Session 服务 |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-spill-local)是每个受支持字段的穷尽式真源。
 
 ### 你会得到什么
 
 每次 `saveText` 调用都会把完整文本写入一个新文件，并返回三个字段：`locator`（文件路径）、`bytes`（精确的 UTF-8 字节数）与 `retrievalHint`——"Use read with offset/limit, or grep this path to search within it."。消费方把该提示展示给模型，模型随后可以用其常规文件工具读取或搜索该文件。
+
+共享 base bundle 启用 `captureAttachments`。后端使用调用方建议的名称保存附件，先把已保存的字节以流方式写入附件存储，再追加仅用于日志的 `spill/artifact` 事件。即使临时定位文件消失，Session 导出仍可恢复这些字节。缺少当前所属 Session、存储不可用或捕获失败时，调用会拒绝，不记录成功捕获事件。调用方取消信号会传递给捕获操作；文件流关闭后调用才结束。插件释放会取消所有进行中的写入，等待存储和文件流清理完成，并阻止之后追加捕获事件。独立组合保持仅临时存储，除非显式启用捕获。
 
 ### 文件存放位置
 
@@ -85,7 +88,7 @@ kind: "package-reference"
 | [`src/index.ts`](src/index.ts) | 插件入口：`Config`、`LocalSpillStore` 服务、清理生命周期、定位信息与取回提示的组装 |
 | [`src/cleanup.ts`](src/cleanup.ts) | 一次性按年龄扫描、文件系统身份检查、符号链接和所有权保护 |
 | [`src/store.ts`](src/store.ts) | 与 Cordis 无关的存储机制：私有根目录、会话目录、安全名称编码、排他写入 |
-| — | 不发布运行时不变式伴生入口；除由所属 seam 强制执行的约定外，本包不暴露独立事件序列或可变数据关系。 |
+| — | 不发布运行时不变式伴生入口；捕获记录在附件提交后追加，字节完整性校验由附件存储负责。 |
 
 ### 文件命名与写入
 

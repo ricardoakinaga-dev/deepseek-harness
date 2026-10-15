@@ -62,6 +62,8 @@ async function seedRefusingPreset(root: string): Promise<void> {
  * @param workspaceCwd - the scaffold's temp project parent.
  */
 async function seedWorkspaceSkill(workspaceCwd: string): Promise<void> {
+  // Project skill discovery stops at the nearest Git marker inside this fixture.
+  await mkdir(join(workspaceCwd, 'workspace', '.git'), { recursive: true })
   const directory = join(workspaceCwd, 'workspace', '.agents', 'skills', SKILL_NAME)
   await mkdir(directory, { recursive: true })
   await writeFile(join(directory, 'SKILL.md'), [

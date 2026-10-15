@@ -7,9 +7,15 @@
  */
 
 import { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session'
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import SessionStore from '@deepseek-ai/dsh-session'
+import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
+import LocalSpillStore from '@deepseek-ai/dsh-spill-local'
 import { unzipSync, strFromU8 } from 'fflate'
 import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { SessionEvent, SessionHeader, SessionId, ToolResultMessage, UserMessage } from '@deepseek-ai/dsh-session'
@@ -32,6 +38,13 @@ const subagentLogName = (id: string): string => `subagents/${id}/${exportLogName
 const generationLogName = (version: number): string => version === 0
   ? 'session.jsonl'
   : `session.v${version}.jsonl`
+
+interface ExportManifest {
+  format: string
+  rootSessionId: string
+  entries: Array<{ path: string; kind: string; bytes: number; sha256: string }>
+  spills: Array<{ locator: string; path: string }>
+}
 
 function header(id: string, parentSession?: SessionId): SessionHeader {
   return {
@@ -180,6 +193,7 @@ async function buildApi(
   await fiber.await()
   const handler = connection.createSharedFetchHandler('/api')
   return {
+    dispose: () => fiber.dispose(),
     fetch: handler,
     downloads: {
       sessionLog: (
@@ -220,6 +234,78 @@ async function directZipFiles(rootContent: string): Promise<Record<string, Uint8
   )
   return unzipSync(new Uint8Array(await new Response(stream).arrayBuffer()))
 }
+
+describe('export integrity manifest', () => {
+  it.each(['intact', 'missing', 'corrupt'] as const)('exports captured spill bytes with the temporary workspace removed: %s', async (condition) => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-portable-spill-'))
+    const ctx = new Context()
+    try {
+      await ctx.plugin(SessionStore)
+      await ctx.plugin(LocalAttachmentStore, { dshHome: join(root, 'home') })
+      await ctx.plugin(LocalSpillStore, { root: join(root, 'temporary'), cleanupPeriodDays: 0, captureAttachments: true })
+      const session = ctx.sessions.create(sid('session-root'))
+      const content = 'full evidence: ação 🐢\n'.repeat(20_000)
+      const spill = await ctx.spillStore.saveText({
+        owner: { sessionId: session.id },
+        source: { kind: 'session-reference', sessionId: sid('referenced'), label: 'evidence' },
+        suggestedName: 'evidence.txt', content,
+      })
+      await rm(join(root, 'temporary'), { recursive: true, force: true })
+      const saved = session.snapshotEvents().find(event => event.type === 'spill/artifact')
+      if (saved?.type !== 'spill/artifact') throw new Error('capture event is absent')
+      const digest = String(saved.data.attachment.attachmentId).slice('sha256:'.length)
+      const entryPath = `files/${digest.slice(0, 2)}/${digest}/${saved.data.attachment.name}`
+      const storedPath = join(root, 'home', 'attachments', 'v1', entryPath)
+      if (condition === 'missing') await rm(storedPath)
+      if (condition === 'corrupt') {
+        await chmod(storedPath, 0o600)
+        await writeFile(storedPath, 'corrupt')
+      }
+      const api = await buildApi({ 'session-root': { header: session.header, events: session.snapshotEvents() } }, [], {
+        readFileStream: (ref, signal) => ctx.attachments.readFileStream(ref, signal),
+      })
+      const response = await api.downloads.sessionLog({ sessionId: session.id, includeDescendants: false }, new AbortController().signal)
+      if (condition !== 'intact') {
+        await expect(responseBytes(response)).rejects.toThrow()
+        return
+      }
+      const files = unzipSync(await responseBytes(response))
+      const manifest = JSON.parse(strFromU8(files['manifest.json']!)) as ExportManifest
+      expect(manifest.spills).toEqual([{ locator: spill.locator, path: entryPath }])
+      expect(strFromU8(files[entryPath]!)).toBe(content)
+      for (const entry of manifest.entries) {
+        expect(files[entry.path]).toBeDefined()
+        expect(files[entry.path]!.byteLength).toBe(entry.bytes)
+        expect(createHash('sha256').update(files[entry.path]!).digest('hex')).toBe(entry.sha256)
+      }
+    } finally {
+      await ctx.fiber.dispose()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('binds the logical Session bytes independently of the original workspace', async () => {
+    const content = logText(log('session-root'))
+    const files = await directZipFiles(content)
+    const manifest = JSON.parse(strFromU8(files['manifest.json']!)) as ExportManifest
+    expect(manifest).toMatchObject({ format: 'dsh-session-export.v1', rootSessionId: 'session-root', spills: [] })
+    expect(manifest.entries).toEqual([{
+      path: exportLogName, kind: 'session', bytes: Buffer.byteLength(content, 'utf8'),
+      sha256: createHash('sha256').update(files[exportLogName]!).digest('hex'),
+    }])
+    const tampered = new Uint8Array(files[exportLogName]!)
+    tampered[0] = tampered[0]! ^ 1
+    expect(createHash('sha256').update(tampered).digest('hex')).not.toBe(manifest.entries[0]!.sha256)
+  })
+
+  it('refuses to certify file bytes that the entry consumer skipped', async () => {
+    const content = logText(log('session-root', undefined, [fileEvent('sha256:unread')]))
+    const entries = SessionLogExport.sessionLogZipEntries(directReady(), content, sid('session-root'), false)
+    expect((await entries.next()).value).toHaveProperty('content', content)
+    expect((await entries.next()).value).toHaveProperty('chunks')
+    await expect(entries.next()).rejects.toThrow('must be fully consumed')
+  })
+})
 
 describe('session export compression config', () => {
   it('defaults to level 6 and rejects values outside the integer 0-9 range', () => {
@@ -315,7 +401,7 @@ describe('session.export download endpoint', () => {
     expect(response.headers.get('content-type')).toBe('application/zip')
     expect(response.headers.get('content-disposition')).toContain('dsh-session-session-root.zip')
     const files = unzipSync(await responseBytes(response))
-    expect(Object.keys(files)).toEqual([exportLogName])
+    expect(Object.keys(files)).toEqual([exportLogName, 'manifest.json'])
     expect(strFromU8(files[exportLogName] as Uint8Array)).toBe(logText(stored))
   })
 
@@ -380,6 +466,7 @@ describe('session.export download endpoint', () => {
     expect(response.status).toBe(200)
     const files = unzipSync(await responseBytes(response))
     expect(Object.keys(files).sort()).toEqual([
+      'manifest.json',
       exportLogName,
       subagentLogName('child-a'),
       subagentLogName('grandchild-a'),
@@ -505,7 +592,7 @@ describe('session.export download endpoint', () => {
 
   it('streams an empty root text as an empty zip entry', async () => {
     const files = await directZipFiles('')
-    expect(Object.keys(files)).toEqual([exportLogName])
+    expect(Object.keys(files)).toEqual([exportLogName, 'manifest.json'])
     expect(strFromU8(files[exportLogName] as Uint8Array)).toBe('')
   })
 
@@ -514,7 +601,7 @@ describe('session.export download endpoint', () => {
     const text = [null, [], false, { type: 'agent/inbox/spliced', data: { content } },
       { type: 'session/title-llm-request', data: { content } }].map(value => JSON.stringify(value)).join('\n')
     const files = await directZipFiles(text)
-    expect(Object.keys(files)).toEqual([exportLogName])
+    expect(Object.keys(files)).toEqual([exportLogName, 'manifest.json'])
     expect(strFromU8(files[exportLogName] as Uint8Array)).toBe(text)
   })
 
@@ -565,6 +652,7 @@ describe('session.export download endpoint', () => {
     )
     const files = unzipSync(await responseBytes(response))
     expect(Object.keys(files).sort()).toEqual([
+      'manifest.json',
       exportLogName,
       subagentLogName('child-a'),
       subagentLogName('child-b'),
@@ -763,7 +851,7 @@ describe('session.export download endpoint', () => {
     )
     expect(response.status).toBe(200)
     const files = unzipSync(await responseBytes(response))
-    expect(Object.keys(files).sort()).toEqual(['media/img-1.png', exportLogName].sort())
+    expect(Object.keys(files).sort()).toEqual(['manifest.json', 'media/img-1.png', exportLogName].sort())
     expect(files['media/img-1.png']).toEqual(storedImage('img-1').data)
   })
 
@@ -796,6 +884,108 @@ describe('session.export download endpoint', () => {
     expect(reads[0]?.signal).toBeInstanceOf(AbortSignal)
   })
 
+  it('exports saved deliverables once per digest and name, including content-block references', async () => {
+    const digest = 'd'.repeat(64)
+    const attachment = { attachmentId: `sha256:${digest}`, name: 'report.bin', bytes: 4 }
+    const saved = { path: '/removed/report.bin', capture: { status: 'stored', attachment } }
+    const content = [
+      { type: 'deliverables/presented', data: { turn: 1, callId: 'present', files: [saved, saved] } },
+      { type: 'user/message', data: { content: [{ type: 'file', attachment }] } },
+    ].map(row => JSON.stringify(row)).join('\n') + '\n'
+    const ready = directReady()
+    const read = vi.fn(async function* (_ref: FileAttachmentRef, _signal?: AbortSignal) { yield Uint8Array.of(80, 75, 0, 255) })
+    ready.attachments.readFileStream = read
+    const stream = SessionLogExport.streamSessionLogZip(ready, content, sid('session-root'), false, 6, new AbortController().signal)
+    const files = unzipSync(new Uint8Array(await new Response(stream).arrayBuffer()))
+    expect(Object.keys(files).sort()).toEqual([exportLogName, 'manifest.json', `files/dd/${digest}/report.bin`].sort())
+    expect(files[`files/dd/${digest}/report.bin`]).toEqual(Uint8Array.of(80, 75, 0, 255))
+    expect(strFromU8(files[exportLogName]!)).toBe(content)
+    expect(read).toHaveBeenCalledExactlyOnceWith(attachment, expect.any(AbortSignal))
+  })
+
+  it('includes a saved deliverable referenced only by a descendant Session', async () => {
+    const digest = 'd'.repeat(64)
+    const child = log('child-a', sid('session-root'), [{
+      type: 'deliverables/presented', seq: SessionSeq(1), time: 1000,
+      data: { turn: 1, callId: 'present', files: [{ path: 'gone.txt', capture: { status: 'stored',
+        attachment: { attachmentId: `sha256:${digest}`, name: 'gone.txt', bytes: 3 },
+      } }] },
+    } as SessionEvent])
+    const api = await buildApi({ 'session-root': log('session-root'), 'child-a': child }, [node('child-a')], {
+      readFileStream: async function* () { yield new TextEncoder().encode('old') },
+    })
+    const response = await api.downloads.sessionLog({ sessionId: sid('session-root'), includeDescendants: true }, new AbortController().signal)
+    const files = unzipSync(await responseBytes(response))
+    expect(strFromU8(files[`files/dd/${digest}/gone.txt`]!)).toBe('old')
+  })
+
+  it('ignores historical, oversized and unrelated delivery capture fields', async () => {
+    const attachment = { attachmentId: `sha256:${'e'.repeat(64)}`, name: 'ignored.bin', bytes: 1 }
+    const files = [null, [], 1, { path: 'historical' },
+      { path: 'old', attachment },
+      { path: 'large', capture: { status: 'too-large', maxBytes: 4, attachment } },
+      { path: 'bad', capture: null }, { path: 'bad', capture: [] },
+    ]
+    const content = [
+      { type: 'deliverables/presented', data: { files } },
+      { type: 'deliverables/presented', data: { files: null } },
+      { type: 'plugin:deliverables', data: { files: [{ capture: { status: 'stored', attachment } }] } },
+      { type: 'tool/result', data: { files: [{ capture: { status: 'stored', attachment } }] } },
+    ].map(row => JSON.stringify(row)).join('\n') + '\n'
+    expect(Object.keys(await directZipFiles(content))).toEqual([exportLogName, 'manifest.json'])
+  })
+
+  it.each(['deliverables/presented', 'spill/artifact'])('fails export for a broken declared capture in %s', async (type) => {
+    for (const attachment of [undefined, null, {}, [], { attachmentId: 'bad', name: 'x', bytes: 1 }]) {
+      const data = type === 'spill/artifact'
+        ? { locator: '/gone/grep.txt', attachment }
+        : { files: [{ path: 'gone.txt', capture: { status: 'stored', attachment } }] }
+      await expect(directZipFiles(JSON.stringify({ type, data }) + '\n')).rejects.toThrow('capture attachment')
+    }
+  })
+
+  it.each(['reader', 'plugin'])('waits for asynchronous storage cleanup when its %s cancels', async (owner) => {
+    const started = Promise.withResolvers<undefined>()
+    const release = Promise.withResolvers<undefined>()
+    let cleaned = false
+    const api = await buildApi({ 'session-root': log('session-root', undefined, [imageEvent('held')]) }, [], {
+      attachments: async (_ref, signal) => {
+        if (signal === undefined) throw new Error('missing signal')
+        started.resolve(undefined)
+        try {
+          await new Promise<void>((_, reject) => {
+            signal.addEventListener('abort', () => { reject(signal.reason as Error) }, { once: true })
+          })
+          throw new Error('unreachable')
+        } finally { await release.promise; cleaned = true }
+      },
+    })
+    const response = await api.downloads.sessionLog({ sessionId: sid('session-root'), includeDescendants: false }, new AbortController().signal)
+    const reader = response.body!.getReader()
+    await started.promise
+    let cancelled = false
+    const cancellation = (owner === 'reader' ? reader.cancel() : api.dispose()).then(() => { cancelled = true })
+    try {
+      await new Promise<void>(resolve => setTimeout(resolve, 0))
+      expect(cancelled).toBe(false)
+    } finally { release.resolve(undefined) }
+    await cancellation
+    expect(cleaned).toBe(true)
+  })
+
+  it.each(['missing', 'corrupt'])('fails export when a saved deliverable is %s', async (failure) => {
+    const content = JSON.stringify({ type: 'deliverables/presented', data: { files: [{ path: 'report.bin', capture: {
+      status: 'stored', attachment: { attachmentId: `sha256:${'f'.repeat(64)}`, name: 'report.bin', bytes: 1 },
+    } }] } }) + '\n'
+    const ready = directReady()
+    ready.attachments.readFileStream = async function* () {
+      if (failure === 'corrupt') yield Uint8Array.of(1)
+      throw new Error(`saved deliverable ${failure}`)
+    }
+    const stream = SessionLogExport.streamSessionLogZip(ready, content, sid('session-root'), false, 6, new AbortController().signal)
+    await expect(new Response(stream).arrayBuffer()).rejects.toThrow(`saved deliverable ${failure}`)
+  })
+
   it('fails the whole export when a referenced file stream fails', async () => {
     const digest = 'b'.repeat(64)
     const id = `sha256:${digest}`
@@ -826,7 +1016,7 @@ describe('session.export download endpoint', () => {
     const api = await buildApi({ 'session-root': stored })
     const response = await toFetchHandler(api).fetch(new Request('http://host/api/session.export?sessionId=session-root'))
     const files = unzipSync(await responseBytes(response))
-    expect(Object.keys(files).sort()).toEqual(['media/declared-image.png', exportLogName].sort())
+    expect(Object.keys(files).sort()).toEqual(['manifest.json', 'media/declared-image.png', exportLogName].sort())
     expect(new TextDecoder().decode(files[exportLogName])).toBe(logText(stored))
   })
 
@@ -838,7 +1028,7 @@ describe('session.export download endpoint', () => {
       const api = await buildApi({ 'session-root': stored }, [], { attachments: readImage })
       const response = await toFetchHandler(api).fetch(new Request('http://host/api/session.export?sessionId=session-root'))
       const files = unzipSync(await responseBytes(response))
-      expect(Object.keys(files)).toEqual([exportLogName])
+      expect(Object.keys(files)).toEqual([exportLogName, 'manifest.json'])
       expect(new TextDecoder().decode(files[exportLogName])).toBe(logText(stored))
       expect(readImage).not.toHaveBeenCalled()
     }
@@ -857,7 +1047,7 @@ describe('session.export download endpoint', () => {
     const api = await buildApi({ 'session-root': stored }, [], { attachments: readImage })
     const response = await toFetchHandler(api).fetch(new Request('http://host/api/session.export?sessionId=session-root'))
     const files = unzipSync(await responseBytes(response))
-    expect(Object.keys(files)).toEqual([exportLogName])
+    expect(Object.keys(files)).toEqual([exportLogName, 'manifest.json'])
     expect(new TextDecoder().decode(files[exportLogName])).toBe(logText(stored))
     expect(readImage).not.toHaveBeenCalled()
   })
@@ -876,7 +1066,7 @@ describe('session.export download endpoint', () => {
     const api = await buildApi({ 'session-root': stored }, [], { attachments: readImage, readFileStream })
     const response = await toFetchHandler(api).fetch(new Request('http://host/api/session.export?sessionId=session-root'))
     const files = unzipSync(await responseBytes(response))
-    expect(Object.keys(files)).toEqual([exportLogName])
+    expect(Object.keys(files)).toEqual([exportLogName, 'manifest.json'])
     expect(new TextDecoder().decode(files[exportLogName])).toBe(logText(stored))
     expect(readImage).not.toHaveBeenCalled()
     expect(readFileStream).not.toHaveBeenCalled()
@@ -896,7 +1086,7 @@ describe('session.export download endpoint', () => {
       new Request('http://host/api/session.export?sessionId=session-root'),
     )
     const files = unzipSync(await responseBytes(response))
-    expect(Object.keys(files).sort()).toEqual(['media/tool-image.webp', exportLogName].sort())
+    expect(Object.keys(files).sort()).toEqual(['manifest.json', 'media/tool-image.webp', exportLogName].sort())
   })
 
   it('scans wrapped, inserted, and embedded-stream carriers plus non-object content items', async () => {
@@ -931,6 +1121,7 @@ describe('session.export download endpoint', () => {
     )
     const files = unzipSync(await responseBytes(response))
     expect(Object.keys(files).sort()).toEqual([
+      'manifest.json',
       'media/inserted-1.gif',
       'media/stream-1.png',
       'media/wrapped-1.jpg',
@@ -956,11 +1147,12 @@ describe('session.export download endpoint', () => {
     const without = await toFetchHandler(api).fetch(
       new Request('http://host/api/session.export?sessionId=session-root'),
     )
-    expect(Object.keys(unzipSync(await responseBytes(without)))).toEqual([exportLogName])
+    expect(Object.keys(unzipSync(await responseBytes(without)))).toEqual([exportLogName, 'manifest.json'])
     const withDescendants = await toFetchHandler(api).fetch(
       new Request('http://host/api/session.export?sessionId=session-root&includeDescendants=true'),
     )
     expect(Object.keys(unzipSync(await responseBytes(withDescendants))).sort()).toEqual([
+      'manifest.json',
       'media/child-img.png',
       exportLogName,
       subagentLogName('child-a'),

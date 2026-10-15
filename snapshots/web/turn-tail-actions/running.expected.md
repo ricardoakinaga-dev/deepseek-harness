@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Begin your reply with the
+  - group "Session activity":
+    - text: running ·
+    - time: "Last recorded: step started, {{duration}} ago"
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"

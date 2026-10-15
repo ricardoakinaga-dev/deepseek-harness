@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Use only Cordis tools. First
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, ~1mo 14d ago"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -17,21 +20,11 @@
 - button "Think I will inspect the current Session's dynamic Cordis Plugins before defining the snapshot Package."
 - button "Inspect plugins 0 dynamic plugins"
 - button "Think No dynamic Plugins are present, so I will define the requested Host and Client Package."
-- button "Register Cordis Plugin snapshot noop does nothing, for the snapshot Ready" [expanded]
-- tablist "Plugin source":
-  - tab "Client"
-  - tab "Host" [selected]
-- tabpanel "Host":
-  - text: javascript
-  - button "Wrap lines" [pressed]
-  - button "Copy"
-  - code: "return { name: \"snapshot-noop\", apply(ctx) {} }"
-- text: Result Defined snap-1/pkg-1 (snapshot noop); it is not running yet. Use cordis_run to activate this Package. Run controls live in the Cordis panel above Settings
+- button "Tool call cordis_define · snapshot noop" [expanded]
+- text: "IN { \"plugin\": { \"kind\": \"new\", \"idPrefix\": \"snap\" }, \"name\": \"snapshot noop\", \"purpose\": \"does nothing, for the snapshot\", \"code\": { \"host\": \"return { name: \\\"snapshot-noop\\\", apply(ctx) {} }\", \"client\": \"return { inject: [\\\"slots\\\"], apply(ctx) { ctx.slots.register({ name: \\\"shell.overlay\\\", id: \\\"snapshot-probe\\\" }, () => React.createElement(\\\"div\\\", { \\\"data-snapshot-probe\\\": \\\"loaded\\\" })) } }\" } } OUT Defined snap-1/pkg-1 (snapshot noop); it is not running yet. Use cordis_run to activate this Package."
 - button "Inspect"
 - button "Think The Host returned snap-1/pkg-1, so I will request its first activation."
-- text: Run Cordis Plugin snap-1 · pkg-1 Ready
-- button "Inspect"
-- text: snap-1/pkg-1 is awaiting user approval (run-1).
+- button "Run Cordis Plugin snap-1"
 - button "Think The activation request has been submitted, so I will return the requested readiness marker."
 - paragraph: CORDIS_UI_READY
 - button "Copy"
@@ -54,9 +47,7 @@
 - status: Worked
 - button "Took {{duration}}" [expanded]
 - button "Called tools" [expanded]
-- text: Stop Cordis Plugin snap-1
-- button "Inspect"
-- text: Dynamic Plugin snap-1 is stopped; its definition and versions remain.
+- button "Stop Cordis Plugin snap-1"
 - paragraph: CORDIS_UI_DONE
 - button "Copy"
 - button "Good response"

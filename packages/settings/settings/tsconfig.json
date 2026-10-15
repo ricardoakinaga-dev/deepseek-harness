@@ -9,6 +9,9 @@
   ],
   "references": [
     {
+      "path": "../../llm/llm"
+    },
+    {
       "path": "../../../vendor/cosmokit"
     },
     {
@@ -28,6 +31,18 @@
     },
     {
       "path": "../../../vendor/loader"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../boot/app-boot"
+    },
+    {
+      "path": "../../boot/hmr"
     }
   ]
 }

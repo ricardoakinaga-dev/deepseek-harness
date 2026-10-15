@@ -394,6 +394,39 @@ describe('profile reconciliation settlement', () => {
     await result
   })
 
+  it('settles a failed patch attempt after removed resources finish without publishing success', async () => {
+    const dir = tmp()
+    const started = Promise.withResolvers<undefined>()
+    const release = Promise.withResolvers<undefined>()
+    writeFileSync(join(dir, 'cordis.yml'), '[]\n')
+    writeFileSync(join(dir, 'value.mjs'), 'export function apply(ctx, config) { ctx.provide("settledValue", config.value) }\n')
+    writeFileSync(join(dir, 'failure.mjs'), 'export function apply(_ctx, config) { if (config.fail) throw new Error("partial patch failed") }\n')
+    writeFileSync(join(dir, 'held.mjs'), 'export function apply(ctx) { ctx.effect(() => async () => { ctx.get("settlementProbe").started(); await ctx.get("settlementProbe").release }) }\n')
+    const rows = () => [{ id: 'value', name: './value.mjs', config: { value: 1 } },
+      { id: 'failure', name: './failure.mjs', config: { fail: false } }]
+    const ctx = await boot(NAME, join(dir, 'cordis.yml'), [{ insert: [...rows(), { id: 'held', name: './held.mjs' }] }], (host) => {
+      host.provide('settlementProbe', { started: () => { started.resolve(undefined) }, release: release.promise })
+    })
+    onTestFinished(async () => { release.resolve(undefined); await ctx.fiber.dispose() })
+    let settlements = 0
+    let successes = 0
+    ctx.on('app-boot/config-settled', () => {
+      settlements += 1
+      expect(ctx.get('settledValue')).toBe(2)
+      expect([...ctx.loader.entries()].some(entry => entry.options.id === 'held')).toBe(false)
+    })
+    ctx.on('app-boot/config-reload', () => { successes += 1 })
+    const result = expect(reconcileProfilePatches(ctx, [{ insert: rows() },
+      { id: 'value', config: { value: 2 } }, { id: 'failure', config: { fail: true } }], NAME))
+      .rejects.toThrow('partial patch failed')
+    await started.promise
+    expect(settlements).toBe(0)
+    release.resolve(undefined)
+    await result
+    expect(settlements).toBe(1)
+    expect(successes).toBe(0)
+  })
+
   it('waits for a removed plugin to release its resources', async () => {
     const dir = tmp()
     const started = Promise.withResolvers<undefined>()

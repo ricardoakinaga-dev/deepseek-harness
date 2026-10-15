@@ -1,0 +1,10 @@
+version: 1
+scenario: subagent-canonical-final
+profile: sdk
+composition: sdk-default
+recording: authored
+header:
+  class: subagent-canonical-final
+  pin: true
+  childSystemPrompts: [1]
+  childToolSchemas: [1]

@@ -775,6 +775,7 @@ describe('web e2e: New Session after an outdated blank cache', () => {
       const blank = scaffold.ctx.sessions.prepare(id, {
         eventState: 'detached', seed: [], meta: stored.header, inheritedEventCount: SessionLogOffset(0),
       })
+      scaffold.ctx.sessionProjections.hydrate(blank, {}, [], SessionLogOffset(0))
       await scaffold.ctx.sessionProjectionCache.write(blank)
       const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd, 'New session regression')
       await workspace.attachSession(id)

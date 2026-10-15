@@ -52,6 +52,8 @@
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-user-questions": "workspace:*",
     "@types/js-yaml": "^4.0.9",
-    "@deepseek-ai/dsh-http-proxy": "workspace:*"
+    "@deepseek-ai/dsh-http-proxy": "workspace:*",
+    "ws": "^8.21.0",
+    "@types/ws": "^8.18.1"
   }
 }

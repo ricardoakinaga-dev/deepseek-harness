@@ -36,9 +36,16 @@ import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { installProxyFromEnvironment } from '@deepseek-ai/dsh-http-proxy'
 import { DSH_LAUNCH_ENVIRONMENT_KEY, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import { provideCmdline, type AppReady } from '@deepseek-ai/dsh-cmdline'
+import { runtimeAudit } from '@deepseek-ai/dsh-settings'
 import { createProcessShutdown, type ProcessShutdown } from './process-shutdown.ts'
 
+import { readRuntimeIdentity } from './runtime-identity.ts'
+
 const NAME = 'dsh'
+const PROFILE_BOOT_ENTRY_URL = new URL(
+  new URL(import.meta.url).pathname.endsWith('.ts') ? './profile-boot.ts' : './profile-boot.js',
+  import.meta.url,
+).href
 
 /** Launcher-owned readiness signal committed only after boot and host setup succeed. */
 function createAppReady(): { service: AppReady; commit(): void } {
@@ -286,6 +293,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     const rootConfig = join(composed.profile.dir, PROFILE_ROOT_FILENAME)
     const profileContext: ProfileContext = {
       name: options.profile,
+      runtimeIdentity: readRuntimeIdentity(PROFILE_BOOT_ENTRY_URL),
       ...(options.packageManager === undefined ? {} : { packageManager: options.packageManager }),
       dir: composed.profile.dir, patchPath: composed.profile.patchPath,
       installAnchor: options.resolvedProfile?.installAnchor ?? INSTALL_ANCHOR,
@@ -302,6 +310,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       await hostCtx.plugin(PluginPackages, {
         resolution: composed.resolution,
       })
+      await hostCtx.plugin(runtimeAudit)
       // The command line and bounded exit request are launcher facts available
       // to every app plugin that injects the argument snapshot.
       provideCmdline(hostCtx, {

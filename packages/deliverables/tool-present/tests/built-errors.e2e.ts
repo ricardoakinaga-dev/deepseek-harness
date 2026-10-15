@@ -13,6 +13,7 @@ import assert from 'node:assert/strict'
 import { Context } from './vendor/cordis/lib/index.js'
 import AgentRegistry from './packages/core/agent/lib/index.js'
 import LocalFileSystem from './packages/fs/fs-local/lib/index.js'
+import LocalAttachmentStore from './packages/attachment/attachment-local/lib/index.js'
 import SystemPrompt from './packages/core/system-prompt/lib/index.js'
 import ToolRuntime from './packages/core/tools/lib/index.js'
 import { Session, SESSION_FORMAT_VERSION } from './packages/core/session/lib/index.js'
@@ -27,6 +28,7 @@ try {
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(LocalFileSystem, { cwd: root })
+  await ctx.plugin(LocalAttachmentStore, { dshHome: join(root, 'home') })
   ctx.provide('sessionProjections', { stateOf() { return { openTurnStartSeq: 1, lastTurn: 1 } } })
   await ctx.plugin(Present, { maxFiles: 2 })
   const scope = ctx.plugin(() => {})

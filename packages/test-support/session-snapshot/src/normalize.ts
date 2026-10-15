@@ -12,6 +12,7 @@ import {
 import { prepareSessionSnapshotFixtureForComparison } from '@deepseek-ai/dsh-llm-replay'
 import { redactSessionSnapshotIds } from './identity.ts'
 import { sessionHeaderVersion } from './session-files.ts'
+import { normalizeRuntimeAudit } from './runtime-audit.ts'
 
 const SESSION_ID = '{{sessionId}}'
 const MESSAGE_ID = '{{messageId}}'
@@ -94,6 +95,10 @@ export interface NormalizeContext {
   cwd: string
   /** Other filesystem spellings of the same cwd (for example Windows short and long paths). */
   cwdAliases?: readonly string[]
+  /** Known source checkout root for declared runtime-audit plugin specifiers only. */
+  repositoryRoot?: string
+  /** Actual temporary spill directory owned by this run, for declared capture locators only. */
+  spillRoot?: string
 }
 
 /** How cwd-rooted path separators are represented after the cwd is tokenized. */
@@ -385,6 +390,8 @@ export function normalizeSessionLog(
       if ('durationMs' in data) data.durationMs = 0
     }
     normalizeFeedbackClocks(record)
+    normalizeRuntimeAudit(record, ctx.repositoryRoot)
+    normalizeSpillCaptureLocator(record, ctx.spillRoot)
     if (record.type === 'goal/change' && record.data !== null && typeof record.data === 'object') {
       const data = record.data as Record<string, unknown>
       if ('createdAt' in data) data.createdAt = 0
@@ -554,9 +561,10 @@ export function scrubModelRequestBulk(rawLog: string): string {
  * source-event ranges without changing reference order.
  *
  * @param rawLog - persisted or already-projected session JSONL.
- * @returns committed snapshot JSONL with prompt text and tool schemas tokenized.
+ * @param ctx - optional observed checkout and spill roots for declared audit and capture paths.
+ * @returns committed snapshot JSONL with prompt text, tool schemas and owned temporary capture locators tokenized.
  */
-export function scrubSessionSnapshot(rawLog: string): string {
+export function scrubSessionSnapshot(rawLog: string, ctx?: Pick<NormalizeContext, 'spillRoot' | 'repositoryRoot'>): string {
   const scrubbed = scrubModelRequestBulk(rawLog)
   let recordIndex = 0
   return scrubbed.split('\n').map((line) => {
@@ -571,8 +579,22 @@ export function scrubSessionSnapshot(rawLog: string): string {
       record.sourceEventSeqs = decodeSeqRanges(record.sourceEventSeqs)
     }
     normalizeFeedbackClocks(record)
+    normalizeRuntimeAudit(record, ctx?.repositoryRoot)
+    normalizeSpillCaptureLocator(record, ctx?.spillRoot)
     return JSON.stringify(record)
   }).join('\n')
+}
+
+/** Tokenize only a declared capture path below the run's observed private spill root. */
+function normalizeSpillCaptureLocator(record: Record<string, unknown>, root?: string): void {
+  if (root === undefined || record.type !== 'spill/artifact' || typeof record.data !== 'object' || record.data === null) return
+  const data = record.data as Record<string, unknown>
+  if (typeof data.locator !== 'string') return
+  const prefix = root.replaceAll('\\', '/').replace(/\/$/u, '') + '/'
+  const locator = data.locator.replaceAll('\\', '/')
+  if (!locator.startsWith(prefix)) return
+  const match = /^session-[0-9a-f]{12}\/[0-9a-f]{12}-([A-Za-z0-9._~-]+)$/u.exec(locator.slice(prefix.length))
+  if (match !== null) data.locator = `{{spillLocator:${match[1]}}}`
 }
 
 /** Normalize service-owned feedback clocks without touching user-authored payloads. */

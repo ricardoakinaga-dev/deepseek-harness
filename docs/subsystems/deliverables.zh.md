@@ -9,14 +9,20 @@
 ## `PresentedFile`：一条声明的交付
 
 ```ts type-equiv
-/** A declared filesystem file whose current contents remain at its source path. */
+/** A declared filesystem file with an optional immutable copy of its presented bytes. */
 interface PresentedFile {
   /** Original absolute path or path relative to the Session working directory. */
   path: string
   /** Optional description supplied by the model. */
   description?: string
+  /** Capture outcome; absent on historical declarations that did not preserve bytes. */
+  capture?:
+    | { status: 'stored'; attachment: FileAttachmentRef }
+    | { status: 'too-large'; maxBytes: number }
 }
 ```
+
+`path` 继续标识原文件，用于预览和原生打开。已保存的副本通过 [`FileAttachmentRef`](attachment.zh.md) 引用交付时不可变的字节，因此编辑或删除源文件后仍可下载副本并导出到 Session ZIP。`too-large` 记录配置的字节上限，没有已保存的副本；缺少 `capture` 表示历史记录的保存状态未知。副本大小限制与失败行为由 [tool-present](../../packages/deliverables/tool-present/README.zh.md) 定义，经过认证的下载行为由 [ui-deliverables](../../packages/client/ui-deliverables/README.zh.md) 定义。
 
 ## `WorkspaceChangedFile`：一个改动的文件
 

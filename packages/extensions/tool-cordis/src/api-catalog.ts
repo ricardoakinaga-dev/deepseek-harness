@@ -1778,6 +1778,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Current profile facts; scheduling and mutation belong to their callers.',
     methods: [
       {
+        signature: 'readonly runtimeIdentity?: RuntimeIdentity',
+        description: 'Absent for embedders that cannot identify their launcher.',
+        parameters: [],
+      },
+      {
         signature: 'readonly packageManager?: ProfilePnpmInvocation',
         description: 'Packaged applications supply their bundled runtime instead of a PATH executable.',
         parameters: [],
@@ -2790,8 +2795,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'abstract saveText(input: SaveTextSpill): Promise<SpillRef>',
         description: 'Persist `input.content` to a session-scoped spill artifact.',
-        parameters: [{ name: 'input', description: 'the owner, caller-supplied source fields, suggested name, and full text to save.' }],
-        returns: 'the saved artifact\'s {@link SpillRef}; rejects on a storage failure.',
+        parameters: [{ name: 'input', description: 'the owner, source, suggested name, full text, and optional cancellation.' }],
+        returns: 'the saved artifact\'s {@link SpillRef}; rejects on storage failure or cancellation.',
       },
     ],
   },
@@ -3917,6 +3922,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [],
   },
   {
+    name: 'app-boot/config-settled',
+    mode: 'emit',
+    signature: '\'app-boot/config-settled\'(): void',
+    summary: 'A profile patch application attempt and its Loader lifecycle work settled, including removed fibers.',
+    description: 'A profile patch application attempt and its Loader lifecycle work settled, including removed fibers. Activation may have failed after siblings changed; listeners re-read actual active entries.',
+    parameters: [],
+  },
+  {
     name: 'approval/request',
     mode: 'waterfall',
     signature: '\'approval/request\'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>, ): Promise<ApprovalOutcome>',
@@ -4107,6 +4120,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'A watched file has no module or configuration handler.',
     description: 'A watched file has no module or configuration handler.',
     parameters: [{ name: 'url', description: 'Canonical file URL.' }],
+  },
+  {
+    name: 'hmr/config-settled',
+    mode: 'emit',
+    signature: '\'hmr/config-settled\'(filenames: readonly string[]): void',
+    summary: 'Watched Include or module attempts and their lifecycle work, including removed fibers, have settled.',
+    description: 'Watched Include or module attempts and their lifecycle work, including removed fibers, have settled. Reading, activation or rollback may have failed; listeners must inspect actual active entries.',
+    parameters: [{ name: 'filenames', description: 'Absolute Include and module paths processed by this attempt.' }],
   },
   {
     name: 'hmr/reload',
@@ -6293,6 +6314,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface RunnerFailureRule {\n    allowedExitCodes?: readonly number[];\n    fatalSignatures: readonly string[];\n    informationalLines?: readonly string[];\n}',
   },
   {
+    name: 'RuntimeBuildIdentity',
+    declaration: 'export interface RuntimeBuildIdentity {\n    readonly version: string | null;\n    readonly inputsSource: \'disk-observation\' | null;\n    readonly manifestSha256: string;\n    readonly inputsSha256: string;\n    readonly inputCount: number;\n    readonly source: RuntimeSourceIdentity | null;\n}',
+  },
+  {
+    name: 'RuntimeIdentity',
+    declaration: 'export interface RuntimeIdentity {\n    readonly version: string | null;\n    readonly versionSource: \'embedded-build-observation\' | \'package-manifest-observation\' | \'unavailable\';\n    readonly nodeVersion: string;\n    readonly platform: string;\n    readonly arch: string;\n    readonly launcher: {\n        readonly kind: \'source\' | \'artifact\';\n        readonly sha256: string | null;\n        readonly sha256Source: \'disk-observation\';\n    };\n    readonly source: RuntimeSourceIdentity | null;\n    readonly build: RuntimeBuildIdentity | null;\n}',
+  },
+  {
+    name: 'RuntimeSourceIdentity',
+    declaration: 'export interface RuntimeSourceIdentity {\n    readonly revision: string;\n    readonly dirty: boolean;\n    readonly contentSha256: string;\n}',
+  },
+  {
     name: 'SandboxEnforcement',
     declaration: 'export type SandboxEnforcement = \'full\' | \'partial\';',
   },
@@ -6326,7 +6359,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SaveTextSpill',
-    declaration: 'export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n}',
+    declaration: 'export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n    signal?: AbortSignal;\n}',
   },
   {
     name: 'ScheduleCatalogEntry',

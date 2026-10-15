@@ -914,6 +914,8 @@ describe('mapStopReason / mapUsage', () => {
     'other side closed',
     'HTTP2 request did not get a response',
     'WebSocket closed unexpectedly',
+    'WebSocket closed 1000',
+    'WebSocket closed 1006 peer disconnected',
     // undici flattens a mid-stream socket drop to this bare word (its SocketError
     // cause is discarded upstream before it reaches us).
     'terminated',
@@ -926,6 +928,56 @@ describe('mapStopReason / mapUsage', () => {
   ])('maps pi-ai transport wording %j', (errorMessage) => {
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
       .toMatchObject({ kind: 'error', failure: { code: 'TRANSPORT' } })
+  })
+
+  it.each([
+    'peer ended the response with 403 bytes outstanding',
+    'WebSocket closed 1000: maximum context length metadata unavailable',
+  ])('uses a matching post-start transport diagnostic before classifying %j', (errorMessage) => {
+    const diagnostic = {
+      type: 'provider_transport_failure', timestamp: 0,
+      error: { name: 'WebSocketCloseError', code: 1000, message: errorMessage },
+      details: { eventsEmitted: true, phase: 'after_message_stream_start' },
+    }
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage, diagnostics: [diagnostic] })))
+      .toEqual({ kind: 'error', failure: { code: 'TRANSPORT', message: errorMessage } })
+  })
+
+  it.each([
+    { stopReason: 'stop' as const, content: [{ type: 'text' as const, text: 'completed' }] },
+    { stopReason: 'toolUse' as const, content: [{ type: 'toolCall' as const, id: 'call-1', name: 'write', arguments: {} }] },
+  ])('keeps a completed $stopReason successful despite numeric close text', (completed) => {
+    expect(mapStopReason(assistant({ ...completed, errorMessage: 'WebSocket closed 1000' })))
+      .toEqual({ kind: completed.stopReason === 'stop' ? 'stop' : 'tool-calls' })
+  })
+
+  it('does not reuse a diagnostic from an earlier transport failure for an unknown fatal error', () => {
+    expect(mapStopReason(assistant({
+      stopReason: 'error', errorMessage: 'unrecognized provider failure',
+      diagnostics: [{
+        type: 'provider_transport_failure', timestamp: 0,
+        error: { name: 'WebSocketCloseError', code: 1000, message: 'WebSocket closed 1000' },
+        details: { eventsEmitted: true, phase: 'after_message_stream_start' },
+      }],
+    }))).toEqual({ kind: 'error', failure: { code: 'PI_AI_ERROR', message: 'unrecognized provider failure' } })
+  })
+
+  it.each([
+    { type: 'other_diagnostic', details: { eventsEmitted: true, phase: 'after_message_stream_start' } },
+    { type: 'provider_transport_failure', details: { eventsEmitted: false, phase: 'before_message_stream_start' } },
+    { type: 'provider_transport_failure', details: { eventsEmitted: true, phase: 'before_message_stream_start' } },
+    { type: 'provider_transport_failure' },
+  ])('does not classify an unrelated or pre-start diagnostic as the fatal transport failure: %j', (diagnostic) => {
+    const errorMessage = 'unrecognized provider failure'
+    expect(mapStopReason(assistant({
+      stopReason: 'error', errorMessage,
+      diagnostics: [{ ...diagnostic, timestamp: 0, error: { message: errorMessage } }],
+    }))).toEqual({ kind: 'error', failure: { code: 'PI_AI_ERROR', message: errorMessage } })
+  })
+
+  it.each(['WebSocket closed 10000', 'WebSocket closed 999'])('does not match an invalid close code: %s', (errorMessage) => {
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
+      .toEqual({ kind: 'error', failure: { code: 'PI_AI_ERROR', message: errorMessage } })
   })
 
   it('uses pi-ai provider-specific overflow classification without losing rate-limit exclusions', () => {

@@ -24,6 +24,67 @@ async function* chunked(text: string, size: number): AsyncIterable<string> {
 }
 
 describe('buildWindow', () => {
+  it('makes progress when the ordinary continuation exceeds the byte budget', async () => {
+    const result = await buildWindow(whole('abcdefghij'), { ...READ_ALL, maxLineLength: 5, maxBytes: 50 }, 'f')
+    expect(result.lines).toHaveLength(1)
+    expect(result.lines[0]).toMatchObject({ number: 1, nextColumn: 6 })
+    expect(result.lines[0]?.text.startsWith('abcde')).toBe(true)
+    expect(Buffer.byteLength(result.lines[0]?.text ?? '')).toBeLessThanOrEqual(50)
+  })
+
+  it.each([42, 50, 77, 95])('reconstructs a Unicode line through contiguous pages under a %s-byte budget', async (maxBytes) => {
+    const sourceLine = `${'😀中éabc🚀'.repeat(4)}終`
+    const source = `header\n${sourceLine}\r\nlast\n`
+    let column = 1
+    let reconstructed = ''
+    let complete = false
+    for (let page = 0; page < sourceLine.length; page++) {
+      const result = await buildWindow(chunked(source, 1), { ...READ_ALL, offset: 2, column, limit: 1, maxLineLength: 7, maxBytes }, 'f')
+      expect(result.totalLines).toBe(3)
+      expect(result.lines).toHaveLength(1)
+      const line = result.lines[0]!
+      expect(line.number).toBe(2)
+      expect(line.column ?? 1).toBe(column)
+      expect(Buffer.byteLength(line.text)).toBeLessThanOrEqual(maxBytes)
+      const next = line.nextColumn ?? sourceLine.length + 1
+      expect(next).toBeGreaterThan(column)
+      const prefix = column > 1 ? `(column ${column}) ` : ''
+      const payload = line.text.slice(prefix.length, prefix.length + next - column)
+      expect(payload).toBe(sourceLine.slice(column - 1, next - 1))
+      const suffix = line.text.slice(prefix.length + payload.length)
+      if (line.nextColumn === undefined) expect(suffix).toBe('')
+      else expect([
+        `... (line truncated to 7 UTF-16 units; use offset=2, column=${next} to continue)`,
+        `... [offset=2,column=${next}]`,
+      ]).toContain(suffix)
+      reconstructed += payload
+      if (line.nextColumn === undefined) {
+        complete = true
+        break
+      }
+      column = line.nextColumn
+    }
+    expect(complete).toBe(true)
+    expect(reconstructed).toBe(sourceLine)
+  })
+
+  it.each(['a', '😀'])('requires room for a complete %j and its continuation metadata', async (character) => {
+    const maxBytes = Buffer.byteLength(`${character}... [offset=1,column=${character.length + 1}]`)
+    const request = { ...READ_ALL, maxLineLength: character.length, maxBytes }
+    const result = await buildWindow(chunked(`${character}tail`, 1), request, 'f')
+    expect(result.lines[0]?.nextColumn).toBe(character.length + 1)
+    expect(Buffer.byteLength(result.lines[0]?.text ?? '')).toBe(maxBytes)
+    await expect(buildWindow(chunked(`${character}tail`, 1), { ...request, maxBytes: maxBytes - 1 }, 'f'))
+      .rejects.toThrow('cannot fit one Unicode character with its column and continuation metadata')
+  })
+
+  it('shortens a slice to keep payload and continuation within the byte budget', async () => {
+    const result = await buildWindow(whole('x'.repeat(100)), { ...READ_ALL, maxLineLength: 20, maxBytes: 28 }, 'f')
+    expect(result.lines[0]?.nextColumn).toBeGreaterThan(1)
+    expect(result.lines[0]?.nextColumn).toBeLessThan(21)
+    expect(Buffer.byteLength(result.lines[0]?.text ?? '')).toBeLessThanOrEqual(28)
+  })
+
   it('numbers lines and reports total for a whole-file read', async () => {
     const result = await buildWindow(whole('one\ntwo\nthree'), READ_ALL, 'f')
     expect(result.lines).toEqual([
@@ -41,6 +102,47 @@ describe('buildWindow', () => {
     expect(result.totalLines).toBe(4)
   })
 
+  it('applies column only to the first requested line across chunk boundaries', async () => {
+    const result = await buildWindow(chunked('skip\nabcdef\nsecond\n', 1), { ...READ_ALL, offset: 2, column: 4 }, 'f')
+    expect(result.lines).toEqual([{ number: 2, column: 4, text: '(column 4) def' }, { number: 3, text: 'second' }])
+    expect(result.totalLines).toBe(3)
+  })
+
+  it('skips a giant prefix in bounded chunks while retaining later line counts', async () => {
+    async function* largePrefix() {
+      for (let i = 0; i < 4096; i++) yield 'x'.repeat(4096)
+      yield 'TARGET\r\nlater\n'
+    }
+    const result = await buildWindow(largePrefix(), { ...READ_ALL, column: 4096 * 4096 + 1, limit: 1 }, 'f')
+    expect(result.lines).toEqual([{ number: 1, column: 16777217, text: '(column 16777217) TARGET' }])
+    expect(result.totalLines).toBe(2)
+  })
+
+  it('keeps complete surrogate pairs at a cap and returns the actual continuation column', async () => {
+    const result = await buildWindow(chunked('a😀tail', 1), { ...READ_ALL, maxLineLength: 2 }, 'f')
+    expect(result.lines).toEqual([{ number: 1, text: 'a... (line truncated to 2 UTF-16 units; use offset=1, column=2 to continue)', nextColumn: 2 }])
+    const continued = await buildWindow(chunked('a😀tail', 1), { ...READ_ALL, column: 2, maxLineLength: 2 }, 'f')
+    expect(continued.lines).toEqual([{ number: 1, column: 2, text: '(column 2) 😀... (line truncated to 2 UTF-16 units; use offset=1, column=4 to continue)', nextColumn: 4 }])
+    await expect(buildWindow(chunked('a😀tail', 1), { ...READ_ALL, column: 3 }, 'f')).rejects.toThrow('splits a UTF-16 surrogate pair')
+    await expect(buildWindow(chunked('😀', 1), { ...READ_ALL, maxLineLength: 1 }, 'f')).rejects.toThrow('cannot fit the UTF-16 surrogate pair')
+  })
+
+  it.each(['abc', 'abc\n', 'abc\r\n'])('rejects a column after the last file-text unit in %j', async (source) => {
+    await expect(buildWindow(chunked(source, 1), { ...READ_ALL, column: 4 }, 'f')).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
+  })
+
+  it('accepts column 1 on empty lines and counts a skipped final line without a newline', async () => {
+    const result = await buildWindow(chunked('\nlast', 1), { ...READ_ALL, limit: 1 }, 'f')
+    expect(result.lines).toEqual([{ number: 1, text: '' }])
+    expect(result.totalLines).toBe(2)
+    await expect(buildWindow(chunked('\r\n', 1), { ...READ_ALL, column: 2 }, 'f')).rejects.toThrow('out of range')
+  })
+
+  it('keeps a literal carriage return at the cap when later file text remains', async () => {
+    const result = await buildWindow(chunked('ab\rcd', 1), { ...READ_ALL, maxLineLength: 3 }, 'f')
+    expect(result.lines[0]?.text).toContain('ab\r...')
+  })
+
   it('strips CRLF', async () => {
     const result = await buildWindow(whole('one\r\ntwo\r\n'), READ_ALL, 'f')
     expect(result.lines.map(l => l.text)).toEqual(['one', 'two'])
@@ -48,7 +150,7 @@ describe('buildWindow', () => {
 
   it('truncates an over-long line', async () => {
     const result = await buildWindow(whole('x'.repeat(3000)), READ_ALL, 'f')
-    expect(result.lines[0]?.text).toContain(`... (line truncated to ${READ_MAX_LINE_LENGTH} chars)`)
+    expect(result.lines[0]?.text).toContain(`... (line truncated to ${READ_MAX_LINE_LENGTH} UTF-16 units; use offset=1, column=2001 to continue)`)
   })
 
   it('caps output bytes and reports truncatedByBytes', async () => {
@@ -81,7 +183,7 @@ describe('buildWindow', () => {
   describe('caps are per-request (the plugin config reaches the window)', () => {
     it('truncates lines at a custom maxLineLength and names it in the suffix', async () => {
       const result = await buildWindow(whole('abcdefghij'), { offset: 1, limit: 10, maxLineLength: 5, maxBytes: READ_MAX_BYTES }, 'f')
-      expect(result.lines[0]?.text).toBe('abcde... (line truncated to 5 chars)')
+      expect(result.lines[0]?.text).toBe('abcde... (line truncated to 5 UTF-16 units; use offset=1, column=6 to continue)')
     })
 
     it('caps output at a custom maxBytes', async () => {
@@ -101,7 +203,7 @@ describe('buildWindow', () => {
 
     it('caps a newline-free giant line split across chunks without unbounded buffering', async () => {
       const result = await buildWindow(chunked('z'.repeat(5000), 256), READ_ALL, 'f')
-      expect(result.lines[0]?.text).toContain(`... (line truncated to ${READ_MAX_LINE_LENGTH} chars)`)
+      expect(result.lines[0]?.text).toContain(`... (line truncated to ${READ_MAX_LINE_LENGTH} UTF-16 units; use offset=1, column=2001 to continue)`)
     })
 
     it('caps output bytes mid-stream', async () => {
@@ -217,6 +319,14 @@ describe('readMetaFromMeta', () => {
     expect(readMetaFromMeta(good)).toEqual(good)
     const noLang = { path: '/abs/a', offset: 1, lines: [], totalLines: 0 }
     expect(readMetaFromMeta(noLang)).toEqual(noLang)
+  })
+
+  it('preserves column continuation metadata and declines malformed column values', () => {
+    const sliced = { ...good, lines: [{ number: 1, text: '(column 2) x...', column: 2, nextColumn: 3 }] }
+    expect(readMetaFromMeta(sliced)).toEqual(sliced)
+    for (const fields of [{ column: 0 }, { column: 1.5 }, { nextColumn: 0 }, { column: 3, nextColumn: 3 }, { nextColumn: '3' }]) {
+      expect(readMetaFromMeta({ ...good, lines: [{ number: 1, text: 'x', ...fields }] })).toBeUndefined()
+    }
   })
 
   it('narrows an empty window at a positive offset (byte cap below the first selected line)', () => {

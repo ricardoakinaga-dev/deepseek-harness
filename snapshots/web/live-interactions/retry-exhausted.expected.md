@@ -1,5 +1,9 @@
 - banner:
   - navigation "Session hierarchy": Reply with a one-sentence description
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
+    - text: "· Recorded failure: SERVER"
   - text: Standard mode
   - button "More actions"
   - button "Open right sidebar"

@@ -1,5 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Math rendering
+  - group "Session activity":
+    - text: not running ·
+    - time: "Last recorded: turn ended, {{duration}} ago"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

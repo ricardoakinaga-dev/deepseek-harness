@@ -12,9 +12,11 @@ import { redactSecrets, type RedactedSecret } from './redact.ts'
 import { isVolatilePath, plainConfig, projectForm, volatileForm } from './schema.ts'
 import type { SettingsNamespace } from './types.ts'
 
+export { readRuntimePluginIdentities } from './audit.ts'
+export * as runtimeAudit from './audit.ts'
 export { redactSecrets } from './redact.ts'
 export type { RedactedSecret, RedactedValue } from './redact.ts'
-export type { SettingsNamespace } from './types.ts'
+export type { SettingsNamespace, AuditedConfigurationEntry, AuditedPluginIdentity, AuditedProviderRetryPolicy, RuntimeAuditIdentity, RuntimeAuditEventData } from './types.ts'
 
 /** One Loader entry's live Config fields. */
 export interface SettingsDescriptor {

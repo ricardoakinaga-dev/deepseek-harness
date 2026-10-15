@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import hashlib
 import importlib
 import importlib.metadata
 import json
@@ -110,6 +111,23 @@ RECOVERY_CONTINUE_PROMPT = "Continue after the scheduler failure without repeati
 RECOVERY_TEXT = "SCHEDULER_RECOVERY_OK"
 RECOVERY_SESSION_ID = "scheduler-recovery"
 RECOVERY_CALL_IDS = ("scheduler-complete", "scheduler-fail", "scheduler-unstarted")
+QUEUED_RECOVERY_PROMPT = "Complete one todo update, then finish the accepted input after the request failure."
+QUEUED_RECOVERY_FOLLOWUP = "Finish the accepted input without repeating the completed tool."
+QUEUED_RECOVERY_TEXT = "QUEUED_RECOVERY_OK"
+SUBAGENT_FINAL_CASES = {
+    "continuable": {
+        "scenario": "subagent-canonical-final", "session_id": "sdk-canonical-parent",
+        "prompt": "Exercise canonical continuable child delivery.",
+        "child_prompt": "Complete the canonical child after one progress message.",
+        "child_final": "CANONICAL_CHILD_FINAL", "parent_final": "PARENT_CANONICAL_OK",
+    },
+    "one-shot": {
+        "scenario": "subagent-one-shot-final", "session_id": "sdk-one-shot-parent",
+        "prompt": "Exercise foreground one-shot child delivery.",
+        "child_prompt": "Complete the foreground one-shot child.",
+        "child_final": "ONE_SHOT_CHILD_FINAL", "parent_final": "ONE_SHOT_PARENT_OK",
+    },
+}
 SNAPSHOT_WORKFLOW_SCRIPT = (
     "phase('Delegate')\n"
     f"const reply = await agent('{SNAPSHOT_WORKFLOW_CHILD_PROMPT}', {{ label: 'workflow-child' }})\n"
@@ -145,6 +163,9 @@ RECOVERY_SNAPSHOT_DIRECTORY = (
     Path(__file__).resolve().parent / "snapshots" / "python-sdk-single-exe" / "scheduler-recovery"
 )
 RECOVERY_SNAPSHOT_FILENAMES = ("result.json", "requests.json", "session.v4.jsonl")
+QUEUED_RECOVERY_SNAPSHOT_DIRECTORY = (
+    Path(__file__).resolve().parent / "snapshots" / "python-sdk-single-exe"
+)
 MCP_SERVER_SCRIPT = """\
 import json
 import os
@@ -324,6 +345,25 @@ def completion_chunks(body: dict[str, object]) -> list[dict[str, object]]:
     latest = next(message for message in reversed(messages) if message.get("role") != "system")
     if not isinstance(latest, dict):
         raise AssertionError(f"model request has an invalid latest message: {body}")
+
+    queued_prompts = [
+        block.get("text") for message in messages if message.get("role") == "user"
+        for block in message.get("content", []) if isinstance(block, dict) and block.get("type") == "text"
+    ]
+    child_final_chunks = subagent_final_completion(body, messages, queued_prompts)
+    if child_final_chunks is not None:
+        return child_final_chunks
+    if QUEUED_RECOVERY_PROMPT in queued_prompts:
+        if QUEUED_RECOVERY_FOLLOWUP not in queued_prompts:
+            assert_advertised_tool(body, "todo_write")
+            return tool_call_chunks("queued-complete", "todo_write", {"todos": []})
+        results = [
+            block for message in messages for block in message.get("content", [])
+            if isinstance(block, dict) and block.get("type") == "tool_result"
+        ]
+        if [(result.get("tool_use_id"), result.get("is_error", False)) for result in results] != [("queued-complete", False)]:
+            raise AssertionError(f"queued recovery lost or repeated its completed tool: {results}")
+        return text_chunks(QUEUED_RECOVERY_TEXT)
 
     recovery_prompt = next((
         block.get("text")
@@ -758,6 +798,42 @@ def assert_advertised_tool(body: dict[str, object], expected: str) -> None:
         raise AssertionError(f"model request did not advertise {expected}: {names}")
 
 
+def subagent_final_completion(
+    body: dict[str, object], messages: list[dict[str, object]], prompts: list[str],
+) -> list[dict[str, object]] | None:
+    """Serve child progress and final replies while requiring the parent to observe final delivery."""
+    for mode, case in SUBAGENT_FINAL_CASES.items():
+        child = any(case["child_prompt"] in prompt for prompt in prompts if isinstance(prompt, str))
+        if not child and case["prompt"] not in prompts:
+            continue
+        results = [block for message in messages for block in message.get("content", [])
+                   if isinstance(block, dict) and block.get("type") == "tool_result"]
+        if child:
+            if mode == "continuable" and not results:
+                assert_advertised_tool(body, "send_message")
+                return tool_call_chunks("canonical-progress", "send_message", {
+                    "agent_id": case["session_id"], "message": "PROGRESS_ONLY",
+                })
+            if mode == "continuable" and (
+                len(results) != 1 or results[0].get("tool_use_id") != "canonical-progress" or results[0].get("is_error")
+            ):
+                raise AssertionError(f"canonical child progress failed or repeated: {results}")
+            return text_chunks(case["child_final"])
+        if not results:
+            assert_advertised_tool(body, "subagent")
+            arguments: dict[str, object] = {"description": "canonical final probe", "prompt": case["child_prompt"]}
+            if mode == "continuable":
+                arguments["run_in_background"] = True
+            return tool_call_chunks("canonical-start", "subagent", arguments)
+        if len(results) != 1 or results[0].get("tool_use_id") != "canonical-start" or results[0].get("is_error"):
+            raise AssertionError(f"canonical parent delegation failed or repeated: {results}")
+        delivered = "\n".join(prompts) if mode == "continuable" else message_text(results[0].get("content"))
+        if delivered.count(case["child_final"]) != 1:
+            raise AssertionError(f"parent model request lacks exactly one delivered child final: {delivered}")
+        return text_chunks(case["parent_final"])
+    return None
+
+
 class MockModel:
     def __enter__(self) -> "MockModel":
         MockModelHandler.requests.clear()
@@ -778,7 +854,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--scenario",
-        choices=("all", "sdk-default", "sdk-custom", "sdk-minimal", "sdk-minimal-in-history", "sdk-dynamic-tools", "sdk-fs-search", "sdk-spawn-node", "sdk-mcp", "sdk-snapshot", "sdk-recovery", "sdk-restart", "sdk-profile-plugin", "sdk-office", "sdk-authoring", "sdk-live", "runner", "direct"),
+        choices=("all", "sdk-default", "sdk-custom", "sdk-minimal", "sdk-minimal-in-history", "sdk-dynamic-tools", "sdk-fs-search", "sdk-spawn-node", "sdk-mcp", "sdk-snapshot", "sdk-recovery", "sdk-subagent-final", "sdk-restart", "sdk-profile-plugin", "sdk-office", "sdk-authoring", "sdk-live", "runner", "direct"),
         default="all",
     )
     parser.add_argument("--exe", type=Path)
@@ -797,10 +873,10 @@ def main() -> None:
         parser.error("--scenario sdk-profile-plugin requires --installed-wheel")
     if args.installed_wheel:
         args.exe = assert_installed_wheel_environment()
-    if args.scenario in {"all", "sdk-custom", "sdk-minimal", "sdk-minimal-in-history", "sdk-dynamic-tools", "sdk-fs-search", "sdk-spawn-node", "sdk-snapshot", "sdk-recovery", "sdk-restart", "sdk-office", "sdk-authoring", "runner", "direct"} and args.exe is None:
-        parser.error("--exe is required for custom, minimal, dynamic-tools, fs-search, spawn-node, snapshot, recovery, restart, office, runner, and direct scenarios")
-    if args.update_snapshots and args.scenario not in {"all", "sdk-minimal", "sdk-minimal-in-history", "sdk-dynamic-tools", "sdk-snapshot", "sdk-recovery", "sdk-restart", "sdk-authoring"}:
-        parser.error("--update-snapshots requires --scenario sdk-minimal, sdk-minimal-in-history, sdk-dynamic-tools, sdk-snapshot, sdk-recovery, sdk-restart, sdk-authoring, or all")
+    if args.scenario in {"all", "sdk-custom", "sdk-minimal", "sdk-minimal-in-history", "sdk-dynamic-tools", "sdk-fs-search", "sdk-spawn-node", "sdk-snapshot", "sdk-recovery", "sdk-subagent-final", "sdk-restart", "sdk-office", "sdk-authoring", "runner", "direct"} and args.exe is None:
+        parser.error("--exe is required for custom, minimal, dynamic-tools, fs-search, spawn-node, snapshot, recovery, subagent-final, restart, office, runner, and direct scenarios")
+    if args.update_snapshots and args.scenario not in {"all", "sdk-minimal", "sdk-minimal-in-history", "sdk-dynamic-tools", "sdk-snapshot", "sdk-recovery", "sdk-subagent-final", "sdk-restart", "sdk-authoring"}:
+        parser.error("--update-snapshots requires --scenario sdk-minimal, sdk-minimal-in-history, sdk-dynamic-tools, sdk-snapshot, sdk-recovery, sdk-subagent-final, sdk-restart, sdk-authoring, or all")
     if args.exe is not None and not args.exe.is_file():
         parser.error(f"runtime executable does not exist: {args.exe}")
 
@@ -855,6 +931,12 @@ def main() -> None:
         if args.scenario in {"all", "sdk-snapshot", "sdk-recovery"}:
             assert args.exe is not None
             smoke_sdk_scheduler_recovery(model.url, args.exe.resolve(), args.update_snapshots)
+            for delivery in ("queue", "steer"):
+                smoke_sdk_queued_recovery(model.url, args.exe.resolve(), args.update_snapshots, delivery)
+        if args.scenario in {"all", "sdk-snapshot", "sdk-subagent-final"}:
+            assert args.exe is not None
+            for mode in SUBAGENT_FINAL_CASES:
+                smoke_sdk_subagent_final(model.url, args.exe.resolve(), args.update_snapshots, mode)
         if args.scenario in {"all", "sdk-restart"}:
             assert args.exe is not None
             smoke_sdk_restart_snapshot(model.url, args.exe.resolve(), args.update_snapshots)
@@ -1308,6 +1390,7 @@ def smoke_sdk_dynamic_tools(base_url: str, executable: Path, update_snapshots: b
                 "name": (Path(__file__).resolve().parent / "fixtures/python-sdk-dynamic-tools.mjs").as_uri(),
             }]},
         ])
+        expected_runtime = expected_runtime_identity(executable)
         with DeepSeekHarness(
             provider="deepseek-official", model="smoke-model", cwd=str(root),
             dsh_bin=str(executable), dsh_home=str(dsh_home), patches=(str(patch),),
@@ -1318,6 +1401,8 @@ def smoke_sdk_dynamic_tools(base_url: str, executable: Path, update_snapshots: b
         assert result.final_response == DYNAMIC_TOOLS_TEXT, result.final_response
         assert task.read_text(encoding="utf-8") == "Call snapshot_ping once.\n"
         logs = read_session_logs(sessions)
+        for records in logs.values():
+            assert_runtime_audit_identity(records, expected_runtime)
         assert set(logs) == {result.session_id}, sorted(logs)
         files = build_dynamic_tools_snapshot_files(
             result, MockModelHandler.requests[first_request:], logs[result.session_id], root,
@@ -1546,6 +1631,7 @@ def smoke_sdk_snapshot(base_url: str, executable: Path, update_snapshots: bool) 
                 "name": str(Path(__file__).resolve().parents[1] / "packages/core/agent-loop/tests/fixtures/serial-created.mjs"),
             }]},
         ])
+        expected_runtime = expected_runtime_identity(executable)
         with DeepSeekHarness(
             provider="deepseek-official",
             model="smoke-model",
@@ -1596,6 +1682,8 @@ def smoke_sdk_snapshot(base_url: str, executable: Path, update_snapshots: bool) 
         }] * 2, errors
 
         logs = read_session_logs(sessions)
+        for records in logs.values():
+            assert_runtime_audit_identity(records, expected_runtime)
         child_ids = snapshot_child_ids(result)
         expected_ids = {SNAPSHOT_SESSION_ID, *child_ids}
         if set(logs) != expected_ids:
@@ -1622,6 +1710,7 @@ def smoke_sdk_restart_snapshot(base_url: str, executable: Path, update_snapshots
         sessions = dsh_home / "sessions"
         patch = write_advanced_profile_patch(root, "restart.patch.yml", sessions)
         first_request = len(MockModelHandler.requests)
+        expected_runtime = expected_runtime_identity(executable)
 
         def run(prompt: str, session_id: str) -> "RunResult":
             with DeepSeekHarness(
@@ -1652,6 +1741,8 @@ def smoke_sdk_restart_snapshot(base_url: str, executable: Path, update_snapshots
             )
 
         logs = read_session_logs(sessions)
+        for records in logs.values():
+            assert_runtime_audit_identity(records, expected_runtime)
         expected_ids = {RESTART_FIRST_SESSION_ID, RESTART_SECOND_SESSION_ID}
         if set(logs) != expected_ids:
             raise AssertionError(f"restart snapshot expected two durable sessions: {sorted(logs)}")
@@ -1711,6 +1802,7 @@ def smoke_sdk_scheduler_recovery(base_url: str, executable: Path, update_snapsho
                 api_key="sk-keyless-smoke", base_url=base_url, request_timeout_seconds=60,
             )
 
+        expected_runtime = expected_runtime_identity(executable)
         with connect() as harness:
             failed = harness.run(RECOVERY_PROMPT, session_id=RECOVERY_SESSION_ID)
             continued = harness.run(RECOVERY_CONTINUE_PROMPT, session_id=RECOVERY_SESSION_ID)
@@ -1728,6 +1820,7 @@ def smoke_sdk_scheduler_recovery(base_url: str, executable: Path, update_snapsho
             raise AssertionError(f"scheduler recovery expected two serialized model requests: {requests}")
         logs = read_session_logs(sessions)
         records = logs[RECOVERY_SESSION_ID]
+        assert_runtime_audit_identity(records, expected_runtime)
         calls = [record["data"]["callId"] for record in records if record.get("type") == "tool/call"]
         if calls != list(RECOVERY_CALL_IDS[:2]):
             raise AssertionError(f"scheduler recovery dispatched the unstarted call: {calls}")
@@ -1765,6 +1858,223 @@ def smoke_sdk_scheduler_recovery(base_url: str, executable: Path, update_snapsho
         compare_snapshot_files(
             files, update_snapshots, RECOVERY_SNAPSHOT_DIRECTORY, RECOVERY_SNAPSHOT_FILENAMES,
         )
+
+
+def assert_queued_recovery(result: "RunResult", target: str) -> None:
+    """Reject an SDK activity interval that ends before its accepted input completes."""
+    if result.final_response != QUEUED_RECOVERY_TEXT or result.finish_reason != "completed":
+        raise AssertionError("SDK run returned before accepted input completed")
+    ends = [event for event in result.events if event.get("type") == "turn/end"]
+    if [event["data"]["reason"] for event in ends] != [
+        {"kind": "error", "error": {"message": "Snapshot request hook failed after accepting input", "code": "UNKNOWN"}},
+        {"kind": "completed"},
+    ]:
+        raise AssertionError(f"queued recovery lost its failed or replacement turn: {ends}")
+    answers = [
+        event for event in result.events if event.get("type") == "assistant/message"
+        and any(block.get("type") == "text" and block.get("text") == QUEUED_RECOVERY_TEXT
+                for block in event["data"]["message"]["content"])
+    ]
+    if len(answers) != 1:
+        raise AssertionError("accepted input must produce exactly one final answer")
+    if sum(event.get("type") == "todo/write" for event in result.events) != 1:
+        raise AssertionError("completed tool effect must not repeat")
+    if [event["data"]["callId"] for event in result.events if event.get("type") == "tool/call"] != ["queued-complete"]:
+        raise AssertionError("queued recovery duplicated or lost its tool call")
+    tool_results = [event for event in result.events if event.get("type") == "tool/result"]
+    if len(tool_results) != 1 or tool_results[0]["data"]["message"].get("isError", False):
+        raise AssertionError("queued recovery duplicated or lost its completed tool result")
+    receipts = [
+        event for event in result.events if event.get("type") == "agent/inbox/spliced"
+        and event["data"].get("target") == target
+        and QUEUED_RECOVERY_FOLLOWUP in json.dumps(event["data"].get("inserted", []))
+    ]
+    if len(receipts) != 1 or not (
+        result.events.index(tool_results[0]) < result.events.index(receipts[0]) < result.events.index(ends[0])
+    ):
+        raise AssertionError("waking input must be accepted during the failing request")
+    statuses = [notification.payload.get("status") for notification in result.notifications
+                if notification.method == "session.status"]
+    if statuses != ["running", "idle"]:
+        raise AssertionError(f"queued recovery exposed idle between replacement drivers: {statuses}")
+    if result.notifications[-1].method != "session.status" or result.notifications[-1].payload.get("status") != "idle":
+        raise AssertionError("terminal idle must end the owned interval")
+    if not any(notification.method == "session.event" and QUEUED_RECOVERY_TEXT in json.dumps(notification.payload)
+               for notification in result.notifications[:-1]):
+        raise AssertionError("terminal idle must follow the final answer")
+
+
+def smoke_sdk_queued_recovery(base_url: str, executable: Path, update_snapshots: bool, delivery: str) -> None:
+    """Complete already accepted Queue or Steer input without another SDK send."""
+    from deepseek_harness import DeepSeekHarness
+
+    first_request = len(MockModelHandler.requests)
+    scenario = "queued-request-recovery" if delivery == "queue" else "steered-request-recovery"
+    session_id = f"sdk-recovery-{delivery}"
+    target = "next-turn" if delivery == "queue" else "next-step"
+    with tempfile.TemporaryDirectory(prefix=f"dsh-sdk-{scenario}-") as temporary:
+        root = Path(temporary).resolve()
+        sessions = root / "home" / "sessions"
+        patch = write_profile_patch(root, "recovery.patch.yml", sessions, [
+            {"id": "session-title-llm", "disabled": True},
+            {"id": "session-log-deepseek", "config": {"enabled": False}},
+            {"id": "skill-filesystem", "config": {"includeDefaultRoots": False}},
+            {"insert": [{
+                "id": "snapshot-queued-request-recovery",
+                "name": (Path(__file__).resolve().parent.parent
+                         / "snapshots/sdk/queued-request-recovery/request-failure.mjs").as_uri(),
+                "config": {"mode": delivery},
+            }]},
+        ])
+        expected_runtime = expected_runtime_identity(executable)
+        with DeepSeekHarness(
+            provider="deepseek-official", model="smoke-model", cwd=str(root),
+            dsh_bin=str(executable), dsh_home=str(root / "home"), patches=(str(patch),),
+            env={"DSH_PERMISSION_MODE": "danger-full-access", "DSH_TELEMETRY_DISABLED": "1"},
+            api_key="sk-keyless-smoke", base_url=base_url, request_timeout_seconds=60,
+        ) as harness:
+            result = harness.run(QUEUED_RECOVERY_PROMPT, session_id=session_id)
+        assert_queued_recovery(result, target)
+        requests = MockModelHandler.requests[first_request:]
+        if len(requests) != 2:
+            raise AssertionError(f"queued recovery expected two serialized model requests: {requests}")
+        logs = read_session_logs(sessions)
+        if set(logs) != {session_id}:
+            raise AssertionError(f"queued recovery expected one durable session: {sorted(logs)}")
+        records = logs[session_id]
+        assert_runtime_audit_identity(records, expected_runtime)
+        replacements = [(str(root), "{{cwd}}"), (session_id, "{{parent}}")]
+        value = {
+            "session_id": result.session_id, "final_response": result.final_response,
+            "finish_reason": result.finish_reason, "events": result.events,
+            "notifications": [{"method": notification.method, "payload": notification.payload}
+                              for notification in result.notifications],
+        }
+        content = render_jsonl(project_session_snapshot([
+            normalize_snapshot_value(record, replacements) for record in records
+        ]))
+        files = {
+            "result.json": json.dumps(normalize_snapshot_value(value, replacements), indent=2) + "\n",
+            "requests.json": json.dumps(normalize_snapshot_value([
+                {"model": request.get("model"), "messages": restart_request_messages(request)} for request in requests
+            ], replacements), indent=2) + "\n",
+            snapshot_session_filename(0, session_header_version(content, scenario)): content,
+        }
+        compare_snapshot_files(files, update_snapshots, QUEUED_RECOVERY_SNAPSHOT_DIRECTORY / scenario,
+                               ("result.json", "requests.json", "session.v4.jsonl"))
+
+
+def assert_subagent_final(result: "RunResult", child: list[dict[str, object]], mode: str) -> None:
+    """Require one canonical child reply and its single foreground or automatic parent delivery."""
+    case = SUBAGENT_FINAL_CASES[mode]
+
+    def text(data: dict[str, object]) -> str:
+        return "\n".join(block.get("text", "") for block in data.get("content", [])
+                         if isinstance(block, dict) and block.get("type") == "text")
+
+    if result.finish_reason != "completed" or result.final_response != case["parent_final"]:
+        raise AssertionError("SDK run returned before canonical child delivery completed")
+    answers = [event for event in child if event.get("type") == "assistant/message"
+               and text(event["data"]["message"]) == case["child_final"]]
+    if len(answers) != 1:
+        raise AssertionError("child must author exactly one canonical final answer")
+    calls = [event for event in result.events if event.get("type") == "tool/call"]
+    ends = [event for event in result.events if event.get("type") == "turn/end"]
+    if len(calls) != 1 or calls[0]["data"].get("name") != "subagent" or len(ends) != 1:
+        raise AssertionError("parent must complete one delegation in one SDK activity interval")
+    deliveries = [event["data"] for event in result.events if event.get("type") == "user/message"]
+    settled = [data for data in deliveries if data["source"].get("kind") == "subagent-settled"]
+    progress = [data for data in deliveries if data["source"].get("kind") == "agent-message"]
+    sends = [event for event in child if event.get("type") == "tool/call" and event["data"].get("name") == "send_message"]
+    if mode == "continuable":
+        if len(sends) != 1 or json.loads(sends[0]["data"]["arguments"]) != {
+            "agent_id": result.session_id, "message": "PROGRESS_ONLY",
+        }:
+            raise AssertionError("child must send one progress message to its actual parent")
+        if len(progress) != 1 or "PROGRESS_ONLY" not in text(progress[0]) or case["child_final"] in text(progress[0]):
+            raise AssertionError("progress must not duplicate the canonical final")
+        if len(settled) != 1 or text(settled[0]).count(case["child_final"]) != 1:
+            raise AssertionError("parent must receive exactly one automatic child final")
+        task = next(event["data"] for event in child if event.get("type") == "user/message"
+                    and event["data"]["source"].get("kind") == "user")
+        guidance = text(task)
+        if not all(value in guidance for value in (
+            "delivered to your parent automatically when you finish",
+            "Do not send a second copy of your final result.", json.dumps(result.session_id),
+        )):
+            raise AssertionError("continuable child guidance must describe its canonical final delivery")
+    else:
+        if sends or progress or settled:
+            raise AssertionError("foreground one-shot must not also send progress or an automatic closing notice")
+        results = [event["data"]["message"] for event in result.events if event.get("type") == "tool/result"]
+        if len(results) != 1 or results[0].get("isError") is not False or text(results[0]).count(case["child_final"]) != 1:
+            raise AssertionError("foreground result must contain the canonical child final exactly once")
+
+
+def smoke_sdk_subagent_final(base_url: str, executable: Path, update_snapshots: bool, mode: str) -> None:
+    """Run canonical child delivery through the public Python SDK and shipped sdk profile."""
+    from deepseek_harness import DeepSeekHarness
+
+    case = SUBAGENT_FINAL_CASES[mode]
+    first_request = len(MockModelHandler.requests)
+    with tempfile.TemporaryDirectory(prefix=f"dsh-sdk-{case['scenario']}-") as temporary:
+        root = Path(temporary).resolve()
+        sessions = root / "home" / "sessions"
+        patches = [
+            {"id": "session-title-llm", "disabled": True},
+            {"id": "session-log-deepseek", "config": {"enabled": False}},
+            {"id": "skill-filesystem", "config": {"includeDefaultRoots": False}},
+            {"id": "tool-subagent", "config": {
+                "provider": "spawn", "toolName": "subagent", "backgroundMode": mode,
+                "enableRunInBackground": mode == "continuable", "maxDepth": 1,
+            }},
+        ]
+        if mode == "continuable":
+            patches.append({"insert": [{
+                "id": "snapshot-canonical-final-fence", "name": (
+                    Path(__file__).resolve().parent.parent / "snapshots/sdk/subagent-canonical-final/settlement-fence.mjs"
+                ).as_uri(),
+            }]})
+        patch = write_profile_patch(root, "subagent-final.patch.yml", sessions, patches)
+        expected_runtime = expected_runtime_identity(executable)
+        with DeepSeekHarness(
+            provider="deepseek-official", model="smoke-model", cwd=str(root),
+            dsh_bin=str(executable), dsh_home=str(root / "home"), patches=(str(patch),),
+            env={"DSH_PERMISSION_MODE": "danger-full-access", "DSH_TELEMETRY_DISABLED": "1"},
+            api_key="sk-keyless-smoke", base_url=base_url, request_timeout_seconds=60,
+        ) as harness:
+            result = harness.run(case["prompt"], session_id=case["session_id"])
+        logs = read_session_logs(sessions)
+        for records in logs.values():
+            assert_runtime_audit_identity(records, expected_runtime)
+        children = [session_id for session_id, records in logs.items() if records[0].get("parentSession") == result.session_id]
+        if len(children) != 1 or set(logs) != {result.session_id, *children}:
+            raise AssertionError(f"canonical delivery expected parent plus one child: {sorted(logs)}")
+        child_id = children[0]
+        assert_subagent_final(result, logs[child_id], mode)
+        requests = MockModelHandler.requests[first_request:]
+        if len(requests) != (4 if mode == "continuable" else 3):
+            raise AssertionError(f"canonical delivery repeated or lost a model request: {len(requests)}")
+        replacements = [(str(root), "{{cwd}}"), (result.session_id, "{{parent}}"), (child_id, "{{child-1}}")]
+        for notification in result.notifications:
+            agent_id = notification.payload.get("agentId")
+            if notification.method in {"subagent.started", "subagent.finished"} and isinstance(agent_id, str):
+                replacements.append((agent_id, "{{agent-1}}"))
+        replacements.sort(key=lambda pair: len(pair[0]), reverse=True)
+        value = {
+            "session_id": result.session_id, "final_response": result.final_response,
+            "finish_reason": result.finish_reason, "events": result.events,
+            "notifications": [{"method": notification.method, "payload": notification.payload}
+                              for notification in result.notifications],
+        }
+        files = {"result.json": json.dumps(normalize_snapshot_value(value, replacements), indent=2) + "\n"}
+        for index, session_id in enumerate((result.session_id, child_id)):
+            content = render_jsonl(project_session_snapshot([
+                normalize_snapshot_value(record, replacements) for record in logs[session_id]
+            ]))
+            files[snapshot_session_filename(index, session_header_version(content, case["scenario"]))] = content
+        directory = Path(__file__).resolve().parent / "snapshots/python-sdk-single-exe" / case["scenario"]
+        compare_snapshot_files(files, update_snapshots, directory, tuple(files))
 
 
 def smoke_direct(base_url: str, executable: Path) -> None:
@@ -2517,6 +2827,117 @@ def snapshot_agent_id(result: "RunResult", child_id: str) -> str:
     raise AssertionError(f"advanced snapshot has no finished agent for child {child_id}")
 
 
+def expected_runtime_identity(executable: Path) -> dict[str, object] | None:
+    """Verify a test owner's launch-time manifest against the exact executable bytes."""
+    filename = os.environ.get("DSH_SMOKE_RUNTIME_IDENTITY_FILE")
+    if filename is None:
+        print("smoke-python-runtime: exact runtime identity unverified (DSH_SMOKE_RUNTIME_IDENTITY_FILE absent)")
+        return None
+    value = json.loads(Path(filename).read_text(encoding="utf-8"))
+    if not isinstance(value, dict) or value.get("format") != 1 or not isinstance(value.get("runtime"), dict):
+        raise AssertionError("runtime identity manifest requires format 1 and a runtime object")
+    digest = value.get("executableSha256")
+    if not isinstance(digest, str) or re.fullmatch(r"[a-f0-9]{64}", digest) is None:
+        raise AssertionError("runtime identity manifest executableSha256 is malformed")
+    if hashlib.sha256(executable.read_bytes()).hexdigest() != digest:
+        raise AssertionError("runtime identity manifest does not match the executable bytes")
+    return value["runtime"]
+
+
+def assert_runtime_audit_identity(records: list[dict[str, object]], expected: dict[str, object] | None) -> int:
+    """Require a fresh Session's own initial audit before normalization; compare identity when verified."""
+    if not records:
+        raise AssertionError("fresh Session has no own initial runtime audit")
+    header = records[0]
+    if header.get("type") != "session":
+        raise AssertionError("runtime identity check requires a Session header")
+    assert_current_session_version(header.get("version"), "runtime identity check")
+    boundary = -1
+    if header.get("isSeeded") is True:
+        markers = [index for index, record in enumerate(records) if record.get("type") == "session/end-seed"
+                   and isinstance(record.get("data"), dict) and record["data"].get("inherited") is True]
+        if not markers:
+            raise AssertionError("seeded Session has no inherited end-seed marker")
+        boundary = markers[-1]
+    initial = [record for record in records[boundary + 1:] if record.get("type") == "runtime/audit"
+               and isinstance(record.get("data"), dict) and record["data"].get("reason") == "initial"]
+    if not initial:
+        raise AssertionError("fresh Session has no own initial runtime audit")
+    if expected is None:
+        return 0
+    for record in initial:
+        if record["data"].get("runtime") != expected:
+            raise AssertionError("captured runtime identity differs from the launch-time observation")
+    return len(initial)
+
+
+def normalize_runtime_audit(record: dict[object, object], repository_root: Path | None = None) -> None:
+    """Stabilize declared identity scalars while retaining availability, configuration, and plugin membership."""
+    if record.get("type") != "runtime/audit" or not isinstance(record.get("data"), dict):
+        return
+
+    def digest(value: dict[object, object], key: str, token: str) -> None:
+        current = value.get(key)
+        if current is None:
+            return
+        if current != token and (not isinstance(current, str) or re.fullmatch(r"[a-f0-9]{64}", current) is None):
+            raise AssertionError(f"runtime audit {key} is not a SHA-256 digest")
+        value[key] = token
+
+    def source(value: object) -> None:
+        if not isinstance(value, dict):
+            return
+        revision = value.get("revision")
+        if revision != "{{runtime.revision}}" and (
+            not isinstance(revision, str) or re.fullmatch(r"[a-f0-9]{40,64}", revision) is None
+        ):
+            raise AssertionError("runtime audit source revision is unavailable or malformed")
+        if not isinstance(value.get("dirty"), bool):
+            raise AssertionError("runtime audit source dirty flag is malformed")
+        value["revision"] = "{{runtime.revision}}"
+        value["dirty"] = False
+        digest(value, "contentSha256", "{{runtime.contentSha256}}")
+
+    data = record["data"]
+    if repository_root is not None:
+        root = str(repository_root.resolve()) + os.sep
+        url = repository_root.resolve().as_uri().rstrip("/") + "/"
+        for entries in (data.get("plugins"), data.get("configuration")):
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                plugin = entry.get("plugin") if isinstance(entry, dict) else None
+                if not isinstance(plugin, str):
+                    continue
+                if plugin.startswith(url):
+                    entry["plugin"] = "file://{{repo}}/" + plugin[len(url):]
+                elif plugin.startswith(root):
+                    entry["plugin"] = "{{repo}}/" + plugin[len(root):].replace(os.sep, "/")
+    runtime = data.get("runtime")
+    if isinstance(runtime, dict):
+        for key in ("nodeVersion", "platform", "arch"):
+            if isinstance(runtime.get(key), str):
+                runtime[key] = "{{runtime." + key + "}}"
+        launcher = runtime.get("launcher")
+        if isinstance(launcher, dict):
+            digest(launcher, "sha256", "{{runtime.launcher.sha256}}")
+        source(runtime.get("source"))
+        build = runtime.get("build")
+        if isinstance(build, dict):
+            digest(build, "manifestSha256", "{{runtime.build.manifestSha256}}")
+            digest(build, "inputsSha256", "{{runtime.build.inputsSha256}}")
+            source(build.get("source"))
+    plugins = data.get("plugins")
+    if isinstance(plugins, list):
+        for plugin in plugins:
+            if not isinstance(plugin, dict):
+                continue
+            digest(plugin, "moduleSha256", "{{plugin.moduleSha256}}")
+            package = plugin.get("package")
+            if isinstance(package, dict):
+                digest(package, "manifestSha256", "{{plugin.manifestSha256}}")
+
+
 def normalize_snapshot_value(
     value: object,
     replacements: list[tuple[str, str]],
@@ -2583,6 +3004,7 @@ def normalize_snapshot_value(
                     item["updatedAt"] = 0
     scrub_snapshot_header(normalized)
     scrub_snapshot_system_message(normalized)
+    normalize_runtime_audit(normalized, Path(__file__).resolve().parent.parent)
     return normalized
 
 
@@ -2817,6 +3239,78 @@ def normalize_snapshot_comparison_text(
     return content
 
 
+def verify_runtime_audit_oracle(files: dict[str, str], directory: Path, update: bool) -> list[dict[str, object]]:
+    """Require an explicit source or artifact oracle for normalized Session audit output."""
+    actual = []
+    for name, content in files.items():
+        role = parse_snapshot_session_filename(name)
+        if role is None:
+            continue
+        actual.extend({"session": role[0], "event": record} for record in
+                      (json.loads(line) for line in content.splitlines() if line)
+                      if record.get("type") == "runtime/audit")
+    if not actual:
+        return []
+    modes = {row["event"]["data"]["runtime"]["launcher"]["kind"] for row in actual
+             if row["event"]["data"].get("reason") == "initial"}
+    if len(modes) != 1 or not modes.issubset({"source", "artifact"}):
+        raise AssertionError(f"runtime audit oracle requires one executing launcher mode: {modes}")
+    path = directory / f"runtime-audit.{next(iter(modes))}.expected.jsonl"
+    if update:
+        directory.mkdir(parents=True, exist_ok=True)
+        path.write_text(render_jsonl(actual), encoding="utf-8", newline="\n")
+    expected = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+    if actual != expected:
+        raise AssertionError(f"runtime audit oracle differs: {path}")
+    return expected
+
+
+def with_runtime_audit_oracle(name: str, content: str, canonical: dict[int, str], oracle: list[dict[str, object]]) -> str:
+    """Substitute only expected audit rows after actual output matches the selected mode oracle."""
+    role = parse_snapshot_session_filename(name)
+    if role is not None:
+        selected = [row["event"] for row in oracle if row["session"] == role[0]]
+        cursor = 0
+        lines = []
+        for line in content.splitlines():
+            record = json.loads(line)
+            if record.get("type") == "runtime/audit":
+                normalize_runtime_audit(record, Path(__file__).resolve().parent.parent)
+                if cursor >= len(selected):
+                    raise AssertionError(f"runtime audit oracle missing Session role {role[0]} row {cursor}")
+                lines.append(json.dumps(selected[cursor], ensure_ascii=False, separators=(",", ":")))
+                cursor += 1
+            else:
+                lines.append(line)
+        if cursor != len(selected):
+            raise AssertionError(f"runtime audit oracle count differs for Session role {role[0]}")
+        return "\n".join(lines) + "\n"
+    if not name.endswith(".json"):
+        return content
+    pairs = []
+    for index, log in canonical.items():
+        rows = [record for record in (json.loads(line) for line in log.splitlines() if line)
+                if record.get("type") == "runtime/audit"]
+        selected = [row["event"] for row in oracle if row["session"] == index]
+        if len(rows) != len(selected):
+            raise AssertionError(f"runtime audit oracle count differs for Session role {index}")
+        pairs.extend(zip(rows, selected))
+
+    def replace(value: object) -> object:
+        if isinstance(value, list):
+            return [replace(item) for item in value]
+        if not isinstance(value, dict):
+            return value
+        if value.get("type") == "runtime/audit":
+            matches = [selected for original, selected in pairs if original["data"] == value.get("data")]
+            if not matches or any(match != matches[0] for match in matches):
+                raise AssertionError("SDK notification audit has no unambiguous selected Session oracle")
+            return {**value, "data": matches[0]["data"]}
+        return {key: replace(item) for key, item in value.items()}
+
+    return json.dumps(replace(json.loads(content)), indent=2, ensure_ascii=False) + "\n"
+
+
 def compare_snapshot_files(
     files: dict[str, str],
     update: bool,
@@ -2837,6 +3331,7 @@ def compare_snapshot_files(
     for name, content in files.items():
         if parse_snapshot_session_filename(name) is not None:
             assert_current_session_version(session_header_version(content, name), name)
+    runtime_oracle = verify_runtime_audit_oracle(files, directory, update)
     if update:
         directory.mkdir(parents=True, exist_ok=True)
         for name, content in files.items():
@@ -2849,6 +3344,7 @@ def compare_snapshot_files(
     }
     existing_non_session = {
         path.name for path in existing if parse_snapshot_session_filename(path.name) is None
+        and path.name not in {"runtime-audit.source.expected.jsonl", "runtime-audit.artifact.expected.jsonl"}
     }
     if existing_non_session != expected_non_session:
         raise AssertionError(
@@ -2877,6 +3373,9 @@ def compare_snapshot_files(
             f"{scenario} snapshot Session roles differ: "
             f"expected={sorted(selected_expected)}, actual={sorted(actual_sessions)}",
         )
+    if any(row.get("session") not in actual_sessions for row in runtime_oracle):
+        raise AssertionError("runtime audit oracle has an unknown Session role")
+    canonical = {index: path.read_text(encoding="utf-8") for index, path in selected_expected.items()}
     actual_native_version = expected_native_version = None
     if native_writer_output:
         def common_generation(contents: list[tuple[str, str]]) -> int:
@@ -2893,6 +3392,7 @@ def compare_snapshot_files(
         parsed = parse_snapshot_session_filename(name)
         expected_path = directory / name if parsed is None else selected_expected[parsed[0]]
         expected_text = expected_path.read_text(encoding="utf-8")
+        expected_text = with_runtime_audit_oracle(expected_path.name, expected_text, canonical, runtime_oracle)
         compared_actual = normalize_snapshot_comparison_text(name, actual, actual_native_version)
         compared_expected = normalize_snapshot_comparison_text(expected_path.name, expected_text, expected_native_version)
         if compared_actual == compared_expected:

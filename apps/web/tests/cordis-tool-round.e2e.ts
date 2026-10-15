@@ -1,4 +1,4 @@
-/** Historical generated-plugin cards remain readable after their tool APIs are removed. */
+/** Historical tool calls use the generic reader while dynamic controls are disabled. */
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
@@ -45,11 +45,11 @@ describe.skipIf(MODE === 'record')('web e2e: historical Cordis cards', () => {
       .map(event => ({ type: event.type, data: event.data }))
     expect(tools(persisted)).toEqual(tools(expected))
     const names = scaffold.ctx.tools.schemas().map(tool => tool.name)
-    expect(names).not.toEqual(expect.arrayContaining(['cordis_define']))
+    for (const name of ['cordis_define', 'cordis_run', 'cordis_stop']) expect(names).not.toContain(name)
     const define = page.locator('[data-tool="cordis_define"]').first()
     await expandOwningTurnProcess(page, define)
     await define.locator('[aria-expanded]').first().click()
-    await define.getByRole('tab', { name: 'Host' }).click()
+    expect(await define.getByRole('tab').count()).toBe(0)
     await expect.poll(() => define.textContent()).toContain('snapshot-noop')
     const stop = page.locator('[data-tool="cordis_stop"]').first()
     await expandOwningTurnProcess(page, stop)

@@ -16,7 +16,7 @@ import type {
   RequestErrorAction,
 } from '@deepseek-ai/dsh-agent'
 import { agentEvents, assembleContextFor } from '@deepseek-ai/dsh-agent'
-import type { GenerateOptions, LlmCallConfig, Message, PreparedLlmCall } from '@deepseek-ai/dsh-llm'
+import type { GenerateOptions, LlmCallConfig, Message, MessageId, PreparedLlmCall } from '@deepseek-ai/dsh-llm'
 import {
   LlmError,
   createAssistantMessage,
@@ -45,9 +45,9 @@ type Phase =
     kind: 'maintenance'
     abort: AbortController
     lastTurn: number
-    wakeRequested: boolean
+    pendingWakes: Set<MessageId>
   }
-  | { kind: 'running'; abort: AbortController; turn: number; step: number; wakeRequested: boolean }
+  | { kind: 'running'; abort: AbortController; turn: number; step: number; pendingWakes: Set<MessageId> }
 
 type StepEndReason = Extract<TurnEndReason, { kind: 'completed' | 'max-tokens' }>
 
@@ -157,7 +157,7 @@ export class ReactLoopAgent implements Agent {
     const wakingAfterAbort = wakeup && this.phase.kind !== 'idle' && this.phase.abort.signal.aborted
     const resolvedTarget = wakingAfterAbort ? 'next-turn' : target
     this.inbox.splice(resolvedTarget, Infinity, 0, [message])
-    if (wakeup) this.wakeDriver(wakingAfterAbort)
+    if (wakeup) this.wakeDriver(new Set([message.id]), wakingAfterAbort)
   }
 
   followup(input: UserMessage): void {
@@ -175,9 +175,11 @@ export class ReactLoopAgent implements Agent {
   cancel(cause: AgentCancelCause, options: CancelOptions = {}): void {
     if (!options.keepInbox) {
       this.inbox.clear()
-      if (this.phase.kind !== 'idle') this.phase.wakeRequested = false
     }
-    if (this.phase.kind !== 'idle') this.phase.abort.abort(cause)
+    if (this.phase.kind !== 'idle') {
+      this.phase.pendingWakes.clear()
+      this.phase.abort.abort(cause)
+    }
   }
 
   runMaintenance<T>(job: (signal: AbortSignal) => Promise<T>): Promise<T> {
@@ -187,7 +189,7 @@ export class ReactLoopAgent implements Agent {
       kind: 'maintenance',
       abort: new AbortController(),
       lastTurn: this.phase.lastTurn,
-      wakeRequested: false,
+      pendingWakes: new Set(),
     }
     this.setPhase(maintenance)
     this.activityDone = done.promise
@@ -197,41 +199,55 @@ export class ReactLoopAgent implements Agent {
       } finally {
         this.setPhase({ kind: 'idle', lastTurn: maintenance.lastTurn })
         const cause = abortedCancelCause(maintenance.abort.signal)
-        if (cause?.kind !== 'disposed' && maintenance.wakeRequested && this.inbox.hasPending) this.wakeDriver()
+        if (cause?.kind !== 'disposed' && this.hasPendingWake(maintenance.pendingWakes)) {
+          this.wakeDriver(maintenance.pendingWakes)
+        }
         done.resolve()
       }
     })()
   }
 
   /**
-   * Start one driver, or latch its wake behind maintenance or an aborted
-   * activity. A wake sent while idle always opens its turn boundary, even
+   * Start one driver, or retain waking message identities until they are
+   * claimed. A wake sent while idle always opens its turn boundary, even
    * when its message was cleared; only a latched replay is suppressed when
    * the queue no longer holds the wake.
+   * @param pendingWakes - unclaimed waking identities owned by this activity.
    * @param wakeAfterAbort - the {@link send} classification, captured before
    *   the inbox insertion so a reentrant cancel cannot reclassify it.
    */
-  private wakeDriver(wakeAfterAbort = false): void {
+  private wakeDriver(pendingWakes: Set<MessageId>, wakeAfterAbort = false): void {
     if (this.phase.kind !== 'idle') {
-      // Maintenance and aborted drivers cannot deliver the wake: latch it for
-      // replay at convergence. Live drivers claim queued work themselves;
-      // disposal never latches, so teardown waits on no model turn.
+      // A live request can fail before claiming its wake. Cancellation parks
+      // earlier work; only a send classified after abort may wake that work.
       const reason = abortedCancelCause(this.phase.abort.signal)
-      if (reason?.kind !== 'disposed' && (this.phase.kind === 'maintenance' || wakeAfterAbort)) {
-        this.phase.wakeRequested = true
+      if (reason?.kind !== 'disposed'
+        && (reason === undefined || this.phase.kind === 'maintenance' || wakeAfterAbort)) {
+        for (const id of pendingWakes) this.phase.pendingWakes.add(id)
       }
       return
     }
+    this.startDriver(pendingWakes, this.phase.lastTurn)
+  }
+
+  /** Reserve the next driver without publishing idle between scheduled activities. */
+  private startDriver(pendingWakes: Set<MessageId>, lastTurn: number): void {
     const driver = Promise.withResolvers<void>()
     this.activityDone = driver.promise
     this.setPhase({
       kind: 'running',
       abort: new AbortController(),
-      turn: this.phase.lastTurn,
+      turn: lastTurn,
       step: 0,
-      wakeRequested: false,
+      pendingWakes,
     })
     this.loopCtx.agents.withInitiator(this, () => this.kick()).then(driver.resolve, driver.reject)
+  }
+
+  /** Whether any unclaimed waking identity still belongs to the durable inbox. */
+  private hasPendingWake(pendingWakes: ReadonlySet<MessageId>): boolean {
+    return pendingWakes.size !== 0 && (this.inbox.nextTurn.some(message => pendingWakes.has(message.id))
+      || this.inbox.nextStep.some(message => pendingWakes.has(message.id)))
   }
 
   async whenIdle(): Promise<void> {
@@ -250,16 +266,26 @@ export class ReactLoopAgent implements Agent {
   }
 
   private async kick(): Promise<void> {
+    let lastTurn = this.phase.kind === 'running' ? this.phase.turn : this.phase.lastTurn
     try {
-      while (await this.turn()) {}
+      while (await this.turn()) {
+        lastTurn = this.phase.kind === 'running' ? this.phase.turn : this.phase.lastTurn
+      }
     } catch (_error) {
       // Reported failures and cancellation are contained at the driver boundary.
+      // Rejected turn boundaries leave input parked until explicit recovery.
+      const boundary = this.loopCtx.sessionProjections.stateOf(this.session, 'turnBoundary')
+      if (this.phase.kind === 'running'
+        && (boundary?.openTurnStartSeq !== null
+          || (!this.phase.abort.signal.aborted && this.phase.turn === lastTurn))) {
+        this.phase.pendingWakes.clear()
+      }
     } finally {
       /*! v8 ignore next -- kick owns a running phase until this driver boundary */
       if (this.phase.kind === 'running') {
-        const { turn, wakeRequested } = this.phase
-        this.setPhase({ kind: 'idle', lastTurn: turn })
-        if (wakeRequested && this.inbox.hasPending) this.wakeDriver()
+        const { turn, pendingWakes } = this.phase
+        if (this.hasPendingWake(pendingWakes)) this.startDriver(pendingWakes, turn)
+        else this.setPhase({ kind: 'idle', lastTurn: turn })
       }
     }
   }
@@ -268,7 +294,15 @@ export class ReactLoopAgent implements Agent {
     /*! v8 ignore next -- private callers establish the running phase before proposing a step */
     if (this.phase.kind !== 'running') throw new Error(`agent "${this.id}": pre-step outside running phase`)
     const signal = this.phase.abort.signal
-    const claimed = this.inbox.claim(target, position.turn)
+    let claimed: UserMessage[]
+    try {
+      claimed = this.inbox.claim(target, position.turn)
+    } catch (error: unknown) {
+      // A rejected claim needs explicit storage recovery, not another claim attempt.
+      this.phase.pendingWakes.clear()
+      throw error
+    }
+    for (const message of claimed) this.phase.pendingWakes.delete(message.id)
     const assembly = await this.loopCtx.systemPrompt.assemble(assembleContextFor(this, signal))
     signal.throwIfAborted()
     const sections = renderContextSections(assembly)
@@ -315,6 +349,7 @@ export class ReactLoopAgent implements Agent {
         const step = phase.step + 1
         const decision = await this.preStep(target, { turn, step })
         if (decision.kind === 'reject') {
+          phase.pendingWakes.clear()
           turnEnds = { kind: 'blocked' }
           return false
         }
@@ -322,6 +357,7 @@ export class ReactLoopAgent implements Agent {
         // A removed waking message or an enter decision rewritten to empty
         // still owns the initial turn boundary, but it spends no model call.
         if (phase.step === 0 && decision.messages.length === 0) {
+          phase.pendingWakes.clear()
           turnEnds = { kind: 'completed' }
           return false
         }
@@ -389,8 +425,6 @@ export class ReactLoopAgent implements Agent {
     }
     if (!this.inbox.hasPending) return false
     phase.abort = new AbortController()
-    // A fresh controller makes a latch set on the old one stale: the live driver claims the queue itself.
-    phase.wakeRequested = false
     phase.step = 0
     return true
   }

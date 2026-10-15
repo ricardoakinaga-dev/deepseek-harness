@@ -9,6 +9,7 @@
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { FileAttachmentRef } from '@deepseek-ai/dsh-attachment'
 
 /**
  * Opaque model-facing handle for one spilled artifact. A local backend may use a
@@ -70,6 +71,8 @@ export interface SaveTextSpill {
   suggestedName: string
   /** The full text to persist (UTF-8). */
   content: string
+  /** Optional caller cancellation forwarded to durable capture. */
+  signal?: AbortSignal
 }
 
 /** A saved spill artifact: its locator, byte length, and backend-specific retrieval guidance. */
@@ -77,4 +80,21 @@ export interface SpillRef {
   locator: SpillLocator
   bytes: number
   retrievalHint: string
+}
+
+/** Immutable evidence bytes associated with a model-facing spill locator. */
+export interface SpillArtifactEventData {
+  /** Producer of the complete saved text. */
+  source: SpillSource
+  /** Locator retained in tool history; export maps it to the captured file. */
+  locator: SpillLocator
+  /** Exact bytes stored before this event is appended. */
+  attachment: FileAttachmentRef
+}
+
+declare module '@deepseek-ai/dsh-session/types' {
+  interface SessionEventMap {
+    /** Full spill bytes captured independently of temporary-file retention; log-only. */
+    'spill/artifact': SpillArtifactEventData
+  }
 }

@@ -18,6 +18,7 @@ type FullSnapshot = ({ status: 'saved' } & SpillRef)
  * @param ownerId - target session receiving the context.
  * @param source - full projection and preview omission facts from the same capture.
  * @param inputIndex - reference position used to distinguish transcript filenames.
+ * @param signal - optional cancellation forwarded to full-snapshot storage.
  * @returns an omission notice, absent for intact previews; storage failures report unavailable.
  */
 export async function prepareReferenceOmission(
@@ -25,6 +26,7 @@ export async function prepareReferenceOmission(
   ownerId: SessionId,
   source: { fullData: ReferencedSessionData; stats: ReferenceRetentionStats; capturedFormatVersion: number },
   inputIndex: number,
+  signal?: AbortSignal,
 ): Promise<ReturnType<typeof omission> | undefined> {
   if (!source.stats.truncated) return undefined
   let fullSnapshot: FullSnapshot
@@ -36,6 +38,7 @@ export async function prepareReferenceOmission(
       source: { kind: 'session-reference', sessionId: source.fullData.sessionId, label: source.fullData.label },
       suggestedName: `session-reference-${inputIndex + 1}.txt`,
       content: renderTranscript(source.fullData, source.capturedFormatVersion),
+      ...signal === undefined ? {} : { signal },
     }
     let saved: SpillRef
     try {

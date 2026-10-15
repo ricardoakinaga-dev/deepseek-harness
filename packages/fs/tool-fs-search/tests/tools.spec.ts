@@ -335,8 +335,7 @@ describe('command construction (plain argv)', () => {
       '--files',
       '--glob=**/*.ts',
       '--sort=modified',
-      '--no-ignore',
-      '--hidden',
+      '--no-require-git',
       '--glob=!**/.git', '--glob=!**/.git/**',
       '--glob=!**/.svn', '--glob=!**/.svn/**',
       '--glob=!**/.hg', '--glob=!**/.hg/**',
@@ -347,7 +346,7 @@ describe('command construction (plain argv)', () => {
   })
 
   it('glob: the search root rides behind -- as a plain element', () => {
-    expect(buildGlobCommand({ pattern: '*.md', path: 'docs dir' })).toEqual(['--files', '--glob=*.md', '--sort=modified', '--no-ignore', '--hidden',
+    expect(buildGlobCommand({ pattern: '*.md', path: 'docs dir' })).toEqual(['--files', '--glob=*.md', '--sort=modified', '--no-require-git',
       '--glob=!**/.git', '--glob=!**/.git/**',
       '--glob=!**/.svn', '--glob=!**/.svn/**',
       '--glob=!**/.hg', '--glob=!**/.hg/**',
@@ -355,6 +354,17 @@ describe('command construction (plain argv)', () => {
       '--glob=!**/.jj', '--glob=!**/.jj/**',
       '--glob=!**/.sl', '--glob=!**/.sl/**',
       '--', 'docs dir'])
+  })
+
+  it('glob: explicit ignored inclusion and exclusions remain separate argv elements', () => {
+    const argv = buildGlobCommand({ pattern: '*.ts', include_ignored: true, exclude: ['**/node_modules/**', '$(touch pwned)', '--flag'], path: '-root' })
+    expect(argv).toContain('--no-ignore')
+    expect(argv).toContain('--hidden')
+    expect(argv).toContain('--glob=!**/node_modules/**')
+    expect(argv).toContain('--glob=!$(touch pwned)')
+    expect(argv).toContain('--glob=!--flag')
+    expect(argv.slice(-2)).toEqual(['--', '-root'])
+    expect(argv.indexOf('--glob=!**/.git/**')).toBeGreaterThan(argv.indexOf('--glob=!--flag'))
   })
 
   it('grep: fixed rg --json argv with the pattern in --regexp= form', () => {
@@ -732,6 +742,59 @@ describe('cross-directory sampling', () => {
 })
 
 describe('glob results', () => {
+  it('shares the raw byte budget across both discovery listings', async () => {
+    const { ctx, subprocess } = await setup({ config: { rawOutputMaxBytes: 10 } })
+    subprocess.handler = () => runResult('a.ts\n')
+    const result = await call(ctx, 'glob', { pattern: '*.ts' })
+    expect(result.isError).toBe(false)
+    expect(subprocess.spawns.map(spec => (spec.stdio.stdout as { maxBytes: number }).maxBytes)).toEqual([10, 5])
+  })
+
+  it.each([11, 12, 13])('bounds the combined UTF-8 listings at %s bytes', async (rawOutputMaxBytes) => {
+    const { ctx, subprocess, spill } = await setup({ spill: true, config: { rawOutputMaxBytes } })
+    subprocess.handler = () => runResult('é.ts\n')
+    const result = await call(ctx, 'glob', { pattern: '*.ts' })
+    expect(result.isError).toBe(rawOutputMaxBytes < 12)
+    expect((subprocess.spawns[1]?.stdio.stdout as { maxBytes: number }).maxBytes).toBe(rawOutputMaxBytes - 6)
+    if (result.isError) {
+      expect(result.error).toMatchObject({ info: { code: 'SEARCH_RAW_OUTPUT_OVERFLOW' } })
+      expect(spill?.saves).toEqual([])
+    } else {
+      expect(text(result)).toBe('é.ts')
+      expect(12).toBeLessThanOrEqual(rawOutputMaxBytes)
+    }
+    expect(subprocess.handles.every(handle => handle.settled)).toBe(true)
+  })
+
+  it('reports an exhausted discovery budget before starting the auxiliary listing', async () => {
+    const { ctx, subprocess } = await setup({ config: { rawOutputMaxBytes: 5 } })
+    subprocess.handler = () => runResult('a.ts\n')
+    const result = await call(ctx, 'glob', { pattern: '*.ts' })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('remaining 0 bytes')
+    expect(text(result)).toContain('ignore-respecting candidate listing')
+    expect(subprocess.spawns).toHaveLength(1)
+    expect(subprocess.handles.every(handle => handle.settled)).toBe(true)
+  })
+
+  it('keeps the full raw budget for explicit ignored-file inclusion', async () => {
+    const { ctx, subprocess } = await setup({ config: { rawOutputMaxBytes: 5 } })
+    subprocess.handler = () => runResult('a.ts\n')
+    expect((await call(ctx, 'glob', { pattern: '*.ts', include_ignored: true })).isError).toBe(false)
+    expect(subprocess.spawns).toHaveLength(1)
+  })
+
+  it('explains auxiliary discovery overflow without suggesting a narrower pattern', async () => {
+    const { ctx, subprocess } = await setup({ config: { rawOutputMaxBytes: 10 } })
+    subprocess.handler = spec => spec.argv.includes('--glob=*.ts') ? runResult('a.ts\n') : runResult('a.ts\nb.md\nc\n')
+    const result = await call(ctx, 'glob', { pattern: '*.ts' })
+    expect(result.isError).toBe(true)
+    expect(result.error).toMatchObject({ info: { code: 'SEARCH_RAW_OUTPUT_OVERFLOW' } })
+    expect(text(result)).toContain('ignore-respecting candidate listing')
+    expect(text(result)).toContain('narrowing pattern does not reduce this listing')
+    expect(text(result)).toContain('exclude')
+  })
+
   it('lists workdir-relative paths (absolute output under the workdir is relativized)', async () => {
     const { ctx, subprocess } = await setup()
     subprocess.handler = () => runResult('/sessions/s1/src/a.ts\n/elsewhere/b.ts\nrel/c.ts\n')
@@ -747,12 +810,71 @@ describe('glob results', () => {
     expect(text(await call(ctx, 'glob', { pattern: '*', path: ' ' }))).toContain('path must be a non-empty string')
   })
 
+  it.each([
+    [{ exclude: [''] }, 'non-empty positive globs'],
+    [{ exclude: ['!keep'] }, 'non-empty positive globs'],
+    [{ exclude: ['a\0b'] }, 'without NUL'],
+    [{ exclude: Array.from({ length: 33 }, () => '*.ts') }, 'at most 32 globs'],
+    [{ exclude: ['é'.repeat(4097)] }, 'at most 8192 UTF-8 bytes'],
+    [{ pattern: 'a\0b' }, 'must not contain NUL'],
+    [{ path: 'a\0b' }, 'must not contain NUL'],
+  ])('rejects unavailable argv values before spawning: %j', async (args, diagnostic) => {
+    const { ctx, subprocess } = await setup()
+    const result = await call(ctx, 'glob', { pattern: '*', ...args })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain(diagnostic)
+    expect(subprocess.spawns).toHaveLength(0)
+  })
+
+  it('accepts the exclusion count and byte bounds exactly', async () => {
+    const { ctx, subprocess } = await setup()
+    subprocess.handler = () => runResult('a.ts\n')
+    const exclude = Array.from({ length: 32 }, () => 'é'.repeat(128))
+    expect((await call(ctx, 'glob', { pattern: '*', include_ignored: true, exclude })).isError).toBe(false)
+    expect(subprocess.spawns).toHaveLength(1)
+  })
+
+  it('intersects positive glob matches with ignore-respecting discovery before formatting or spill', async () => {
+    const { ctx, subprocess, spill } = await setup({ spill: true, config: { globMaxResults: 1 } })
+    subprocess.handler = spec => runResult(spec.argv.includes('--glob=*.ts')
+      ? 'ignored.ts\n.hidden.ts\nsrc/a.ts\nsrc/b.ts\n'
+      : 'src/a.ts\nsrc/b.ts\nnotes.md\n')
+    const result = await call(ctx, 'glob', { pattern: '*.ts' }, { agent: agent('/w') })
+    expect(result.isError).toBe(false)
+    if (result.isError) throw new Error('expected glob success')
+    expect(result.value).toEqual({ root: '.', paths: ['src/a.ts', 'src/b.ts'] })
+    expect(text(result)).toContain('Showing 1 of 2 paths')
+    expect(spill?.saves[0]?.content).toBe('src/a.ts\nsrc/b.ts')
+    expect(subprocess.spawns[1]?.argv).not.toContain('--glob=*.ts')
+    expect(subprocess.spawns[1]?.argv).not.toContain('--no-ignore')
+    expect(subprocess.handles.every(handle => handle.settled)).toBe(true)
+  })
+
+  it.each([
+    ['a failed candidate listing', runResult('', { exitCode: 2, stderr: { text: 'permission denied' } }), 'SEARCH_FAILED'],
+    ['an oversized candidate listing', runResult('partial', { stdout: { lossy: true } }), 'SEARCH_RAW_OUTPUT_OVERFLOW'],
+  ])('fails closed on %s', async (_label, candidate, code) => {
+    const { ctx, subprocess, spill } = await setup({ spill: true })
+    subprocess.handler = spec => spec.argv.includes('--glob=*.ts') ? runResult('a.ts\n') : candidate
+    const result = await call(ctx, 'glob', { pattern: '*.ts' })
+    expect(result.isError).toBe(true)
+    expect(result.error).toMatchObject({ info: { code } })
+    expect(spill?.saves).toEqual([])
+    expect(subprocess.handles.every(handle => handle.settled)).toBe(true)
+  })
+
+  it('returns an empty result when ignore filtering removes every match', async () => {
+    const { ctx, subprocess } = await setup()
+    subprocess.handler = spec => spec.argv.includes('--glob=*.ts') ? runResult('ignored.ts\n') : runResult('', { exitCode: 1 })
+    expect(text(await call(ctx, 'glob', { pattern: '*.ts' }))).toBe('No files found')
+  })
+
   it('threads a valid path through to the spawn as the plain search root element', async () => {
     const { ctx, subprocess } = await setup()
     subprocess.handler = () => runResult('sub/a.ts\n')
     const result = await call(ctx, 'glob', { pattern: '*.ts', path: 'sub' })
     expect(result.isError).toBe(false)
-    expect(subprocess.spawns[0]?.argv).toEqual([rgPath, '--no-config', '--files', '--glob=*.ts', '--sort=modified', '--no-ignore', '--hidden',
+    expect(subprocess.spawns[0]?.argv).toEqual([rgPath, '--no-config', '--files', '--glob=*.ts', '--sort=modified', '--no-require-git',
       '--glob=!**/.git', '--glob=!**/.git/**',
       '--glob=!**/.svn', '--glob=!**/.svn/**',
       '--glob=!**/.hg', '--glob=!**/.hg/**',
@@ -1102,9 +1224,7 @@ describe('the no-background-job invariant', () => {
     await call(ctx, 'glob', { pattern: '*' })
     subprocess.handler = () => runResult('', { exitCode: 2, stderr: { text: 'boom' } })
     await call(ctx, 'grep', { pattern: 'x' })
-    // One foreground spawn per call, each awaited to settlement before the
-    // tool returns — the searches never leave a background handle running.
-    expect(subprocess.spawns).toHaveLength(2)
+    expect(subprocess.spawns).toHaveLength(3)
     expect(subprocess.handles.every(handle => handle.settled)).toBe(true)
   })
 })

@@ -1,4 +1,6 @@
 import { defineConfig } from 'tsdown'
+import { fileURLToPath } from 'node:url'
+import { runtimeBuildIdentityPlugin } from '../../scripts/runtime-build-identity.ts'
 
 /**
  * The dsh CLI ships its command and the profile lifecycle shared with Desktop.
@@ -13,4 +15,5 @@ export default defineConfig({
   fixedExtension: false,
   dts: false,
   clean: ['lib/*.js'],
+  plugins: [runtimeBuildIdentityPlugin(fileURLToPath(new URL('../../', import.meta.url)))],
 })

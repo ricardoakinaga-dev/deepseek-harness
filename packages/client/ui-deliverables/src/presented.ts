@@ -1,10 +1,13 @@
-/** Validate declared workspace paths and address their native-open actions. */
+/** Validate delivery metadata and address source actions and saved-copy downloads. */
 import type { PresentedFile } from '@deepseek-ai/dsh-tool-present/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 
 /** Authenticated POST route for opening a workspace file on the Host desktop. */
 export const PRESENT_OPEN_PATH = '/api/present.open'
+
+/** Authenticated GET route for a declared file's saved bytes. */
+export const PRESENT_DOWNLOAD_PATH = '/api/present.download'
 
 /** Authenticated desktop availability and destination metadata. */
 export const PRESENT_HOST_PATH = '/api/present.host'
@@ -44,13 +47,66 @@ export function isPresentedHost(value: unknown): value is PresentedHost {
 /**
  * Validate a file declaration read from a Session log.
  * @param value - decoded durable data.
- * @returns whether the declaration contains a path and optional description.
+ * @returns whether the declaration and its optional capture metadata are valid.
  */
 export function isPresentedFile(value: unknown): value is PresentedFile {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
-  const { path, description } = value as Record<string, unknown>
+  const { path, description, capture } = value as Record<string, unknown>
   return typeof path === 'string' && path.trim().length > 0
     && (description === undefined || typeof description === 'string')
+    && isCapture(capture)
+}
+
+function isCapture(value: unknown): boolean {
+  if (value === undefined) return true
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const capture = value as Record<string, unknown>
+  if (capture.status === 'too-large') return typeof capture.maxBytes === 'number'
+    && Number.isSafeInteger(capture.maxBytes) && capture.maxBytes > 0
+  if (capture.status !== 'stored' || typeof capture.attachment !== 'object'
+    || capture.attachment === null || Array.isArray(capture.attachment)) return false
+  const { attachmentId, name, bytes } = capture.attachment as Record<string, unknown>
+  return typeof attachmentId === 'string' && /^sha256:[a-f0-9]{64}$/u.test(attachmentId)
+    && typeof name === 'string' && name.length > 0 && name.isWellFormed() && name !== '.' && name !== '..'
+    && !/[\u0000-\u001f\u007f/\\]/u.test(name)
+    && typeof bytes === 'number' && Number.isSafeInteger(bytes) && bytes >= 0
+}
+
+/**
+ * Address a saved copy without exposing its storage identifier to the route.
+ * @param sessionId - viewed Session, including inherited events.
+ * @param seq - deliverables/presented event sequence.
+ * @param index - original index in the event's files array.
+ * @returns document-relative authenticated download URL.
+ */
+export function presentedDownloadUrl(sessionId: SessionId, seq: number, index: number): string {
+  return `${PRESENT_DOWNLOAD_PATH.slice(1)}?${new URLSearchParams({ sessionId, seq: String(seq), index: String(index) })}`
+}
+
+/**
+ * Compare the declared path with the viewed workspace without resolving symlinks.
+ * @param cwd - viewed workspace root, when known.
+ * @param path - recorded absolute or workspace-relative path.
+ * @returns whether the path lexically lies outside a known workspace.
+ */
+export function isOutsideWorkspace(cwd: string | undefined, path: string): boolean {
+  if (cwd === undefined) return false
+  const windows = /^[a-z]:[/\\]|^[/\\]{2}/iu.test(cwd)
+  const spelling = (value: string) => windows ? value.replace(/\\/gu, '/').toLowerCase() : value
+  const root = spelling(cwd)
+  const declared = spelling(path)
+  const absolute = /^(?:\/|[a-z]:\/)/iu.test(declared)
+  const normalize = (value: string) => {
+    const parts: string[] = []
+    for (const part of value.split('/')) {
+      if (part === '..') parts.pop()
+      else if (part !== '' && part !== '.') parts.push(part)
+    }
+    return parts
+  }
+  const base = normalize(root)
+  const file = normalize(absolute ? declared : `${root}/${declared}`)
+  return base.some((part, index) => file[index] !== part)
 }
 
 /**

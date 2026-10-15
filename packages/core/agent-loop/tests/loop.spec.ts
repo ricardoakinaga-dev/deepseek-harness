@@ -930,7 +930,7 @@ describe('agent loop', () => {
     expect(JSON.stringify(adapter.requests[1]?.messages)).toContain('second idle steer')
   })
 
-  it('stops after a throwing pre-step listener and retains later steering until a wakeup', async () => {
+  it('reports a throwing pre-step listener and runs later unclaimed steering', async () => {
     const adapter = new MockAdapter([textResponse('recovered')])
     const ctx = await harness(adapter)
     const agent = await ctx.agentLoop.create(SessionId('failed-steering'), { provider: 'mock', model: 'mock' })
@@ -943,19 +943,19 @@ describe('agent loop', () => {
     })
 
     send(agent, 'prompt')
-    await waitForIdle(ctx, agent)
-
-    expect(adapter.requests).toHaveLength(0)
-    expect(agent.session.snapshotEvents().filter(event => event.type === 'turn/start')).toHaveLength(1)
-    expect(agent.session.snapshotEvents().filter(event => event.type === 'turn/end')).toHaveLength(1)
-    expect(agent.inbox.nextStep).toHaveLength(1)
-
-    send(agent, 'resume')
-    await waitForIdle(ctx, agent)
+    await agent.whenIdle()
 
     expect(adapter.requests).toHaveLength(1)
     expect(agent.session.snapshotEvents().filter(event => event.type === 'turn/start')).toHaveLength(2)
+    expect(agent.session.snapshotEvents().flatMap(event => event.type === 'turn/end' ? [event.data.reason] : []))
+      .toEqual([
+        { kind: 'error', error: { message: 'pre-step failed', code: 'UNKNOWN' } },
+        { kind: 'completed' },
+      ])
+    expect(agent.inbox.nextStep).toEqual([])
     expect(JSON.stringify(adapter.requests[0]?.messages)).toContain('pending steering')
+    expect(agent.session.snapshotEvents().flatMap(event => event.type === 'user/message' ? event.data.content : []))
+      .toEqual([{ type: 'text', text: 'pending steering' }])
   })
 
   it('inject() while idle durably stages context without opening a turn', async () => {

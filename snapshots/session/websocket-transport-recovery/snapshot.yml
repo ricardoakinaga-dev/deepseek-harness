@@ -1,0 +1,11 @@
+version: 1
+scenario: websocket-transport-recovery
+profile: headless
+composition: websocket-transport-recovery
+recording: authored
+header:
+  class: websocket-transport-recovery
+  pin: true
+platform: posix
+workspace:
+  final: true

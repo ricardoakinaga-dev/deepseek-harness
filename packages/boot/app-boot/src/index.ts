@@ -17,7 +17,10 @@ import Include, { applyEntryPatches, entryListSchema, type PatchOptions } from '
 import Group from '@deepseek-ai/cordis-plugin-group'
 import { dshHomePath, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { createLaunchEnvironmentSnapshot, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
-export { readProfilePatches, resolveTelemetryPatch, type ProfileContext, type ProfilePnpmInvocation } from './profile-context.ts'
+export {
+  readProfilePatches, resolveTelemetryPatch, type ProfileContext, type ProfilePnpmInvocation,
+  type RuntimeIdentity, type RuntimeSourceIdentity, type RuntimeBuildIdentity,
+} from './profile-context.ts'
 export { sanitizeProfile } from './profile-sanitize.ts'
 export { getDshRuntimeVersion, evaluatePluginCompatibility, pluginCompatibilityWarning, type PluginCompatibility } from './plugin-compatibility.ts'
 export {
@@ -50,6 +53,12 @@ declare module '@deepseek-ai/cordis' {
      * @mode emit
      */
     'app-boot/config-reload'(): void
+    /**
+     * A profile patch application attempt and its Loader lifecycle work settled, including removed fibers.
+     * Activation may have failed after siblings changed; listeners re-read actual active entries.
+     * @mode emit
+     */
+    'app-boot/config-settled'(): void
   }
 }
 
@@ -263,12 +272,13 @@ const bootstrapIncludes = new WeakMap<Context, Entry>()
 // reference `process.env`.
 const userPatchesSchema = entryListSchema
 
-/** Apply one complete patch generation and wait for Loader activation diagnostics.
+/** Apply one patch generation and publish actual settlement even when activation fails after sibling changes.
  * @param ctx Booted root context.
  * @param patches Complete ordered patch list.
  * @param binName Diagnostic prefix.
  * @param requiredIds Explicit enablement targets whose existing failures also reject reconciliation.
  * @returns Diagnostics for unchanged pre-existing inactive entries; new or changed failures reject.
+ * @throws Application or observation failures, preserving both when they occur together.
  */
 export async function reconcileProfilePatches(
   ctx: Context, patches: PatchOptions[], binName: string, requiredIds: readonly string[] = [],
@@ -286,19 +296,28 @@ export async function reconcileProfilePatches(
   // The recomposition judges the rows the launch judged, resolved from the file this Include read.
   const parentURL = new URL('.', new URL(includeConfig.path, entry.parent.tree.ctx.baseUrl)).href
   const prepared = prepareProfilePatches(ctx, patches, parentURL, binName)
-  await entry.update({ config: { ...includeConfig, patches: prepared } })
+  const errors: unknown[] = []
+  try { await entry.update({ config: { ...includeConfig, patches: prepared } }) }
+  catch (error) { errors.push(error) }
   const results = await Promise.allSettled(previousFibers.map(({ fiber }) => fiber.await()))
   await ctx.loader.await()
-  const failures = await inactiveEntries(ctx)
-  const introduced = failures.filter(failure => requiredIds.includes(failure.entry.options.id) || !previousFailures.some(previous =>
-    previous.entry === failure.entry && previous.fiber === failure.entry.fiber
-    && previous.options === JSON.stringify(failure.entry.options) && previous.diagnostic === inactiveDiagnostic(failure)))
-  if (introduced.length > 0) throw new Error(activationDiagnostic(binName, introduced).trimEnd())
-  for (const [index, result] of results.entries()) {
-    if (result.status === 'rejected' && !previousFibers[index]?.failed) throw result.reason
-  }
+  let diagnostics: string[] = []
+  try {
+    const failures = await inactiveEntries(ctx)
+    const introduced = failures.filter(failure => requiredIds.includes(failure.entry.options.id) || !previousFailures.some(previous =>
+      previous.entry === failure.entry && previous.fiber === failure.entry.fiber
+      && previous.options === JSON.stringify(failure.entry.options) && previous.diagnostic === inactiveDiagnostic(failure)))
+    if (introduced.length > 0) throw new Error(activationDiagnostic(binName, introduced).trimEnd())
+    for (const [index, result] of results.entries()) {
+      if (result.status === 'rejected' && !previousFibers[index]?.failed) throw result.reason
+    }
+    diagnostics = failures.map(inactiveDiagnostic)
+  } catch (error) { errors.push(error) }
+  try { ctx.emit('app-boot/config-settled') } catch (error) { errors.push(error) }
+  if (errors.length === 1) throw errors[0]
+  if (errors.length > 1) throw new AggregateError(errors, `${binName}: profile reconciliation and observation failed`)
   ctx.emit('app-boot/config-reload')
-  return failures.map(inactiveDiagnostic)
+  return diagnostics
 }
 
 /**

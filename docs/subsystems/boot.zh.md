@@ -226,6 +226,23 @@ Profile patches were reconciled into the running Loader tree: every entry update
 
 Source: [`packages/boot/app-boot/src/index.ts`](../../packages/boot/app-boot/src/index.ts)
 
+<a id="app-bootconfig-settled--emit"></a>
+
+#### `app-boot/config-settled` — emit
+
+A profile patch application attempt and its Loader lifecycle work settled, including removed fibers. Activation may have failed after siblings changed; listeners re-read actual active entries.
+
+```ts cordis-catalog
+/**
+ * A profile patch application attempt and its Loader lifecycle work settled, including removed fibers.
+ * Activation may have failed after siblings changed; listeners re-read actual active entries.
+ * @mode emit
+ */
+'app-boot/config-settled'(): void
+```
+
+Source: [`packages/boot/app-boot/src/index.ts`](../../packages/boot/app-boot/src/index.ts)
+
 <a id="hmr-events"></a>
 
 ### `hmr/*` events
@@ -242,6 +259,23 @@ A watched file has no module or configuration handler.
  * @param url Canonical file URL.
  */
 'hmr/change'(url: string): void
+```
+
+Source: [`packages/boot/hmr/src/index.ts`](../../packages/boot/hmr/src/index.ts)
+
+<a id="hmrconfig-settled--emit"></a>
+
+#### `hmr/config-settled` — emit
+
+Watched Include or module attempts and their lifecycle work, including removed fibers, have settled. Reading, activation or rollback may have failed; listeners must inspect actual active entries.
+
+```ts cordis-catalog
+/** Watched Include or module attempts and their lifecycle work, including removed fibers, have settled.
+ * Reading, activation or rollback may have failed; listeners must inspect actual active entries.
+ * @mode emit
+ * @param filenames Absolute Include and module paths processed by this attempt.
+ */
+'hmr/config-settled'(filenames: readonly string[]): void
 ```
 
 Source: [`packages/boot/hmr/src/index.ts`](../../packages/boot/hmr/src/index.ts)
