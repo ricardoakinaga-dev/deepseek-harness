@@ -1,7 +1,10 @@
 version: 1
 scenario: bash-spill
 profile: headless
-composition: fs
+composition: bash-spill
 recording: authored
 header:
-  class: fs
+  class: bash-spill
+  pin: true
+workspace:
+  final: true

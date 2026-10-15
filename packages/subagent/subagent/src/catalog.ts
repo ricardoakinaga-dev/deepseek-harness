@@ -15,6 +15,7 @@ import type {
   SessionLogOffset,
 } from '@deepseek-ai/dsh-session'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
+import type { SubagentAuthorityData } from './authority-types.ts'
 import type { SubagentCatalogEntry } from './projection-types.ts'
 
 /** Catalog payload version emitted by live child creation. */
@@ -47,10 +48,18 @@ declare module '@deepseek-ai/dsh-session/types' {
 /** Host fold state for one parent catalog. */
 export interface SubagentCatalogState {
   readonly inheritedEventCount: SessionLogOffset
+  readonly authority: Readonly<Record<string, SubagentAuthorityData>>
   readonly head?: ChunkedList<SubagentCatalogEvent> | undefined
 }
 
 const sessionIdSchema = z.string() as unknown as z.ZodType<SessionId>
+const authoritySchema = z.object({
+  version: z.literal(0),
+  childId: sessionIdSchema,
+  sandboxMode: z.enum(['read-only', 'workspace-write', 'danger-full-access']).nullable(),
+  approvalPolicy: z.enum(['ask', 'never']).nullable(),
+  toolFilter: z.object({ allow: z.array(z.string()) }).strict(),
+}).strict()
 const oneShotCatalogSchema = z.object({
   version: z.union([z.literal(0), z.literal(1)]),
   childId: sessionIdSchema,
@@ -74,20 +83,24 @@ const eventDataSchema = z.union([
 const viewSchema = z.array(z.union([
   oneShotCatalogSchema.omit({ version: true, childId: true, childCreatedAt: true }).extend({
     id: sessionIdSchema,
+    authority: authoritySchema.optional(),
     createdAt: oneShotCatalogSchema.shape.childCreatedAt,
   }),
   continuableCatalogSchema.omit({ version: true, childId: true, childCreatedAt: true }).extend({
     id: sessionIdSchema,
+    authority: authoritySchema.optional(),
     createdAt: continuableCatalogSchema.shape.childCreatedAt,
   }),
   unknownCatalogSchema.omit({ version: true, childId: true, childCreatedAt: true }).extend({
     id: sessionIdSchema,
+    authority: authoritySchema.optional(),
     createdAt: unknownCatalogSchema.shape.childCreatedAt,
   }),
 ])) as z.ZodType<SubagentCatalogEntry[]>
 const stateSchema: z.ZodType<SubagentCatalogState> = z.object({
   inheritedEventCount: z.number().int().nonnegative() as unknown as z.ZodType<SessionLogOffset>,
   head: chunkedListSchema(eventDataSchema).optional(),
+  authority: z.record(z.string(), authoritySchema),
 }).strict()
 
 declare module '@deepseek-ai/dsh-session-projection/types' {
@@ -104,14 +117,18 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
 function subagentCatalogEntries(state: SubagentCatalogState): SubagentCatalogEntry[] {
   const entries: SubagentCatalogEntry[] = []
   for (const data of iterateChunkedList(state.head)) {
+    const observed = Object.hasOwn(state.authority, data.childId) ? state.authority[data.childId] : undefined
+    const authority = observed === undefined ? {} : { authority: observed }
     entries.push(data.mode !== 'continuable'
       ? {
+        ...authority,
         id: data.childId,
         createdAt: data.childCreatedAt,
         mode: data.mode,
         ...data.label === undefined ? {} : { label: data.label },
       }
       : {
+        ...authority,
         id: data.childId,
         createdAt: data.childCreatedAt,
         mode: data.mode,
@@ -125,12 +142,17 @@ function subagentCatalogEntries(state: SubagentCatalogState): SubagentCatalogEnt
 export const subagentCatalogProjectionDefinition = {
   key: 'subagentCatalog',
   stateSchema,
-  init: (_header: SessionHeader, inheritedEventCount: SessionLogOffset) => ({ inheritedEventCount }),
+  init: (_header: SessionHeader, inheritedEventCount: SessionLogOffset): SubagentCatalogState => ({ inheritedEventCount, authority: {} }),
   apply: (state, event: SessionEvent) => {
-    if (event.type !== 'subagent/catalog' || event.seq < state.inheritedEventCount) return state
+    if (event.seq < state.inheritedEventCount) return state
+    if (event.type === 'subagent/authority') {
+      const authority = authoritySchema.parse(event.data)
+      return { ...state, authority: { ...state.authority, [authority.childId]: authority } }
+    }
+    if (event.type !== 'subagent/catalog') return state
     return { ...state, head: appendChunkedList(state.head, eventDataSchema.parse(event.data)) }
   },
-  stateVersion: 3,
+  stateVersion: 4,
   wire: { viewSchema, view: subagentCatalogEntries },
 } satisfies ProjectionDefinition<'subagentCatalog', SubagentCatalogState>
 

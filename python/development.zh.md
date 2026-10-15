@@ -40,6 +40,8 @@ SDK 场景会比对 `scripts/snapshots/python-sdk-single-exe/` 下已提交的�
 
 `advanced` 与 `restart` 的比较按每份输入自身的 Session 代际匹配原生 delivery 限定值，包括 SDK 事件与通知。捕获的代际及其他 delivery 代际保留数值。每一侧的 Session 角色必须使用同一个代际，新日志必须标识当前写入器。比较绝不重写已提交的记录。
 
+`advanced`、`restart` 与 `scheduler-recovery` 快照将初始 `runtime/audit` 的版本、Node 版本、平台、架构、启动器哈希及源码修订归一化为各字段专用的占位符。每个场景在 SDK 输出与 Session 日志之间共享占位符映射，保留跨会话身份相同或不同的关系。审计事件、重载记录、profile、bundle、受审计配置值、启动器类型、值为 null 的身份字段及源码 dirty 标志均保留原值。刷新只写入当前写入器的日志，不修改历史代际。
+
 可信拉取请求与 master 推送还会在各自选定的原生目标上运行 `--scenario sdk-live --installed-wheel`。该场景面向 `https://api.deepseek.com` 执行两个使用工具的轮次：立即检查已创建文件，将其内容替换为仅宿主知道的随机挑战值，并要求第二轮将变更后的内容复制到全新的回执文件，且不修改源文件。两个轮次都必须完成、返回精确的哨兵答案并由模型请求调用工具；文件通过外部逐字节比较验证。仓库密钥缺失时失败，而不是自行 skip。Fork 与 Dependabot 拉取请求会运行完整的 keyless 安装后 wheel 路径，但不会获得密钥。
 
 交互式冒烟测试需要环境变量或仓库根目录 `.env` 中存在 `DEEPSEEK_API_KEY`：

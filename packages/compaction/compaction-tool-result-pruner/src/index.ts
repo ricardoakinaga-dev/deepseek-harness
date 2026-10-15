@@ -7,7 +7,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { freezeMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionSeq, ToolResultMessage } from '@deepseek-ai/dsh-session'
 // Type-only: the `compaction/*` SessionEventMap merges (the shadow-price event).
 import type {} from '@deepseek-ai/dsh-compaction'
@@ -50,6 +50,7 @@ export class ToolResultPruner extends Service {
     thresholdChars: z.number().step(1).min(1).default(DEFAULTS.thresholdChars),
     headChars: z.number().step(1).min(0).default(DEFAULTS.headChars),
     tailChars: z.number().step(1).min(0).default(DEFAULTS.tailChars),
+    exemptTools: z.array(z.string().min(1)).default([...DEFAULTS.exemptTools]).extra('extra', { audit: true }),
   })
 
   /** Resolved and immutable character budgets. */
@@ -122,7 +123,8 @@ export class ToolResultPruner extends Service {
   }
 
   /**
-   * Prune every over-budget tool result from one stable current-surface snapshot.
+   * Prune every over-budget tool result from one stable current-surface snapshot,
+   * except results whose surface tool call names a configured `exemptTools` entry.
    * Each replacement preserves the complete event data except for `content`,
    * cites the shadowed node so replay can recover the replacement input, and is
    * immediately preceded by a `compaction/prune` shadow-price event pricing the
@@ -135,16 +137,27 @@ export class ToolResultPruner extends Service {
    */
   pruneSession(session: Session): PruneResult {
     const candidates: SnapshotCandidate[] = []
+    // Balanced compaction keeps each tool call on the surface with its result.
+    const toolNames = new Map<ToolCallId, string>()
     for (const seq of [...session.surface.nodes]) {
       // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
       const event = session.eventAt(seq)
       /*! v8 ignore next -- surface seqs are validated contiguous log references. */
-      if (event?.type === 'tool/result') candidates.push({ seq, event })
+      if (event === undefined) continue
+      if (event.type === 'assistant/message') {
+        for (const block of event.data.message.content) {
+          if (block.type === 'tool-call') toolNames.set(block.id, block.name)
+        }
+      } else if (event.type === 'tool/result') {
+        candidates.push({ seq, event })
+      }
     }
 
     const pruned: PrunedEntry[] = []
     let charsRemoved = 0
     for (const { seq, event } of candidates) {
+      const toolName = toolNames.get(event.data.message.source.callId)
+      if (toolName !== undefined && this.config.exemptTools.includes(toolName)) continue
       const original = session.deriveEventMessage(event) as ToolResultMessage
       const content = this.pruneContent(original.content)
       if (content === null) continue

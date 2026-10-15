@@ -796,6 +796,71 @@ describe('session.export download endpoint', () => {
     expect(reads[0]?.signal).toBeInstanceOf(AbortSignal)
   })
 
+  it('exports saved deliverables once per digest and name, including content-block references', async () => {
+    const digest = 'd'.repeat(64)
+    const attachment = { attachmentId: `sha256:${digest}`, name: 'report.bin', bytes: 4 }
+    const saved = { path: '/removed/report.bin', capture: { status: 'stored', attachment } }
+    const content = [
+      { type: 'deliverables/presented', data: { turn: 1, callId: 'present', files: [saved, saved] } },
+      { type: 'user/message', data: { content: [{ type: 'file', attachment }] } },
+    ].map(row => JSON.stringify(row)).join('\n') + '\n'
+    const ready = directReady()
+    const read = vi.fn(async function* (_ref: FileAttachmentRef, _signal?: AbortSignal) { yield Uint8Array.of(80, 75, 0, 255) })
+    ready.attachments.readFileStream = read
+    const stream = SessionLogExport.streamSessionLogZip(ready, content, sid('session-root'), false, 6, new AbortController().signal)
+    const files = unzipSync(new Uint8Array(await new Response(stream).arrayBuffer()))
+    expect(Object.keys(files).sort()).toEqual([exportLogName, `files/dd/${digest}/report.bin`].sort())
+    expect(files[`files/dd/${digest}/report.bin`]).toEqual(Uint8Array.of(80, 75, 0, 255))
+    expect(strFromU8(files[exportLogName]!)).toBe(content)
+    expect(read).toHaveBeenCalledExactlyOnceWith(attachment, expect.any(AbortSignal))
+  })
+
+  it('includes a saved deliverable referenced only by a descendant Session', async () => {
+    const digest = 'd'.repeat(64)
+    const child = log('child-a', sid('session-root'), [{
+      type: 'deliverables/presented', seq: SessionSeq(1), time: 1000,
+      data: { turn: 1, callId: 'present', files: [{ path: 'gone.txt', capture: { status: 'stored',
+        attachment: { attachmentId: `sha256:${digest}`, name: 'gone.txt', bytes: 3 },
+      } }] },
+    } as SessionEvent])
+    const api = await buildApi({ 'session-root': log('session-root'), 'child-a': child }, [node('child-a')], {
+      readFileStream: async function* () { yield new TextEncoder().encode('old') },
+    })
+    const response = await api.downloads.sessionLog({ sessionId: sid('session-root'), includeDescendants: true }, new AbortController().signal)
+    const files = unzipSync(await responseBytes(response))
+    expect(strFromU8(files[`files/dd/${digest}/gone.txt`]!)).toBe('old')
+  })
+
+  it('ignores historical, oversized, malformed and unrelated delivery capture fields', async () => {
+    const attachment = { attachmentId: `sha256:${'e'.repeat(64)}`, name: 'ignored.bin', bytes: 1 }
+    const files = [null, [], 1, { path: 'historical' },
+      { path: 'old', attachment },
+      { path: 'large', capture: { status: 'too-large', maxBytes: 4, attachment } },
+      { path: 'bad', capture: null }, { path: 'bad', capture: [] },
+      { path: 'bad', capture: { status: 'stored', attachment: null } },
+    ]
+    const content = [
+      { type: 'deliverables/presented', data: { files } },
+      { type: 'deliverables/presented', data: { files: null } },
+      { type: 'plugin:deliverables', data: { files: [{ capture: { status: 'stored', attachment } }] } },
+      { type: 'tool/result', data: { files: [{ capture: { status: 'stored', attachment } }] } },
+    ].map(row => JSON.stringify(row)).join('\n') + '\n'
+    expect(Object.keys(await directZipFiles(content))).toEqual([exportLogName])
+  })
+
+  it.each(['missing', 'corrupt'])('fails export when a saved deliverable is %s', async (failure) => {
+    const content = JSON.stringify({ type: 'deliverables/presented', data: { files: [{ path: 'report.bin', capture: {
+      status: 'stored', attachment: { attachmentId: `sha256:${'f'.repeat(64)}`, name: 'report.bin', bytes: 1 },
+    } }] } }) + '\n'
+    const ready = directReady()
+    ready.attachments.readFileStream = async function* () {
+      if (failure === 'corrupt') yield Uint8Array.of(1)
+      throw new Error(`saved deliverable ${failure}`)
+    }
+    const stream = SessionLogExport.streamSessionLogZip(ready, content, sid('session-root'), false, 6, new AbortController().signal)
+    await expect(new Response(stream).arrayBuffer()).rejects.toThrow(`saved deliverable ${failure}`)
+  })
+
   it('fails the whole export when a referenced file stream fails', async () => {
     const digest = 'b'.repeat(64)
     const id = `sha256:${digest}`

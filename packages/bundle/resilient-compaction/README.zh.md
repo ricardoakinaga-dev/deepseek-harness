@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-这个可选的 fork 私有组合包为源码 checkout 中基于 base 的 `dsh --profile` 表面添加有界压缩，而无需替换官方压缩后端或复制 agent preset。它把压缩输出限制为 4,096 token，选择推理强度 `off`，应用八分钟协作式截止时间，并启用基于日志容量的请求准入。任何随附 profile 都不会自动包含它。它不会以 upstream namespace 发布；在安装到 profile 前，请使用仓库 checkout 或另行授权的 fork namespace 包。
+这个可选的 fork 私有组合包为源码 checkout 中基于 base 的 `dsh --profile` 表面添加有界压缩，而无需替换官方压缩后端或复制 agent preset。它把压缩输出限制为 4,096 token，保留调用方的推理强度，应用八分钟协作式截止时间，并启用基于日志容量的请求准入。任何随附 profile 都不会自动包含它。它不会以 upstream namespace 发布；在安装到 profile 前，请使用仓库 checkout 或另行授权的 fork namespace 包。
 
 ## 目录
 
@@ -37,7 +37,7 @@ pnpm dsh web --patch packages/bundle/resilient-compaction/cordis.patch.yml
 
 ### 获得的行为
 
-该层插入一个具有全局 `llm/stream` 交付的宿主插件。全局交付是必需的，因为 Web 会话会在 preset 领域内挂载官方 `compaction-basic` 引擎。策略应用 `compactionMaxTokens: 4096`、`compactionReasoningEffort: off`、`compactionTimeoutMs: 480000`、请求预检、256-token 安全余量和 1,024-token 回退输出预留。后续 profile 或 `--patch` 层可以替换此配置项的整个 `config` 以调优这些值。
+该层插入一个具有全局 `llm/stream` 交付的宿主插件。全局交付是必需的，因为 Web 会话会在 preset 领域内挂载官方 `compaction-basic` 引擎。策略应用 `compactionMaxTokens: 4096`、`compactionTimeoutMs: 480000`、请求预检、256-token 安全余量和 1,024-token 回退输出预留；它不选择推理强度。后续 profile 或 `--patch` 层可以替换此配置项的整个 `config` 以调优这些值。
 
 -----
 
@@ -85,7 +85,7 @@ pnpm dsh web --patch packages/bundle/resilient-compaction/cordis.patch.yml
 
 这些限制界定组合包的部署边界。
 
-- **`off` 是适配器自有的强度 id**——不公布该值的模型会拒绝压缩；请用受支持的低成本 id 覆盖完整策略配置项，或省略 `compactionReasoningEffort`。
+- **推理强度取决于路由**——该层不选择任何强度；后续层若要为本地模型使用 `off`，应在 `compactionReasoningEffortByRoute` 中设置，因为不公布该强度的模型会拒绝压缩。
 - **该层依赖 base 服务**——必须存在 `llm`、`sessions` 与 `tokenMeter`；缺少它们的极简自定义 profile 会让插件等待依赖。
 - **后续配置 patch 会替换完整配置块**——调优一个字段时，请重述希望保留的每个值。
 - **策略的事件日志限制仍然适用**——在依赖事件日志中的有效推理强度或降低后的输出上限之前，请查阅其 README。

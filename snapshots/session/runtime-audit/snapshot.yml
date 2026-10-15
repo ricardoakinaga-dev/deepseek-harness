@@ -1,0 +1,10 @@
+version: 1
+scenario: runtime-audit
+profile: headless
+composition: runtime-audit
+recording: authored
+header:
+  class: runtime-audit
+  pin: true
+  systemPromptSource: text-turn
+  toolSchemasSource: text-turn

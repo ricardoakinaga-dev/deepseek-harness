@@ -1,0 +1,10 @@
+version: 1
+scenario: resilient-compaction-route-effort
+profile: headless
+composition: resilient-compaction-route-effort
+recording: authored
+header:
+  class: resilient-compaction-route-effort
+  pin: true
+  systemPromptSource: text-turn
+  toolSchemasSource: text-turn

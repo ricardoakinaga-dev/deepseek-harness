@@ -4,7 +4,7 @@ import {
   type SessionProjectionMap, type SessionSummary,
   type SessionProjectionSnapshot,
 } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+import type { SubagentAddress, SubagentAuthorityData } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import {
   IconChevronDownOutlineRegular, IconChevronRightOutlineRegular, IconRefreshOutlineRegular, StateDot, Tooltip,
@@ -17,7 +17,10 @@ import css from './SubagentHeaderLineage.module.css'
 
 type SubagentCatalogSnapshot = Omit<SessionProjectionSnapshot, 'values' | 'state'> & {
   state: 'loading' | 'ready' | 'error'
-  entries: (SessionProjectionMap['subagentCatalog'][number] & { activity: 'running' | 'inactive' })[]
+  entries: (SessionProjectionMap['subagentCatalog'][number] & {
+    activity: 'running' | 'inactive'
+    authority?: SubagentAuthorityData
+  })[]
 }
 type Catalogs = Readonly<Record<SessionId, SubagentCatalogSnapshot>>
 
@@ -197,6 +200,15 @@ function isKnownLeaf(catalog: SubagentCatalogSnapshot | undefined): boolean {
   return catalog?.state === 'ready' && catalog.entries.length === 0
 }
 
+/** The catalog's latest publication observation is independent of requested delegation arguments. */
+function authorityText(authority: SubagentAuthorityData | undefined, t: TranslateNS<typeof NS>): string {
+  if (authority === undefined) return t('authority.unconfirmed')
+  const sandbox = authority.sandboxMode === null ? t('authority.unknown') : t(`authority.${authority.sandboxMode}`)
+  const approval = authority.approvalPolicy === null ? t('authority.unknown') : t(`authority.${authority.approvalPolicy}`)
+  const tools = authority.toolFilter.allow.length === 0 ? t('authority.noTools') : authority.toolFilter.allow.join(', ')
+  return t('authority.publication', { sandbox, approval, tools })
+}
+
 /** Render one catalog level and recurse only through explicitly expanded rows. */
 function CatalogRows({
   parentSessionId, currentSessionId, catalog, catalogs, summaries, expanded, level,
@@ -250,6 +262,7 @@ function CatalogRows({
         const secondary = [summary?.title, mode, activity]
           .filter(value => value !== undefined)
           .join(' · ')
+        const authority = authorityText(entry.authority, t)
         const totalTokens = tokenTotal(summary?.projectionValues?.tokenUsage)
         const durationMs = activityDuration(
           summary,
@@ -310,7 +323,7 @@ function CatalogRows({
               tabIndex={0}
               aria-level={level}
               aria-current={isCurrent || undefined}
-              aria-label={[label, secondary, metrics].filter(value => value !== '').join(' ')}
+              aria-label={[label, secondary, authority, metrics].filter(value => value !== '').join(' ')}
               {...knownLeaf ? {} : { 'aria-expanded': isExpanded }}
               className={css.row}
               onClick={open}
@@ -336,6 +349,7 @@ function CatalogRows({
                 <span className={css.content}>
                   <span className={`${css.label} ${isCurrent ? css.currentLabel : ''}`}>{label}</span>
                   <span className={css.summary}>{secondary}</span>
+                  <span className={css.authority} data-subagent-authority>{authority}</span>
                 </span>
                 {metrics !== '' && (
                   <span className={css.metrics}>

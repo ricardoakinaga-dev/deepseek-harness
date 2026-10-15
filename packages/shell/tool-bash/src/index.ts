@@ -14,7 +14,12 @@
 import { FiberState } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { isAbsolute, sep } from 'node:path'
+import { dirname, isAbsolute, join, sep } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { createReadStream, createWriteStream } from 'node:fs'
+import { unlink } from 'node:fs/promises'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import { defineTool, TOOL_ABORTED } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, TerminalCallView, ToolDefinition, ToolExecution, ToolResult, ToolResultView } from '@deepseek-ai/dsh-tools'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
@@ -28,7 +33,7 @@ import type { SandboxPolicyService } from '@deepseek-ai/dsh-sandbox-policy'
 import { DSH_ENV_PREFIX } from '@deepseek-ai/dsh-shell'
 import type { ShellExecRequest, ShellExecSpec, ShellExecution, ShellRunResult } from '@deepseek-ai/dsh-shell'
 import { processJob, processOutcome, processSources, ringDelta } from './background.ts'
-import { parseExitStatus, renderJobRead, renderPromoted, renderResult } from './render.ts'
+import { parseExitStatus, renderJobRead, renderPromoted, renderResult, renderResultParts } from './render.ts'
 
 export const name = 'tool-bash'
 export const inject = ['tools', 'shell', 'systemPrompt', 'shellEnv']
@@ -91,7 +96,7 @@ function bashDescription(): string {
   return 'Execute a bash command (`bash -c`) and return its stdout/stderr. '
     + 'Each call runs in a fresh shell; pass `workdir` instead of using `cd`. '
     + `Managed \`$${DSH_ENV_PREFIX}*\` variables expose current harness environment facts. `
-    + 'Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. '
+    + 'Long output is truncated to a preview; one file path recovers the complete output when available. '
     + 'Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.'
 }
 
@@ -185,6 +190,46 @@ function canonicalBashResult(result: ShellRunResult) {
   }
 }
 
+/** Preserve complete streams in one recovery file; missing or failed source files never become a preview-only artifact. */
+async function completeOutputPath(result: ShellRunResult, signal: AbortSignal): Promise<string | undefined> {
+  signal.throwIfAborted()
+  const streams = [result.stdout, result.stderr]
+  if (streams.some(stream => stream.truncated && stream.spillPath === undefined)) return undefined
+  if (result.stderr.text === '' && !result.stderr.truncated) return result.stdout.spillPath
+  if (result.stdout.text === '' && !result.stdout.truncated) return result.stderr.spillPath
+  const sourcePath = streams.find(stream => stream.spillPath !== undefined)?.spillPath
+  if (sourcePath === undefined) return undefined
+  const path = join(dirname(sourcePath), `dsh-bash-${randomUUID()}.log`)
+  async function* chunks(): AsyncGenerator<Buffer | string> {
+    for (const [index, stream] of streams.entries()) {
+      signal.throwIfAborted()
+      if (index === 1) yield '\n[stderr]\n'
+      if (stream.spillPath === undefined) yield stream.text
+      else {
+        const source = createReadStream(stream.spillPath, { signal })
+        try {
+          for await (const chunk of source) yield chunk as Buffer
+        } finally {
+          source.destroy()
+        }
+      }
+    }
+  }
+  const file = { created: false }
+  const destination = createWriteStream(path, { flags: 'wx', mode: 0o600 })
+  destination.on('open', () => { file.created = true })
+  try {
+    await pipeline(Readable.from(chunks()), destination, { signal })
+    return path
+  } catch (error) {
+    try { if (file.created) await unlink(path) } catch (cleanupError) {
+      // A failed open creates no file; filesystem cleanup failure must not replace the write error.
+      if ((cleanupError as NodeJS.ErrnoException).code !== 'ENOENT') throw new AggregateError([error, cleanupError], 'bash recovery cleanup failed')
+    }
+    throw error
+  }
+}
+
 /** The structured abort the foreground paths throw when the caller cancels the call. */
 function toolAborted(): HarnessError {
   const error = new HarnessError('tool call aborted', TOOL_ABORTED)
@@ -219,6 +264,26 @@ export function apply(ctx: Context, config: Config = {}): void {
   /** Resolve the complete standing policy for this call when a confining executor is mounted. */
   const resolveSandboxPolicy = (exec: ToolExecution): SandboxExecutionPolicy | undefined =>
     sandboxPolicy?.resolve(exec.agent === undefined ? {} : { session: exec.agent.session })
+
+  /** Canonical recovery metadata lets downstream retention reuse the complete output without interpreting notices. */
+  async function foregroundResult(result: ShellRunResult, signal: AbortSignal) {
+    const value = canonicalBashResult(result)
+    if (!result.stdout.truncated && !result.stderr.truncated) return value
+    let fullOutputPath: string | undefined
+    try {
+      fullOutputPath = await completeOutputPath(result, signal)
+    } catch (error) {
+      signal.throwIfAborted()
+      ctx.logger.warn(`bash: complete output recovery unavailable: ${String(error)}`)
+    }
+    return {
+      ...value,
+      outputRetention: {
+        kind: 'bash-output' as const,
+        ...fullOutputPath !== undefined ? { fullOutputPath } : {},
+      },
+    }
+  }
 
   /**
    * Resolve a sandbox-escalation request through `ctx.approval` BEFORE
@@ -366,7 +431,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       if (process === undefined) throw new Error(view.detail)
       const result = await process.result()
       const stopped = attached.stopped()
-      return { kind: 'foreground' as const, ...canonicalBashResult(result), ...stopped !== undefined ? { stopped } : {} }
+      return { kind: 'foreground' as const, ...await foregroundResult(result, exec.signal), ...stopped !== undefined ? { stopped } : {} }
     }
     return defineTool({
       name: 'bash',
@@ -432,6 +497,14 @@ export function apply(ctx: Context, config: Config = {}): void {
                 aborted: { type: 'boolean', required: true },
                 stopped: { type: 'string' },
                 timeoutMs: { type: 'number', required: true },
+                outputRetention: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    kind: { type: 'string', required: true, const: 'bash-output' },
+                    fullOutputPath: { type: 'string' },
+                  },
+                },
                 stdout: {
                   type: 'object',
                   additionalProperties: false,
@@ -466,14 +539,18 @@ export function apply(ctx: Context, config: Config = {}): void {
             },
           ],
         },
-        render: (_args, value) => [{
-          type: 'text',
-          text: value.kind === 'background'
+        render: (_args, value) => {
+          if (value.kind === 'foreground' && value.outputRetention !== undefined) {
+            const [body, status] = renderResultParts(value as { kind: 'foreground' } & ShellRunResult, escalationModes, true)
+            return [body, `\n[output truncated; full output: ${value.outputRetention.fullOutputPath ?? '(unavailable)'}]`, status]
+              .map(text => ({ type: 'text' as const, text }))
+          }
+          return [{ type: 'text', text: value.kind === 'background'
             ? `started background job ${value.jobId}`
             : value.kind === 'promoted'
               ? renderPromoted(value)
-              : renderResult(value as { kind: 'foreground' } & ShellRunResult, escalationModes),
-        }],
+              : renderResult(value as { kind: 'foreground' } & ShellRunResult, escalationModes) }]
+        },
         presentationMeta: (_args, value) => value.kind === 'foreground'
           ? {
             kind: 'bash-foreground-exit',
@@ -534,7 +611,7 @@ export function apply(ctx: Context, config: Config = {}): void {
         const foreground = await ctx.shell.execute(ctx.shell.resolve({ ...request, signal: exec.signal }))
         const result = await foreground.result()
         if (result.aborted) throw toolAborted()
-        return { kind: 'foreground' as const, ...canonicalBashResult(result) }
+        return { kind: 'foreground' as const, ...await foregroundResult(result, exec.signal) }
       },
       presentCall: presentBashCall,
       presentResult: presentBashResult,

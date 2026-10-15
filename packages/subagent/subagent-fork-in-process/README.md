@@ -29,7 +29,7 @@ Mount this backend when delegated work must build on the parent's conversation. 
 
 ### When to choose it
 
-Choose fork when the child needs the conversation's completed turns — a follow-up analysis, a review, a continuation. Choose spawn when the child should start clean, or an out-of-process backend when the child must not share this process. The seed carries conversation history only: the child still gets a fresh tool scope and none of the parent's authority.
+Choose fork when the child needs the conversation's completed turns — a follow-up analysis, a review, a continuation. Choose spawn when the child should start clean, or an out-of-process backend when the child must not share this process. The seed carries completed conversation history; the shared driver separately captures the parent's current effective sandbox and tool permissions before creating the child.
 
 ### Seed boundary
 
@@ -111,7 +111,7 @@ Read these pages when the package-level contract is not enough; they move from t
 
 #### What the model sees
 
-The child receives the parent's balanced completed-turn prefix, then the new task content verbatim. A configured persona shadows prompt text in the child's fresh scope; a tool restriction filters its global wire schemas, executable lookup, and PTC mode SDK bindings but not standalone guidance. The parent's tool view and authority are not inherited; an optional structured-output request adds a child-only contract; the parent's current in-flight turn is excluded.
+The child receives the parent's balanced completed-turn prefix, then the new task content verbatim. A configured persona shadows prompt text in the child's fresh scope; a tool restriction filters its global wire schemas, executable lookup, and PTC mode SDK bindings but not standalone guidance. The child filter intersects with the parent's effective tool permissions; a requested `sandboxMode` may only narrow the parent policy. An optional structured-output request adds a child-only contract; the parent's current in-flight turn is excluded.
 
 #### Token effect
 

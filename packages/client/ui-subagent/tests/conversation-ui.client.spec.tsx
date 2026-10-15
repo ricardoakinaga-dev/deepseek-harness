@@ -6,6 +6,7 @@ import type {
   SessionListState, SessionSummary, SessionSnapshot,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SubagentAddress, SubagentCatalogRow } from '@deepseek-ai/dsh-subagent/client'
+import type { SubagentAuthorityData } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import {
@@ -13,7 +14,8 @@ import {
   type SubagentCatalogActionProps, type SubagentHeaderLineageProps,
 } from '../src/client/SubagentHeaderLineage.tsx'
 import { SubagentReadOnlyComposer } from '../src/client/SubagentReadOnlyComposer.tsx'
-import { zh } from '../src/client/locales.ts'
+import type {} from '../src/client/index.ts'
+import { en, zh } from '../src/client/locales.ts'
 
 afterEach(() => {
   cleanup()
@@ -26,7 +28,7 @@ const CHILD = 'child' as SessionId
 const GRANDCHILD = 'grandchild' as SessionId
 const t: SubagentHeaderLineageProps['t'] = makeTranslate(zh)
 
-type CatalogFixture = { entries: readonly (SubagentCatalogRow | { id: SessionId; mode: 'unknown'; label?: string; activity: 'inactive' })[]; parentAvailable: boolean; state: 'loading' | 'ready' | 'error'; error: SessionListState['projectionsBySession'][SessionId]['error'] }
+type CatalogFixture = { entries: readonly ((SubagentCatalogRow | { id: SessionId; mode: 'unknown'; label?: string; activity: 'inactive' }) & { authority?: SubagentAuthorityData })[]; parentAvailable: boolean; state: 'loading' | 'ready' | 'error'; error: SessionListState['projectionsBySession'][SessionId]['error'] }
 
 function catalog(over: Partial<CatalogFixture> = {}): CatalogFixture {
   return {
@@ -154,6 +156,75 @@ function HeaderCatalog(props: SubagentHeaderLineageProps) {
 }
 
 describe('SubagentHeaderLineage', () => {
+  it.each([en, zh])('localizes publication authority and includes published infrastructure tools', (dictionary) => {
+    const translate = makeTranslate(dictionary)
+    const authority: SubagentAuthorityData = {
+      version: 0, childId: CHILD, sandboxMode: 'read-only', approvalPolicy: 'ask',
+      toolFilter: { allow: ['read', 'respond', 'run_code'] },
+    }
+    const entry = {
+      id: CHILD, mode: 'continuable' as const, label: 'worker', activity: 'inactive' as const, authority,
+      requested: { sandboxMode: 'danger-full-access', approvalPolicy: 'never', toolFilter: { allow: ['write'] } },
+    }
+    render(<HeaderCatalog {...props(catalog({ entries: [entry] }))} t={translate} />)
+    fireEvent.click(screen.getByRole('button', { name: translate('count.total.one', { count: 1 }) }))
+    const row = screen.getByRole('treeitem', { name: /worker/ })
+    const expected = translate('authority.publication', {
+      sandbox: translate('authority.read-only'), approval: translate('authority.ask'), tools: 'read, respond, run_code',
+    })
+    expect(within(row).getByText(expected)).toBeTruthy()
+    expect(row.getAttribute('aria-label')).toContain(expected)
+    expect(within(row).queryByText(/danger-full-access|write/)).toBeNull()
+  })
+
+  it.each([en, zh])('distinguishes missing observations, null policy facts, and a confirmed empty tool list', (dictionary) => {
+    const translate = makeTranslate(dictionary)
+    const entry = { id: CHILD, mode: 'one-shot' as const, label: 'remote', activity: 'inactive' as const }
+    const current = () => props(catalog({ entries: [entry] }))
+    const view = render(<HeaderCatalog {...current()} t={translate} />)
+    fireEvent.click(screen.getByRole('button', { name: translate('count.total.one', { count: 1 }) }))
+    expect(screen.getByText(translate('authority.unconfirmed'))).toBeTruthy()
+    const authority: SubagentAuthorityData = {
+      version: 0, childId: CHILD, sandboxMode: null, approvalPolicy: null, toolFilter: { allow: [] },
+    }
+    view.rerender(<HeaderCatalog {...props(catalog({ entries: [{ ...entry, authority }] }))} t={translate} />)
+    expect(screen.getByText(translate('authority.publication', {
+      sandbox: translate('authority.unknown'), approval: translate('authority.unknown'), tools: translate('authority.noTools'),
+    }))).toBeTruthy()
+    expect(screen.queryByText(translate('authority.unconfirmed'))).toBeNull()
+  })
+
+  it('updates the row from the latest projected publication, including newly unconfirmed policies', () => {
+    const translate = makeTranslate(en)
+    const entry = { id: CHILD, mode: 'continuable' as const, label: 'worker', activity: 'inactive' as const }
+    const authority: SubagentAuthorityData = {
+      version: 0, childId: CHILD, sandboxMode: 'workspace-write', approvalPolicy: 'never', toolFilter: { allow: ['edit', 'respond'] },
+    }
+    const initial = props(catalog({ entries: [{ ...entry, authority }] }))
+    const view = render(<HeaderCatalog {...initial} t={translate} />)
+    fireEvent.click(screen.getByRole('button', { name: '1 subagent' }))
+    expect(screen.getByText('At latest publication: Files: Workspace write; Approval: Never ask; Tools: edit, respond')).toBeTruthy()
+    view.rerender(<HeaderCatalog {...props(catalog({ entries: [{ ...entry, authority: {
+      ...authority, sandboxMode: 'danger-full-access', approvalPolicy: null, toolFilter: { allow: ['bash', 'respond'] },
+    } }] }))} t={translate} />)
+    expect(screen.getByText('At latest publication: Files: Full file access; Approval: Unconfirmed; Tools: bash, respond')).toBeTruthy()
+    expect(screen.queryByText(/Tools: edit/)).toBeNull()
+    view.rerender(<HeaderCatalog {...initial} t={translate} />)
+    fireEvent.click(screen.getByRole('treeitem', { name: /worker/ }))
+    expect(initial.openChild).toHaveBeenCalledWith({ parentSessionId: PARENT, childSessionId: CHILD, mode: 'continuable' })
+  })
+
+  it('never treats requested delegation arguments as confirmed authority', () => {
+    const entry = {
+      id: CHILD, mode: 'continuable' as const, label: 'worker', activity: 'inactive' as const,
+      sandboxMode: 'danger-full-access', approvalPolicy: 'never', toolFilter: { allow: ['write'] },
+    }
+    render(<HeaderCatalog {...props(catalog({ entries: [entry] }))} t={makeTranslate(en)} />)
+    fireEvent.click(screen.getByRole('button', { name: '1 subagent' }))
+    expect(screen.getByText('Authority unconfirmed: no publication record')).toBeTruthy()
+    expect(screen.queryByText(/At latest publication/)).toBeNull()
+  })
+
   it('shows current catalog-only child status before Host list discovery', () => {
     const input = props(catalog({ entries: [{ id: CHILD, mode: 'continuable', label: 'worker', activity: 'inactive' }] }))
     const initial = input.useSessions(state => state)

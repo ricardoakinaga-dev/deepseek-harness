@@ -26,3 +26,6 @@
         requestPreflight: true
         requestSafetyMarginTokens: 0
         requestOutputReserveTokens: 1
+
+- id: plugin-package-inventory-deepseek
+  disabled: true

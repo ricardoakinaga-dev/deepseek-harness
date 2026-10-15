@@ -25,7 +25,7 @@ Use `dsh-tool-fs-search` to give models `glob` file discovery and `grep` content
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount the tools after a `ctx.subprocess` backend; no host `rg` install is needed, and no filesystem provider is required. The model then gets modification-time-ordered file discovery and line-oriented content search, each bounded and timeout-guarded.
+Mount the tools after a `ctx.subprocess` backend; no host `rg` install is needed, and no filesystem provider is required. The model then gets file discovery ordered with non-ignored paths first and line-oriented content search, each bounded and timeout-guarded.
 
 ### Minimal composition
 
@@ -45,7 +45,7 @@ A subprocess backend, then the tools; the spill backend is optional and makes ca
 
 | Tool | Arguments | Behavior |
 |---|---|---|
-| `glob` | `pattern`, `path?` | Finds files whose paths match a glob pattern, including hidden and ignored files but excluding VCS metadata; a pattern with no `/` matches basenames at any depth, so `*` matches the whole tree; complete results stay modification-time ordered |
+| `glob` | `pattern`, `path?` | Finds files whose paths match a glob pattern, including hidden and ignored files but excluding VCS metadata; a pattern with no `/` matches basenames at any depth, so `*` matches the whole tree; non-ignored results precede ignored results, with modification-time order within each group |
 | `grep` | `pattern`, `path?`, `include?` | Searches file contents with a ripgrep regex and returns matches grouped by file as `Line N: <preview>`; `include` is one positive glob filter, with comma-separated lists and negated values rejected up front |
 
 Routine budgets stay out of the model-facing schema: a model that needs surrounding context reads the matched file with `read`, and one that needs later results follows the returned spill locator's retrieval hint.
@@ -56,11 +56,11 @@ Routine budgets stay out of the model-facing schema: a model that needs surround
 
 | Key | Default | Meaning |
 |---|---|---|
-| `sampleOverCapGlobResults` | none (required) | `true` samples an over-cap `glob` page across top-level entries; `false` keeps the modification-time-ordered head |
+| `sampleOverCapGlobResults` | none (required) | `true` samples an over-cap `glob` page across top-level entries; `false` keeps the ordered head, with non-ignored paths first |
 | `globMaxResults` | `100` | Max paths one `glob` call shows inline |
 | `grepMaxMatches` | `250` | Max flat matches one `grep` call retains inline; later matches go to the formatted spill artifact |
 | `grepMaxLineBytes` | `2000` | Byte cap per matched-line preview, preserving UTF-8 boundaries |
-| `rawOutputMaxBytes` | `20000000` | Max complete raw `rg` stdout a search will parse; larger raw output fails with `SEARCH_RAW_OUTPUT_OVERFLOW` |
+| `rawOutputMaxBytes` | `20000000` | Max complete discovery stdout; larger results fail with `SEARCH_RAW_OUTPUT_OVERFLOW`. Ignore classification retains only discovered candidates |
 | `timeoutMs` | `30000` | Cooperative tool-call budget on both tools, enforced through `exec.signal` |
 | `graceMs` | `3000` | Terminate-escalation grace the subprocess seam grants past `timeoutMs` |
 | `stderrMaxBytes` | `65536` | Diagnostic-tail budget for `rg` stderr |
@@ -103,7 +103,7 @@ Local workspace discovery is naturally a process-backed `rg` workflow, and putti
 
 ### How a search runs
 
-Each call resolves the packaged binary (`@vscode/ripgrep`, or the executable's `-rg` sidecar in a pkg single-file runtime), prepends `--no-config` so a host `RIPGREP_CONFIG_PATH` cannot inject a `--pre` preprocessor into the unconfined spawn, and passes every model-controlled value as a plain argv element — no shell layer exists, so no quoting applies. Collect-mode budgets bound complete stdout and a stderr tail; a lossy stdout read fails as `SEARCH_RAW_OUTPUT_OVERFLOW` rather than parsing a silently-partial stream. The tools never read a raw spill path.
+Each call resolves the packaged binary (`@vscode/ripgrep`, or the executable's `-rg` sidecar in a pkg single-file runtime), prepends `--no-config` so a host `RIPGREP_CONFIG_PATH` cannot inject a `--pre` preprocessor into the unconfined spawn, and passes every model-controlled value as a plain argv element — no shell layer exists, so no quoting applies. Collect-mode budgets bound complete discovery stdout and a stderr tail; a lossy discovery read fails as `SEARCH_RAW_OUTPUT_OVERFLOW` rather than parsing a silently-partial stream. Ignore classification consumes an unsorted stdout pipe, retains only discovered candidates, and bounds its pending line by the longest candidate. Longer unrelated lines are discarded through their newline. Stream failures terminate and join the child. The tools never read a raw spill path.
 
 ### Two budgets, two artifacts
 
@@ -174,7 +174,7 @@ Prefix-stable while tool visibility and definitions are unchanged. Registration 
 
 #### What the model sees
 
-`glob` returns one path per line; `grep` groups `Line <line>: <preview>` matches beneath each path. Empty searches return `No files found` or `No matches found`. A capped result ends with its omission count plus the spill locator and backend retrieval hint, or says the complete result could not be saved. With `sampleOverCapGlobResults: true`, an over-cap `glob` page takes paths round-robin across entries immediately beneath the actual search root, and the footer states the sampled basis and how many top-level entries it reached; with `false`, the page is the modification-time-ordered head and keeps the plain capped-result footer. The spill artifact always holds the complete list in modification-time order.
+`glob` returns one path per line and labels ignored paths with `[ignored by ignore rules]`; `grep` groups `Line <line>: <preview>` matches beneath each path. Glob classification streams a second ripgrep listing that respects `.gitignore`, `.ignore` and other ripgrep ignore sources; it does not claim that a file is tracked by Git. Non-ignored paths come first, with modification-time order inside each group. Empty searches return `No files found` or `No matches found`. A capped result gives the omitted count and complete-list spill locator, or states that the list could not be saved. Sampling chooses top-level entries within the non-ignored group before filling remaining places from ignored paths. The spill includes the full ordered list and its annotations. Both scans share cancellation and the tool timeout. Classification traverses the search root without retaining unrelated paths, so unrelated listing volume does not exhaust the discovery output cap; a large traversal can still reach the timeout.
 
 #### Token effect
 

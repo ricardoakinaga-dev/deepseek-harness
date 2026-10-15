@@ -345,7 +345,7 @@ const profile = z.object({
   maxRequestImageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_REQUEST_IMAGE_BYTES),
   requestImagePixelBudget: z.number().step(1).min(1).default(DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET),
   requestImageMaxBytes: z.number().step(1).min(1).default(DEFAULT_REQUEST_IMAGE_MAX_BYTES),
-  retryPolicy: RetryPolicySchema,
+  retryPolicy: RetryPolicySchema.extra('extra', { audit: true }),
 })
 
 /** Runtime schema for {@link Config}. */

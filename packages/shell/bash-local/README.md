@@ -44,13 +44,16 @@ Load the executor with the budgets you want; every field has a default, so the s
 | `cwd` | `process.cwd()` | Default working directory for commands |
 | `timeoutMs` | `120,000` | Default foreground timeout, in milliseconds |
 | `maxTimeoutMs` | `600,000` | Cap for per-call timeout overrides |
-| `maxOutputBytes` | `64,000` | Per-stream in-memory output cap; overflow spills to a temp file |
+| `maxOutputBytes` | `64,000` | Per-stream output cap in whole bytes; overflow spills to a temp file |
+| `outputHeadRatio` | `0.2` | Final preview prefix fraction, from 0 to 1; 0 keeps only the tail |
 | `maxSpillBytes` | `67,108,864` | Per-stream full-output spill cap |
 | `graceMs` | `3,000` | Grace period for kill escalation and post-exit pipe draining |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-bash-local) is the exhaustive source for every accepted field and its JSDoc.
 
 ### Running commands
+
+Final stdout/stderr previews preserve the configured prefix and suffix, with UTF-8-safe cuts and complete boundary lines when available. The separator counts toward the byte cap. Job readers keep the original tail and whole-stream offsets, so foreground previews never replay old prefix bytes into a job.
 
 Run a command by awaiting the execution's `result()` projection. A nonzero exit, a timeout, or a cancellation resolves with a descriptive result — only infrastructure failures reject. Per-call `timeoutMs` overrides are capped by the configuration, while `workdir` falls back to the configured default when unset; a trusted caller can also raise the per-call stdout capture budget, while stderr keeps `maxOutputBytes`. The environment is model-friendly by default: `NO_COLOR=1 TERM=dumb PAGER=cat GIT_PAGER=cat` keep pagers and ANSI colors from garbling output, and an explicit caller-provided entry still wins.
 
@@ -124,7 +127,7 @@ Read these pages when the executor contract is not enough. They move from the se
 <a id="model-experience"></a>
 ## Model Experience
 
-Indirectly, through `dsh-tool-bash`, which renders this executor's bounded stdout/stderr tails, background-process deltas, spill-file paths, and infrastructure failures.
+Indirectly, through `dsh-tool-bash`, which renders this executor's bounded stdout/stderr previews, background-process deltas, spill-file paths, and infrastructure failures.
 
 #### KV Cache effect
 

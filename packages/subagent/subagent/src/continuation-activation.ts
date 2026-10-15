@@ -101,6 +101,12 @@ export interface Activation {
    * not exist, so its teardown owes the parent no settlement account.
    */
   announced: boolean
+  /** Successful child-to-parent admissions belonging only to this residency epoch. */
+  readonly parentMessages: Set<MessageId>
+  /** Last admitted message consumed by the parent during this residency epoch. */
+  lastParentMessage?: UserMessage
+  /** Parent delivery observation remains live until the settlement notice is built. */
+  stopParentMessages?: () => void
   /** Renewed whenever a settlement watcher must re-check residency state. */
   poke: PromiseWithResolvers<void>
 }
@@ -120,7 +126,7 @@ export interface MaterializeInputs {
     meta: NonNullable<CreateAgentOptions['meta']>
     /** Exact parent-log prefix length inside {@link seed}. */
     inheritedEventCount: SessionLogOffsetType
-    /** Policy captured at delegation: the parent's sandbox override plus the approval pin. */
+    /** Policy captured at delegation: the narrowed effective file mode plus the approval pin. */
     delegatedPolicies: DelegatedPolicyOverrides
     /** Child-owned composition record appended after the inherited marker. */
     descriptor: SubagentDescriptorData
@@ -661,6 +667,7 @@ export class ContinuableActivationRegistry {
       ownedChildren: new Set(),
       observer,
       announced: false,
+      parentMessages: new Set(),
       poke: Promise.withResolvers<void>(),
     }
     this.resident.set(childId, activation)
@@ -671,6 +678,10 @@ export class ContinuableActivationRegistry {
       const wakeOnInboxRemoval = (): void => { this.wake(activation) }
       handle.agent.ctx.on('agent/inbox/claimed', wakeOnInboxRemoval)
       handle.agent.ctx.on('agent/inbox/discarded', wakeOnInboxRemoval)
+      activation.stopParentMessages = this.ownerCtx.on('session/event', (session, event) => {
+        if (session.id === activation.parentSession && event.type === 'user/message'
+          && activation.parentMessages.has(event.data.id)) activation.lastParentMessage = event.data
+      }, { global: true })
       observer.start(handle.agent)
     } catch (error: unknown) {
       /*! v8 ignore next -- rollback failure must not mask the admission failure
@@ -688,6 +699,7 @@ export class ContinuableActivationRegistry {
       try {
         await activation.handle.dispose()
       } finally {
+        activation.stopParentMessages?.()
         this.resident.delete(activation.childId)
         activation.releaseSlot()
         this.releaseOwnership(activation.childId)
@@ -862,6 +874,7 @@ export class ContinuableActivationRegistry {
     this.resident.delete(childId)
     activation.releaseSlot()
     this.notifySettlement(activation, activation.observer.terminal(failure))
+    activation.stopParentMessages?.()
     this.releaseOwnership(childId)
     activation.observer.settle(failure)
     if (failure !== undefined) throw failure
@@ -873,7 +886,7 @@ export class ContinuableActivationRegistry {
     try {
       const parent = this.ctx.agents.get(activation.parentSession)
       if (parent === undefined) return
-      const message = createSettlementMessage(activation.childId, terminal)
+      const message = createSettlementMessage(activation.childId, terminal, activation.lastParentMessage)
       if (this.closingTeardownFor(parent) !== undefined) {
         parent.inject(message)
         return

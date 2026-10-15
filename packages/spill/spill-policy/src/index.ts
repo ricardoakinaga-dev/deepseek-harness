@@ -11,10 +11,10 @@ import { createUserMessage, resolveImageAttachmentAccess } from '@deepseek-ai/ds
 import type { ContentBlock, ImageBlock, LlmImageRequestPrice, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { estimateContent } from '@deepseek-ai/dsh-token-meter/estimate'
 import type { SpillRef } from '@deepseek-ai/dsh-spill'
-import type { PostToolDecision, ToolExecution } from '@deepseek-ai/dsh-tools'
+import type { PostToolDecision, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-fs'
-import type { SpillPolicyExec } from './types.ts'
+import type { BashOutputRetention, SpillPolicyExec } from './types.ts'
 import { formatSpillNotice } from './notice.ts'
 import { retainContent } from './retention.ts'
 import type { RetainableBlock } from './retention.ts'
@@ -40,6 +40,17 @@ function retainable(content: readonly ContentBlock[]): content is RetainableBloc
 
 const GAP = { type: 'text', text: '\n\n[...]\n\n' } as const
 
+/** Read only the canonical producer marker; process output cannot opt itself into recovery reuse. */
+function bashRetention(exec: ToolExecution, result: ToolExecutionResult): BashOutputRetention | undefined {
+  if (exec.name !== 'bash' || result.isError) return undefined
+  const value = result.value
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+  const marker = value.outputRetention
+  if (typeof marker !== 'object' || marker === null || Array.isArray(marker) || marker.kind !== 'bash-output') return undefined
+  if (marker.fullOutputPath !== undefined && typeof marker.fullOutputPath !== 'string') return undefined
+  return { kind: 'bash-output', ...typeof marker.fullOutputPath === 'string' ? { fullOutputPath: marker.fullOutputPath } : {} }
+}
+
 /**
  * Mount token retention for accepted tool results and PTC log copies.
  * @param ctx - tool registry and optional pricing, filesystem, attachment, and spill services.
@@ -52,6 +63,24 @@ export function apply(ctx: Context, config: Config): void {
     throw new Error(`spill-policy: maxInlineTokens must be a non-negative integer (got ${cap})`)
   }
   const maxTokens = cap
+
+  /** Keep one canonical recovery notice and terminal status without writing the already-truncated preview to storage. */
+  function boundBash(content: ContentBlock[], marker: BashOutputRetention): ContentBlock[] | undefined {
+    const [body, _notice, status] = content
+    if (content.length !== 3 || body?.type !== 'text' || status?.type !== 'text') return undefined
+    const suffix = `\n[output truncated; full output: ${marker.fullOutputPath ?? '(unavailable)'}]${status.text}`
+    const price = (block: RetainableBlock): number => estimateContent([block])
+    const wrap = (text: string): ContentBlock[] => [{ type: 'text', text: text + suffix }]
+    if (estimateContent(wrap(body.text)) <= maxTokens) return wrap(body.text)
+    const reserved = price({ type: 'text', text: suffix }) + price(GAP)
+    if (reserved > maxTokens) {
+      ctx.logger.warn('spill-policy: bash recovery notice and status exceed maxInlineTokens; keeping the inline content')
+      return undefined
+    }
+    const retained = retainContent([body], maxTokens - reserved, price)
+    const text = [...retained.head, GAP, ...retained.tail].map(block => block.type === 'text' ? block.text : '').join('')
+    return wrap(text)
+  }
 
   /** Price actual request images and their accompanying descriptor text. */
   function pricing(exec: ToolExecution, images: ImageBlock[]): (block: RetainableBlock) => number {
@@ -134,9 +163,19 @@ export function apply(ctx: Context, config: Config): void {
     const decision = await next()
     if (decision.kind !== 'accept' || Object.hasOwn(decision, 'value') || exec.name === 'read') return decision
     const content = decision.content ?? result.content
+    const recovery = bashRetention(exec, result)
+    if (recovery !== undefined) {
+      // A downstream policy replacing content owns its projection; its blocks do not carry the producer's positions.
+      if (decision.content !== undefined) return decision
+      const retained = boundBash(content, recovery)
+      return retained === undefined ? decision : {
+        kind: 'accept', content: retained,
+        ...decision.additionalContexts !== undefined ? { additionalContexts: decision.additionalContexts } : {},
+      }
+    }
     const hasImages = content.some(block => block.type === 'image')
-    // Text-only PTC bindings retain their asynchronous log-only spill path.
-    if (exec.parent !== undefined && !hasImages) return decision
+    // Bash recovery metadata exists at post-execute, before the PTC log drops the canonical value.
+    if (exec.parent !== undefined && !hasImages && exec.name !== 'bash') return decision
     const retained = await bound(exec, content, exec.name, exec.callId, exec.parent === undefined ? 'result' : 'dispatch')
     if (retained === undefined) return decision
     const additionalContexts = [...decision.additionalContexts ?? []]
@@ -151,6 +190,7 @@ export function apply(ctx: Context, config: Config): void {
 
   ctx.on('tools/ptc-dispatch-log', async (dispatch, next): Promise<ContentBlock[]> => {
     const content = await next()
+    if (dispatch.name === 'bash') return content
     return await bound(dispatch.exec, content, dispatch.name, dispatch.subCallId, 'dispatch') ?? content
   }, { prepend: true })
 }

@@ -135,6 +135,8 @@ Windows 档为每个工作区保留一个确定性写入 SID 和常驻 ACE，同
 - **runner 选择在提供方生命周期内缓存**——安装、移除或修复 runner 后，必须重载插件才能改变选择。
 - **`runnerCommand` 是操作方断言**——配置的自定义 runner 会跳过功能探测，并假定它诚实实现与 bwrap 兼容的 profile；如果它本身是 Bash 脚本，其解释器启动发生在该脚本施加约束之前。
 
+`describe(policy)` 与 `confine()` 使用相同的 runner 选择缓存。Bubblewrap 的 workspace-write 模式为每条命令挂载模式为 `1777` 的新 `/tmp`，不共享普通文件系统工具使用的宿主临时文件；但可写工作区为 `/` 或 `/tmp` 时，后续的绑定挂载会暴露宿主临时目录。其 UID/GID 映射取决于 runner 的安装方式，不能假定未映射的宿主身份保留 root 所有权或补充组。选择阶段探测包含 `--perms` 的 workspace-write 参数；选项不受支持时回退到 Landlock。
+
 <a id="dev-note"></a>
 ### 开发备注
 

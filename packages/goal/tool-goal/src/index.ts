@@ -77,8 +77,8 @@ const TASK_MANIFEST_SCHEMA = {
 
 const CREATE_DESCRIPTION =
   'Create a persisted goal that keeps this session working across automatic continuation rounds. '
-  + 'Use it when the direct human request is a long-running objective, even if the user did not say "goal"; '
-  + 'not for single-turn work.'
+  + 'Call only when the current human message contains a JSON object with exactly objective and requiredTasks. '
+  + 'For a prose request, continue the authorized work without creating a goal.'
 
 const GET_DESCRIPTION = 'Read the current session goal, including the id and revision that update_goal requires.'
 
@@ -147,10 +147,10 @@ const GOAL_VALUE_SCHEMA = {
 
 /** Render policy guidance with its deployment-selected blocked threshold. */
 function guidance(blockedAfter: number): string {
-  return 'create_goal may infer goal intent from a direct human request in any language. '
-    + 'After session resume or fork, an active goal is disarmed: when '
+  return 'After session resume or fork, an active goal is disarmed: when '
     + 'a human asks to continue or resume in any wording or language, use update_goal action '
-    + 'resume to rearm it. Create a task manifest by copying every ID and criterion from exact human JSON objective and requiredTasks fields without inference. '
+    + 'resume to rearm it. If automatic continuation is needed but no human JSON manifest exists, '
+    + 'prepare a complete manifest for the human to submit with /goal create; /goal scope only updates an existing goal. '
     + 'For a released goal without a manifest, ask the human to set its first requiredTasks with /goal scope; all adopted tasks start PENDING. '
     + 'Use task_status for progress. Human task acceptance and scope changes use explicit /goal commands. '
     + 'Completion requires a manifest with every task accepted. '
@@ -258,7 +258,7 @@ export function apply(ctx: Context, config: Config): void {
       objective: {
         type: 'string',
         required: true,
-        description: 'The concrete completion objective inferred from the direct human request.',
+        description: 'Copy the exact objective string from the JSON object in the current human message.',
       },
       max_goal_rounds: {
         type: 'number',
@@ -267,7 +267,7 @@ export function apply(ctx: Context, config: Config): void {
       required_tasks: {
         ...REQUIRED_TASKS_PARAMETER,
         required: true,
-        description: 'Copy every ID and criterion from the human message JSON requiredTasks array. The objective and array must match exactly.',
+        description: 'Non-empty array. Copy every ID and criterion, in order, from that human JSON requiredTasks array; do not infer, omit, or invent tasks.',
       },
     },
     output: GOAL_OUTPUT,

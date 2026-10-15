@@ -247,6 +247,8 @@ These limits define when the catalog or the loader is a poor fit. They are curre
 - **Catalog replacement is whole-list** — one changed name or description appends every visible summary; this keeps stale-name retirement explicit but costs tokens proportional to the catalog.
 - **Bodies are not versioned** — body-only edits do not change the catalog digest or notify the model; a later tool call reads the current provider content while earlier tool results remain historical facts.
 
+With `sessionProjections` mounted, an unchanged direct skill load returns a short reference only while its complete rendered instructions remain on the model surface. The `activeSkills` fold tracks verified result metadata without scanning Session history; replacement, pruning, provider changes, or changed instruction text require a full load. Nested program calls and deployments without that projection service always return full content. Presentation metadata records the loaded instruction character count, not a tokenizer estimate; a reused result records no new instruction body.
+
 <a id="dev-note"></a>
 ### Dev Note
 

@@ -6423,7 +6423,7 @@
       "kind": "event",
       "event": "deliverables/presented",
       "surface": false,
-      "digest": "13d3d180f977bf78081d487ffa0ecb75857349bcab29a5a3fb48189fca2a6176",
+      "digest": "c2562179620a32b65cc7d1d163604db65c4332fd207e8d4e9b1bb1c48241ef1d",
       "schema": {
         "root": 0,
         "nodes": [
@@ -6437,22 +6437,22 @@
               },
               {
                 "name": "ignorable",
-                "type": 6,
+                "type": 12,
                 "optional": true
               },
               {
                 "name": "seq",
-                "type": 5,
+                "type": 7,
                 "optional": false
               },
               {
                 "name": "time",
-                "type": 5,
+                "type": 7,
                 "optional": false
               },
               {
                 "name": "type",
-                "type": 7,
+                "type": 13,
                 "optional": false
               }
             ],
@@ -6473,7 +6473,7 @@
               },
               {
                 "name": "turn",
-                "type": 5,
+                "type": 7,
                 "optional": false
               }
             ],
@@ -6491,6 +6491,11 @@
             "kind": "object",
             "properties": [
               {
+                "name": "capture",
+                "type": 5,
+                "optional": true
+              },
+              {
                 "name": "description",
                 "type": 2,
                 "optional": true
@@ -6504,8 +6509,76 @@
             "indices": []
           },
           {
+            "kind": "union",
+            "types": [
+              6,
+              9
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "maxBytes",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
             "kind": "primitive",
             "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "too-large"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachment",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 11,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachmentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "bytes",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": "stored"
           },
           {
             "kind": "literal",
@@ -11325,6 +11398,487 @@
       }
     },
     {
+      "key": "event:runtime/audit",
+      "kind": "event",
+      "event": "runtime/audit",
+      "surface": false,
+      "digest": "3816f7d08fae774bf2d0952c3fbc160f07a74af1490ab5e217e3452bc0907ffe",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 25,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 26,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              2,
+              23
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "configuration",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "profile",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "reason",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "runtime",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "startedBundles",
+                "type": 22,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 4
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "id",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "plugin",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "values",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              7,
+              8,
+              9,
+              10,
+              11
+            ]
+          },
+          {
+            "kind": "primitive",
+            "type": "null"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 6
+          },
+          {
+            "kind": "object",
+            "properties": [],
+            "indices": [
+              {
+                "key": 5,
+                "value": 6
+              }
+            ]
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "literal",
+            "value": "initial"
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              14
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "arch",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "launcher",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "nodeVersion",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "platform",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "source",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "kind",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 19,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              17,
+              18
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "source"
+          },
+          {
+            "kind": "literal",
+            "value": "artifact"
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              7
+            ]
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              21
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "dirty",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "configuration",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "reason",
+                "type": 24,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": "reload"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "runtime/audit"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:sandbox/environment",
+      "kind": "event",
+      "event": "sandbox/environment",
+      "surface": false,
+      "digest": "0237cf86dfd53b683c593cedef2e36d1721787cc3af7bbc74249b98f0327c9d9",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 21,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "environment",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "mode",
+                "type": 18,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "enforcement",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "identity",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "runner",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "sharesHostTemporaryFiles",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "temporaryFiles",
+                "type": 15,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "full"
+          },
+          {
+            "kind": "literal",
+            "value": "partial"
+          },
+          {
+            "kind": "literal",
+            "value": "unavailable"
+          },
+          {
+            "kind": "union",
+            "types": [
+              8,
+              9,
+              10,
+              11
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "host"
+          },
+          {
+            "kind": "literal",
+            "value": "namespace-dependent"
+          },
+          {
+            "kind": "literal",
+            "value": "unknown"
+          },
+          {
+            "kind": "literal",
+            "value": "restricted-token"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              10,
+              14
+            ]
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "union",
+            "types": [
+              8,
+              10,
+              16,
+              17
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "per-call"
+          },
+          {
+            "kind": "literal",
+            "value": "per-session"
+          },
+          {
+            "kind": "union",
+            "types": [
+              19,
+              20
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "read-only"
+          },
+          {
+            "kind": "literal",
+            "value": "workspace-write"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "sandbox/environment"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:sandbox/mode",
       "kind": "event",
       "event": "sandbox/mode",
@@ -15091,6 +15645,156 @@
           {
             "kind": "literal",
             "value": "step/start"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:subagent/authority",
+      "kind": "event",
+      "event": "subagent/authority",
+      "surface": false,
+      "digest": "25cc6c357d85dc66217a19e4d95bd2aaa5032de5e3e36ee99667d0c956a86ff2",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 14,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 16,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "approvalPolicy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "childId",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "sandboxMode",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "toolFilter",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              3,
+              4,
+              5
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ask"
+          },
+          {
+            "kind": "literal",
+            "value": "never"
+          },
+          {
+            "kind": "primitive",
+            "type": "null"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              8,
+              9,
+              10
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "read-only"
+          },
+          {
+            "kind": "literal",
+            "value": "workspace-write"
+          },
+          {
+            "kind": "literal",
+            "value": "danger-full-access"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "allow",
+                "type": 12,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 6
+          },
+          {
+            "kind": "literal",
+            "value": 0
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "subagent/authority"
           }
         ]
       }
@@ -21905,6 +22609,16 @@
   ],
   "types": [
     {
+      "digest": "000004541c88c1e8273db6257fdad2417fc6a8d3af3d26560b6a93021eac1987",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "006a1a8ffc38f043a34dab8a649dc41ee8be79a45143c3c1317f7ceda9118b66",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "0116b1f89c05221d56b0ba35c83d302bf4857bc7277d247e9bbaf74b27d2c66e",
       "names": [],
       "sources": []
@@ -21916,6 +22630,11 @@
     },
     {
       "digest": "022623b9ef98ec47ec3c3bae0c51027c70d2601141c5e92e26a0d83d1b4cef06",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "0237cf86dfd53b683c593cedef2e36d1721787cc3af7bbc74249b98f0327c9d9",
       "names": [],
       "sources": []
     },
@@ -21969,6 +22688,11 @@
       "sources": [
         "packages/core/session/src/types.ts:32"
       ]
+    },
+    {
+      "digest": "06c5520ef5d26d0d411235ca5814b8feef6b878f16d77a7dc837f28a3bd30e05",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "07e1a58c58b593f507b8e7f25723bb0aa42baae6e00f5ecfddf28cb1e64d3235",
@@ -22173,11 +22897,6 @@
       "sources": []
     },
     {
-      "digest": "13d3d180f977bf78081d487ffa0ecb75857349bcab29a5a3fb48189fca2a6176",
-      "names": [],
-      "sources": []
-    },
-    {
       "digest": "14230f9b8b5797bb7e8c621fa636531cfbde2ffba1ef5f1fd058216ff21952a0",
       "names": [],
       "sources": []
@@ -22196,13 +22915,6 @@
       "digest": "15196447222782e773eb943c92b18316ce96b9af0f0cfddb6e57ba8274ecc5ff",
       "names": [],
       "sources": []
-    },
-    {
-      "digest": "1528539c63db8b23506f0209a99ce77d8ad138adfbfcee3d4769b7382d93756c",
-      "names": [],
-      "sources": [
-        "packages/deliverables/tool-present/src/types.ts:15"
-      ]
     },
     {
       "digest": "15495614ccfa9cbdeefb0ec2abd76406435f4c6ff3dae42acae8e09ef42025c9",
@@ -22280,6 +22992,15 @@
       "sources": []
     },
     {
+      "digest": "1a01af7dc9a6b0fed221a679534615e146783325ce1a0d7a60f40bd595fa1fb6",
+      "names": [
+        "packages/settings/settings/src/types.ts#RuntimeAuditEventData"
+      ],
+      "sources": [
+        "packages/settings/settings/src/types.ts:101"
+      ]
+    },
+    {
       "digest": "1a2718b00937b236a0d0910ef5dab2f9f8b65e4bde410cc21f15fbbf29f584d3",
       "names": [],
       "sources": []
@@ -22337,6 +23058,15 @@
       ]
     },
     {
+      "digest": "1d41703fa398d6b02d9c972085b4ccd6b208a11dcd984b36c9da5e2e83904fad",
+      "names": [
+        "packages/sandbox/sandbox/src/index.ts#SandboxExecutionEnvironment"
+      ],
+      "sources": [
+        "packages/sandbox/sandbox/src/index.ts:63"
+      ]
+    },
+    {
       "digest": "1d5f04a03ea75fc8eeece544129eba0f49f0c82046e9c404461920390135c7b2",
       "names": [],
       "sources": []
@@ -22354,17 +23084,12 @@
       "sources": []
     },
     {
-      "digest": "1d9cb3caa96100b18b1911fa3ff8c751ef6992971a03c5f4d9aefc1a0004a345",
-      "names": [],
-      "sources": []
-    },
-    {
       "digest": "1de64ea9a0849ce631b7e4e1255ae773fabd94a4a7c8d27e716f8012302e12c0",
       "names": [
         "packages/subagent/subagent/src/catalog.ts#SubagentCatalogEvent"
       ],
       "sources": [
-        "packages/subagent/subagent/src/catalog.ts:28"
+        "packages/subagent/subagent/src/catalog.ts:29"
       ]
     },
     {
@@ -22452,6 +23177,11 @@
       "sources": []
     },
     {
+      "digest": "228ed8634ce7f38d76bde9baaad9ae77553e7373c0e587837291900a65e3e104",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "234142ee4f996f38cc9fa3b8b3e3de29b03c9aefe5ebf6c224eddd564505aa85",
       "names": [],
       "sources": []
@@ -22496,6 +23226,11 @@
     },
     {
       "digest": "254dce209e735f9cb6f6b7aec0354712b1611759ec02af4d35a96f2081e666f6",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "25cc6c357d85dc66217a19e4d95bd2aaa5032de5e3e36ee99667d0c956a86ff2",
       "names": [],
       "sources": []
     },
@@ -22552,6 +23287,11 @@
     },
     {
       "digest": "297fbd8067d7815adae02b89790ec6ff5fb7c2cb0d0eb026e1746c24ec857761",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "298453a28186013407cd4f6b1e04da1c83e758be67884b23f3e551a1d5d9de96",
       "names": [],
       "sources": []
     },
@@ -22738,6 +23478,11 @@
       "sources": []
     },
     {
+      "digest": "3816f7d08fae774bf2d0952c3fbc160f07a74af1490ab5e217e3452bc0907ffe",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "383cf73ae4748e5beb281ae74857ba1ffb92ae01075b9fbf51af78b666007a8f",
       "names": [],
       "sources": []
@@ -22750,12 +23495,28 @@
       ]
     },
     {
+      "digest": "38c383dadaca36933375d170dc8ab5e00a83a8457273b2265bed76c2f3d768ca",
+      "names": [],
+      "sources": [
+        "packages/subagent/subagent/src/authority-types.ts:13"
+      ]
+    },
+    {
       "digest": "390eed1028aba02774f14408647acec10ec5516e97d4f15ecde2b9989d5a69f2",
       "names": [
         "packages/feedback/message-feedback/src/types.ts#MessageFeedbackRating"
       ],
       "sources": [
         "packages/feedback/message-feedback/src/types.ts:17"
+      ]
+    },
+    {
+      "digest": "39c0977fe3b8ab3bebd7547531130a62d6d1c1182b289fbbd7b51288cc127265",
+      "names": [
+        "packages/subagent/subagent/src/authority-types.ts#SubagentAuthorityData"
+      ],
+      "sources": [
+        "packages/subagent/subagent/src/authority-types.ts:5"
       ]
     },
     {
@@ -22855,7 +23616,17 @@
       ]
     },
     {
+      "digest": "3ea9f5dee2e12d82f0401fd68b3afae7f72bd170048dfca1fee910adfaffe5b1",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "3ee93b06f3a125850337602bcdf155d2538c43a5c944ec55b1b3c365152d6796",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "3f4db1b6927c888e4ed956d4f223473d695ded8f3bfcc7ea45b6b3d187ed8359",
       "names": [],
       "sources": []
     },
@@ -22903,6 +23674,11 @@
       "sources": []
     },
     {
+      "digest": "42e5a5f8d7aa1d54e481f8a6398cc361d3c526454694a588bebbad6a97442a4f",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "4312134fc6f9cad507c31390bd3d147535492dd77621ec517c5e85f853d53a03",
       "names": [],
       "sources": []
@@ -22937,6 +23713,11 @@
       "sources": [
         "packages/interaction/user-approval/src/types.ts:44"
       ]
+    },
+    {
+      "digest": "4742ec4cf57db4e04b5833221ab142cd25a55fcafd36f291ea21d5b5cb6cdd30",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "477614bca595a9e7adb5a1870be446b9a8684f3ba8950259d6289f2d3b74f028",
@@ -22993,6 +23774,13 @@
       ],
       "sources": [
         "packages/subagent/subagent/src/continuation-messages.ts:15"
+      ]
+    },
+    {
+      "digest": "4aa6fcf617d196e04da5291171f53b491798bcc9dfe12bdee98c95b8325bc109",
+      "names": [],
+      "sources": [
+        "packages/settings/settings/src/types.ts:97"
       ]
     },
     {
@@ -23087,6 +23875,11 @@
         "packages/webhook/webhook/src/brand.ts:9",
         "packages/workflow/workflow/src/types.ts:13"
       ]
+    },
+    {
+      "digest": "4d780d94f87c037042844a98f7ab0265bbc3d28b72654066f6ada38b5a38ca35",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "4e011753f8263f436efaabfbb3b4db53a98fc55342c5ded2daf7208b217be159",
@@ -23214,6 +24007,11 @@
       "sources": [
         "packages/core/session/src/types.ts:367"
       ]
+    },
+    {
+      "digest": "55225ab983c120287bbe9d984105dfaf1d2179f26cb232e0d530082f4ae995c5",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "557e148d30b79ee48645850832b30c717d7c3b64641deb5d6133b8b4e91ee0b8",
@@ -23397,6 +24195,13 @@
       "digest": "616f93a5047de668e1c30d57b1786abd76beeb4123599637ec1dc5290320ede5",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "620139d7f946b5c72cee77c251c5410a3846010cfe2b5a13f27e619dd18cd6de",
+      "names": [],
+      "sources": [
+        "packages/settings/settings/src/types.ts:101"
+      ]
     },
     {
       "digest": "6292bcbedaa97feaec5b48a03bb8144b581b93309d9d6c905f26da7a6a7a0a4f",
@@ -23644,6 +24449,13 @@
       ]
     },
     {
+      "digest": "6f8efad211380ac86bd481128c30267a5d7dfac4f8c6917e56aeaffdd93320b9",
+      "names": [],
+      "sources": [
+        "packages/sandbox/sandbox-policy/src/index.ts:76"
+      ]
+    },
+    {
       "digest": "6f9e00383836275e46c0a9915767f9bb561be5fc30aae490174908a93e99a912",
       "names": [],
       "sources": []
@@ -23672,6 +24484,15 @@
       "names": [],
       "sources": [
         "packages/llm/llm/src/assistant-stream.ts:28"
+      ]
+    },
+    {
+      "digest": "7211d2e2aa635b635c29852f9f554e4e7e2533f354ff55f723397ea9bcb7077a",
+      "names": [
+        "packages/deliverables/tool-present/src/types.ts#PresentedFile"
+      ],
+      "sources": [
+        "packages/deliverables/tool-present/src/types.ts:6"
       ]
     },
     {
@@ -23717,10 +24538,24 @@
       ]
     },
     {
+      "digest": "799231ac91869a6695666505343003905638e1b4d11349bff953d4dbfe3191ba",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "79ddc907312f97cf9553d4841e8b3fc937097bd8d97900a790efad3c05255e99",
       "names": [],
       "sources": [
         "packages/todo/tool-todo/src/types.ts:31"
+      ]
+    },
+    {
+      "digest": "7a0ef809b0ae96123aa105d6e66443390f8f3d8076992c0c705488f2dd8bd704",
+      "names": [
+        "packages/settings/settings/src/types.ts#RuntimeAuditIdentity"
+      ],
+      "sources": [
+        "packages/settings/settings/src/types.ts:89"
       ]
     },
     {
@@ -23771,12 +24606,29 @@
       "sources": []
     },
     {
+      "digest": "7dfbef6384a3e5b196c5dba6b2ee1fe9ee510c46d09d15250e38a14cbf81ba0e",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "7e1035b12c583d3edd8fe1cdb26752b2a2dbd8dd2998b74958ff2ebaa6222458",
+      "names": [],
+      "sources": [
+        "packages/settings/settings/src/types.ts:108"
+      ]
+    },
+    {
       "digest": "7eaef7a763ba5b949b8464bc8add8980a3a5ab566014b69787aeba71e5dfe07b",
       "names": [],
       "sources": []
     },
     {
       "digest": "7f13860ee89a2d35ce09f958e85a04566cd59cb1de1d73a9619a9b631961dc71",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "7f237e2972d5ba2a7bef95bde1e97fc75fd67c1db2a5ebea68af340a5f6aceea",
       "names": [],
       "sources": []
     },
@@ -23860,7 +24712,7 @@
       "digest": "83079c8a3f733ac3fa603eefa0fbb4737ca4d8b69e7e2e7298b60f9ac4098693",
       "names": [],
       "sources": [
-        "packages/skill/tool-skill/src/index.ts:40"
+        "packages/skill/tool-skill/src/index.ts:42"
       ]
     },
     {
@@ -24074,6 +24926,16 @@
       "sources": []
     },
     {
+      "digest": "90df4d29f0712f0b399f534614d19c660e079f4b0a998c07d6e8b00242c3f78c",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "927d4b28011db5d6133a60987911b8175a5a9b4bb3625bb8f5dacedcd4378f51",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "930a6567a10bb62ddd157bd8abdf4b182810c8c3b49d91309b3b009a5fed9731",
       "names": [],
       "sources": [
@@ -24243,6 +25105,13 @@
       "sources": []
     },
     {
+      "digest": "9da310a398e34512b5f5e7ad9dde3053a27f91b06680ae94ab545ff7e38e692b",
+      "names": [],
+      "sources": [
+        "packages/deliverables/tool-present/src/types.ts:20"
+      ]
+    },
+    {
       "digest": "9dcb170c734b872d7adb8955f7754eae2d7f807b4950d882f77b2e41fd02cc6d",
       "names": [
         "packages/goal/goal/src/domain.ts#GoalClearChangeV2"
@@ -24267,6 +25136,13 @@
       "sources": [
         "packages/compaction/compaction/src/types.ts:38",
         "packages/compaction/compaction/src/types.ts:84"
+      ]
+    },
+    {
+      "digest": "9e7c4ef40d5af71b93ea319b127b28cd1ba785b49b6bb11466a6fb6a7ff035ee",
+      "names": [],
+      "sources": [
+        "packages/deliverables/tool-present/src/types.ts:13"
       ]
     },
     {
@@ -24366,7 +25242,17 @@
       ]
     },
     {
+      "digest": "a533bc35e2e1fd6600d08586d6e53f03befbcde287b0acc30c3a355a952f5167",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "a6567ccb2e530606b775371eb4fa31468d72084339968e8b0440a516a23b39dc",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "a685aa06428f13e5b1336b14e79abf203315345c494fa46a8e1a3ee5d796b1d2",
       "names": [],
       "sources": []
     },
@@ -24744,15 +25630,6 @@
       ]
     },
     {
-      "digest": "b8fc636a2121df9d8423c242e03c9d23b7ab7c6fdce00e45746932c60b730f97",
-      "names": [
-        "packages/deliverables/tool-present/src/types.ts#PresentedFile"
-      ],
-      "sources": [
-        "packages/deliverables/tool-present/src/types.ts:5"
-      ]
-    },
-    {
       "digest": "b9305f0ea75ccd6a6061c27fde19f2ab85534f9f3c1a717b573b077ebae0f611",
       "names": [],
       "sources": []
@@ -24764,6 +25641,11 @@
     },
     {
       "digest": "b993441f8ce7d27b80e619e113e232ae8e62d3d5a8340f6bfe12d8c4c018e62f",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ba11496041096423bc6e03d02cadce5253f64dfccad5ae5e1fb9c440f11c58d3",
       "names": [],
       "sources": []
     },
@@ -24799,6 +25681,11 @@
     },
     {
       "digest": "bbc5696e3f13c758237b316e3cf08cda0b9fd51ffe672539883457769faa185d",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "bbce778fc703b2c410ec32f0fc8785c2bf32933f2631c105f783ab0603e26799",
       "names": [],
       "sources": []
     },
@@ -24866,6 +25753,11 @@
       "sources": []
     },
     {
+      "digest": "c2562179620a32b65cc7d1d163604db65c4332fd207e8d4e9b1bb1c48241ef1d",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "c2deb7c9183735d4e0fffddf5c623f4e34daa1c8e96b111982e957dfcbbcf896",
       "names": [
         "packages/workflow/workflow/src/types.ts#WorkflowAgentOutcome"
@@ -24878,6 +25770,13 @@
       "digest": "c43b119ce579b3e9983a0d3adc4ba402ebb9ba773d89738a2dab01ecf5813943",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "c5198e25b9d211f08f7a53180b0f466a68ae236769dbad9ec348d3a40238500e",
+      "names": [],
+      "sources": [
+        "packages/deliverables/tool-present/src/types.ts:14"
+      ]
     },
     {
       "digest": "c5228b7a55498d84f529591744a0ab26e0b93ade18a70a26db1377a1ecfa6b49",
@@ -24968,6 +25867,11 @@
       ]
     },
     {
+      "digest": "cf1f1c7c0562f407cb7bba2f0f13dd88d5346b41b8616a4e6812cec0a8f67f5d",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "cf6e3aaf1e2de6480aa0157730a41b9a492108a55304100b0f7e112711dd4331",
       "names": [],
       "sources": []
@@ -24993,6 +25897,11 @@
     },
     {
       "digest": "d28765f87d6b6ab408e0b2f3e7e297791b004b806d8e302c49903ebae815feb2",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "d3a2e34fcfd4682e19d37cbf72da4788dba6817dc6169022919e7419c3c7bdd0",
       "names": [],
       "sources": []
     },
@@ -25025,6 +25934,11 @@
     },
     {
       "digest": "d85590a5675c6e2fd8164e5792a6cceac714605b8ac228adae5ee668facb1490",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "d8cdf296ad46b105b1dc5e57a2923e66ae0451791a9fc8f7e1bd03c8cde9f3c4",
       "names": [],
       "sources": []
     },
@@ -25141,6 +26055,11 @@
       "sources": []
     },
     {
+      "digest": "e25e14aa63e009633d75f17e1ac89223122b6998cf886fcd5c2f40d717a8f042",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "e2698187ffddbc5ee8c033be7185ec1b89c8de7288ea08eca2e50e1abb90cdc0",
       "names": [
         "packages/goal/goal/src/types.ts#GoalTask"
@@ -25214,6 +26133,11 @@
       "sources": []
     },
     {
+      "digest": "e5624ac712d31b095d147040116c6381a43d3d3d236f3417ffaa5268ff58fe9e",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "e5d3828df1ec3e2a66879de0659e0f4866d9cfffc00825ee731a66f8a0c03d98",
       "names": [],
       "sources": []
@@ -25282,6 +26206,11 @@
       ]
     },
     {
+      "digest": "ea21149455616122fd48a6a78d14d00caf796ffb23c8d0a9d71c386ee821b43e",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "eaa71be0fbf0f702df8ea6c11d0aa2f9782263d45a10d0fb14eda662f4bfe04c",
       "names": [],
       "sources": [
@@ -25292,6 +26221,15 @@
       "digest": "ebb768d85ec87fb68e42fc14fd7d8535b5ac11791b14d04c6770180f0a719bf8",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "ebcb5687fbf177356255b866da575604309cc4ff73093e00f1f7d4ff32c1848f",
+      "names": [
+        "packages/settings/settings/src/types.ts#AuditedConfigurationEntry"
+      ],
+      "sources": [
+        "packages/settings/settings/src/types.ts:80"
+      ]
     },
     {
       "digest": "ec38b5949af8eacaf00df002f4acbe344f934f8a061e9cdc65a52a48e5f6dd93",
@@ -25357,6 +26295,16 @@
       "sources": []
     },
     {
+      "digest": "ef8284da2062ab16ad8540734a1aac5b9102566f6346c8b938195e71fa64f76d",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ef9859ec120ef6b1a0867f6d95e4734c3f4f4c38b15b432ddd54488d37a73618",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "f05fb85e715af4ab4de0b6ba111166dd0435bd8bb74a0fa0f32b9d174113fc7c",
       "names": [],
       "sources": []
@@ -25368,6 +26316,13 @@
       ],
       "sources": [
         "packages/api/session-controller/src/types.ts:100"
+      ]
+    },
+    {
+      "digest": "f0f6930810f9693a2f7c69319f59982cfcdd1110a3e42de5e4443cc7c5321d2c",
+      "names": [],
+      "sources": [
+        "packages/settings/settings/src/types.ts:95"
       ]
     },
     {
@@ -25563,7 +26518,7 @@
         "packages/skill/tool-skill/src/index.ts#SkillCatalogSource"
       ],
       "sources": [
-        "packages/skill/tool-skill/src/index.ts:34"
+        "packages/skill/tool-skill/src/index.ts:36"
       ]
     },
     {
@@ -25612,6 +26567,11 @@
     },
     {
       "digest": "fee1caf8ab6a65c1bc981f5a1730164490f22a2a89ffa3d0b76f1f432c44c8b5",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ff1e94be03852d98536eed46ae44067087a9a87807e1c5b74016e31f69a79e5e",
       "names": [],
       "sources": []
     }

@@ -139,6 +139,8 @@ describe('apply', () => {
           'row.stopped': 'skill 加载已中止',
           'row.instructions': '说明',
           'row.inspect': '查看',
+          'row.contextCharacters': '指令 {count} 字符',
+          'row.reused': '复用已有指令',
           'menu.userOnly': '仅用户',
         },
         en: {
@@ -149,6 +151,8 @@ describe('apply', () => {
           'row.stopped': 'Skill load stopped',
           'row.instructions': 'Instructions',
           'row.inspect': 'Inspect',
+          'row.contextCharacters': '{count} instruction characters',
+          'row.reused': 'Existing instructions reused',
           'menu.userOnly': 'user-only',
         },
       },

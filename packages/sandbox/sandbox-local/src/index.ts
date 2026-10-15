@@ -36,7 +36,7 @@ import {
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { SandboxProvider, SandboxUnavailableError, canonicalPath } from '@deepseek-ai/dsh-sandbox'
-import type { ConfinedArgv, ConfinedSandboxMode, RunnerFailureRule, SandboxEnforcement, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
+import type { ConfinedArgv, ConfinedSandboxMode, RunnerFailureRule, SandboxEnforcement, SandboxExecutionEnvironment, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import { AclWriteGrant, assertTempRootOutsideWorkspace, registerAclDiagnosisSkill, tempWriteSid, workspaceWriteSid } from '@deepseek-ai/dsh-sandbox-windows-acl'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
@@ -80,11 +80,16 @@ export interface Config {
 
 /** Probe whether `bwrap` can create the profile; the provider caches the bounded result. */
 function defaultProbeBwrap(timeoutMs: number): boolean {
-  const probe = spawnSync('bwrap', [...bwrapProfileArgs({ mode: 'read-only', workspaceRoot: '/' }), '--', 'true'], {
-    timeout: timeoutMs,
-    stdio: 'ignore',
-  })
-  return probe.status === 0
+  const workspaceRoot = mkdtempSync(join(tmpdir(), 'dsh-bwrap-probe-'))
+  try {
+    const probe = spawnSync('bwrap', [...bwrapProfileArgs({ mode: 'workspace-write', workspaceRoot }), '--', 'true'], {
+      timeout: timeoutMs,
+      stdio: 'ignore',
+    })
+    return probe.status === 0
+  } finally {
+    rmSync(workspaceRoot, { recursive: true, force: true })
+  }
 }
 
 /**
@@ -354,6 +359,35 @@ export class LocalSandboxProvider extends SandboxProvider {
       denialSignatures: DENIAL_SIGNATURES[selected.runner],
       runnerFailureRules: RUNNER_FAILURE_RULES[selected.runner],
     })
+  }
+
+  /**
+   * Describe the selected runner's temporary-files and identity semantics.
+   * @param policy - complete policy whose mode determines temporary mounts.
+   * @returns facts from the same cached selection used by confine.
+   */
+  override describe(policy: SandboxPolicy): SandboxExecutionEnvironment {
+    if (this.runnerCommand !== undefined) {
+      return { runner: 'configured', enforcement: 'full', temporaryFiles: 'unknown', sharesHostTemporaryFiles: 'unknown', identity: 'unknown' }
+    }
+    this.selectedRunner ??= this.chainVerdict()
+    if (this.selectedRunner === 'unavailable') {
+      return { runner: 'unavailable', enforcement: 'unavailable', temporaryFiles: 'unknown', sharesHostTemporaryFiles: 'unknown', identity: 'unknown' }
+    }
+    const { runner, enforcement } = this.selectedRunner
+    switch (runner) {
+      case 'bwrap': {
+        const privateTemporaryFiles = policy.mode === 'workspace-write'
+          && policy.workspaceRoot !== '/' && policy.workspaceRoot !== '/tmp'
+        return { runner, enforcement, temporaryFiles: privateTemporaryFiles ? 'per-call' : 'host', sharesHostTemporaryFiles: !privateTemporaryFiles, identity: 'namespace-dependent' }
+      }
+      case 'landlock':
+      case 'seatbelt':
+        return { runner, enforcement, temporaryFiles: 'host', sharesHostTemporaryFiles: true, identity: 'host' }
+      case 'windows-acl':
+        return { runner, enforcement, temporaryFiles: policy.mode === 'workspace-write' ? policy.sessionId === undefined ? 'per-call' : 'per-session' : 'host', sharesHostTemporaryFiles: policy.mode !== 'workspace-write', identity: 'restricted-token' }
+      default: return assertNever(runner)
+    }
   }
 
   /** The selected rung's runner invocation (program + profile arguments) for one policy. */

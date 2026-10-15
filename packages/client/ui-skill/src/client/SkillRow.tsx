@@ -17,6 +17,8 @@ interface SkillRowModel {
   readonly output: string | null
   readonly errorSummary: string | null
   readonly state: SkillRowState
+  readonly contextCharacters: number | null
+  readonly reused: boolean
 }
 
 /** First physical line for the collapsed error summary and malformed-args fallback. */
@@ -64,11 +66,18 @@ function skillRowModel(block: StartedToolCallViewProps['block']): SkillRowModel 
       ? 'stopped'
       : block.isError ? 'error' : 'ok'
   const output = resultText(block)
+  const raw = settled ? block.meta : undefined
+  const meta = typeof raw === 'object' && raw !== null && !Array.isArray(raw) ? raw as Record<string, unknown> : undefined
+  const characters = meta?.instructionCharacters
+  const measured = meta?.kind === 'skill-load' && typeof characters === 'number'
+    && Number.isSafeInteger(characters) && characters >= 0 ? characters : null
   return {
     name: skillName(argsRaw, block.callId),
     output,
     errorSummary: state === 'error' && output !== null ? firstLine(output) : null,
     state,
+    contextCharacters: state === 'ok' ? measured : null,
+    reused: state === 'ok' && measured !== null && meta?.alreadyActive === true,
   }
 }
 
@@ -153,6 +162,9 @@ function StartedSkillRow({ block, inspect, t }: Exclude<SkillRowProps, { phase: 
             <TextShimmer>{summary}</TextShimmer>
           </span>
         </TextShimmer>
+        {model.contextCharacters !== null && <span className={css.title}>
+          {' · '}{model.reused ? t('row.reused') : t('row.contextCharacters', { count: model.contextCharacters })}
+        </span>}
       </div>
       {open ? (
         <div className={css.bodyWrap}>

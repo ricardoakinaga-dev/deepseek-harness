@@ -52,7 +52,7 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### Running a command
 
-The tool executes `bash -c <command>` and returns the combined output. Commands run in a fresh shell every call, so state never persists — pass `workdir` instead of `cd`. A non-zero exit is reported as `[exit code: N]` for the agent to interpret, not surfaced as a tool error. A `description` in active voice (5–10 words) labels the call in the UI; `timeoutMs` overrides the executor's default and cap. Output beyond the executor's stream caps is truncated to its tail, with the full output saved to a spill file whose path is reported.
+The tool executes `bash -c <command>` and returns the combined output. Commands run in a fresh shell every call, so state never persists — pass `workdir` instead of `cd`. A non-zero exit is reported as `[exit code: N]` for the agent to interpret, not surfaced as a tool error. A `description` in active voice (5–10 words) labels the call in the UI; `timeoutMs` overrides the executor's default and cap. Output beyond the executor's stream caps keeps a bounded beginning and end, with one complete-output recovery path when available.
 
 <a id="running-long-commands-in-the-background"></a>
 ### Running long commands in the background
@@ -104,6 +104,8 @@ The tool resolves the workdir before `ctx.shell.resolve()` runs: an explicit rel
 ### Rendering story
 
 The result text is stdout, then a marked `[stderr]` section, then conditional markers: truncation notice, sandbox denial (plus the same-turn escalation hint when the composition advertises escalation), timeout, signal, and exit code — each on its own line. The exit marker doubles as the UI card's exit-status pill: the shared `parseExitStatus` from `dsh-shell` consumes it from the output body, so replay shows the pill without duplicating the marker.
+
+Truncated foreground results carry one canonical `outputRetention` marker and render one recovery notice before terminal status. A single complete stream reuses its raw spill path. Mixed stdout/stderr are copied sequentially into one private recovery file, preserving all bytes and separating stderr with `[stderr]`; copying honors cancellation and removes partial files. If any truncated stream lacks a complete spill, recovery is `(unavailable)`. The spill policy bounds the preview and reuses this locator without saving another preview-only artifact.
 
 Completed foreground results also persist `tool/result.data.meta` with `kind: "bash-foreground-exit"`, `exitCode`, `signal`, `timedOut`, `aborted`, and a boolean `stopped`. This metadata contains no command output or cancellation reason and distinguishes a clean zero exit from an interrupted command even when the result text has no exit marker. Background acknowledgements and promoted jobs have `meta: null`.
 
@@ -167,7 +169,7 @@ Prefix-stable while visibility, background support, and executor sandbox capabil
 
 #### What the model sees
 
-The renderer emits the data-dependent stdout tail, then optional `[stderr]` and the stderr tail. With no output it emits exactly `(no output)`. Conditional lines are exactly `[output truncated; full output: <path-or-(unavailable)>]`, `[sandbox: file access denied under <mode> mode]`, `[timed out after <timeoutMs>ms]`, `[stopped: <reason>]`, `[killed by signal: <signal>]`, and `[exit code: <exitCode>]`; the sandbox escalation and runner-failure lines are quoted in [`dsh-bash-sandbox`](../bash-sandbox/README.md).
+The renderer emits the data-dependent stdout preview, then optional `[stderr]` and the stderr preview. With no output it emits exactly `(no output)`. Conditional lines are exactly `[output truncated; full output: <path-or-(unavailable)>]`, `[sandbox: file access denied under <mode> mode]`, `[timed out after <timeoutMs>ms]`, `[stopped: <reason>]`, `[killed by signal: <signal>]`, and `[exit code: <exitCode>]`; the sandbox escalation and runner-failure lines are quoted in [`dsh-bash-sandbox`](../bash-sandbox/README.md).
 
 #### Token effect
 

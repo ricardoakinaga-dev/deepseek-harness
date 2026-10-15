@@ -105,6 +105,8 @@ These limits define where the reference and the row fall back to generic behavio
 
 **Runtime invariant:** No companion is published. The slash source, locale dictionaries, and keyed toolview are registry-owned registrations whose disposal is proven by the HMR-safety spec. They emit no Cordis events and own no cross-plugin mutable state.
 
+Successful skill rows show the recorded number of instruction characters, including rendering and resource guidance, or indicate that existing instructions were reused. This measures the body loaded by that call, not its current token cost after later compaction. Historical rows without this metadata show no invented count.
+
 <a id="dev-note"></a>
 ### Dev Note
 

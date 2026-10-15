@@ -405,7 +405,9 @@ export interface Config {
   maxTimeoutMs: Volatile<number>
   /** Per-stream in-memory output cap; overflow spills to a temp file. */
   maxOutputBytes: Volatile<number>
-  /** Per-stream spill-file cap; larger streams retain only their in-memory tail. */
+  /** Fraction of the final output preview reserved for its beginning; zero selects tail-only output. */
+  outputHeadRatio: Volatile<number>
+  /** Per-stream spill-file cap; larger streams retain only their bounded preview. */
   maxSpillBytes: Volatile<number>
   /** Grace period for kill escalation and inherited pipes; at most `MAX_TIMER_DELAY_MS`. */
   graceMs: Volatile<number>
@@ -731,15 +733,25 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 ## `@deepseek-ai/dsh-compaction-resilience-policy`
 
 - `inject`: `llm` · `sessions` · `tokenMeter`
-- `source`: [`packages/compaction/compaction-resilience-policy/src/index.ts:35`](../packages/compaction/compaction-resilience-policy/src/index.ts)
+- `source`: [`packages/compaction/compaction-resilience-policy/src/index.ts:38`](../packages/compaction/compaction-resilience-policy/src/index.ts)
 
 ```ts config-catalog
 /** Configurable compaction and request-admission limits. */
 export interface Config {
   /** Maximum output tokens sent by calls whose purpose is `compaction`. */
   compactionMaxTokens?: number
-  /** Reasoning effort sent by calls whose purpose is `compaction`; omitted to preserve the caller/provider choice. */
+  /**
+   * Reasoning effort sent by calls whose purpose is `compaction` on routes
+   * without a {@link Config.compactionReasoningEffortByRoute} entry; omitted to
+   * preserve the caller/provider choice.
+   */
   compactionReasoningEffort?: string
+  /**
+   * Per-route reasoning effort for calls whose purpose is `compaction`, keyed by
+   * `provider/model` or `provider`. An exact `provider/model` key wins over a
+   * `provider` key, which wins over {@link Config.compactionReasoningEffort}.
+   */
+  compactionReasoningEffortByRoute?: Record<string, string>
   /** Total cooperative deadline for one compaction stream, in milliseconds. */
   compactionTimeoutMs?: number
   /** Whether loop-built requests are checked against their logged context capacity before adapter dispatch. */
@@ -769,6 +781,11 @@ export interface ToolResultPruneConfig {
   headChars?: number
   /** Maximum trailing Unicode code points retained. Defaults to `1024`. */
   tailChars?: number
+  /**
+   * Tool names whose results are never pruned, such as instructions the agent
+   * keeps following after they load. Defaults to `['skill']`.
+   */
+  exemptTools?: string[]
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-compaction-tool-result-pruner -->
@@ -2512,7 +2529,7 @@ export interface Config {
 
 - `inject`: `sessionProjections`
 - `refs`: [`SandboxMode`](subsystems/sandbox.md)
-- `source`: [`packages/sandbox/sandbox-policy/src/index.ts:71`](../packages/sandbox/sandbox-policy/src/index.ts)
+- `source`: [`packages/sandbox/sandbox-policy/src/index.ts:93`](../packages/sandbox/sandbox-policy/src/index.ts)
 
 ```ts config-catalog
 /**
@@ -3132,7 +3149,7 @@ export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ## `@deepseek-ai/dsh-subagent`
 
 - `refs`: `Volatile` (`@deepseek-ai/cordis`)
-- `source`: [`packages/subagent/subagent/src/index.ts:192`](../packages/subagent/subagent/src/index.ts)
+- `source`: [`packages/subagent/subagent/src/index.ts:195`](../packages/subagent/subagent/src/index.ts)
 
 ```ts config-catalog
 /** Host configuration for continuable subagent capacity. */
@@ -3510,7 +3527,7 @@ export type TokenMeterConfig = Record<string, never>
 ## `@deepseek-ai/dsh-tool-bash`
 
 - `inject`: `tools` · `shell` · `systemPrompt` · `shellEnv`
-- `source`: [`packages/shell/tool-bash/src/index.ts:37`](../packages/shell/tool-bash/src/index.ts)
+- `source`: [`packages/shell/tool-bash/src/index.ts:42`](../packages/shell/tool-bash/src/index.ts)
 
 ```ts config-catalog
 /** Configuration for the bash tool. */
@@ -3696,14 +3713,16 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-tool-present`
 
-- `inject`: `tools` · `fs` · `sessionProjections`
-- `source`: [`packages/deliverables/tool-present/src/index.ts:15`](../packages/deliverables/tool-present/src/index.ts)
+- `inject`: `tools` · `fs` · `attachments` · `sessionProjections`
+- `source`: [`packages/deliverables/tool-present/src/index.ts:17`](../packages/deliverables/tool-present/src/index.ts)
 
 ```ts config-catalog
-/** Per-call delivery limit. */
+/** Deployment limits for file declarations and their durable copies. */
 export interface Config {
   /** Maximum number of files in one call. */
   maxFiles: number
+  /** Inclusive byte limit for capturing one file; larger files remain source-only declarations. */
+  maxFileBytes: number
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-present -->
@@ -3809,7 +3828,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-skill`
 
 - `inject`: `agents` · `tools` · `skills`
-- `source`: [`packages/skill/tool-skill/src/index.ts:61`](../packages/skill/tool-skill/src/index.ts)
+- `source`: [`packages/skill/tool-skill/src/index.ts:63`](../packages/skill/tool-skill/src/index.ts)
 
 ```ts config-catalog
 /** Model-facing skill catalog configuration. */
@@ -3846,7 +3865,7 @@ export interface Config {
 
 - `inject`: `tools` · `subagents` · `systemPrompt` · `sessionProjections`
 - `refs`: [`AgentOptions`](subsystems/core.md)
-- `source`: [`packages/subagent/tool-subagent/src/index.ts:48`](../packages/subagent/tool-subagent/src/index.ts)
+- `source`: [`packages/subagent/tool-subagent/src/index.ts:50`](../packages/subagent/tool-subagent/src/index.ts)
 
 ```ts config-catalog
 /** Config: which registered provider this tool delegates to, plus child defaults. */
@@ -4148,7 +4167,7 @@ export interface WebRuntimeConfig {
 ## `@deepseek-ai/dsh-web-app`
 
 - `inject`: `webServer`
-- `source`: [`packages/bundle/web-app/src/index.ts:44`](../packages/bundle/web-app/src/index.ts)
+- `source`: [`packages/bundle/web-app/src/index.ts:45`](../packages/bundle/web-app/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config: composed deployment settings plus per-invocation command-line values. */
@@ -4164,6 +4183,8 @@ export interface Config {
    * orientation text would be false.
    */
   surfaceContext: boolean
+  /** Include checkout and rebuild guidance automatically for DSH workspaces, always, or never. */
+  developmentContext?: 'auto' | 'always' | 'never'
   /** Explicit `--trusted-host` authorities from this invocation. */
   trustedHosts: string[]
 }
@@ -4376,7 +4397,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-commands` | — | [`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-conversation` | — | [`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-cordis` | — | [`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts) |
-| `@deepseek-ai/dsh-client-ui-deliverables` | `systemPrompt` · `connection` · `sessionQuery` · `sessionController` · `workspaceFiles` · `fs` · `sandboxPolicy` · `workspaceChanges` | [`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-deliverables` | `systemPrompt` · `connection` · `sessionQuery` · `sessionController` · `workspaceFiles` · `fs` · `sandboxPolicy` · `workspaceChanges` · `attachments` | [`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-directory-picker-browse` | — | [`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-directory-picker-native` | — | [`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-goal` | — | [`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts) |

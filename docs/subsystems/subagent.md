@@ -12,7 +12,7 @@ The `subagentCatalog` projection exposes `SubagentCatalogEntry[]` in parent even
 
 ## Two kinds of capability, discovered two ways
 
-A provider advertises its **start-time** features on a static descriptor the service checks BEFORE a one-shot run exists; a request that needs one the provider lacks is rejected loud (`SubagentError('UNSUPPORTED_CAPABILITY')`), never accepted-then-ignored. Those flags describe only the one-shot [`start()`](#the-provider-contract-subagentprovider) path, where the provider composes the child. **Continuable** children are composed by the continuation manager itself, so they are gated by one optional method whose presence IS the capability, with TS narrowing as the discovery mechanism: [`SubagentProvider.prepareContinuable`](#the-provider-contract-subagentprovider).
+A provider advertises its **start-time** features on a static descriptor the service checks BEFORE a one-shot run exists; a request that needs one the provider lacks is rejected loud (`SubagentError('UNSUPPORTED_CAPABILITY')`), never accepted-then-ignored. Those flags describe the one-shot [`start()`](#the-provider-contract-subagentprovider) path, where the provider composes the child. **Continuable** children are composed by the continuation manager itself, so they are gated by one optional method whose presence IS the capability, with TS narrowing as the discovery mechanism: [`SubagentProvider.prepareContinuable`](#the-provider-contract-subagentprovider). Explicit sandbox requests also require `sandboxMode` support for continuable children.
 
 ```ts type-equiv
 /**
@@ -22,7 +22,8 @@ A provider advertises its **start-time** features on a static descriptor the ser
  * degradation" rule). These flags describe the ONE-SHOT
  * {@link SubagentProvider.start} path, where the provider composes the child;
  * continuable children are composed by the continuation manager itself and are
- * gated by {@link SubagentProvider.prepareContinuable} instead. Each flag
+ * gated by {@link SubagentProvider.prepareContinuable} instead, with explicit
+ * sandbox requests also requiring `sandboxMode` support. Each flag
  * corresponds one-to-one to a {@link SubagentStartRequest} option: `depthLimit`
  * to `maxDepth`; the other names match.
  */
@@ -30,6 +31,7 @@ interface SubagentCapabilities {
   readonly agentOptions: boolean
   readonly outputSchema: boolean
   readonly depthLimit: boolean
+  readonly sandboxMode: boolean
   readonly toolFilter: boolean
   readonly persona: boolean
 }
@@ -37,7 +39,7 @@ interface SubagentCapabilities {
 
 ## The one-shot start request
 
-The tool layer builds this request from the model input and its own config; the service validates it against the named provider before `start`. Required `parent` supplies the session cwd, lineage, and delegation depth. Optional Agent provider, model, reasoning-effort, and token overrides, output schema, depth, tool filter, and persona require matching capability flags. In-process backends merge `agentOptions` over the parent Agent's options, scope filters and personas to child creation, and implement the supported object-rooted schema with a forced capture tool. The DSH SDK backend merges the four Agent route fields over its instance defaults and validates them in the child runtime's initialization; ACP, Codex, and Claude Code reject `agentOptions` before starting their transports.
+The tool layer builds this request from the model input and its own config; the service validates it against the named provider before `start`. Required `parent` supplies the session cwd, lineage, and delegation depth. Optional Agent provider, model, reasoning-effort, and token overrides, output schema, depth, sandbox mode, tool filter, and persona require matching capability flags. In-process backends merge `agentOptions` over the parent Agent's options, intersect tool filters with effective parent permissions, restrict requested sandbox modes to the effective parent policy (including deployment defaults), scope personas to child creation, and implement the supported object-rooted schema with a forced capture tool. The DSH SDK backend merges the four Agent route fields over its instance defaults and validates them in the child runtime's initialization; ACP, Codex, and Claude Code reject `agentOptions` before starting their transports.
 
 ```ts type-equiv
 /**
@@ -95,6 +97,8 @@ interface SubagentStartRequest {
    * unknown-name validation.
    */
   readonly toolFilter?: ToolRestriction
+  /** Optional file mode, limited to the effective parent policy. Requires sandboxMode support. */
+  readonly sandboxMode?: 'read-only' | 'workspace-write'
   /**
    * Optional per-child persona. Requires {@link SubagentCapabilities.persona};
    * rejected at start otherwise. In-process backends register it as a scoped
@@ -461,7 +465,7 @@ The spawn and fork backends create an ordinary one-shot agent through `parent.ct
 - **Delegation depth** is durable `SessionHeader.delegationDepth` plus the merge-extensible runtime field `AgentOptions.subagentDepth`; absence means top-level depth zero, and the greater present value is authoritative. The seam owns both fields — the loop neither sets nor reads them — so an in-process child persists parent depth + 1, cold resume cannot lower it, and every start rejects a derived depth outside the safe-integer domain or above a defined absolute `request.maxDepth` cap.
 - **Fork seeding** uses [`CreateAgentOptions.seed`](core.md#creation-and-ownership) (a `SessionEvent[]` prefix threaded through `AgentLoop.createAgent` → `ctx.sessions.prepare({ seed })`, the same primitive `ctx.agents.resume()` uses). The fork backend passes a *balanced completed-turn prefix* of the parent's log — the parent's events up to and including its last `turn/end` — so the seed is contiguous-from-0 and the [invariants](../../packages/runtime-diagnostics/invariants) replay accepts it (the in-flight, unbalanced turn is excluded).
 
-`SubagentCatalogEntry` describes a direct child with complete or unknown-mode discovery information; `SubagentCatalogState` is the host-only projection state. `listChildren()` owns a live-preferred parent observation without opening child logs. Browser consumers read `subagentCatalog` through the shared Session projection store and combine membership with Session-list activity. `SubagentCatalogRow` belongs to recursive catalog listing. [The parent-catalog decision](../../.agents/notes/implemented/architecture/2026-09-01-parent-owned-subagent-catalog.md) owns the persistent facts and read semantics.
+`SubagentCatalogEntry` describes a direct child with complete or unknown-mode discovery information; `SubagentCatalogState` is the host-only projection state. `listChildren()` owns a live-preferred parent observation without opening child logs. Each row includes the latest confirmed `subagent/authority` publication when one exists; historical or remote children may have no observation. Browser consumers read `subagentCatalog` through the shared Session projection store and combine membership with Session-list activity. `SubagentCatalogRow` belongs to recursive catalog listing. [The parent-catalog decision](../../.agents/notes/implemented/architecture/2026-09-01-parent-owned-subagent-catalog.md) owns the persistent facts and read semantics.
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 

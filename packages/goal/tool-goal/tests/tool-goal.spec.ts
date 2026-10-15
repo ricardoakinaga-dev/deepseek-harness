@@ -201,7 +201,7 @@ describe('goal tool registration and presentation', () => {
         .toEqual({ kind: 'exclusive' })
     }
     const section = (await ctx.systemPrompt.assemble()).sections.find(item => item.name === 'tool:goal')
-    expect(section?.text).toContain('infer goal intent')
+    expect(section?.text).toContain('/goal scope only updates an existing goal')
     expect(section?.text).toContain('at least 5 consecutive goal rounds')
 
     await fiber.dispose()
@@ -273,6 +273,27 @@ describe('goal tool registration and presentation', () => {
 })
 
 describe('goal tool execution authority', () => {
+  it.each([
+    { requiredTasks: [] },
+    { requiredTasks: [{ id: 'done', criterion: 'Finish the authorized work' }] },
+  ])('returns recovery guidance for a prose request without creating a goal ($requiredTasks)', async ({ requiredTasks }) => {
+    const { ctx, root } = await harness()
+    openTurn(root, { kind: 'user' }, 'Implemente as melhorias do planejamento.')
+    const result = await execute(ctx, 'create_goal', {
+      objective: 'Implement the planned improvements', required_tasks: requiredTasks,
+    }, root.agent)
+    expect(result.isError).toBe(true)
+    expect(result.error?.info?.code).toBe('GOAL_TOOL_MANIFEST_REQUIRED')
+    const message = result.content[0]
+    expect(message?.type).toBe('text')
+    if (message?.type !== 'text') throw new Error('expected recovery instructions')
+    expect(message.text).toContain('continue the authorized work without a goal')
+    expect(message.text).toContain('/goal create <JSON>')
+    expect(ctx.goals.get(root.agent)).toBeUndefined()
+    expect(root.session.snapshotEvents().some(event => event.type === 'goal/change')).toBe(false)
+    expect(resultJson(await execute(ctx, 'get_goal', {}, root.agent))).toEqual({ goal: null })
+  })
+
   it('rejects a model-truncated manifest despite an ordinary human message', async () => {
     const { ctx, root } = await harness()
     const tasks = Array.from({ length: 20 }, (_, index) => ({ id: `RA29-${index + 1}`, criterion: `Criterion ${index + 1}` }))
@@ -308,7 +329,7 @@ describe('goal tool execution authority', () => {
     expect(denied.error?.info?.code).toBe('INVALID_ARGS')
     expect(ctx.goals.get(root.agent)?.taskManifest?.tasks[1]?.status).toBe('PENDING')
   })
-  it('lets a root model infer create intent from its accepted human turn', async () => {
+  it('creates a goal from the exact manifest in its accepted human turn', async () => {
     const { ctx, root } = await harness()
     openTurn(root, { kind: 'user' }, JSON.stringify({ objective: 'Finish the feature', requiredTasks: [{ id: 'done', criterion: 'The feature works' }] }))
     const result = await execute(ctx, 'create_goal', {

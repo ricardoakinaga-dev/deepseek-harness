@@ -30,6 +30,7 @@ import type { SubagentPromptRequestId } from '../src/control-types.ts'
 import * as SubagentInvariant from '../src/invariant.ts'
 import { TestSessionQuery } from './test-session-query.ts'
 import { loadStoredSession } from './persistence-helpers.ts'
+import { createSettlementMessage } from '../src/continuation-messages.ts'
 import {
   continuationActivations,
   continuationManager,
@@ -578,7 +579,7 @@ describe('SubagentRuntime.startContinuable', () => {
     const start = vi.fn(async () => { throw new Error('must not dispatch') })
     ctx.subagents.registerProvider({
       name: 'one-shot',
-      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, sandboxMode: false, toolFilter: false, persona: false },
       inheritsParentContext: false,
       start,
     })
@@ -614,6 +615,7 @@ describe('SubagentRuntime.startContinuable', () => {
       label: 'child task',
       agentProvider: 'mock',
       agentModel: 'mock',
+      toolFilter: { allow: [] },
     })
     // Model-hidden: the descriptor never carries surface metadata.
     expect('surfaceOp' in descriptor).toBe(false)
@@ -785,10 +787,8 @@ describe('SubagentRuntime.startContinuable', () => {
     expect(ctx.agents.list().map(agent => agent.id)).toEqual([SessionId('parent')])
   })
 
-  it('omits undeclared composition fields from the descriptor', async () => {
+  it('records the parent tool ceiling without inventing route or persona fields', async () => {
     const { ctx } = await setup([])
-    // A routeless parent declares no provider/model, and this start declares no
-    // persona or tool filter, so the descriptor records only what exists.
     const routeless = await ctx.agentLoop.create(SessionId('routeless'), {})
     const started = await ctx.subagents.startContinuable(startSpec(routeless))
     const child = await vi.waitFor(() => {
@@ -803,6 +803,7 @@ describe('SubagentRuntime.startContinuable', () => {
       mode: 'continuable',
       provider: 'spawn',
       label: 'child task',
+      toolFilter: { allow: [] },
     })
     await drainManager(ctx)
   })
@@ -837,7 +838,7 @@ describe('SubagentRuntime.startContinuable', () => {
         mode: 'continuable',
         provider: 'spawn',
         label: 'child task',
-        toolFilter: { deny: ['noop'] },
+        toolFilter: { allow: ['noop'], deny: ['noop'] },
       })
     await drainManager(ctx)
   })
@@ -1113,7 +1114,7 @@ describe('direct-child Queue residency routing', () => {
     await ctx.plugin(SubagentInvariant)
     const disposeProvider = ctx.subagents.registerProvider({
       name: 'retired',
-      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, sandboxMode: false, toolFilter: false, persona: false },
       inheritsParentContext: false,
       start: async () => { throw new Error('one-shot start is not used') },
       prepareContinuable: () => Promise.resolve({}),
@@ -2774,10 +2775,172 @@ describe('continuable settlement delivery', () => {
     })
     await waitNoActivation(ctx, started.childId)
 
-    // The contract is unconditional precisely so the parent-side tool
-    // description can promise it; bookkeeping "did it report?" would make the
-    // promise conditional on a channel this manager does not own.
     await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+  })
+
+  it.each([
+    ['the answer', true],
+    ['the answer ', false],
+    ['another answer', false],
+  ])('compares closing text exactly with the last delivered message: %s', async (report, repeats) => {
+    const release = Promise.withResolvers<undefined>()
+    const adapter = new GatedAdapter([
+      { chunks: textResponse('the answer'), gate: release.promise },
+      { chunks: textResponse('parent read earlier report') },
+      { chunks: textResponse('parent read report') },
+      { chunks: textResponse('parent read settlement') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(1) })
+    const child = ctx.agents.get(started.childId)!
+    const earlier = await ctx.subagents.sendMessage(child, parent.id, message('the answer'), { signal: testSignal })
+    await vi.waitFor(() => {
+      expect(parent.session.snapshotEvents().some(event => event.type === 'user/message' && event.data.id === earlier)).toBe(true)
+      expect(parent.status).toBe('idle')
+    })
+    const sent = await ctx.subagents.sendMessage(child, parent.id, message(report), { signal: testSignal })
+    await vi.waitFor(() => {
+      expect(parent.session.snapshotEvents().some(event => event.type === 'user/message' && event.data.id === sent)).toBe(true)
+      expect(parent.status).toBe('idle')
+    })
+    release.resolve(undefined)
+    await waitNoActivation(ctx, started.childId)
+    await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+    expect(settlementNotices(parent)[0]!.text).toBe(
+      `Background subagent ${started.childId} finished and will do no further work unless you send it more.`
+      + (repeats ? `\nIts closing message repeats message ${sent} sent to you; see that message.` : '\nIts closing message:\nthe answer'),
+    )
+  })
+
+  it.each([
+    ['completed', 'finished and will do no further work unless you send it more.'],
+    ['error', 'failed before it finished.'],
+    ['aborted', 'was stopped before it finished.'],
+    ['refusal', 'declined the task.'],
+    ['max-tokens', 'ran out of room before it finished.'],
+  ] as const)('preserves %s status when referencing the delivered report', (stopReason, ending) => {
+    const childId = SessionId('reporting-child')
+    const delivered = createUserMessage({ source: { kind: 'agent-message', form: 'relay', senderSessionId: childId }, content: [
+      { type: 'text', text: `Agent ${childId} sent a message: ` },
+      { type: 'text', text: 'the answer' },
+    ] })
+    const notice = createSettlementMessage(childId, { stopReason, output: message('the answer') }, delivered)
+    expect(notice.content).toEqual([
+      { type: 'text', text: `Background subagent ${childId} ${ending}` },
+      { type: 'text', text: `Its closing message repeats message ${delivered.id} sent to you; see that message.` },
+    ])
+  })
+
+  it('keeps the closing text when the matching message is still pending in the parent Inbox', async () => {
+    const release = Promise.withResolvers<undefined>()
+    const releaseParent = Promise.withResolvers<undefined>()
+    const adapter = new GatedAdapter([
+      { chunks: textResponse('the answer'), gate: release.promise },
+      { chunks: textResponse('parent ack') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    const maintenance = parent.runMaintenance(() => releaseParent.promise)
+    cleanups.unshift(async () => { releaseParent.resolve(undefined); await maintenance })
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(1) })
+    await ctx.subagents.sendMessage(ctx.agents.get(started.childId)!, parent.id, message('the answer'), { signal: testSignal })
+    release.resolve(undefined)
+    await waitNoActivation(ctx, started.childId)
+    expect(settlementNotices(parent)[0]!.text).toContain('Its closing message:\nthe answer')
+    releaseParent.resolve(undefined)
+    await maintenance
+  })
+
+  it('uses the last delivery even when the parent consumes it during child teardown', async () => {
+    const releaseChild = Promise.withResolvers<undefined>()
+    const releaseParent = Promise.withResolvers<undefined>()
+    const teardownEntered = Promise.withResolvers<undefined>()
+    const releaseTeardown = Promise.withResolvers<undefined>()
+    cleanups.unshift(async () => {
+      releaseChild.resolve(undefined)
+      releaseParent.resolve(undefined)
+      releaseTeardown.resolve(undefined)
+    })
+    const adapter = new GatedAdapter([
+      { chunks: textResponse('the answer'), gate: releaseChild.promise },
+      { chunks: textResponse('read first report') },
+      { chunks: textResponse('read second report') },
+      { chunks: textResponse('read settlement') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(1) })
+    const child = ctx.agents.get(started.childId)!
+    child.ctx.effect(() => async () => { teardownEntered.resolve(undefined); await releaseTeardown.promise })
+    const first = await ctx.subagents.sendMessage(child, parent.id, message('the answer'), { signal: testSignal })
+    await vi.waitFor(() => {
+      expect(parent.session.snapshotEvents().some(event => event.type === 'user/message' && event.data.id === first)).toBe(true)
+      expect(parent.status).toBe('idle')
+    })
+    const maintenance = parent.runMaintenance(() => releaseParent.promise)
+    const last = await ctx.subagents.sendMessage(child, parent.id, message('later correction'), { signal: testSignal })
+    releaseChild.resolve(undefined)
+    await teardownEntered.promise
+    releaseParent.resolve(undefined)
+    await maintenance
+    await vi.waitFor(() => {
+      expect(parent.session.snapshotEvents().some(event => event.type === 'user/message' && event.data.id === last)).toBe(true)
+      expect(parent.status).toBe('idle')
+    })
+    releaseTeardown.resolve(undefined)
+    await waitNoActivation(ctx, started.childId)
+    await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+    expect(settlementNotices(parent)[0]!.text).toContain('Its closing message:\nthe answer')
+  })
+
+  it('keeps the closing text after a rejected matching delivery', async () => {
+    const release = Promise.withResolvers<undefined>()
+    const adapter = new GatedAdapter([
+      { chunks: textResponse('the answer'), gate: release.promise },
+      { chunks: textResponse('parent ack') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(1) })
+    const rejection = vi.spyOn(parent, 'steer').mockImplementationOnce(() => { throw new Error('closed admission') })
+    try {
+      await expect(ctx.subagents.sendMessage(ctx.agents.get(started.childId)!, parent.id, message('the answer'), { signal: testSignal }))
+        .rejects.toMatchObject({ code: 'PARENT_UNAVAILABLE' })
+    } finally {
+      rejection.mockRestore()
+      release.resolve(undefined)
+    }
+    await waitNoActivation(ctx, started.childId)
+    await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+    expect(settlementNotices(parent)[0]!.text).toContain('Its closing message:\nthe answer')
+  })
+
+  it('does not reuse a matching delivery from a previous activation', async () => {
+    const release = Promise.withResolvers<undefined>()
+    const adapter = new GatedAdapter([
+      { chunks: textResponse('the answer'), gate: release.promise },
+      { chunks: textResponse('parent read report') },
+      { chunks: textResponse('parent read first settlement') },
+      { chunks: textResponse('the answer') },
+      { chunks: textResponse('parent read second settlement') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(1) })
+    const sent = await ctx.subagents.sendMessage(ctx.agents.get(started.childId)!, parent.id, message('the answer'), { signal: testSignal })
+    await vi.waitFor(() => {
+      expect(parent.session.snapshotEvents().some(event => event.type === 'user/message' && event.data.id === sent)).toBe(true)
+      expect(parent.status).toBe('idle')
+    })
+    release.resolve(undefined)
+    await waitNoActivation(ctx, started.childId)
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(3); expect(parent.status).toBe('idle') })
+    await queuePrompt(ctx, parent, started.childId, message('again'))
+    await waitNoActivation(ctx, started.childId)
+    await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(2) })
+    expect(settlementNotices(parent)[0]!.text).toContain(`repeats message ${sent}`)
+    expect(settlementNotices(parent)[1]!.text).toContain('Its closing message:\nthe answer')
   })
 
   it('delivers the terminal reason when the child never had a chance to report', async () => {

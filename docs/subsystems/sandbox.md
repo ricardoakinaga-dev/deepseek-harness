@@ -38,6 +38,26 @@ Enforcement is a reported fact. `full` means the backend governs every file effe
 type SandboxEnforcement = 'full' | 'partial'
 ```
 
+## Provider execution facts
+
+`describe(policy)` optionally reports the selected runner, temporary-file lifetime and sharing, enforcement, and identity mapping. Absence means that the provider supplies no description; it does not imply Host-equivalent behavior.
+
+```ts type-equiv
+/** Provider facts for the requested confined mode; unknown values make no Host equivalence claim. */
+interface SandboxExecutionEnvironment {
+  /** Selected runner family, without executable arguments or credentials. */
+  runner: string
+  /** Selection verdict; unavailable means no confined command can start. */
+  enforcement: SandboxEnforcement | 'unavailable'
+  /** Lifetime and sharing of the process temporary area. */
+  temporaryFiles: 'host' | 'per-call' | 'per-session' | 'unknown'
+  /** Whether process temporary paths refer to the Host temporary files. */
+  sharesHostTemporaryFiles: boolean | 'unknown'
+  /** Host identity preservation or runner-dependent UID/GID mapping. */
+  identity: 'host' | 'namespace-dependent' | 'restricted-token' | 'unknown'
+}
+```
+
 ## Per-call policy
 
 The complete execution policy is resolved and carried per capability call. It includes `danger-full-access` so a consumer can resolve policy once before deciding whether to bypass confinement. Normal tool calls derive `workspaceRoot` from the calling session's immutable cwd; deployment configuration is the agentless fallback. The resolver preserves absolute execution-world spelling. Enforcing providers canonicalize the root where the files exist, so a cwd containing `symlink/..` identifies the directory where the paired subprocess provider actually runs.
@@ -172,6 +192,14 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 Abstract process-sandbox service. confine must return enforcing argv or fail closed at wrap or runner-execution time; silent unconfined passthrough is forbidden. Functional probes arbitrate multi-runner chains and may be skipped for a sole candidate, whose own refusal remains the fail-closed end.
 
 ```ts cordis-catalog
+/**
+ * Describe the runner selected for a policy without launching a user command.
+ * Providers may perform bounded selection probes. Absence makes no claim about execution-world semantics.
+ * @param policy - fully resolved confined policy.
+ * @returns provider facts, or undefined when the provider offers no descriptor.
+ */
+describe(policy: SandboxPolicy): SandboxExecutionEnvironment | undefined
+
 /**
  * Wrap `argv` so it executes confined under `policy` on this host; the
  * caller spawns the returned argv in place of its own.

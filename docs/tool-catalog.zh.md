@@ -602,7 +602,7 @@ ask_user_question 会暂停工具调用，直到当前 UI 提供方返回人类�
 
 ### `bash`
 
-执行 bash 命令（`bash -c`）并返回 stdout/stderr。每次调用都在新 shell 中运行；请传入 `workdir`，不要使用 `cd`。托管的 `$DSH_*` 变量公开当前 harness 环境信息。较长的输出会截断，只保留尾部；如可用，完整输出会保存到文件并报告其路径。命令可能在文件沙箱中运行；被阻止的文件操作报告为 `[sandbox: file access denied under <mode> mode]`，这是策略拒绝：请勿换一种方式重试。
+执行 bash 命令（`bash -c`）并返回 stdout/stderr。每次调用都在新 shell 中运行；请传入 `workdir`，不要使用 `cd`。托管的 `$DSH_*` 变量公开当前 harness 环境信息。较长的输出会截断为预览；如可用，可通过一个文件路径读取完整输出。命令可能在文件沙箱中运行；被阻止的文件操作报告为 `[sandbox: file access denied under <mode> mode]`，这是策略拒绝：请勿换一种方式重试。
 
 ```json
 {
@@ -646,7 +646,7 @@ bash 工具是 bash 执行器 seam 面向模型的消费方。组合中有 job �
 
 ### `present`
 
-将已有文件声明为交付给用户的最终交付物。当用户需要独立文件时使用，尤其是 Office 文档、电子表格和演示文稿；如果最终回复已经足够，优先使用最终回复。用户打开的是当前文件；不复制其内容。
+将已有文件声明为交付给用户的最终交付物。当用户需要独立文件时使用，尤其是 Office 文档、电子表格和演示文稿；如果最终回复已经足够，优先使用最终回复。文件大小不超过配置限制时，保存的副本会保留交付时的字节；更大的文件只声明而不保存副本。原始路径仍可用于打开当前文件。
 
 ```json
 {
@@ -690,7 +690,7 @@ bash 工具是 bash 执行器 seam 面向模型的消费方。组合中有 job �
 
 ### `pwsh`
 
-执行 PowerShell 命令（`pwsh -Command`）并返回 stdout/stderr。每次调用都在新的 pwsh 进程中运行；请传入 `workdir`，不要使用 `cd`。路径采用 Windows 原生形式（`C:\...`）；使用 `$env:NAME` 读取环境变量。托管的 `$env:DSH_*` 变量公开当前 harness 环境信息。较长的输出会截断，只保留尾部；如可用，完整输出会保存到文件并报告其路径。在 Windows 上，被强制终止的命令会以 `[exit code: 1]` 结算且不带信号标记，请将其视为中断，而不是命令失败。命令可能在文件沙箱中运行；被阻止的文件操作报告为 `[sandbox: file access denied under <mode> mode]`，这是策略拒绝：请勿换一种方式重试。
+执行 PowerShell 命令（`pwsh -Command`）并返回 stdout/stderr。每次调用都在新的 pwsh 进程中运行；请传入 `workdir`，不要使用 `cd`。路径采用 Windows 原生形式（`C:\...`）；使用 `$env:NAME` 读取环境变量。托管的 `$env:DSH_*` 变量公开当前 harness 环境信息。较长的输出会截断为预览；如可用，可通过一个文件路径读取完整输出。在 Windows 上，被强制终止的命令会以 `[exit code: 1]` 结算且不带信号标记，请将其视为中断，而不是命令失败。命令可能在文件沙箱中运行；被阻止的文件操作报告为 `[sandbox: file access denied under <mode> mode]`，这是策略拒绝：请勿换一种方式重试。
 
 ```json
 {
@@ -1070,7 +1070,7 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
 
 ### `glob`
 
-查找路径匹配 glob 模式的文件（不含目录），包括隐藏文件和被忽略的文件。最多按修改时间顺序返回 100 条路径；更大的结果会从顶层条目中抽样，并报告完整列表的保存位置。
+查找路径匹配 glob 模式的文件（不含目录），包括隐藏文件和被忽略的文件。最多返回 100 条路径，未忽略的路径优先，各组内按修改时间排序；更大的结果会从顶层条目中抽样，并报告完整列表的保存位置。被忽略的路径依据 ripgrep 的忽略规则标记，包括 .gitignore 和 .ignore；此标记不表示 Git 跟踪状态。
 
 ```json
 {
@@ -1295,7 +1295,7 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
 
 ### `create_goal`
 
-创建一个持久化目标，使当前会话跨自动延续 Round 持续工作。当直接人类请求是长期目标时使用，即使用户没有说「目标」；不要用于单轮工作。
+创建持久 goal，使本会话跨自动续行 Round 持续工作。仅当当前人类消息包含恰好具有 objective 和 requiredTasks 字段的 JSON 对象时调用。对于文本请求，应继续已授权的工作而不创建 goal。
 
 ```json
 {
@@ -1303,7 +1303,7 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
   "properties": {
     "objective": {
       "type": "string",
-      "description": "The concrete completion objective inferred from the direct human request."
+      "description": "Copy the exact objective string from the JSON object in the current human message."
     },
     "max_goal_rounds": {
       "type": "number",
@@ -1311,7 +1311,7 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
     },
     "required_tasks": {
       "type": "array",
-      "description": "Copy every ID and criterion from the human message JSON requiredTasks array. The objective and array must match exactly.",
+      "description": "Non-empty array. Copy every ID and criterion, in order, from that human JSON requiredTasks array; do not infer, omit, or invent tasks.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -1800,7 +1800,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 ### `skill`
 
-加载某项 skill（技能）的完整说明。在执行点名某项 skill 或与会话 skill 目录中某项 skill 明确匹配的任务前，请调用此工具。
+加载某项 skill（技能）的完整说明。在执行点名某项 skill 或与会话 skill 目录中某项 skill 明确匹配的任务前，请调用此工具。内容未改变且仍在上下文中的 skill 返回简短引用；被压缩移除的说明会重新加载。
 
 ```json
 {
@@ -2095,6 +2095,33 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
     "prompt": {
       "type": "string",
       "description": "The complete, self-contained task for the subagent. It does not share this conversation's context, so include everything it needs."
+    },
+    "sandboxMode": {
+      "type": "string",
+      "description": "File access for this child. Omit to inherit the effective parent policy; a supplied mode may only narrow it. Approval remains disabled.",
+      "enum": [
+        "read-only",
+        "workspace-write"
+      ]
+    },
+    "toolFilter": {
+      "type": "object",
+      "description": "Additional tool restrictions for this child, intersected with deployment and parent permissions. An empty allow list removes all inherited tools.",
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deny": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "run_in_background": {
       "type": "boolean",

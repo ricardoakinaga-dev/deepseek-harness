@@ -9,13 +9,14 @@ import z from '@deepseek-ai/schemastery'
 import { CompactionEngine, ManualCompactionError } from '@deepseek-ai/dsh-compaction'
 import type { CompactionResult, CompactionTrigger } from '@deepseek-ai/dsh-compaction'
 import type { Session, SessionSeq } from '@deepseek-ai/dsh-session'
-import { CONTEXT_WINDOW_EXCEEDED_CODE } from '@deepseek-ai/dsh-llm'
+import { CONTEXT_WINDOW_EXCEEDED_CODE, LlmError } from '@deepseek-ai/dsh-llm'
 import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
 // Type-only: makes the optional sibling service available to `ctx.get()`.
 import type {} from '@deepseek-ai/dsh-compaction-tool-result-pruner'
+import type {} from '@deepseek-ai/dsh-app-boot'
 import {
   resolveCompactSpec,
   resolveConfig,
@@ -66,6 +67,20 @@ function reservedCompletionTokens(agent: Agent, defaultMaxTokens: number | undef
   const configured = agent.session.requestHeader()?.config.maxTokens
   return configured ?? defaultMaxTokens ?? 0
 }
+
+/**
+ * LLM failure codes that repeat for an unchanged route, credential, and request
+ * configuration regardless of the summarized region.
+ */
+const CONFIGURATION_FAILURE_CODES: ReadonlySet<string> = new Set([
+  'AUTH',
+  'INVALID_CREDENTIAL',
+  'MISSING_CREDENTIAL',
+  'NO_ADAPTER',
+  'UNKNOWN_MODEL',
+  'UNSUPPORTED_OPTION',
+  'UNSUPPORTED_REASONING_EFFORT',
+])
 
 /** Resolve the conversation target used to select an optional policy override. */
 function conversationTarget(
@@ -131,6 +146,9 @@ export class BasicCompactionEngine extends CompactionEngine {
   readonly config: ResolvedConfig
 
   private readonly warnedPressureConfigTargets = new Set<string>()
+  /** Summary failures are scoped to a session's current turn and configuration. */
+  private suspendedPressureTargets = new WeakMap<Session, string>()
+  private pressureConfigurationRevision = 0
   private readonly overflowRetries = new WeakMap<Agent, number>()
   private readonly overflowAgents = new WeakMap<Session, Agent>()
 
@@ -155,10 +173,22 @@ export class BasicCompactionEngine extends CompactionEngine {
       )
     }
 
+    const configurationChanged = (): void => {
+      this.pressureConfigurationRevision += 1
+      this.suspendedPressureTargets = new WeakMap()
+    }
+    ctx.on('llm/adapters-updated', configurationChanged, { global: true })
+    ctx.on('app-boot/config-reload', configurationChanged, { global: true })
+
     ctx.on('agent/pre-step', async (
       { agent, signal },
       next,
     ): Promise<PreStepDecision> => {
+      const target = routedTarget(agent.session)
+      const targetKey = target === undefined ? undefined : `${target.provider}/${target.model}`
+      const suspended = this.suspendedPressureTargets.get(agent.session)
+      if (suspended !== undefined && suspended !== targetKey) this.suspendedPressureTargets.delete(agent.session)
+      const revision = this.pressureConfigurationRevision
       if (!signal.aborted) {
         try {
           const result = await this.compactIfNeeded(agent, 'pressure', signal)
@@ -169,19 +199,31 @@ export class BasicCompactionEngine extends CompactionEngine {
             this.warnedPressureConfigTargets.add(error.targetKey)
           }
           const message = error instanceof Error ? error.message : String(error)
-          ctx.logger.warn(`step compaction failed: ${message}; continuing the turn`)
+          if (targetKey !== undefined && revision === this.pressureConfigurationRevision
+            && error instanceof LlmError && CONFIGURATION_FAILURE_CODES.has(error.code)) {
+            this.suspendedPressureTargets.set(agent.session, targetKey)
+            ctx.logger.warn(
+              `step compaction failed: ${message}; continuing the turn without automatic summaries `
+              + `for ${targetKey} until the turn ends`,
+            )
+          } else {
+            ctx.logger.warn(`step compaction failed: ${message}; continuing the turn`)
+          }
         }
       }
       return next()
     })
 
     ctx.on('agent/status', ({ agent, status }) => {
-      if (status === 'idle') this.overflowRetries.delete(agent)
+      if (status !== 'idle') return
+      this.overflowRetries.delete(agent)
+      this.suspendedPressureTargets.delete(agent.session)
     })
 
     // A successful response starts a fresh overflow-recovery sequence even
     // when tool calls continue the same turn into another request.
     ctx.on('session/event', (session, event) => {
+      if (event.type === 'turn/end') this.suspendedPressureTargets.delete(session)
       if (event.type !== 'assistant/message') return
       const agent = this.overflowAgents.get(session)
       if (agent !== undefined) this.overflowRetries.delete(agent)
@@ -325,6 +367,8 @@ export class BasicCompactionEngine extends CompactionEngine {
       measurement = meter.measure(agent.session)
     }
     if (measurement.totalTokens < spec.thresholdTokens) return null
+
+    if (this.suspendedPressureTargets.get(agent.session) === targetKey) return null
 
     let result: CompactionResult | null = null
     for (let attempt = 0; attempt <= spec.compactionRetries; attempt += 1) {

@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-tool-goal` 让模型读取持久 goal，并根据人类直接请求推断和创建长期 goal。创建、编辑、暂停或恢复要求该直接请求出现在顶层 agent（智能体）轮次中；完成或阻塞也可以在自主 Goal Round 中执行。更新必须使用先前读取到的精确 goal id 和 revision。`resume` 会重新启用 active-but-disarmed 或 blocked 的 goal，而持久的 paused goal 由用户通过 Web 或 `/goal resume` 恢复。自主阻塞要求同一条件持续达到可配置阈值，默认是连续三个 Round。
+`dsh-tool-goal` 让模型读取持久 goal，并根据人类显式提交的 JSON 任务清单创建长期 goal。创建、编辑、暂停或恢复要求该直接请求出现在顶层 agent（智能体）轮次中；完成或阻塞也可以在自主 Goal Round 中执行。更新必须使用先前读取到的精确 goal id 和 revision。`resume` 会重新启用 active-but-disarmed 或 blocked 的 goal，而持久的 paused goal 由用户通过 Web 或 `/goal resume` 恢复。自主阻塞要求同一条件持续达到可配置阈值，默认是连续三个 Round。
 
 ## 目录
 
@@ -39,7 +39,7 @@ kind: "package-reference"
 
 在 `update_goal` 之前调用 `get_goal`，并复制精确的 `goal_id` 与 `revision`；所有调用都互斥，因此模型排序的批次能观察到更早变更及其新 revision。替换值只属于 `edit`；`blocked_reason` 只有在 `blocked` 时才必填，并以稳定代码 `model-reported` 持久化。严格 schema 下的空字符串和零填充值视为省略，而有意义的值仍限定到各自 action。
 
-存在清单时，工具结果包含原始目标、原始必需 ID 和验收标准、当前任务状态，以及每次显式范围修订。模型工具的 schema 不提供 `ACCEPTED` 和 `revise_scope`；人类须使用显式 `/goal accept` 与 `/goal scope` 命令。传给 `create_goal` 的清单必须与当前人类轮次中的 JSON `objective` 和 `requiredTasks` 完全一致。创建时缺失或提供空清单会被拒绝；模型不得从文本推断遗漏的 ID。对于没有清单的已发布 goal，应先请用户通过 `/goal scope` 设置首个必需任务列表，再跟踪或完成。
+存在清单时，工具结果包含原始目标、原始必需 ID 和验收标准、当前任务状态，以及每次显式范围修订。模型工具的 schema 不提供 `ACCEPTED` 和 `revise_scope`；人类须使用显式 `/goal accept` 与 `/goal scope` 命令。传给 `create_goal` 的清单必须与当前人类轮次中的 JSON `objective` 和 `requiredTasks` 完全一致。创建时缺失、为空或不匹配的清单会以 `GOAL_TOOL_MANIFEST_REQUIRED` 拒绝，并提供恢复指引。对于文本请求，应继续已授权的工作而不创建 goal。如需自动续行，应准备完整清单，供用户通过 `/goal create <JSON>` 提交；`/goal scope` 仅更新已存在的 goal。模型不得从文本推断遗漏的 ID。对于没有清单的已发布 goal，应先请用户通过 `/goal scope` 设置首个必需任务列表，再跟踪或完成。
 
 ### 配置
 
@@ -111,12 +111,12 @@ kind: "package-reference"
 
 #### 模型看到的内容
 
-固定 goal 策略允许以任意语言推断 goal 意图，解释会话 resume／fork 后如何重新启用续行，并限制完成／阻塞声明；创建范围和更新前读取 ref 由工具定义说明。持久 paused 的 resume 会在执行时以 `GOAL_TOOL_RESUME_PAUSED` 拒绝；面向用户的 goal 控件拥有该转换。配置的阈值会插入该指引。
+固定 goal 策略解释清单准备、会话 resume／fork 后的续行重新启用，以及完成／阻塞限制；创建范围和更新前读取 ref 由工具定义说明。持久 paused 的 resume 会在执行时以 `GOAL_TOOL_RESUME_PAUSED` 拒绝；面向用户的 goal 控件拥有该转换。配置的阈值会插入该指引。
 
 ##### Goal 策略
 
 ```markdown
-create_goal may infer goal intent from a direct human request in any language. After session resume or fork, an active goal is disarmed: when a human asks to continue or resume in any wording or language, use update_goal action resume to rearm it. Create a task manifest by copying every ID and criterion from exact human JSON objective and requiredTasks fields without inference. For a released goal without a manifest, ask the human to set its first requiredTasks with /goal scope; all adopted tasks start PENDING. Use task_status for progress. Human task acceptance and scope changes use explicit /goal commands. Completion requires a manifest with every task accepted. Mark complete only when the objective is actually achieved. Mark blocked only after the same blocking condition persists for at least 3 consecutive goal rounds, and report that concrete condition in blocked_reason; difficulty, uncertainty, or useful remaining work is not blocked.
+After session resume or fork, an active goal is disarmed: when a human asks to continue or resume in any wording or language, use update_goal action resume to rearm it. If automatic continuation is needed but no human JSON manifest exists, prepare a complete manifest for the human to submit with /goal create; /goal scope only updates an existing goal. For a released goal without a manifest, ask the human to set its first requiredTasks with /goal scope; all adopted tasks start PENDING. Use task_status for progress. Human task acceptance and scope changes use explicit /goal commands. Completion requires a manifest with every task accepted. Mark complete only when the objective is actually achieved. Mark blocked only after the same blocking condition persists for at least 3 consecutive goal rounds, and report that concrete condition in blocked_reason; difficulty, uncertainty, or useful remaining work is not blocked.
 ```
 
 #### Token 影响

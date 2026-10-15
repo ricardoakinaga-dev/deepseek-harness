@@ -12,7 +12,7 @@ describe('deliverables layout', () => {
     const deliveries = read('Deliverables.module.css')
     expect(deliveries).toMatch(/\.root\s*\{[^}]*margin-top:\s*4px/s)
     expect(deliveries).toMatch(/\.root\[data-after-changes='true'\]\s*\{\s*margin-top:\s*0;\s*\}/)
-    expect(deliveries).toMatch(/\.file\s*\{[^}]*height:\s*60px;[^}]*padding:\s*8px 10px/s)
+    expect(deliveries).toMatch(/\.file\s*\{[^}]*min-height:\s*60px;[^}]*padding:\s*8px 10px/s)
     expect(deliveries).toMatch(/\.fileIcon\s*\{[^}]*box-sizing:\s*border-box;[^}]*width:\s*40px;[^}]*height:\s*40px/s)
     expect(deliveries).toMatch(/\.fileIcon\s*\{[^}]*border:\s*0\.5px solid var\(--dsw-alias-border-l1\)/s)
     expect(read('PresentedFileCard.tsx')).toMatch(/<FileTypeIcon path=\{file\.path\} size=\{20\} \/>/)

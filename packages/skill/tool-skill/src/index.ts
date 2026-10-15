@@ -11,6 +11,8 @@ import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionSeq, type UserMessage } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-session-projection'
+import { activeSkillsProjection, skillDigest } from './active-skills.ts'
 import {
   escapeText,
   isModelInvocable,
@@ -77,10 +79,11 @@ export const Config: z<Config> = z.object({
 export function apply(ctx: Context, config: Config = {}): void {
   const catalogDescriptionMaxLength = config.catalogDescriptionMaxLength ?? DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH
   assertPositiveInteger('catalogDescriptionMaxLength', catalogDescriptionMaxLength, 3)
+  ctx.inject(['sessionProjections'], (scope) => { scope.sessionProjections.register(activeSkillsProjection) })
 
   const skillTool = defineTool({
     name: 'skill',
-    description: 'Load the full instructions for a skill. Call it before acting on a task that names or clearly matches a skill in the session skill catalog.',
+    description: 'Load the full instructions for a skill. Call it before acting on a task that names or clearly matches a skill in the session skill catalog. An unchanged skill already present in context returns a short reference; instructions removed by compaction are loaded again.',
     parameters: {
       name: { type: 'string', required: true, description: 'The exact skill name from the available skills list.' },
     },
@@ -120,9 +123,18 @@ export function apply(ctx: Context, config: Config = {}): void {
             ],
           },
           content: { type: 'string', required: true },
+          alreadyActive: { type: 'boolean' },
         },
       },
-      render: (_args, value) => [{ type: 'text', text: renderSkillContent(value) }],
+      render: (_args, value) => [{ type: 'text', text: value.alreadyActive === true
+        ? `Skill "${value.name}" is already loaded in the current context. Follow its existing instructions.`
+        : renderSkillContent(value) }],
+      presentationMeta: (_args, value) => {
+        const text = renderSkillContent(value)
+        return { kind: 'skill-load', name: value.name, provider: value.provider,
+          digest: skillDigest(value.provider, text), instructionCharacters: value.alreadyActive === true ? 0 : Array.from(text).length,
+          alreadyActive: value.alreadyActive === true }
+      },
     },
     async execute(args, exec) {
       if (!isSkillName(args.name)) {
@@ -145,13 +157,18 @@ export function apply(ctx: Context, config: Config = {}): void {
       if (!isModelInvocable(skill)) {
         throw new Error(`skill "${args.name}" is not available for model invocation`)
       }
+      const state = exec.parent === undefined && exec.agent !== undefined
+        ? ctx.get('sessionProjections')?.stateOf(exec.agent.session, 'activeSkills') : undefined
+      const active = state?.[skill.name]
+      const alreadyActive = active !== undefined && active.digest === skillDigest(skill.provider, renderSkillContent(skill))
       return {
         name: skill.name,
         provider: skill.provider,
         ...skill.resourceBase !== undefined ? {
           resourceBase: { ...skill.resourceBase },
         } : {},
-        content: skill.content,
+        content: alreadyActive ? '' : skill.content,
+        ...alreadyActive ? { alreadyActive: true } : {},
       }
     },
     presentCall(args) {

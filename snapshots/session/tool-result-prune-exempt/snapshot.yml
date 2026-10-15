@@ -1,0 +1,13 @@
+version: 1
+scenario: tool-result-prune-exempt
+profile: headless
+composition: tool-result-prune-exempt
+recording: authored
+header:
+  class: tool-result-prune-exempt
+  pin: true
+  systemPromptSource: compaction-recovery
+  toolSchemasSource: compaction-recovery
+  changes: 1
+workspace:
+  setup: editing-cordis-skill

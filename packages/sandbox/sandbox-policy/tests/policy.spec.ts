@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import { SandboxProvider, type ConfinedArgv, type SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
 import SandboxPolicyService, { SANDBOX_MODES, setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
@@ -250,4 +251,30 @@ describe('the sandbox/mode session kit', () => {
     expect(modeEvents).toHaveLength(1)
     expect(modeEvents[0]?.data).toEqual({ mode: 'danger-full-access' })
   })
+})
+
+
+it('logs changed runner facts and makes temporary sharing explicit before the request', async () => {
+  class DescribedSandbox extends SandboxProvider {
+    override describe(policy: SandboxPolicy) {
+      return { runner: 'bwrap', enforcement: 'full' as const, temporaryFiles: policy.mode === 'workspace-write' ? 'per-call' as const : 'host' as const, sharesHostTemporaryFiles: policy.mode !== 'workspace-write', identity: 'namespace-dependent' as const }
+    }
+    override confine(): Promise<ConfinedArgv> { throw new Error('No command is needed to describe the runner') }
+  }
+  const ctx = await mounted({ mode: 'workspace-write' })
+  try {
+    await ctx.plugin(DescribedSandbox)
+    await ctx.plugin(SystemPrompt)
+    const active = session(ctx, 'world-facts', '/work')
+    const text = await policyContext(ctx, active)
+    expect(text).toContain('private to each command')
+    expect(text).toContain('Host root ownership and supplementary groups may be unmapped')
+    await policyContext(ctx, active)
+    expect(active.snapshotEvents().filter(event => event.type === 'sandbox/environment')).toHaveLength(1)
+    setSandboxMode(active, 'read-only')
+    expect(await policyContext(ctx, active)).toContain('Process temporary paths use the Host filesystem')
+    expect(active.snapshotEvents().filter(event => event.type === 'sandbox/environment')).toHaveLength(2)
+    setSandboxMode(active, 'danger-full-access')
+    expect(await policyContext(ctx, active)).not.toContain('Process sandbox runner')
+  } finally { await ctx.fiber.dispose() }
 })

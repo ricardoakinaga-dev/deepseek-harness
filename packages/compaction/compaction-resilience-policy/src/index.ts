@@ -25,6 +25,9 @@ export const COMPACTION_TIMEOUT = 'COMPACTION_TIMEOUT'
 /** Stable failure code for a compaction request this policy cannot safely rewrite. */
 export const COMPACTION_POLICY_IMMUTABLE_REQUEST = 'COMPACTION_POLICY_IMMUTABLE_REQUEST'
 
+/** LLM registry failure code for an effort the routed model does not offer. */
+const UNSUPPORTED_REASONING_EFFORT = 'UNSUPPORTED_REASONING_EFFORT'
+
 /** Cordis plugin name used by Loader diagnostics. */
 export const name = 'compaction-resilience-policy'
 
@@ -35,8 +38,18 @@ export const inject = ['llm', 'sessions', 'tokenMeter']
 export interface Config {
   /** Maximum output tokens sent by calls whose purpose is `compaction`. */
   compactionMaxTokens?: number
-  /** Reasoning effort sent by calls whose purpose is `compaction`; omitted to preserve the caller/provider choice. */
+  /**
+   * Reasoning effort sent by calls whose purpose is `compaction` on routes
+   * without a {@link Config.compactionReasoningEffortByRoute} entry; omitted to
+   * preserve the caller/provider choice.
+   */
   compactionReasoningEffort?: string
+  /**
+   * Per-route reasoning effort for calls whose purpose is `compaction`, keyed by
+   * `provider/model` or `provider`. An exact `provider/model` key wins over a
+   * `provider` key, which wins over {@link Config.compactionReasoningEffort}.
+   */
+  compactionReasoningEffortByRoute?: Record<string, string>
   /** Total cooperative deadline for one compaction stream, in milliseconds. */
   compactionTimeoutMs?: number
   /** Whether loop-built requests are checked against their logged context capacity before adapter dispatch. */
@@ -49,17 +62,19 @@ export interface Config {
 
 /** Runtime schema for {@link Config}. */
 export const Config: z<Config> = z.object({
-  compactionMaxTokens: z.number().step(1).min(1).default(4096),
-  compactionReasoningEffort: z.string().min(1),
-  compactionTimeoutMs: z.number().step(1).min(1).max(MAX_TIMER_DELAY_MS).default(480_000),
-  requestPreflight: z.boolean().default(true),
-  requestSafetyMarginTokens: z.number().step(1).min(0).default(256),
-  requestOutputReserveTokens: z.number().step(1).min(1).default(1024),
+  compactionMaxTokens: z.number().step(1).min(1).default(4096).extra('extra', { audit: true }),
+  compactionReasoningEffort: z.string().min(1).extra('extra', { audit: true }),
+  compactionReasoningEffortByRoute: z.dict(z.string().min(1)).extra('extra', { audit: true }),
+  compactionTimeoutMs: z.number().step(1).min(1).max(MAX_TIMER_DELAY_MS).default(480_000).extra('extra', { audit: true }),
+  requestPreflight: z.boolean().default(true).extra('extra', { audit: true }),
+  requestSafetyMarginTokens: z.number().step(1).min(0).default(256).extra('extra', { audit: true }),
+  requestOutputReserveTokens: z.number().step(1).min(1).default(1024).extra('extra', { audit: true }),
 })
 
 interface ResolvedConfig {
   readonly compactionMaxTokens: number
   readonly compactionReasoningEffort?: string
+  readonly compactionReasoningEffortByRoute: ReadonlyMap<string, string>
   readonly compactionTimeoutMs: number
   readonly requestPreflight: boolean
   readonly requestSafetyMarginTokens: number
@@ -69,11 +84,58 @@ interface ResolvedConfig {
 const CONFIG_KEYS: ReadonlySet<string> = new Set([
   'compactionMaxTokens',
   'compactionReasoningEffort',
+  'compactionReasoningEffortByRoute',
   'compactionTimeoutMs',
   'requestPreflight',
   'requestSafetyMarginTokens',
   'requestOutputReserveTokens',
 ])
+
+/** Validate one per-route effort map from direct or Loader-supplied configuration. */
+function resolveEffortByRoute(input: unknown): ReadonlyMap<string, string> {
+  if (input === undefined) return new Map()
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw new Error('compaction-resilience-policy: compactionReasoningEffortByRoute must map route keys to efforts')
+  }
+  const routes = new Map<string, string>()
+  for (const [route, effort] of Object.entries(input)) {
+    if (route.length === 0 || route.startsWith('/') || route.endsWith('/')) {
+      throw new Error(
+        `compaction-resilience-policy: compactionReasoningEffortByRoute key ${JSON.stringify(route)} must be "provider" or "provider/model"`,
+      )
+    }
+    if (typeof effort !== 'string' || effort.length === 0) {
+      throw new Error(
+        `compaction-resilience-policy: compactionReasoningEffortByRoute[${JSON.stringify(route)}] must be a non-empty string`,
+      )
+    }
+    routes.set(route, effort)
+  }
+  return routes
+}
+
+/** One configured compaction effort and the config entry that selected it. */
+interface SelectedEffort {
+  readonly effort: string
+  readonly source: string
+}
+
+/**
+ * Select the configured compaction effort for one routed request.
+ * @param config - resolved policy configuration.
+ * @param provider - request provider route.
+ * @param model - request model id.
+ * @returns the exact-route, provider, or global effort with its config entry,
+ *   or `undefined` when the caller's effort is preserved.
+ */
+function selectEffort(config: ResolvedConfig, provider: string, model: string): SelectedEffort | undefined {
+  for (const route of [`${provider}/${model}`, provider]) {
+    const effort = config.compactionReasoningEffortByRoute.get(route)
+    if (effort !== undefined) return { effort, source: `compactionReasoningEffortByRoute[${JSON.stringify(route)}]` }
+  }
+  if (config.compactionReasoningEffort === undefined) return undefined
+  return { effort: config.compactionReasoningEffort, source: 'compactionReasoningEffort' }
+}
 
 /** Resolve defaults and reject invalid direct or Loader-supplied configuration. */
 function resolveConfig(config: Config): ResolvedConfig {
@@ -116,6 +178,7 @@ function resolveConfig(config: Config): ResolvedConfig {
     ...config.compactionReasoningEffort === undefined
       ? {}
       : { compactionReasoningEffort: config.compactionReasoningEffort },
+    compactionReasoningEffortByRoute: resolveEffortByRoute(config.compactionReasoningEffortByRoute),
     compactionTimeoutMs,
     requestPreflight,
     requestSafetyMarginTokens,
@@ -169,8 +232,10 @@ function preflightFailure(
 }
 
 /**
- * Apply the cap, optional reasoning override, and cooperative total deadline
- * to one compaction stream, restoring the caller's mutable request afterward.
+ * Apply the cap, route-selected reasoning override, and cooperative total
+ * deadline to one compaction stream, restoring the caller's mutable request
+ * afterward. A route that rejects the selected effort still fails with
+ * `UNSUPPORTED_REASONING_EFFORT`; the message names the selecting config entry.
  */
 function resilientCompaction(
   ctx: Context,
@@ -183,11 +248,12 @@ function resilientCompaction(
     const reasoningEffortDescriptor = Object.getOwnPropertyDescriptor(options, 'reasoningEffort')
     const signalDescriptor = Object.getOwnPropertyDescriptor(options, 'signal')
     using d = deadline(options.signal, config.compactionTimeoutMs, COMPACTION_TIMEOUT)
+    const selected = selectEffort(config, options.provider, options.model)
     try {
       try {
         options.maxTokens = Math.min(options.maxTokens ?? config.compactionMaxTokens, config.compactionMaxTokens)
-        if (config.compactionReasoningEffort !== undefined) {
-          options.reasoningEffort = ReasoningEffortId(config.compactionReasoningEffort)
+        if (selected !== undefined) {
+          options.reasoningEffort = ReasoningEffortId(selected.effort)
         }
         options.signal = d.signal
       } catch {
@@ -201,6 +267,16 @@ function resilientCompaction(
         if (chunk.type === 'finish') {
           if (timeoutOf(d.signal, COMPACTION_TIMEOUT) !== undefined) {
             yield timeoutFailure(ctx, config)
+          } else if (selected !== undefined
+            && chunk.reason.kind === 'error'
+            && chunk.reason.failure.code === UNSUPPORTED_REASONING_EFFORT) {
+            yield failureChunk(
+              `${chunk.reason.failure.message}; compaction-resilience-policy selected "${selected.effort}" `
+              + `for route "${options.provider}/${options.model}" from ${selected.source}. Set `
+              + 'compactionReasoningEffortByRoute for this route to an effort it offers, or remove the entry '
+              + 'to keep the effort the caller chose',
+              UNSUPPORTED_REASONING_EFFORT,
+            )
           } else {
             yield chunk
           }

@@ -923,9 +923,32 @@ describe('mapStopReason / mapUsage', () => {
     'OpenAI Responses stream ended before a terminal response event',
     'openrouter stream ended without a terminal event',
     'Stream ended without finish_reason',
+    'WebSocket stream closed before response.completed',
+    // pi-ai's Codex WebSocket close and error events.
+    'WebSocket closed',
+    'WebSocket error',
+    'WebSocket closed 1001',
+    'WebSocket closed 1006',
+    'WebSocket closed 1011 upstream failure',
+    'WebSocket closed 1012',
+    'WebSocket closed 1013',
+    'WebSocket closed 1014',
   ])('maps pi-ai transport wording %j', (errorMessage) => {
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
       .toMatchObject({ kind: 'error', failure: { code: 'TRANSPORT' } })
+  })
+
+  it.each([
+    ['WebSocket closed 1009 message too big', 'INVALID_REQUEST'],
+    ['WebSocket closed 1013 rate limit exceeded', 'RATE_LIMIT'],
+    ['WebSocket closed 1000', 'PI_AI_ERROR'],
+    ['WebSocket closed 1008 policy violation', 'PI_AI_ERROR'],
+    ['WebSocket closed 4000 session expired', 'PI_AI_ERROR'],
+    ['WebSocket closed 4000 idle timeout', 'TIMEOUT'],
+    ['WebSocket transport is not available in this runtime', 'PI_AI_ERROR'],
+  ])('maps non-transient pi-ai WebSocket wording %j to %s', (errorMessage, code) => {
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
+      .toMatchObject({ kind: 'error', failure: { code } })
   })
 
   it('uses pi-ai provider-specific overflow classification without losing rate-limit exclusions', () => {

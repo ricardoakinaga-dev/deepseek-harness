@@ -672,6 +672,13 @@ async function runScenario(scenario: CorpusScenario): Promise<{
       subscription.close()
     }
     await harness.close()
+    if (childSessionsRoot !== undefined && !existsSync(childSessionsRoot)) {
+      const parent = results.map(result => ({
+        finalResponse: result.finalResponse,
+        events: result.events.filter(event => event.type === 'tool/result' || event.type === 'turn/end'),
+      }))
+      throw new Error(`${scenario.name}: SDK child produced no session log; parent outcomes: ${JSON.stringify(parent)}`)
+    }
     const logs = (await Promise.all([
       persistedLogs(sessionsRoot),
       ...(childSessionsRoot === undefined ? [] : [persistedLogs(childSessionsRoot)]),
@@ -852,6 +859,14 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
       )
       reconcileCatalogCreationTimes(ordered.map(log => log.content), 'validate')
       const actualContext = contextOf(ordered, cwd)
+      if (scenario.name === 'subagent-dsh-sdk-diagnostic') {
+        const toolResults = records(ordered[0]!.content).filter(event => event.type === 'tool/result')
+        expect(toolResults).toHaveLength(3)
+        const diagnostic = 'Subagent failure (provider: DSH SDK; stage: session-run; category: child-error)'
+        expect(JSON.stringify(toolResults[0])).toContain(diagnostic)
+        expect(toolResults[1]).toMatchObject({ data: { message: { isError: false } } })
+        expect(JSON.stringify(toolResults[2])).toContain(diagnostic)
+      }
       if (scenario.name === 'goal-manifest-command') {
         const changes = records(ordered[0]!.content).filter(event => event.type === 'goal/change')
         expect(changes.map(event => (event.data as JsonObject)['operation'])).toEqual([

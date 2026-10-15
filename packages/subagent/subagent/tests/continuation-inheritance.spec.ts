@@ -1,6 +1,6 @@
 /**
  * Continuable-child delegation policy: a fresh continuable start seeds the
- * parent's Auto identity, explicit sandbox override, and the pinned
+ * parent's Auto identity, effective sandbox policy, and the pinned
  * `approval/policy: never` onto the child's own log, and a cold
  * resume replays that persisted snapshot instead of re-capturing the parent
  * (the one-shot `subagent-inprocess/tests/inheritance.spec.ts` counterpart).
@@ -196,6 +196,73 @@ describe('continuable policy inheritance', () => {
     expect(contextText).toContain('You are a delegated subagent')
   })
 
+  it.each(['spawn', 'fork'])('keeps an explicit read-only request across %s cold resume', async (provider) => {
+    const { ctx, parent } = await setup([textResponse('first'), textResponse('resumed')])
+    setSandboxMode(parent.session, 'workspace-write')
+    const spec = startSpec(parent, provider)
+    const started = await ctx.subagents.startContinuable({
+      ...spec, request: { ...spec.request, sandboxMode: 'read-only' },
+    })
+    await waitNoActivation(ctx, started.childId)
+    setSandboxMode(parent.session, 'danger-full-access')
+    await queueHostSubagentPrompt(
+      ctx.subagents, parent, started.childId,
+      [{ type: 'text', text: 'continue' }], { kind: 'user' }, new AbortController().signal,
+    )
+    await waitNoActivation(ctx, started.childId)
+    const loaded = await loadStoredSession(ctx.sessionPersistence, started.childId)
+    expect(foldedSandboxMode(ctx, started.childId, loaded.events)).toBe('read-only')
+    expect(foldedApprovalPolicy(ctx, started.childId, loaded.events)).toBe('never')
+    const observations = parent.session.snapshotEvents().flatMap(event => event.type === 'subagent/authority' ? [event.data] : [])
+    expect(observations).toHaveLength(2)
+    expect(observations).toEqual([
+      expect.objectContaining({ version: 0, childId: started.childId, sandboxMode: 'read-only', approvalPolicy: 'never' }),
+      expect.objectContaining({ version: 0, childId: started.childId, sandboxMode: 'read-only', approvalPolicy: 'never' }),
+    ])
+  })
+
+  it.each(['spawn', 'fork'])('records published %s one-shot authority independently of the requested filter', async (provider) => {
+    const { ctx, parent } = await setup([textResponse('done')])
+    const run = await ctx.subagents.start(provider, {
+      parent, prompt: [{ type: 'text', text: 'child task' }], signal: new AbortController().signal,
+      sandboxMode: 'read-only', toolFilter: { allow: [] },
+    })
+    try {
+      expect(parent.session.snapshotEvents().flatMap(event => event.type === 'subagent/authority' ? [event.data] : []))
+        .toEqual([{ version: 0, childId: run.id, sandboxMode: 'read-only', approvalPolicy: 'never', toolFilter: { allow: [] } }])
+      expect((await run.result).stopReason).toBe('completed')
+    } finally {
+      await run.dispose()
+    }
+  })
+
+  it('does not confirm a confined mode for an unconfined executor inherited without an explicit request', async () => {
+    const { ctx, parent } = await setup([textResponse('done')])
+    ctx.provide('shell', { sandboxMode: undefined } as never)
+    const run = await ctx.subagents.start('spawn', {
+      parent, prompt: [{ type: 'text', text: 'child task' }], signal: new AbortController().signal,
+    })
+    try {
+      expect(parent.session.snapshotEvents().find(event => event.type === 'subagent/authority')?.data)
+        .toMatchObject({ childId: run.id, sandboxMode: null, approvalPolicy: 'never' })
+      await run.result
+    } finally {
+      await run.dispose()
+    }
+  })
+
+  it('rejects continuable widening against the effective default before child publication', async () => {
+    const { ctx, parent } = await setup([])
+    setSandboxMode(parent.session, 'read-only')
+    const spec = startSpec(parent)
+    let created = 0
+    ctx.on('agent/created', () => { created++ })
+    await expect(ctx.subagents.startContinuable({
+      ...spec, request: { ...spec.request, sandboxMode: 'workspace-write' },
+    })).rejects.toMatchObject({ code: 'AUTHORITY_AMPLIFICATION' })
+    expect(created).toBe(0)
+  })
+
   it('captures policy at delegation before asynchronous child creation', { timeout: 20_000 }, async () => {
     const { ctx, parent } = await setup([textResponse('child done')])
     setSandboxMode(parent.session, 'read-only')
@@ -212,7 +279,7 @@ describe('continuable policy inheritance', () => {
     expect(foldedSandboxMode(ctx, started.childId, loaded.events)).toBe('read-only')
   })
 
-  it('leaves an unswitched sandbox on the deployment default while still pinning approval', { timeout: 20_000 }, async () => {
+  it('records the effective deployment sandbox default and pins approval', { timeout: 20_000 }, async () => {
     const { ctx, parent } = await setup([textResponse('child done')])
 
     const started = await ctx.subagents.startContinuable(startSpec(parent))
@@ -220,9 +287,10 @@ describe('continuable policy inheritance', () => {
 
     const loaded = await loadStoredSession(ctx.sessionPersistence, started.childId)
     expect(policyEvents(loaded.events)).toMatchObject([
+      { type: 'sandbox/mode', data: { mode: 'workspace-write', source: 'delegation' } },
       { type: 'approval/policy', data: { policy: 'never', source: 'delegation' } },
     ])
-    expect(foldedSandboxMode(ctx, started.childId, loaded.events)).toBeNull()
+    expect(foldedSandboxMode(ctx, started.childId, loaded.events)).toBe('workspace-write')
   })
 
   it('pins approval after the fork prefix of an unswitched fork child', { timeout: 20_000 }, async () => {
@@ -239,9 +307,10 @@ describe('continuable policy inheritance', () => {
     const loaded = await loadStoredSession(ctx.sessionPersistence, started.childId)
     expect(loaded.inheritedEventCount).toBeGreaterThan(0)
     expect(policyEvents(loaded.events)).toMatchObject([
+      { type: 'sandbox/mode', data: { mode: 'workspace-write', source: 'delegation' } },
       { type: 'approval/policy', data: { policy: 'never', source: 'delegation' } },
     ])
-    expect(foldedSandboxMode(ctx, started.childId, loaded.events)).toBeNull()
+    expect(foldedSandboxMode(ctx, started.childId, loaded.events)).toBe('workspace-write')
   })
 
   it('lets a later child-side switch win over the delegation snapshot', { timeout: 20_000 }, async () => {

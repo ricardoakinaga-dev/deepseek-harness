@@ -66,6 +66,7 @@ import type {
   SubagentStartRequest,
 } from './types.ts'
 import { SubagentError } from './error.ts'
+import { appendSubagentAuthority, resolveDelegatedSandboxMode } from './authority.ts'
 import { assertSubagentMaxDepth } from './depth.ts'
 import { createActivationObserver, createLifecycleEmitter, observeRun } from './lifecycle.ts'
 import type { ActivationObserver, LifecycleEmitter } from './lifecycle.ts'
@@ -82,6 +83,8 @@ import { deliverSubagentPrompt } from './internal.ts'
 
 export type {} from './catalog.ts'
 export * from './out-of-process.ts'
+export { intersectToolFilters, resolveDelegatedSandboxMode, resolveDelegatedToolFilter } from './authority.ts'
+export type { SubagentAuthorityData } from './authority.ts'
 export { AssistantOutputFold, finalAssistantOutput } from './assistant-output.ts'
 export { SubagentRunId } from './types.ts'
 export type {
@@ -259,6 +262,9 @@ export class SubagentRuntime extends TypertRemoteService {
    * @throws when continuation services are unavailable or materialization fails.
    */
   async startContinuable(spec: ContinuableStartSpec): Promise<ContinuableStart> {
+    if (spec.request.sandboxMode !== undefined && !this.expectProvider(spec.provider).capabilities.sandboxMode) {
+      throw new SubagentError(`subagent provider "${spec.provider}" does not support the "sandboxMode" capability`, 'UNSUPPORTED_CAPABILITY')
+    }
     return this.requireContinuations().startContinuable(spec)
   }
 
@@ -559,6 +565,7 @@ export class SubagentRuntime extends TypertRemoteService {
   async start(name: string, request: SubagentStartRequest): Promise<SubagentRun> {
     const provider = this.expectProvider(name)
     this.assertCapabilities(provider, request)
+    if (request.sandboxMode !== undefined) resolveDelegatedSandboxMode(request.parent, request.sandboxMode)
     assertSubagentMaxDepth(request.maxDepth)
     if (request.outputSchema !== undefined) assertObjectJsonSchema(request.outputSchema)
     const descriptor = snapshotSubagentDescriptor({
@@ -568,10 +575,11 @@ export class SubagentRuntime extends TypertRemoteService {
     })
     const resolved: ResolvedSubagentStartRequest = { ...request, descriptor }
     const run = await provider.start(resolved)
-    const child = run.localAgent?.session
+    const child = run.localAgent
     if (child !== undefined) {
       try {
-        establishCatalogChild(request.parent.session, child.header, descriptor)
+        establishCatalogChild(request.parent.session, child.session.header, descriptor)
+        appendSubagentAuthority(request.parent, child)
       } catch (error: unknown) {
         // No caller receives this run; the catalog error owns the failed start.
         void run.result.catch(() => undefined)
@@ -647,6 +655,7 @@ export class SubagentRuntime extends TypertRemoteService {
       { when: request.outputSchema !== undefined, cap: 'outputSchema' },
       { when: request.maxDepth !== undefined, cap: 'depthLimit' },
       { when: request.toolFilter !== undefined, cap: 'toolFilter' },
+      { when: request.sandboxMode !== undefined, cap: 'sandboxMode' },
       { when: request.persona !== undefined, cap: 'persona' },
     ]
     for (const { when, cap } of needs) {

@@ -1778,6 +1778,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Current profile facts; scheduling and mutation belong to their callers.',
     methods: [
       {
+        signature: 'readonly runtimeIdentity?: RuntimeIdentity',
+        description: 'Absent for embedders that cannot identify their launcher.',
+        parameters: [],
+      },
+      {
         signature: 'readonly packageManager?: ProfilePnpmInvocation',
         description: 'Packaged applications supply their bundled runtime instead of a PATH executable.',
         parameters: [],
@@ -1834,6 +1839,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     summary: 'Abstract process-sandbox service.',
     description: 'Abstract process-sandbox service. confine must return enforcing argv or fail closed at wrap or runner-execution time; silent unconfined passthrough is forbidden. Functional probes arbitrate multi-runner chains and may be skipped for a sole candidate, whose own refusal remains the fail-closed end.',
     methods: [
+      {
+        signature: 'describe(policy: SandboxPolicy): SandboxExecutionEnvironment | undefined',
+        description: 'Describe the runner selected for a policy without launching a user command. Providers may perform bounded selection probes. Absence makes no claim about execution-world semantics.',
+        parameters: [{ name: 'policy', description: 'fully resolved confined policy.' }],
+        returns: 'provider facts, or undefined when the provider offers no descriptor.',
+      },
       {
         signature: 'abstract confine(argv: readonly string[], policy: SandboxPolicy, signal?: AbortSignal): Promise<ConfinedArgv>',
         description: 'Wrap `argv` so it executes confined under `policy` on this host; the caller spawns the returned argv in place of its own.',
@@ -3279,7 +3290,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'pruneSession(session: Session): PruneResult',
-        description: 'Prune every over-budget tool result from one stable current-surface snapshot. Each replacement preserves the complete event data except for `content`, cites the shadowed node so replay can recover the replacement input, and is immediately preceded by a `compaction/prune` shadow-price event pricing the shadowed node through the injected token meter, so pure consumers can subtract it without per-node state.',
+        description: 'Prune every over-budget tool result from one stable current-surface snapshot, except results whose surface tool call names a configured `exemptTools` entry. Each replacement preserves the complete event data except for `content`, cites the shadowed node so replay can recover the replacement input, and is immediately preceded by a `compaction/prune` shadow-price event pricing the shadowed node through the injected token meter, so pure consumers can subtract it without per-node state.',
         parameters: [{ name: 'session', description: 'session whose current surface is rewritten.' }],
         returns: 'landed replacements and aggregate Unicode-code-point savings.',
         throws: ['when the session rejects a replacement; replacements committed earlier in the pass remain durable.'],
@@ -6293,8 +6304,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface RunnerFailureRule {\n    allowedExitCodes?: readonly number[];\n    fatalSignatures: readonly string[];\n    informationalLines?: readonly string[];\n}',
   },
   {
+    name: 'RuntimeIdentity',
+    declaration: 'export interface RuntimeIdentity {\n    readonly version: string;\n    readonly nodeVersion: string;\n    readonly platform: string;\n    readonly arch: string;\n    readonly launcher: {\n        readonly kind: \'source\' | \'artifact\';\n        readonly sha256: string | null;\n    };\n    readonly source: {\n        readonly revision: string;\n        readonly dirty: boolean;\n    } | null;\n}',
+  },
+  {
     name: 'SandboxEnforcement',
     declaration: 'export type SandboxEnforcement = \'full\' | \'partial\';',
+  },
+  {
+    name: 'SandboxExecutionEnvironment',
+    declaration: 'export interface SandboxExecutionEnvironment {\n    runner: string;\n    enforcement: SandboxEnforcement | \'unavailable\';\n    temporaryFiles: \'host\' | \'per-call\' | \'per-session\' | \'unknown\';\n    sharesHostTemporaryFiles: boolean | \'unknown\';\n    identity: \'host\' | \'namespace-dependent\' | \'restricted-token\' | \'unknown\';\n}',
   },
   {
     name: 'SandboxExecutionPolicy',
@@ -7261,12 +7280,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type StreamChunk = {\n    type: \'block-start\';\n    index: number;\n    blockType: ContentBlockType;\n} | {\n    type: \'text-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'reasoning-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'tool-call-delta\';\n    index: number;\n    id: ToolCallId;\n    name?: string;\n    argumentsDelta: string;\n} | {\n    type: \'block-end\';\n    index: number;\n    block: ContentBlock;\n} | {\n    type: \'usage\';\n    usage: TokenUsage;\n} | {\n    type: \'finish\';\n    reason: FinishReason;\n    replayState?: ReplayEnvelope;\n};',
   },
   {
+    name: 'SubagentAuthorityData',
+    declaration: 'export interface SubagentAuthorityData {\n    readonly version: 0;\n    readonly childId: SessionId;\n    readonly sandboxMode: \'read-only\' | \'workspace-write\' | \'danger-full-access\' | null;\n    readonly approvalPolicy: \'ask\' | \'never\' | null;\n    readonly toolFilter: {\n        readonly allow: readonly string[];\n    };\n}',
+  },
+  {
     name: 'SubagentCapabilities',
-    declaration: 'export interface SubagentCapabilities {\n    readonly agentOptions: boolean;\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n}',
+    declaration: 'export interface SubagentCapabilities {\n    readonly agentOptions: boolean;\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly sandboxMode: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n}',
   },
   {
     name: 'SubagentCatalogEntry',
-    declaration: 'export type SubagentCatalogEntry = {\n    readonly id: SessionId;\n    readonly createdAt: number;\n} & ({\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n} | {\n    readonly mode: \'continuable\';\n    readonly label: string;\n} | {\n    readonly mode: \'unknown\';\n    readonly label?: string;\n});',
+    declaration: 'export type SubagentCatalogEntry = {\n    readonly id: SessionId;\n    readonly createdAt: number;\n    readonly authority?: SubagentAuthorityData;\n} & ({\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n} | {\n    readonly mode: \'continuable\';\n    readonly label: string;\n} | {\n    readonly mode: \'unknown\';\n    readonly label?: string;\n});',
   },
   {
     name: 'SubagentCatalogRow',
@@ -7338,7 +7361,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentStartRequest',
-    declaration: 'export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly persona?: string;\n}',
+    declaration: 'export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly sandboxMode?: \'read-only\' | \'workspace-write\';\n    readonly persona?: string;\n}',
   },
   {
     name: 'SubagentStopReason',
@@ -7350,7 +7373,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubprocessCollect',
-    declaration: 'export interface SubprocessCollect {\n    maxBytes: number;\n    spill?: {\n        maxBytes: number;\n    };\n}',
+    declaration: 'export interface SubprocessCollect {\n    maxBytes: number;\n    headBytes?: number;\n    spill?: {\n        maxBytes: number;\n    };\n}',
   },
   {
     name: 'SubprocessCollectedOutputs',
@@ -7370,7 +7393,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubprocessOutputRead',
-    declaration: 'export interface SubprocessOutputRead {\n    text: string;\n    nextOffset: number;\n    lossy: boolean;\n    spillPath?: string;\n}',
+    declaration: 'export interface SubprocessOutputRead {\n    text: string;\n    nextOffset: number;\n    lossy: boolean;\n    spillPath?: string;\n    preview?: CollectedOutput;\n}',
   },
   {
     name: 'SubprocessOutputReader',

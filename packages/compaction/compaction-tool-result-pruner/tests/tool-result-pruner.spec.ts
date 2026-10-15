@@ -1,7 +1,7 @@
 import { imageOffloadProjection } from '@deepseek-ai/dsh-compaction-image-offload/projection'
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { ToolCallId , createMessage, createToolResultMessage } from '@deepseek-ai/dsh-llm'
+import { ToolCallId , createMessage, createToolResultMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import SessionStore, {
   Session,
@@ -50,6 +50,7 @@ function appendToolStep(
   call: string,
   content: ContentBlock[],
   extra: Record<string, unknown> = {},
+  toolName = 'bash',
 ): number {
   const callId = ToolCallId(call)
   session.append('turn/start', {
@@ -62,14 +63,14 @@ function appendToolStep(
     step: 1,
     message: createMessage({
       role: 'assistant',
-      content: [{ type: 'tool-call', id: callId, name: 'bash', arguments: '{}' }],
+      content: [{ type: 'tool-call', id: callId, name: toolName, arguments: '{}' }],
       source: {
         kind: 'model',
         ...{ provider: MODEL, model: MODEL },
       },
     }),
   }, { surfaceOp: 'append' })
-  session.append('tool/call', { turn, step: 1, callId, name: 'bash', arguments: '{}' })
+  session.append('tool/call', { turn, step: 1, callId, name: toolName, arguments: '{}' })
   const result = session.append('tool/result', {
     turn,
     step: 1,
@@ -104,9 +105,9 @@ describe('tool-result pruning configuration', () => {
     const raw = { thresholdChars: 100, headChars: 20, tailChars: 10 }
     const resolved = resolveConfig(raw)
     raw.headChars = 1
-    expect(resolved).toEqual({ thresholdChars: 100, headChars: 20, tailChars: 10 })
+    expect(resolved).toEqual({ thresholdChars: 100, headChars: 20, tailChars: 10, exemptTools: ['skill'] })
     expect(Object.isFrozen(resolved)).toBe(true)
-    expect(DEFAULTS).toEqual({ thresholdChars: 8192, headChars: 4096, tailChars: 1024 })
+    expect(DEFAULTS).toEqual({ thresholdChars: 8192, headChars: 4096, tailChars: 1024, exemptTools: ['skill'] })
     expect(Object.isFrozen(DEFAULTS)).toBe(true)
   })
 
@@ -117,6 +118,9 @@ describe('tool-result pruning configuration', () => {
       [{ tailChars: 1.5 }, /tailChars .* non-negative integer/],
       [{ thresholdChars: 50, headChars: 20, tailChars: 20 }, /headChars \+ marker \+ tailChars/],
       [{ threshold: 10 }, /unknown key "threshold"/],
+      [{ exemptTools: 'skill' }, /exemptTools must be an array of non-empty tool names/],
+      [{ exemptTools: [''] }, /exemptTools must be an array of non-empty tool names/],
+      [{ exemptTools: [1] }, /exemptTools must be an array of non-empty tool names/],
     ] as Array<[unknown, RegExp]>
     for (const [config, pattern] of bad) {
       expect(() => resolveConfig(config as ToolResultPruneConfig)).toThrow(pattern)
@@ -268,6 +272,58 @@ describe('ToolResultPruner session transaction', () => {
       first.pruned.reduce((sum, entry) => sum + entry.charsBefore - entry.charsAfter, 0),
     )
     expect(second).toEqual({ pruned: [], charsRemoved: 0 })
+  })
+
+  it('never prunes results of exempt tools named by their surface tool call', () => {
+    const session = Session.create(SessionId('exempt'))
+    appendToolStep(session, 1, 'skill-load', [{ type: 'text', text: 'S'.repeat(100) }], {}, 'skill')
+    appendToolStep(session, 2, 'shell', [{ type: 'text', text: 'B'.repeat(100) }])
+    session.append('turn/start', {
+      turn: 3,
+    })
+    expect(service().pruneSession(session).pruned.map(entry => entry.callId)).toEqual([ToolCallId('shell')])
+
+    const unprotected = Session.create(SessionId('unprotected'))
+    appendToolStep(unprotected, 1, 'skill-load', [{ type: 'text', text: 'S'.repeat(100) }], {}, 'skill')
+    unprotected.append('turn/start', {
+      turn: 2,
+    })
+    expect(service({ ...SMALL, exemptTools: [] }).pruneSession(unprotected).pruned.map(entry => entry.callId))
+      .toEqual([ToolCallId('skill-load')])
+  })
+
+  it('prunes a result whose tool call is no longer on the surface', () => {
+    const session = Session.create(SessionId('orphan-call'))
+    session.append('turn/start', {
+      turn: 1,
+    })
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'run it' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    session.append('step/start', { turn: 1, step: 1 })
+    session.append('assistant/message', {
+      stream: [],
+      turn: 1,
+      step: 1,
+      message: createMessage({
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Running without a recorded call.' }],
+        source: { kind: 'model', provider: MODEL, model: MODEL },
+      }),
+    }, { surfaceOp: 'append' })
+    session.append('tool/result', {
+      turn: 1,
+      step: 1,
+      message: createToolResultMessage({
+        callId: ToolCallId('orphan'),
+        content: [{ type: 'text', text: 'O'.repeat(100) }],
+        isError: false,
+      }),
+    }, { surfaceOp: 'append' })
+    session.append('step/end', { turn: 1, step: 1 })
+    session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+    expect(service().pruneSession(session).pruned.map(entry => entry.callId)).toEqual([ToolCallId('orphan')])
   })
 
   it('replays to the identical pruned model messages', () => {

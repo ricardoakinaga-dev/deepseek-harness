@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use `present` to declare final files accessible through the Session filesystem, including files created through shell commands. Users open the current source files in their default application. The tool records paths and optional descriptions without copying file contents.
+Use `present` to declare final files accessible through the Session filesystem, including files created through shell commands. Users open the current source files in their default application. The tool preserves an immutable copy of each file within the configured byte limit. Source edits or deletion do not change the saved bytes included in Session ZIP exports.
 
 ## Table of Contents
 
@@ -27,19 +27,21 @@ Use `present` to declare final files accessible through the Session filesystem, 
 
 The `standard`, `ptc`, and `cordis` agent presets mount this plugin. Call `present` with `files: [{ path, description? }]` after creating the files. Files must be regular files accessible through the Session filesystem. Relative paths resolve against the Session working directory; absolute paths may name files outside it, including `/tmp` or Downloads. Missing files, directories, final symbolic links, and provider-denied paths fail the call. Files in a shell sandbox’s private `/tmp` must first be written somewhere the Session filesystem can access.
 
-Mount it in an agent's Cordis composition with `tools`, `fs`, and the `turnBoundary` Session projection available:
+Mount it in an agent's Cordis composition with `tools`, `fs`, `attachments`, and the `turnBoundary` Session projection available:
 
 ```yaml
 - name: '@deepseek-ai/dsh-tool-present'
   config:
     maxFiles: 8
+    maxFileBytes: 20971520
 ```
 
 | Field | Default | Meaning |
 |---|---|---|
 | `maxFiles` | `8` | Positive maximum file count per call |
+| `maxFileBytes` | `20971520` (20 MiB) | Inclusive per-file capture limit; a positive safe integer below `Number.MAX_SAFE_INTEGER` |
 
-The file-count limit is validated at mount. The tool requires an agent Session with a workspace and an open turn. Delivery belongs to the calling Session; a parent must call `present` itself to declare files created by a subagent.
+Both limits are validated at mount. A file above `maxFileBytes` is declared with `capture.status: too-large` and the applied byte limit; the result tells the model to retain its original. Files exactly at the limit and empty files are captured. The tool requires an agent Session with a workspace and an open turn. Delivery belongs to the calling Session; a parent must call `present` itself to declare files created by a subagent.
 
 -----
 
@@ -49,9 +51,9 @@ The file-count limit is validated at mount. The tool requires an agent Session w
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The tool resolves paths through the configured filesystem provider and checks regular-file metadata without reading contents. Successful final `tools/result` notifications append `deliverables/presented`, including nested calls. A later enclosing program failure does not revoke an already completed declaration. Blocked results publish none. Each plugin instance records only calls it executed; scoped tools with the same name cannot publish through another instance.
+The tool resolves paths and reads bounded raw bytes through the configured filesystem provider, including files outside the workspace. It saves files sequentially through `attachments.saveFileStream` before returning their content-addressed references. Each stored reference carries the sanitized filename, exact byte count, and SHA-256 identity. Oversized files carry an explicit non-capture outcome; other read or storage failures fail the call without publishing a delivery event. Cancellation reaches reads and streamed writes. Already committed objects from a failed, cancelled, or blocked call may remain unreferenced under the attachment store’s retention policy. Successful final `tools/result` notifications append `deliverables/presented`, including nested calls. A later enclosing program failure does not revoke an already completed declaration. Blocked results publish none. Each plugin instance records only calls it executed; scoped tools with the same name cannot publish through another instance.
 
-The pure `./types` entry declares `PresentedFile` and the Session event without importing Host runtime code. The Web consumer validates persisted declarations before displaying or opening them. The event stores no Session ID, so forked history resolves relative paths against the viewed Session's workspace.
+The pure `./types` entry declares `PresentedFile` and the Session event without importing Host runtime code. The Web consumer validates persisted declarations before displaying or opening them. The event stores no Session ID, so forked history resolves original relative paths against the viewed Session's workspace. The optional `capture` field is absent in historical declarations; absence does not imply a saved copy. Stored references remain independent of the original path.
 
 **Runtime invariant:** No companion is published. Tool and event registrations are effect-owned, and the Session log owns file declarations; the plugin maintains no independent file-content store.
 
@@ -73,7 +75,7 @@ The pure `./types` entry declares `PresentedFile` and the Session event without 
 
 #### What the model sees
 
-The [present schema](../../../docs/tool-catalog.md#present) asks for existing accessible files: “Declare existing files as final deliverables for the user. Use it when the user needs a separate file, especially Office documents, spreadsheets, and slide decks; prefer your final response when that suffices. The user opens the current files; their contents are not copied.” The `files` parameter asks for the 1-2 most important deliverables and at most 4 per call. Results report `Presented <path>` for each file; the program result and durable event contain paths and optional descriptions.
+The [present schema](../../../docs/tool-catalog.md#present) asks for existing accessible files: “Declare existing files as final deliverables for the user. Use it when the user needs a separate file, especially Office documents, spreadsheets, and slide decks; prefer your final response when that suffices. A saved copy preserves the presented bytes within the configured file-size limit; larger files are declared without a saved copy. The original path remains available for opening the current file.” The `files` parameter asks for the 1-2 most important deliverables and at most 4 per call. Captured files report `Presented <path>`. Oversized files report `Presented <path> (not saved: exceeds <maxBytes> bytes; keep the original file)`. The program result and durable event contain paths, optional descriptions, and capture outcomes.
 
 #### Token effect
 
@@ -88,8 +90,8 @@ The tool schema is static for the mount lifetime. Delivery result text extends t
 <a id="known-limitations-and-deferred-work"></a>
 
 - Metadata and Host-path checks cannot atomically prevent replacement before a desktop application opens a file.
-- Edits change what opens. Deleted or moved source files cannot be opened from their declarations.
-- Session ZIP exports contain declarations, not file contents. Persistent delivery versions and copy-on-write storage are deferred.
+- Native opening and source previews use the current original path. Saved attachment objects must not be passed to editors as writable files.
+- Historical declarations and oversized files have no saved bytes. Captured files use attachment storage without automatic cleanup; editable copies and their retention require a separate owner.
 
 <a id="dev-note"></a>
 ### Dev Note

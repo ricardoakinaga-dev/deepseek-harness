@@ -10,7 +10,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentOptions, CreateAgentOptions } from '@deepseek-ai/dsh-agent'
-import type { SandboxMode } from '@deepseek-ai/dsh-sandbox'
+import type { ConfinedSandboxMode, SandboxMode } from '@deepseek-ai/dsh-sandbox'
 import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type { ToolRestriction } from '@deepseek-ai/dsh-tools'
@@ -28,6 +28,7 @@ import type {} from '@deepseek-ai/dsh-permission-presets'
 // them through the tool registry's global layer.
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import { delegationDepthOf } from './depth.ts'
+import { resolveDelegatedSandboxMode } from './authority.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */
 export class SubagentDepthError extends Error {
@@ -225,7 +226,7 @@ export interface DelegatedPolicyOverrides {
    * the child keeps it under the pinned `never` approval policy.
    */
   readonly permissionPreset: 'auto' | 'danger-full-access' | undefined
-  /** The parent session's explicit sandbox-mode override, or `undefined` without one. */
+  /** Effective delegated mode, including deployment defaults when policy is composed. */
   readonly sandboxMode: SandboxMode | undefined
   /**
    * `'never'` whenever the approval capability is composed, `undefined`
@@ -240,17 +241,18 @@ export interface DelegatedPolicyOverrides {
  * the child start's first await: a later parent switch belongs to the
  * parent's future, not to this child. Auto and Full access identities are
  * inherited only through the in-process DSH path so either can replace a stale
- * same-bundle fork value. Only the parent session's explicit sandbox override
- * is captured — never deployment defaults or one-shot grants — and the approval
+ * same-bundle fork value. The effective parent mode includes deployment defaults
+ * and excludes one-shot grants; an explicit child mode may only narrow it. The approval
  * policy is pinned to `'never'` regardless of the parent's own policy.
  * @param parent - the delegating parent agent.
- * @returns the sandbox override (or `undefined` without one) and the approval pin.
+ * @param requestedMode - Optional confined mode requested for this child.
+ * @returns the effective sandbox mode and the approval pin.
  */
-export function captureDelegatedPolicyOverrides(parent: Agent): DelegatedPolicyOverrides {
+export function captureDelegatedPolicyOverrides(parent: Agent, requestedMode?: ConfinedSandboxMode): DelegatedPolicyOverrides {
   const preset = parent.ctx.get('permissionPresets')?.current(parent.session)
   return {
     permissionPreset: preset === 'auto' || preset === 'danger-full-access' ? preset : undefined,
-    sandboxMode: parent.ctx.get('sandboxPolicy')?.overrideOf(parent.session),
+    sandboxMode: resolveDelegatedSandboxMode(parent, requestedMode),
     approvalPolicy: parent.ctx.get('approval') === undefined ? undefined : 'never',
   }
 }

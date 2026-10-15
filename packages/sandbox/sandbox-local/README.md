@@ -135,6 +135,8 @@ These limits define when the provider is a poor fit or needs special operational
 - **Runner selection is cached for the provider lifetime** — installing, removing, or repairing a runner requires reloading the plugin before selection changes.
 - **`runnerCommand` is an operator assertion** — a configured custom runner skips functional probes and is assumed to implement the bwrap-compatible profile honestly; if it is itself a Bash script, its interpreter startup runs before that script applies confinement.
 
+`describe(policy)` uses the same cached runner selection as `confine()`. Bubblewrap workspace-write mounts a fresh `/tmp` with mode `1777` for every command; it does not share the Host temporary files used by ordinary filesystem tools, unless the writable workspace is `/` or `/tmp` and its later bind exposes the Host temporary area. Its UID/GID mapping depends on the runner installation, so unmapped Host identities must not be assumed to retain root ownership or supplementary groups. Selection probes the workspace-write arguments, including `--perms`, before accepting bubblewrap; unsupported options cause fallback to Landlock.
+
 <a id="dev-note"></a>
 ### Dev Note
 

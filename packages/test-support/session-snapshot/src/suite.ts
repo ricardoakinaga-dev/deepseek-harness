@@ -44,6 +44,7 @@ import {
   extractSnapshotSpillPaths,
   normalizeSessionLog,
   normalizeSessionSnapshots,
+  normalizeSkillCharacters,
   normalizeStdout,
   scrubSessionSnapshot,
   scrubSystemPrompts,
@@ -1120,7 +1121,8 @@ function normalizedStringMappings(
  * fixture-ready structural pass owns them. Ambiguous layouts or mappings
  * keep fresh strings. Packed timing gaps expand from zero when a projected
  * fixture omits `time0`, so packing does not shift later records;
- * fresh semantic values and fragment arrays remain authoritative.
+ * fresh semantic values and fragment arrays remain authoritative. Skill character
+ * counts follow rewritten text only when they match the complete raw instructions.
  *
  * @param fresh The newly harvested session JSONL.
  * @param existing The committed fixture JSONL being refreshed.
@@ -1177,6 +1179,7 @@ export function stabilizeRefreshLog(
       preserveFixtureVolatiles(record, existingRecord)
       existingIndex += memberCount
     }
+    normalizeSkillCharacters(freshRecords[i] as Record<string, unknown>, record)
     if (typeof record.time === 'number') previousEventTime = record.time
   }
   return records.map(record => JSON.stringify(record)).join('\n') + '\n'

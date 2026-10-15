@@ -23,14 +23,31 @@ function streamText(output: CollectedOutput): string {
  * @param escalationModes - the escalation targets this composition advertises;
  *   non-empty adds the same-turn escalation hint after a denial marker
  *   (default `[]`: no hint).
+ * @param separateRetentionNotice - omit stream notices when the canonical output carries one combined recovery notice.
  * @returns the model-facing text: output body (or `(no output)`), then any timeout/stopped/signal/exit markers, each on its own line.
  */
 export function renderResult(
   result: ShellRunResult & { stopped?: string },
   escalationModes: readonly SandboxMode[] = [],
+  separateRetentionNotice = false,
 ): string {
-  const out = streamText(result.stdout)
-  const err = streamText(result.stderr)
+  return renderResultParts(result, escalationModes, separateRetentionNotice).join('')
+}
+
+/**
+ * Split the output body from terminal status markers so retention can preserve those markers verbatim.
+ * @param result - settled shell result.
+ * @param escalationModes - advertised sandbox escalation targets.
+ * @param separateRetentionNotice - whether a separate content block owns the combined recovery notice.
+ * @returns the output body and the status suffix, including its leading newline when present.
+ */
+export function renderResultParts(
+  result: ShellRunResult & { stopped?: string },
+  escalationModes: readonly SandboxMode[] = [],
+  separateRetentionNotice = false,
+): [string, string] {
+  const out = separateRetentionNotice ? result.stdout.text : streamText(result.stdout)
+  const err = separateRetentionNotice ? result.stderr.text : streamText(result.stderr)
 
   let body = out
   if (err.length > 0) {
@@ -59,10 +76,8 @@ export function renderResult(
   } else if (result.exitCode !== 0) {
     markers.push(`[exit code: ${result.exitCode}]`)
   }
-  if (markers.length === 0) return body
-
-  if (!body.endsWith('\n')) body += '\n'
-  return body + markers.join('\n')
+  if (markers.length === 0) return [body, '']
+  return [body, `${body.endsWith('\n') && !separateRetentionNotice ? '' : '\n'}${markers.join('\n')}`]
 }
 
 /**

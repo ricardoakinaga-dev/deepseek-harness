@@ -1,0 +1,11 @@
+version: 1
+scenario: resilient-compaction-success
+profile: headless
+composition: resilient-compaction-success
+recording: authored
+header:
+  class: resilient-compaction-success
+  pin: true
+  systemPromptSource: compaction-recovery
+  toolSchemasSource: compaction-recovery
+  changes: 1

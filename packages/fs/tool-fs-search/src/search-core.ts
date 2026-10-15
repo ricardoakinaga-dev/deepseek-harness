@@ -11,8 +11,9 @@
  * install is required, and no shell layer exists between the argv vector and
  * ripgrep, so no shell quoting is involved. Raw `rg` stdout is an internal
  * transport detail: the tools request a per-run stdout capture budget from the
- * subprocess seam, parse only complete in-memory stdout within
- * `rawOutputMaxBytes`, and never read spill files. The model-facing recovery
+ * subprocess seam and parse only complete discovery stdout within
+ * `rawOutputMaxBytes`. Ignore classification streams candidate matches with
+ * bounded line buffering. Neither mode reads spill files. The model-facing recovery
  * artifact is the formatted result saved through `ctx.spillStore.saveText()`
  * ({@link trySaveFormattedResult}).
  *
@@ -21,6 +22,7 @@
 
 import { existsSync } from 'node:fs'
 import { isAbsolute, join, parse, relative, sep } from 'node:path'
+import { addAbortSignal, type Readable } from 'node:stream'
 import type { Context } from '@deepseek-ai/cordis'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { ItemRetainer, TextRetainer } from '@deepseek-ai/dsh-output-retention'
@@ -98,7 +100,7 @@ export class SearchError extends HarnessError {
 
 /** The completed acquisition of one `rg` run: complete stdout plus the resolved workdir. */
 export interface RipgrepRun {
-  /** Complete raw stdout retained by the subprocess seam within the requested cap. */
+  /** Complete discovery stdout or selected classification candidates within the requested cap. */
   stdout: string
   /** True when ripgrep exited 1: a successful search with zero results. */
   noMatches: boolean
@@ -156,6 +158,38 @@ function completeStdout(toolName: string, stdout: SubprocessOutputRead, rawOutpu
 
 let rgPathPromise: Promise<string> | undefined
 
+/** Retain candidate paths only; an unrelated line never buffers beyond the longest candidate. */
+async function selectCandidateLines(stdout: Readable, candidates: ReadonlySet<string>): Promise<string> {
+  let maxLength = 0
+  for (const candidate of candidates) maxLength = Math.max(maxLength, candidate.length)
+  const selected = new Set<string>()
+  let pending = ''
+  let dropping = false
+  const chunks: AsyncIterable<string> = stdout.setEncoding('utf8')
+  for await (const chunk of chunks) {
+    let start = 0
+    while (start < chunk.length) {
+      const newline = chunk.indexOf('\n', start)
+      const end = newline === -1 ? chunk.length : newline
+      if (!dropping) {
+        if (pending.length + end - start > maxLength) {
+          pending = ''
+          dropping = true
+        } else {
+          pending += chunk.slice(start, end)
+        }
+      }
+      if (newline === -1) break
+      if (!dropping && candidates.has(pending)) selected.add(pending)
+      pending = ''
+      dropping = false
+      start = newline + 1
+    }
+  }
+  if (!dropping && candidates.has(pending)) selected.add(pending)
+  return [...selected].join('\n')
+}
+
 /**
  * The packaged ripgrep binary path, resolved lazily once per process.
  *
@@ -185,7 +219,7 @@ export function resolveRgPath(): Promise<string> {
 
 /**
  * Run the packaged ripgrep binary with a plain argv vector and return its
- * complete raw stdout. The working directory is the calling agent's session
+ * complete discovery stdout or selected candidate lines. The working directory is the calling agent's session
  * cwd (`exec.agent.session.header.cwd`) when available, else
  * `process.cwd()`. `exec.signal` is forwarded so the cooperative tool timeout
  * (`@deepseek-ai/dsh-tool-call-timeout-policy`) and caller cancellation terminate the
@@ -196,7 +230,9 @@ export function resolveRgPath(): Promise<string> {
  * binary) can otherwise inject `--pre` and make ripgrep execute an arbitrary
  * preprocessor for every matched file. The collect dispositions are the
  * seam's diagnostic-tail shape (no spill files): the tools never read a raw
- * spill path, and truncated stdout fails as `SEARCH_RAW_OUTPUT_OVERFLOW`.
+ * spill path, and truncated discovery stdout fails as `SEARCH_RAW_OUTPUT_OVERFLOW`.
+ * Candidate classification uses a caller-owned stdout pipe, drains unrelated
+ * lines without retaining them, and terminates and joins the child on read failure.
  *
  * Exit semantics are tool-owned: exit 0 is success with results, exit 1 is
  * success with zero results (`noMatches`), anything else throws a
@@ -217,7 +253,9 @@ export function resolveRgPath(): Promise<string> {
  * @param rawOutputMaxBytes - cap on the complete raw stdout the tool will parse.
  * @param graceMs - the seam's terminate-escalation grace period.
  * @param stderrMaxBytes - cap on the retained stderr diagnostic tail.
- * @returns the complete stdout, the zero-result flag, and the resolved workdir.
+ * @param candidates - optional raw paths from a prior capped discovery; stream stdout and retain only exact matches,
+ *   with a line buffer bounded by the longest candidate.
+ * @returns the complete stdout (or selected candidate lines), the zero-result flag, and the resolved workdir.
  */
 export async function runRipgrep(
   ctx: Context,
@@ -227,6 +265,7 @@ export async function runRipgrep(
   rawOutputMaxBytes: number,
   graceMs: number,
   stderrMaxBytes: number,
+  candidates?: ReadonlySet<string>,
 ): Promise<RipgrepRun> {
   if (exec.signal.aborted) {
     throw new SearchError(`${toolName} was aborted before completion (tool timeout or caller cancellation)`, 'SEARCH_ABORTED')
@@ -240,7 +279,7 @@ export async function runRipgrep(
       cwd: workdir,
       stdio: {
         stdin: 'ignore',
-        stdout: { maxBytes: rawOutputMaxBytes },
+        stdout: candidates === undefined ? { maxBytes: rawOutputMaxBytes } : 'pipe',
         stderr: { maxBytes: stderrMaxBytes },
       },
       graceMs,
@@ -258,13 +297,30 @@ export async function runRipgrep(
     }
     throw new SearchError(`${toolName} could not start its search command (ripgrep launch failed)`, 'SEARCH_FAILED', { cause: error })
   }
+  const selected = candidates === undefined ? undefined : (async () => {
+    if (handle.stdout === undefined) throw new Error('ripgrep classification produced no stdout pipe')
+    return selectCandidateLines(addAbortSignal(exec.signal, handle.stdout), candidates)
+  })()
   let outcome: SubprocessOutcome
+  let selectedText: string | undefined
   try {
-    outcome = await handle.done
+    const completed = await Promise.all([handle.done, selected])
+    outcome = completed[0]
+    selectedText = completed[1]
   } catch (error: unknown) {
+    if (selected !== undefined) {
+      handle.terminate()
+      handle.stdout?.destroy()
+      await Promise.allSettled([handle.done, selected])
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- Cancellation can occur while the pipe and child settle.
+      if (exec.signal.aborted) {
+        throw new SearchError(`${toolName} was aborted before completion (tool timeout or caller cancellation)`, 'SEARCH_ABORTED')
+      }
+    }
     throw new SearchError(`${toolName} subprocess failed before reporting an outcome (ripgrep provider failure)`, 'SEARCH_FAILED', { cause: error })
   }
-  const stdout = handle.collected.stdout?.readFrom(0)
+  const stdout = selectedText === undefined ? handle.collected.stdout?.readFrom(0)
+    : { text: selectedText, nextOffset: 0, lossy: false }
   const stderr = handle.collected.stderr?.readFrom(0)
   if (stdout === undefined || stderr === undefined) {
     throw new SearchError(`${toolName} search command produced no collected output streams`, 'SEARCH_FAILED')

@@ -235,7 +235,14 @@
 }
 
 .currentLabel {
-  font-weight: 600;
+  font-weight: 500;
+}
+
+.authority {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 15px;
+  overflow-wrap: anywhere;
 }
 
 .summary,

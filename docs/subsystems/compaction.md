@@ -233,7 +233,8 @@ measureContent(blocks: readonly ContentBlock[]): number
 pruneContent(blocks: readonly ContentBlock[]): ContentBlock[] | null
 
 /**
- * Prune every over-budget tool result from one stable current-surface snapshot.
+ * Prune every over-budget tool result from one stable current-surface snapshot,
+ * except results whose surface tool call names a configured `exemptTools` entry.
  * Each replacement preserves the complete event data except for `content`,
  * cites the shadowed node so replay can recover the replacement input, and is
  * immediately preceded by a `compaction/prune` shadow-price event pricing the

@@ -12,10 +12,11 @@ export const inject = ['agents', 'subagentModelSelection']
  * Install the configured delegation tool before a published Agent starts its loop.
  * @param ctx - fixture Host context carrying Agent lifecycle events.
  * @param config - delegation-tool configuration forwarded into each Agent scope.
+ * @returns after existing Agent tool installations settle; future creations await their installation.
  */
-export function apply(ctx: Context, config: Config): void {
-  const install = (agent: Agent): void => {
-    agent.ctx.inject(ToolSubagent.inject, (runtimeCtx) => {
+export async function apply(ctx: Context, config: Config): Promise<void> {
+  const install = async (agent: Agent): Promise<void> => {
+    await agent.ctx.inject(ToolSubagent.inject, (runtimeCtx) => {
       ToolSubagent.apply(runtimeCtx, {
         provider: config.provider,
         modelSelectionSettings: true,
@@ -31,6 +32,6 @@ export function apply(ctx: Context, config: Config): void {
       }, agent.session)
     })
   }
-  ctx.on('agent/created', ({ agent }) => { install(agent) })
-  for (const agent of ctx.agents.list()) install(agent)
+  ctx.on('agent/created', async ({ agent }) => { await install(agent) })
+  for (const agent of ctx.agents.list()) await install(agent)
 }

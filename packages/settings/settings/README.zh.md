@@ -38,6 +38,12 @@ Settings 启动后、Loader 完成所有条目的加载时，早期版本留在 
 
 每个表单报告 `autoGenerate`（默认开启），供按 schema 生成页面的客户端使用；目前没有已发布的客户端这样做。自带页面的插件在 `apply` 中于可选的 `ctx.inject(['settings'], ...)` 子级内以 effect 注册 `configure({ auto: false }, ctx.fiber)`：子级指明策略所属的插件 fiber，迟加载或被替换的 Settings 服务也会采用该策略，业务插件无需 Settings 即可运行。策略不移除配置读写。
 
+存在 Session 和 Agent 服务时，Settings 为每个已发布智能体的会话（包括子会话与恢复的会话）及 Settings 激活时已存在的智能体记录 `runtime/audit`。等待完成的 `agent/created` 钩子在所有 Session 创建观察者收到基线后验证并追加；失败会拒绝智能体发布。没有已发布智能体的独立 Session 不生成执行审计记录。初始记录包含 profile、启动组合包名称与启动器身份。源码启动分别记录 Git 修订、工作树是否有改动，以及启动器模块的 SHA-256；编译产物启动只记录该模块的哈希。哈希均不代表所有依赖的字节。无法获取的身份信息为 `null`。
+
+插件作者通过 `.extra('extra', { audit: true })` 将字段加入审计。结构投影读取活动 Loader 条目解析后的 Config，包括 schema 默认值及 volatile 引用；未标记字段与对象中的未知字段被排除。标记沿已声明的对象、字典和数组字段传播。审计子树包含 `secret` 或 `credential-ref` 角色或无限制 schema 时，在记录前拒绝。Config 之外的插件专有转换不在检查范围内。
+
+Profile 成功重载或可选 HMR 服务成功替换模块后，只追加审计值发生变化的条目；`values: null` 表示移除。只修改未标记字段不产生审计事件。记录是普通的已声明 Session 事件，需要读取器识别 `runtime/audit`，并保留在导出的日志中。仅配置的组合无需 Session 或 Agent 服务即可运行。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 

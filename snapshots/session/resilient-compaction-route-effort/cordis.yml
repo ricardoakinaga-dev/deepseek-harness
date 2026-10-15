@@ -1,0 +1,25 @@
+# Proactive compaction whose route-selected reasoning effort the routed model
+# does not offer: the policy names its config entry in the failure, and the
+# backend suspends step-pressure compaction for that target until the turn ends.
+
+- id: llm-deepseek
+  config:
+    models:
+      - id: deepseek-v4-flash
+        contextWindow: 8382
+        maxTokens: 1000
+
+- id: compaction-basic
+  config:
+    thresholdRatio: 0.8
+    headroomTokens: 1800
+    retainTokens: 20
+    maxTokens: 32
+
+- insert:
+    - id: compaction-resilience-policy
+      name: '@deepseek-ai/dsh-compaction-resilience-policy'
+      config:
+        compactionReasoningEffortByRoute:
+          deepseek-official: 'off'
+        requestPreflight: false

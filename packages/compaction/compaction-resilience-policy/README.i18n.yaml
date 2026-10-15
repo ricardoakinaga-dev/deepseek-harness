@@ -9,8 +9,8 @@
   en: 423d20d3b5430795
   zh: 83ad400e0b513290
 /deepseek-ai-dsh-compaction-resilience-policy/summary:
-  en: 67ff960f70fd0a72
-  zh: f9e68540d6265ac4
+  en: 5d9cb408c6a3448a
+  zh: cf8e5071e3afa89c
 /deepseek-ai-dsh-compaction-resilience-policy/table-of-contents:
   en: d152484eb41ac6b4
   zh: be08589a8d2e121d
@@ -21,11 +21,11 @@
   en: bc9de21ad9638b5f
   zh: be4b46a61440ff27
 /deepseek-ai-dsh-compaction-resilience-policy/use-this-package/minimal-configuration:
-  en: e18ec35b575e799f
-  zh: d9277ff94aebfb99
+  en: 8738069f8aa1ebec
+  zh: 6b14269cb02a75dc
 /deepseek-ai-dsh-compaction-resilience-policy/use-this-package/outcomes-and-recovery:
-  en: 84f3ce632e400db1
-  zh: 856cc9df3168f181
+  en: fd2080f5e61247f9
+  zh: edeb3278b6b2368c
 /deepseek-ai-dsh-compaction-resilience-policy/understand-the-implementation:
   en: 04c7125bdee2833c
   zh: 1abba5f2202e2d1d
@@ -42,8 +42,8 @@
   en: 342364f9164793c5
   zh: d01257f1ebd21499
 /deepseek-ai-dsh-compaction-resilience-policy/model-experience/auxiliary-compaction-request/token-effect:
-  en: 6ba7cb7f195c6923
-  zh: 8c52cb0d98f2e143
+  en: 2dac5c697433cef6
+  zh: ae39d0f1b2a50720
 /deepseek-ai-dsh-compaction-resilience-policy/model-experience/auxiliary-compaction-request/kv-cache-effect:
   en: 0b234025e1932d23
   zh: 5cdb6f2b10bc34f3
@@ -60,8 +60,8 @@
   en: 094fffc7e2490b3a
   zh: d5c8f81f85d39475
 /deepseek-ai-dsh-compaction-resilience-policy/known-limitations-and-deferred-work:
-  en: 47073e9c5dc5c366
-  zh: ba6ed10cd5c9609c
+  en: a811f832788744a1
+  zh: 77cd7395f4c34c94
 /deepseek-ai-dsh-compaction-resilience-policy/known-limitations-and-deferred-work/dev-note:
   en: 76cb6be58d5f5183
   zh: 268f07d373171b3e

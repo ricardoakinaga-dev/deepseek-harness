@@ -56,7 +56,7 @@ const output = handle.collected.stdout?.readFrom(0)
 
 - `'pipe'` 把原始流交给你做自己的协议分帧——LSP 主机用 JSON-RPC，ACP（Agent Client Protocol）后端用 ndjson。
 - `'inherit'` 让子进程直接写父进程自己的流，用于直通诊断输出。
-- 收集对象（collect object）在内存中缓冲一段有界尾部；加上 `spill` 上限后，完整流还可以从 spill 文件中恢复。
+- 收集对象（collect object）在内存中缓冲一段有界尾部；加上 `spill` 上限后可恢复完整流。可选的 `headBytes` 还保留最终首尾预览，由 `readFrom(0).preview` 返回；增量 `text`、字节偏移和丢失标记仍描述尾部。
 
 读取基于偏移量且从不消费：后台读取与最终批量读取可以共享同一条流，而不会抢走彼此的字节。
 

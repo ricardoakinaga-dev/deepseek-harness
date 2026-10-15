@@ -25,7 +25,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import { z as zod } from 'zod'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-agent'
-import type { SandboxExecutionPolicy, SandboxMode } from '@deepseek-ai/dsh-sandbox'
+import type { SandboxExecutionEnvironment, SandboxExecutionPolicy, SandboxMode } from '@deepseek-ai/dsh-sandbox'
 import type { Session } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-system-prompt'
@@ -52,6 +52,28 @@ function renderPolicyContext(policy: SandboxExecutionPolicy): string {
       const mode: never = policy.mode
       throw new Error(`unreachable sandbox mode: ${String(mode)}`)
     }
+  }
+}
+
+/** Explain only provider-declared facts; namespace IDs depend on the Host runner installation. */
+function renderEnvironment(environment: SandboxExecutionEnvironment): string {
+  const parts = [`Process sandbox runner: ${environment.runner}; enforcement: ${environment.enforcement}.`]
+  switch (environment.temporaryFiles) {
+    case 'per-call': parts.push('Process temporary files are private to each command and do not survive into the next command. Use the workspace for files exchanged between commands or filesystem tools.'); break
+    case 'per-session': parts.push('Process temporary files are private to this session.'); break
+    case 'host': parts.push('Process temporary paths use the Host filesystem.'); break
+    case 'unknown': parts.push('The runner does not declare temporary-file sharing or persistence.'); break
+  }
+  if (environment.sharesHostTemporaryFiles === false) parts.push('Process temporary files are not the Host temporary files seen by ordinary filesystem tools.')
+  if (environment.identity === 'namespace-dependent') parts.push('UID and GID visibility depends on the runner user namespace. Host root ownership and supplementary groups may be unmapped; do not assume Host identity checks or chown behave identically.')
+  if (environment.identity === 'restricted-token') parts.push('Processes use a restricted Windows token.')
+  return parts.join(' ')
+}
+
+declare module '@deepseek-ai/dsh-session/types' {
+  interface SessionEventMap {
+    /** Provider facts observed when composing a request under a confined standing policy. */
+    'sandbox/environment': { mode: Exclude<SandboxMode, 'danger-full-access'>; environment: SandboxExecutionEnvironment }
   }
 }
 
@@ -122,6 +144,7 @@ export class SandboxPolicyService extends Service {
   readonly defaultMode: SandboxMode
   /** The absolute `workspace-write` fallback root for calls without a session cwd. */
   readonly workspaceRoot: string
+  private readonly environments = new WeakMap<Session, string>()
   constructor(ctx: Context, config: Config) {
     super(ctx, 'sandboxPolicy')
     // schemastery (static Config) already filled `mode`; the cast records that
@@ -144,9 +167,19 @@ export class SandboxPolicyService extends Service {
         order: scope.systemPrompt.getContextOrder('SANDBOX_POLICY'),
         text: (context) => {
           const session = context.agent?.session
-          return session === undefined
-            ? ''
-            : renderPolicyContext(this.resolve({ session }))
+          if (session === undefined) return ''
+          const policy = this.resolve({ session })
+          const text = renderPolicyContext(policy)
+          if (policy.mode === 'danger-full-access') return text
+          const environment = scope.get('sandbox')?.describe({ ...policy, mode: policy.mode })
+          if (environment === undefined) return text
+          const data = { mode: policy.mode, environment }
+          const key = JSON.stringify(data)
+          if (this.environments.get(session) !== key) {
+            session.append('sandbox/environment', data)
+            this.environments.set(session, key)
+          }
+          return `${text}\n${renderEnvironment(environment)}`
         },
       })
     })

@@ -27,7 +27,7 @@ type DshEnvironment = Readonly<Record<DshEnvironmentKey, string>>
 ```ts type-equiv
 /** One captured stream: the (possibly truncated) text plus recovery info. */
 interface CollectedOutput {
-  /** Collected text — the TAIL of the stream when truncated. */
+  /** Collected text: a tail by default, or the consumer-selected head/tail preview. */
   text: string
   /** True when bytes were dropped from `text`. */
   truncated: boolean
@@ -52,13 +52,15 @@ type SubprocessStdinMode = 'ignore' | 'pipe' | { readonly data: string }
 ```ts type-equiv
 /**
  * Bounded in-memory collection for one output stream, with an optional
- * full-stream spill file. Omitting `spill` keeps only the in-memory tail —
- * the diagnostic-tail shape (a language server's stderr); including it makes
- * the complete stream recoverable up to its cap (the bash tool shape).
+ * full-stream spill file. Diagnostic consumers retain only a tail by default;
+ * `headBytes` additionally selects a final head/tail preview. Including `spill`
+ * makes the complete stream recoverable up to its cap.
  */
 interface SubprocessCollect {
   /** In-memory cap in bytes; overflow keeps the TAIL. */
   maxBytes: number
+  /** Optional head budget for the final preview, including its separator within maxBytes. Incremental reads keep tail semantics. */
+  headBytes?: number
   /** Full-stream spill file; absent disables spilling entirely. */
   spill?: {
     /** Whole-stream byte cap; a larger stream discards its now-incomplete spill. */
@@ -179,9 +181,8 @@ interface SubprocessHandle {
 /**
  * Cursor-free incremental access to one collected output stream. Offsets are
  * whole-stream byte coordinates owned by the caller, so independent readers
- * cannot consume one another's output; `readFrom(0)` after settlement is the
- * batch result (`lossy` then means the in-memory tail lost its head — the
- * {@link CollectedOutput.truncated} fact).
+ * cannot consume one another's output. A batch consumer selects `preview`
+ * when supplied by `readFrom(0)`, otherwise its tail text and loss flag.
  */
 interface SubprocessOutputReader {
   /**
@@ -206,6 +207,8 @@ interface SubprocessOutputRead {
   lossy: boolean
   /** Path to the full-stream spill file, when one was created and remains intact. */
   spillPath?: string
+  /** Final preview on a read from zero; absent for ordinary tail collection. Never changes incremental text or offsets. */
+  preview?: CollectedOutput
 }
 ```
 

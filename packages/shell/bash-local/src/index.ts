@@ -49,7 +49,9 @@ export interface Config {
   maxTimeoutMs: Volatile<number>
   /** Per-stream in-memory output cap; overflow spills to a temp file. */
   maxOutputBytes: Volatile<number>
-  /** Per-stream spill-file cap; larger streams retain only their in-memory tail. */
+  /** Fraction of the final output preview reserved for its beginning; zero selects tail-only output. */
+  outputHeadRatio: Volatile<number>
+  /** Per-stream spill-file cap; larger streams retain only their bounded preview. */
   maxSpillBytes: Volatile<number>
   /** Grace period for kill escalation and inherited pipes; at most `MAX_TIMER_DELAY_MS`. */
   graceMs: Volatile<number>
@@ -58,6 +60,7 @@ export interface Config {
 /** Project a settled collect-mode reader into the final CollectedOutput shape. */
 function finalOutput(reader: SubprocessOutputReader): CollectedOutput {
   const read = reader.readFrom(0)
+  if (read.preview !== undefined) return read.preview
   return {
     text: read.text,
     truncated: read.lossy,
@@ -82,6 +85,11 @@ export function assertServiceableBashConfig(config: Config): void {
   assertPositiveFinite('timeoutMs', config.timeoutMs.get())
   assertPositiveFinite('maxTimeoutMs', config.maxTimeoutMs.get())
   assertPositiveFinite('maxOutputBytes', config.maxOutputBytes.get())
+  if (!Number.isSafeInteger(config.maxOutputBytes.get())) throw new Error('bash-local: maxOutputBytes must be an integer')
+  const headRatio = config.outputHeadRatio.get()
+  if (!Number.isFinite(headRatio) || headRatio < 0 || headRatio > 1) {
+    throw new Error('bash-local: outputHeadRatio must be between zero and one')
+  }
   assertPositiveFinite('maxSpillBytes', config.maxSpillBytes.get())
   assertPositiveFinite('graceMs', config.graceMs.get())
   if (config.graceMs.get() > MAX_TIMER_DELAY_MS) {
@@ -104,6 +112,7 @@ export class LocalBashExecutor extends ShellExecutor {
     timeoutMs: z.number().default(120_000).volatile(),
     maxTimeoutMs: z.number().default(600_000).volatile(),
     maxOutputBytes: z.number().default(64_000).volatile(),
+    outputHeadRatio: z.number().default(0.2).volatile(),
     maxSpillBytes: z.number().default(DEFAULT_MAX_SPILL_BYTES).volatile(),
     graceMs: z.number().default(DEFAULT_GRACE_MS).volatile(),
   })
@@ -129,6 +138,7 @@ export class LocalBashExecutor extends ShellExecutor {
     )
     const stdoutMaxBytes = request.stdoutMaxBytes ?? this.config.maxOutputBytes.get()
     assertPositiveFinite('request.stdoutMaxBytes', stdoutMaxBytes)
+    if (!Number.isSafeInteger(stdoutMaxBytes)) throw new Error('bash-local: request.stdoutMaxBytes must be an integer')
     return {
       command: request.command,
       workdir: request.workdir ?? this.config.cwd.get() ?? process.cwd(),
@@ -156,8 +166,12 @@ export class LocalBashExecutor extends ShellExecutor {
     stdoutMaxBytes: number,
     signal: AbortSignal | undefined,
   ): SubprocessSpawnSpec {
-    const collect = (maxBytes: number): SubprocessCollect =>
-      ({ maxBytes, spill: { maxBytes: this.config.maxSpillBytes.get() } })
+    const headRatio = this.config.outputHeadRatio.get()
+    const collect = (maxBytes: number): SubprocessCollect => ({
+      maxBytes,
+      ...headRatio > 0 ? { headBytes: Math.floor(maxBytes * headRatio) } : {},
+      spill: { maxBytes: this.config.maxSpillBytes.get() },
+    })
     return {
       argv,
       cwd: spec.workdir,

@@ -56,7 +56,7 @@ const output = handle.collected.stdout?.readFrom(0)
 
 - `'pipe'` hands you the raw stream for your own protocol framing — JSON-RPC for the LSP host, ndjson for the ACP backend.
 - `'inherit'` lets the child write to the parent's own stream, for pass-through diagnostics.
-- A collect object buffers a bounded in-memory tail; add a `spill` cap and the complete stream is also recoverable from a spill file.
+- A collect object buffers a bounded in-memory tail; add a `spill` cap for complete-stream recovery. Optional `headBytes` also retains a final head/tail preview, returned as `readFrom(0).preview`; incremental `text`, byte offsets, and loss reporting still describe the tail.
 
 Reads are offset-based and non-consuming: a background reader and a final batch read can share one stream without stealing each other's bytes.
 

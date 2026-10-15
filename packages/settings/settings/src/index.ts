@@ -9,6 +9,7 @@ import { interpolate, type Entry } from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-config-editor'
 import type {} from '@deepseek-ai/dsh-app-boot'
 import { redactSecrets, type RedactedSecret } from './redact.ts'
+import { auditConfiguration, installRuntimeAudit } from './audit.ts'
 import { isVolatilePath, plainConfig, projectForm, volatileForm } from './schema.ts'
 import type { SettingsNamespace } from './types.ts'
 
@@ -232,6 +233,12 @@ export class SettingsForms extends Service {
     const ctx = ownerContext
     ctx.effect(() => () => { this.closed = true })
     ctx.on('app-boot/config-reload', () => { this.invalidate() })
+    installRuntimeAudit(ctx, () => ctx.configEditor.configuration().flatMap(({ entry }) => {
+      const schema = this.schema(entry)
+      if (schema === undefined || entry.fiber?.state !== FiberState.ACTIVE) return []
+      const values = auditConfiguration(schema, plainConfig(entry.fiber.config))
+      return values === undefined ? [] : [{ id: entry.id, plugin: entry.options.name, values }]
+    }).sort((a, b) => a.id.localeCompare(b.id)))
     void ctx.root.loader.await().then(() => this.importLegacyDocument()).catch((error: unknown) => { ctx.logger.error(error) })
   }
 

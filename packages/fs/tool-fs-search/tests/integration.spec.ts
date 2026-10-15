@@ -68,10 +68,50 @@ describe('search tools over the real subprocess service + the packaged rg', () =
   })
 
   afterEach(async () => {
+    await ctx.fiber.dispose()
     await rm(dir, { recursive: true, force: true })
   })
 
   describe('glob', () => {
+    it('classifies a narrow glob within 256 bytes despite a large unrelated listing', async () => {
+      await writeFile(join(dir, '.gitignore'), 'src/alpha.ts\n')
+      await writeFile(join(dir, '.ignore'), 'src/beta.ts\n')
+      for (let index = 0; index < 40; index++) {
+        await writeFile(join(dir, `unrelated-${index}-${'x'.repeat(120)}.md`), '')
+      }
+      const limited = new Context()
+      try {
+        await limited.plugin(SystemPrompt)
+        await limited.plugin(ToolRuntime)
+        await limited.plugin(LocalSubprocessRuntime)
+        await limited.plugin(ToolFsSearch, { sampleOverCapGlobResults: true, rawOutputMaxBytes: 256 })
+        const result = await limited.tools.execute({
+          signal: testToolSignal, callId: ToolCallId('narrow-ignore'), name: 'glob',
+          arguments: { pattern: '*.ts' }, agent: agent() as never,
+        })
+        expect(result.isError, text(result)).toBe(false)
+        const lines = text(result).split('\n')
+        expect(lines).toContain(`${join('src', 'alpha.ts')} [ignored by ignore rules]`)
+        expect(lines).toContain(`${join('src', 'beta.ts')} [ignored by ignore rules]`)
+        expect(lines).toContain('.hidden.ts')
+        expect(lines).toContain(join('spaced dir', "wei'rd name.ts"))
+        expect(lines).toHaveLength(4)
+      } finally {
+        await limited.fiber.dispose()
+      }
+    })
+
+    it('labels ignored paths while retaining their real names and prioritizing non-ignored matches', async () => {
+      await writeFile(join(dir, '.gitignore'), 'src/alpha.ts\n')
+      await writeFile(join(dir, '.ignore'), 'src/beta.ts\n')
+      const result = await call('glob', { pattern: '*.ts' }, agent())
+      expect(result.isError).toBe(false)
+      const lines = text(result).split('\n')
+      expect(lines).toContain(`${join('src', 'alpha.ts')} [ignored by ignore rules]`)
+      expect(lines).toContain(`${join('src', 'beta.ts')} [ignored by ignore rules]`)
+      expect(lines.indexOf('.hidden.ts')).toBeLessThan(lines.indexOf(`${join('src', 'alpha.ts')} [ignored by ignore rules]`))
+    })
+
     it('discovers files by pattern, sorted by modification time, hidden included, .git excluded', async () => {
       const result = await call('glob', { pattern: '**/*.ts' }, agent())
       expect(result.isError).toBe(false)

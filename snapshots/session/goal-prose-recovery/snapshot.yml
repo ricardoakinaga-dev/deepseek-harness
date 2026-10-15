@@ -1,0 +1,7 @@
+version: 1
+scenario: goal-prose-recovery
+profile: headless
+composition: default
+recording: authored
+header:
+  class: default

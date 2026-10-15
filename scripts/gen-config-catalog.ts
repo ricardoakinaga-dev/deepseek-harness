@@ -3,7 +3,8 @@
  * JSDoc, and static Schemastery schemas. Every package must classify, referenced
  * types must resolve without collisions, and every enumerable schema path must
  * exist on the declared config type. External and dynamic types stay unknown;
- * declared runtime-only fields need not appear in the schema. `--check` verifies
+ * declared runtime-only fields need not appear in the schema. Audited schema
+ * paths must resolve statically and exclude secret/credential-reference roles. `--check` verifies
  * the committed artifact.
  */
 
@@ -293,10 +294,49 @@ function schemaAlias(world: World, ctx: FileCtx, name: string): { ctx: FileCtx; 
   if (imported === undefined || imported.typeOnly || imported.imported === '*' || imported.imported === 'default') {
     throw new Error(`schema alias '${name}' must name a const or named value import`)
   }
-  const target = loadWorkspaceSource(world, ctx, imported.specifier)
-  const expr = schemaConst(target, imported.imported, true)
-  if (expr === null) throw new Error(`schema import '${imported.specifier}' has no exported const '${imported.imported}'`)
-  return { ctx: target, expr }
+  const target = imported.specifier.startsWith('.')
+    ? loadRelative(world, ctx, imported.specifier)
+    : loadWorkspaceSource(world, ctx, imported.specifier)
+  const result = exportedSchema(world, target, imported.imported)
+  if (result === null) throw new Error(`schema import '${imported.specifier}' has no exported const '${imported.imported}'`)
+  return result
+}
+
+/** Follow source re-exports while retaining the public import check at the package entry. */
+function exportedSchema(
+  world: World, ctx: FileCtx, name: string, seen = new Set<string>(),
+): { ctx: FileCtx; expr: ts.Expression } | null {
+  const key = `${ctx.abs}#${name}`
+  if (seen.has(key)) return null
+  const visited = new Set([...seen, key])
+  const local = schemaConst(ctx, name, true)
+  if (local !== null) return { ctx, expr: local }
+  for (const statement of ctx.sf.statements) {
+    if (!ts.isExportDeclaration(statement) || statement.isTypeOnly) continue
+    let imported = name
+    if (statement.exportClause !== undefined) {
+      if (!ts.isNamedExports(statement.exportClause)) continue
+      const member = statement.exportClause.elements.find(item => item.name.text === name && !item.isTypeOnly)
+      if (member === undefined) continue
+      imported = (member.propertyName ?? member.name).text
+    }
+    if (statement.moduleSpecifier === undefined) {
+      const expr = schemaConst(ctx, imported, false)
+      if (expr !== null) return { ctx, expr }
+      const binding = ctx.imports.get(imported)
+      if (binding === undefined || binding.typeOnly) continue
+      const target = binding.specifier.startsWith('.')
+        ? loadRelative(world, ctx, binding.specifier) : loadWorkspaceSource(world, ctx, binding.specifier)
+      const result = exportedSchema(world, target, binding.imported, visited)
+      if (result !== null) return result
+    } else if (ts.isStringLiteral(statement.moduleSpecifier)) {
+      const specifier = statement.moduleSpecifier.text
+      const target = specifier.startsWith('.') ? loadRelative(world, ctx, specifier) : loadWorkspaceSource(world, ctx, specifier)
+      const result = exportedSchema(world, target, imported, visited)
+      if (result !== null) return result
+    }
+  }
+  return null
 }
 
 /** How a schema key path fared against the declared config type: definitely
@@ -606,6 +646,137 @@ function walkSchemaExpr(
   return { keys, composes }
 }
 
+/** Static schema facts used only to validate explicitly audited configuration. */
+interface AuditSchema {
+  identity: string
+  marked: boolean
+  secret: boolean
+  unresolved?: string
+  composite?: 'union' | 'intersect'
+  children: AuditSchema[]
+}
+
+/** Retain unresolved branches until their enclosing audit policy is known. */
+function auditSchema(world: World, ctx: FileCtx, expr: ts.Expression, aliases = new Set<string>()): AuditSchema {
+  const empty = (): AuditSchema => ({ identity: `${ctx.abs}:${expr.pos}`, marked: false, secret: false, children: [] })
+  const unknown = (reason: string, children: AuditSchema[] = []): AuditSchema => ({ ...empty(), unresolved: reason, children })
+  const visit = (value: ts.Expression): AuditSchema => auditSchema(world, ctx, value, aliases)
+  const node = unwrapExpr(expr)
+  if (ts.isIdentifier(node)) {
+    if (['String', 'Number', 'Boolean', 'undefined'].includes(node.text)) return empty()
+    const identity = `${ctx.abs}#${node.text}`
+    if (aliases.has(identity)) return unknown(`cyclic schema alias '${node.text}'`)
+    try {
+      const target = schemaAlias(world, ctx, node.text)
+      return auditSchema(world, target.ctx, target.expr, new Set([...aliases, identity]))
+    } catch (error) {
+      return unknown(error instanceof Error ? error.message : String(error))
+    }
+  }
+  if (ts.isStringLiteral(node) || ts.isNumericLiteral(node)
+    || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword
+    || node.kind === ts.SyntaxKind.NullKeyword) return empty()
+  if (ts.isArrayLiteralExpression(node)) return { ...empty(), children: node.elements.map(visit) }
+  if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
+    const imported = ctx.imports.get(node.expression.text)
+    if (imported?.imported === '*' && !imported.typeOnly) {
+      try {
+        const target = imported.specifier.startsWith('.')
+          ? loadRelative(world, ctx, imported.specifier) : loadWorkspaceSource(world, ctx, imported.specifier)
+        const resolved = exportedSchema(world, target, node.name.text)
+        if (resolved !== null) {
+          const identity = `${resolved.ctx.abs}#${node.name.text}`
+          if (aliases.has(identity)) return unknown(`cyclic schema alias '${node.name.text}'`)
+          return auditSchema(world, resolved.ctx, resolved.expr, new Set([...aliases, identity]))
+        }
+      } catch (error) { return unknown(error instanceof Error ? error.message : String(error)) }
+    }
+    return unknown('unresolved schema property')
+  }
+  if (!ts.isCallExpression(node)) return unknown('unresolved schema expression')
+  if (!ts.isPropertyAccessExpression(node.expression)) return unknown('dynamic schema factory', node.arguments.map(visit))
+  const method = node.expression.name.text
+  const base = unwrapExpr(node.expression.expression)
+  const namespace = ts.isIdentifier(base) ? ctx.imports.get(base.text) : undefined
+  if (namespace?.specifier === '@deepseek-ai/schemastery' && !namespace.typeOnly) {
+    if (method === 'object') {
+      const fields = node.arguments[0] === undefined ? undefined : unwrapExpr(node.arguments[0])
+      if (fields === undefined || !ts.isObjectLiteralExpression(fields)) return unknown('dynamic schema object')
+      return { ...empty(), children: fields.properties.map(field => ts.isPropertyAssignment(field)
+        ? visit(field.initializer) : ts.isShorthandPropertyAssignment(field) ? visit(field.name) : unknown('dynamic schema object member')) }
+    }
+    if (['array', 'dict', 'union', 'intersect'].includes(method)) {
+      return { ...empty(), ...method === 'union' || method === 'intersect' ? { composite: method } : {},
+        children: node.arguments[0] === undefined ? [unknown('missing schema element')] : [visit(node.arguments[0])] }
+    }
+    if (['string', 'number', 'boolean', 'const', 'natural', 'percent'].includes(method)) return empty()
+    return unknown(`unsupported audited schema '${method}'`, node.arguments.map(visit))
+  }
+  const inner = visit(base)
+  if (method === 'extra' && (node.arguments[0] === undefined || !ts.isStringLiteral(node.arguments[0]))) {
+    return { ...inner, marked: true, unresolved: 'schema metadata key must be a literal string' }
+  }
+  if (method === 'role' || (method === 'extra' && node.arguments[0] !== undefined
+    && ts.isStringLiteral(node.arguments[0]) && node.arguments[0].text === 'role')) {
+    const role = node.arguments[method === 'role' ? 0 : 1]
+    if (role === undefined || !ts.isStringLiteral(role)) return { ...inner, unresolved: 'dynamic schema role' }
+    return { ...inner, secret: inner.secret || role.text === 'secret' || role.text === 'credential-ref' }
+  }
+  if (method === 'extra' && node.arguments[0] !== undefined
+    && ts.isStringLiteral(node.arguments[0]) && node.arguments[0].text === 'extra') {
+    const metadata = node.arguments[1] === undefined ? undefined : unwrapExpr(node.arguments[1])
+    if (metadata === undefined || !ts.isObjectLiteralExpression(metadata)) {
+      return { ...inner, marked: true, unresolved: 'audit metadata must be a literal object' }
+    }
+    let marked = inner.marked
+    for (const property of metadata.properties) {
+      if (!ts.isPropertyAssignment(property) || ts.isComputedPropertyName(property.name)) {
+        return { ...inner, marked: true, unresolved: 'audit metadata must use literal properties' }
+      }
+      if (property.name.getText(ctx.sf).replace(/^['"]|['"]$/g, '') !== 'audit') continue
+      const flag = unwrapExpr(property.initializer)
+      if (flag.kind !== ts.SyntaxKind.TrueKeyword && flag.kind !== ts.SyntaxKind.FalseKeyword) {
+        return { ...inner, marked: true, unresolved: 'audit flag must be a literal boolean' }
+      }
+      marked ||= flag.kind === ts.SyntaxKind.TrueKeyword
+    }
+    return { ...inner, marked }
+  }
+  if (['default', 'required', 'volatile', 'min', 'max', 'step', 'pattern', 'description', 'role', 'extra', 'hidden', 'disabled', 'collapse', 'deprecated'].includes(method)) return inner
+  return { ...inner, unresolved: `unsupported audited schema refinement '${method}'` }
+}
+
+/** Refuse audit paths that contain secret roles or cannot be verified statically. */
+function verifyAuditedSchema(world: World, ctx: FileCtx, expr: ts.Expression, where: string, violations: string[]): void {
+  const root = auditSchema(world, ctx, expr)
+  // Metadata refinements can mutate a shared schema referenced by multiple fields.
+  const effects = new Map<string, { marked: boolean; secret: boolean }>()
+  const collect = (node: AuditSchema): void => {
+    const previous = effects.get(node.identity)
+    effects.set(node.identity, { marked: node.marked || previous?.marked === true, secret: node.secret || previous?.secret === true })
+    node.children.forEach(collect)
+  }
+  collect(root)
+  const marked = (node: AuditSchema): boolean => effects.get(node.identity)?.marked === true
+  const secret = (node: AuditSchema): boolean => effects.get(node.identity)?.secret === true
+  const hasMark = (node: AuditSchema): boolean => marked(node) || node.children.some(hasMark)
+  const hasSecret = (node: AuditSchema): boolean => secret(node) || node.children.some(hasSecret)
+  const visit = (node: AuditSchema, selected = false, secretParent = false): void => {
+    const audited = selected || marked(node)
+    if ((audited && hasSecret(node)) || ((secretParent || secret(node)) && hasMark(node))
+      || (node.composite !== undefined && hasMark(node) && hasSecret(node))) {
+      violations.push(`${where}: audited schema contains a secret or credential-ref role.`)
+      return
+    }
+    if (node.unresolved !== undefined && (audited || hasMark(node))) {
+      violations.push(`${where}: audited schema cannot be resolved statically: ${node.unresolved}.`)
+      return
+    }
+    for (const child of node.children) visit(child, audited, secretParent || secret(node))
+  }
+  visit(root)
+}
+
 /** Find a plugin's schemastery schema expression: an exported `const Config`
  * in the entry file, else a `static Config` on the plugin class. */
 function findSchemaExpr(ctx: FileCtx, pluginClass: ts.ClassDeclaration | null): ts.Expression | null {
@@ -827,6 +998,12 @@ export function collectConfigCatalog(scanRoot: string = root): CatalogEntry[] {
 
     // Statically walk the runtime schema (when one exists) for the subset check.
     const schemaExpr = findSchemaExpr(ctx, pluginClass)
+    if (schemaExpr !== null) verifyAuditedSchema(world, ctx, schemaExpr, `${pkg} (${entryRel})`, violations)
+    else {
+      // Re-exported Config values still carry their owning module's audit marks.
+      const exported = exportedSchema(world, ctx, 'Config')
+      if (exported !== null) verifyAuditedSchema(world, exported.ctx, exported.expr, `${pkg} (${exported.ctx.rel})`, violations)
+    }
     if (schemaExpr) {
       const { keys, composes } = walkSchemaExpr(world, ctx, unwrapExpr(schemaExpr), `${pkg} (${entryRel})`, violations)
       entry.schemaKeys = keys

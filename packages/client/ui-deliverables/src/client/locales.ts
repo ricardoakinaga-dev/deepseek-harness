@@ -5,6 +5,10 @@ export const NS = 'deliverables'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'presented.savedCopy': '已保存副本 · 下载',
+  'presented.tooLarge': '未保存副本：超过 {maxBytes} 字节限制，请保留原文件',
+  'presented.captureUnknown': '此历史记录未记录副本状态',
+  'presented.outsideWorkspace': '原文件路径位于工作区之外',
   'presented.nativeUnavailable': '此文件没有可用的主机路径，请在侧边栏预览',
   'presented.revealError': '无法在文件管理器中显示，请重试',
   'presented.directoryError': '无法打开所在文件夹，请重试',
@@ -69,6 +73,10 @@ export const zh = {
 
 /** English dictionary (same key set). */
 export const en: Record<DeliverablesKey, string> = {
+  'presented.savedCopy': 'Saved copy · Download',
+  'presented.tooLarge': 'Copy not saved: exceeds {maxBytes} bytes. Keep the original file.',
+  'presented.captureUnknown': 'Saved-copy status unknown for this historical record',
+  'presented.outsideWorkspace': 'Original path is outside this workspace',
   'presented.nativeUnavailable': 'This file has no available Host path. Preview it in the sidebar.',
   'presented.revealError': 'Could not show in file manager. Try again.',
   'presented.directoryError': 'Could not open containing folder. Try again.',

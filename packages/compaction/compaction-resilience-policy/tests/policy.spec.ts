@@ -161,6 +161,58 @@ describe('compaction controls', () => {
     expect(options).not.toHaveProperty('signal')
   })
 
+  it('selects an exact route effort over its provider entry and the global effort', async () => {
+    const { ctx, adapter } = await setup({
+      compactionReasoningEffort: 'high',
+      compactionReasoningEffortByRoute: { 'mock/exact': 'high', mock: 'off' },
+    })
+    const second = new RecordingAdapter()
+    ctx.llm.registerAdapter(['second'], second)
+    await collect(ctx.llm.stream(request({ purpose: 'compaction', model: 'exact' })))
+    await collect(ctx.llm.stream(request({ purpose: 'compaction', model: 'other' })))
+    await collect(ctx.llm.stream(request({ purpose: 'compaction', provider: 'second', reasoningEffort: ReasoningEffortId('off') })))
+    expect(adapter.calls.map(call => call.reasoningEffort)).toEqual([ReasoningEffortId('high'), ReasoningEffortId('off')])
+    expect(second.calls.map(call => call.reasoningEffort)).toEqual([ReasoningEffortId('high')])
+  })
+
+  it('names the selecting config entry when the route does not offer the effort', async () => {
+    const { ctx, adapter } = await setup({ compactionReasoningEffortByRoute: { mock: 'xhigh' } })
+    const chunks = await collect(ctx.llm.stream(request({ purpose: 'compaction' })))
+    expect(adapter.calls).toHaveLength(0)
+    expect(chunks).toEqual([{
+      type: 'finish',
+      reason: {
+        kind: 'error',
+        failure: {
+          code: 'UNSUPPORTED_REASONING_EFFORT',
+          message: 'provider "mock" model "model" does not support reasoning effort "xhigh"; '
+            + 'compaction-resilience-policy selected "xhigh" for route "mock/model" from '
+            + 'compactionReasoningEffortByRoute["mock"]. Set compactionReasoningEffortByRoute for this route '
+            + 'to an effort it offers, or remove the entry to keep the effort the caller chose',
+        },
+      },
+    }])
+  })
+
+  it('leaves an unsupported caller-selected effort failure unchanged', async () => {
+    const { ctx } = await setup()
+    const chunks = await collect(ctx.llm.stream(request({
+      purpose: 'compaction',
+      reasoningEffort: ReasoningEffortId('xhigh'),
+    })))
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0]).toMatchObject({
+      type: 'finish',
+      reason: {
+        kind: 'error',
+        failure: {
+          code: 'UNSUPPORTED_REASONING_EFFORT',
+          message: 'provider "mock" model "model" does not support reasoning effort "xhigh"',
+        },
+      },
+    })
+  })
+
   it('leaves ordinary hand-built model calls unchanged', async () => {
     const { ctx, adapter } = await setup({
       compactionMaxTokens: 128,
@@ -463,9 +515,30 @@ describe('configuration, disposal, and Loader path', () => {
     [{ requestOutputReserveTokens: 1.5 }, 'requestOutputReserveTokens'],
     [{ compactionReasoningEffort: '' }, 'compactionReasoningEffort'],
     [{ compactionReasoningEffort: 1 }, 'compactionReasoningEffort'],
+    [{ compactionReasoningEffortByRoute: 'off' }, 'compactionReasoningEffortByRoute must map'],
+    [{ compactionReasoningEffortByRoute: ['off'] }, 'compactionReasoningEffortByRoute must map'],
+    [{ compactionReasoningEffortByRoute: null }, 'compactionReasoningEffortByRoute must map'],
+    [{ compactionReasoningEffortByRoute: { '': 'off' } }, 'key "" must be'],
+    [{ compactionReasoningEffortByRoute: { '/model': 'off' } }, 'key "/model" must be'],
+    [{ compactionReasoningEffortByRoute: { 'mock/': 'off' } }, 'key "mock/" must be'],
+    [{ compactionReasoningEffortByRoute: { mock: '' } }, 'compactionReasoningEffortByRoute["mock"]'],
+    [{ compactionReasoningEffortByRoute: { mock: 1 } }, 'compactionReasoningEffortByRoute["mock"]'],
   ])('rejects invalid direct config %j', async (config, field) => {
     const { ctx } = await setup()
     expect(() => { policy.apply(ctx, config as PolicyConfig) }).toThrow(field)
+  })
+
+  it('preserves the caller effort when direct config omits every effort field', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(TokenMeter)
+    const adapter = new RecordingAdapter()
+    ctx.llm.registerAdapter(['mock'], adapter)
+    policy.apply(ctx, { compactionMaxTokens: 64 })
+    await collect(ctx.llm.stream(request({ purpose: 'compaction', reasoningEffort: ReasoningEffortId('high') })))
+    expect(adapter.calls[0]).toMatchObject({ maxTokens: 64, reasoningEffort: ReasoningEffortId('high') })
   })
 
   it('removes the global stream listener when its fiber is disposed', async () => {

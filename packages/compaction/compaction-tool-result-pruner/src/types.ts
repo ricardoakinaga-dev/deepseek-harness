@@ -9,6 +9,11 @@ export interface ToolResultPruneConfig {
   headChars?: number
   /** Maximum trailing Unicode code points retained. Defaults to `1024`. */
   tailChars?: number
+  /**
+   * Tool names whose results are never pruned, such as instructions the agent
+   * keeps following after they load. Defaults to `['skill']`.
+   */
+  exemptTools?: string[]
 }
 
 /** Validated, detached, deeply immutable pruning configuration. */
@@ -16,6 +21,7 @@ export interface ResolvedConfig {
   readonly thresholdChars: number
   readonly headChars: number
   readonly tailChars: number
+  readonly exemptTools: readonly string[]
 }
 
 /** Cited source event and size accounting for one landed surface replacement. */

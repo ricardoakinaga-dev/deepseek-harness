@@ -11,12 +11,14 @@ export const DEFAULTS: ResolvedConfig = deepFreeze({
   thresholdChars: 8192,
   headChars: 4096,
   tailChars: 1024,
+  exemptTools: ['skill'],
 })
 
 const CONFIG_KEYS: ReadonlySet<string> = new Set([
   'thresholdChars',
   'headChars',
   'tailChars',
+  'exemptTools',
 ])
 
 /**
@@ -38,7 +40,7 @@ export function resolveConfig(config: ToolResultPruneConfig = {}): ResolvedConfi
     if (!CONFIG_KEYS.has(key)) {
       throw new Error(
         `ToolResultPruneConfig: unknown key "${key}" `
-        + '(allowed: thresholdChars, headChars, tailChars)',
+        + '(allowed: thresholdChars, headChars, tailChars, exemptTools)',
       )
     }
   }
@@ -47,10 +49,15 @@ export function resolveConfig(config: ToolResultPruneConfig = {}): ResolvedConfi
     thresholdChars: config.thresholdChars ?? DEFAULTS.thresholdChars,
     headChars: config.headChars ?? DEFAULTS.headChars,
     tailChars: config.tailChars ?? DEFAULTS.tailChars,
+    exemptTools: config.exemptTools ?? DEFAULTS.exemptTools,
   }
   assertPositiveInteger('thresholdChars', resolved.thresholdChars)
   assertNonNegativeInteger('headChars', resolved.headChars)
   assertNonNegativeInteger('tailChars', resolved.tailChars)
+  if (!Array.isArray(resolved.exemptTools)
+    || resolved.exemptTools.some(name => typeof name !== 'string' || name.length === 0)) {
+    throw new Error('ToolResultPruneConfig: exemptTools must be an array of non-empty tool names')
+  }
 
   const emittedChars = resolved.headChars
     + codePointLength(PRUNE_MARKER)

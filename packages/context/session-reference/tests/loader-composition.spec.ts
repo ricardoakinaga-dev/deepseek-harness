@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
+import { z } from 'zod'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
@@ -16,11 +17,18 @@ import * as fsPlugin from '@deepseek-ai/dsh-fs-local'
 import * as toolFsPlugin from '@deepseek-ai/dsh-tool-fs'
 import * as sessionPlugin from '@deepseek-ai/dsh-session'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionProjections from '@deepseek-ai/dsh-session-projection'
 import * as queryPlugin from '@deepseek-ai/dsh-session-query-sqlite'
 import * as referencePlugin from '@deepseek-ai/dsh-session-reference'
 import * as spillPlugin from '@deepseek-ai/dsh-spill-local'
 import { sessionDir } from '@deepseek-ai/dsh-spill-local'
 import * as sourcePlugin from './fixtures/source-session.ts'
+
+declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    'reference-fixture/observedEvents': number
+  }
+}
 
 let context: Context | undefined
 let root: string | undefined
@@ -33,13 +41,22 @@ afterEach(async () => {
 })
 
 describe('session-reference real Loader composition', () => {
-  it('logs a bounded preview and reads the full immutable spill owned by the target', async () => {
+  it.each([false, true])('logs a bounded preview and reads the target-owned spill with deferred publication=%s', async (deferUntilAgentCreated) => {
     root = await mkdtemp(join(tmpdir(), 'reference-loader-'))
     const spillRoot = join(root, 'spills')
     const fixture = await readFile(new URL('./fixtures/cordis.yml', import.meta.url), 'utf8')
     const configPath = join(root, 'cordis.yml')
-    await writeFile(configPath, fixture.replace('{{spillRoot}}', spillRoot.replaceAll('\\', '/')))
+    await writeFile(configPath, fixture.replace('{{spillRoot}}', spillRoot.replaceAll('\\', '/'))
+      .replace("- name: './source-session.ts'", `- name: './source-session.ts'\n  config:\n    deferUntilAgentCreated: ${deferUntilAgentCreated}`))
     const ctx = context = new Context()
+    const sourceBaselines: number[] = []
+    let sourceDisposals = 0
+    ctx.on('session/created', (session, baseline) => {
+      if (session.id === 'reference-source') sourceBaselines.push(baseline.events.length)
+    }, { global: true })
+    ctx.on('session/disposed', (session) => {
+      if (session.id === 'reference-source') sourceDisposals++
+    }, { global: true })
     ctx.baseUrl = pathToFileURL(root).href + '/'
     await ctx.plugin(Loader)
     ctx.loader.builtins.include = Include
@@ -61,11 +78,26 @@ describe('session-reference real Loader composition', () => {
         return modules.get(specifier)
       },
     } as unknown as NonNullable<typeof ctx.loader.internal>
-    await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
+    const compositionId = await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
     await ctx.loader.await()
 
+    if (deferUntilAgentCreated) {
+      expect(ctx.sessions.get(SessionId('reference-source'))).toBeUndefined()
+      await ctx.plugin(SessionProjections)
+      ctx.sessionProjections.register({
+        key: 'reference-fixture/observedEvents', stateVersion: 1,
+        stateSchema: z.number().int().nonnegative(), init: () => 0,
+        apply: state => state + 1,
+      })
+    }
     const target = ctx.sessions.create(SessionId('reference-target'))
     const agent = { id: target.id, ctx, session: target } as Agent
+    await agentEvents(ctx, agent).serial('agent/created', { source: 'startup' })
+    await agentEvents(ctx, agent).serial('agent/created', { source: 'startup' })
+    expect(sourceBaselines).toEqual([3])
+    if (deferUntilAgentCreated) {
+      expect(ctx.sessionProjections.stateOf(ctx.sessions.get(SessionId('reference-source'))!, 'reference-fixture/observedEvents')).toBe(3)
+    }
     const direct = createUserMessage({
       content: [{ type: 'text', text: 'Use ' + referencePlugin.formatSessionReferenceMention({
         sessionId: SessionId('reference-source'), label: 'Research',
@@ -136,5 +168,14 @@ describe('session-reference real Loader composition', () => {
     }), { surfaceOp: 'append' })
     expect(Session.create(SessionId('replayed-target'), target.snapshotEvents()).deriveMessages()).toEqual(captured)
     expect(await readFile(notice.fullSnapshot.locator, 'utf8')).toBe(transcript)
+    if (deferUntilAgentCreated) {
+      expect(ctx.sessionProjections.stateOf(ctx.sessions.get(SessionId('reference-source'))!, 'reference-fixture/observedEvents')).toBe(4)
+    }
+    const sourceEntry = Object.values(ctx.loader.resolve(compositionId).subtree?.store ?? {})
+      .find(entry => entry.options.name === './source-session.ts')
+    if (sourceEntry?.fiber === undefined) throw new Error('Expected live source fixture entry')
+    await sourceEntry.fiber.dispose()
+    expect(sourceDisposals).toBe(1)
+    expect(ctx.sessions.get(SessionId('reference-source'))).toBeUndefined()
   })
 })

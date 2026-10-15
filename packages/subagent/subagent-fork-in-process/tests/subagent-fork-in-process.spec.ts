@@ -202,6 +202,7 @@ describe('dsh-subagent-fork-in-process', () => {
       agentOptions: true,
       outputSchema: true,
       depthLimit: true,
+      sandboxMode: true,
       toolFilter: true,
       persona: true,
     })

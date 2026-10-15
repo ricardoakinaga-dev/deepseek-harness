@@ -170,6 +170,8 @@ These limits define when the seam is a poor fit or needs special operational car
 - **Runner diagnostics are in-band** — exit status plus stderr evidence cannot prove which process wrote a matching line, so a confined child that deliberately mimics its runner can cause a false availability or diagnostic attribution; this cannot bypass confinement, and an out-of-band runner-status channel is deferred.
 - **One provider per context** — composing different sandbox mechanisms simultaneously requires a provider-level ladder or separate Cordis contexts; callers choose policy per call, not backend identity.
 
+Providers may expose `describe(policy)` with their selected runner, enforcement, temporary-file lifetime and Host sharing, and identity semantics. An absent descriptor leaves these facts unknown. Describing a policy may run bounded selection probes but must not execute a user command.
+
 <a id="dev-note"></a>
 ### Dev Note
 

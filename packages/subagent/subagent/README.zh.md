@@ -58,6 +58,10 @@ kind: "package-reference"
 
 一次性子 agent 只运行一次，并以单个结果结算，可附带可选的结构化输出与失败时的安全诊断。启动请求可以通过 `agentOptions` 覆盖子 Agent 的提供方、模型、推理强度与输出 token 上限；每个请求的选项都要求提供方声明对应能力。可继续子 agent 保留持久会话并按顺序接受后续消息：调用方收到稳定的子 agent id、发送相邻 Agent 消息，并可中断当前轮次而不销毁子 agent。工具行的 `backgroundMode` 选择形态（默认 `one-shot`，或在支持的提供方上使用 `continuable`）。
 
+本地子代理发布后（包括每次冷恢复），父级会记录 `subagent/authority`，包含子级 id、已确认的文件模式、已记录的审批策略以及实际可见的工具名称（包括子级自有的响应基础设施）。策略字段为 null 表示本地组合无法确认该策略；远程提供程序不会生成权限观测记录。这些字段表示发布时的权限，不表示后续管理操作的变更，也不会将请求的权限当作已确认值。
+
+进程内子级在异步创建前捕获父级有效沙箱模式（包括部署默认值）及允许继承的工具。`sandboxMode` 请求可选择 read-only 或 workspace-write，但不得扩大该策略；无法执行请求的提供方会拒绝请求。子级通过 `sandbox/mode` 记录解析后的模式，并将审批固定为 `never`。可继续子级的描述符保留取交集后的工具过滤器供冷恢复使用；既有管理策略 setter 仍可用。
+
 ### 消息、中断与发现
 
 每个确切在线 Agent 都可以对直接可继续 child 使用 `sendMessage()`；驻留的可继续 child 还可以对自己的直接 parent 使用它。正在工作的目标通过 Steer 在最近 step 接收 Agent 消息；空闲目标启动轮次，且只有直接 child 可以冷恢复。parent 也可以随时中断正在运行的后代或列举自己的子级。浏览器发出的继续执行 prompt 会独立选择 Queue 或 Steer，并且可以携带图片部分：Host 先通过附件存储完成整批图片的准入与持久化，子级 inbox 才接受这条消息；当子级声明的模型不接受图片输入时拒绝投递。 直接子级发现读取 parent 自有的 `subagentCatalog` projection。`listChildren(parentSessionId, signal?)` 持有一次优先实时来源的 Session 观察，异步返回目录，不读取子级日志。它转发取消信号，并在物化后释放观察。物化以 O(D) 时间保留 D 条事实的父日志事件顺序。后代发现按父事件顺序递归读取子级目录，每个可达 Session 观察一次。无法读取目录的分支会被跳过，并返回诊断；两条路径都不加载或恢复子级 Agent。
@@ -147,11 +151,11 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-一条用户角色的父级消息，开头是结果本身——`Background subagent <child-id> finished and will do no further work unless you send it more.`，或子级被停止、耗尽额度、拒绝任务或失败时的对应句子——随后是 `Its closing message:` 与子级最终 assistant 输出中的非空文本块，保留原始内容与顺序。推理与其他非文本块不会进入通知；若没有剩余的非空文本，通知会写明 `It left no closing message.`。这条由运行时生成的通知与模型编写的父子消息相互独立；后者使用 `sendMessage()` 与 `AgentMessageSource`。委派 schema 与模型控制工具归消费方包所有。
+一条用户角色的父级消息，开头是结果本身——`Background subagent <child-id> finished and will do no further work unless you send it more.`，或子级被停止、耗尽额度、拒绝任务或失败时的对应句子——随后是 `Its closing message:` 与子级最终 assistant 输出中的非空文本块，保留原始内容与顺序。若结束文本与本次 Activation 中最后一条已记录到父级历史的子级消息完全相同，通知会引用该消息的 id，而不重复正文。仍在 Inbox 中的消息、投递失败的消息以及先前 Activation 的消息均不参与比较。推理与其他非文本块不会进入通知；若没有剩余的非空文本，通知会写明 `It left no closing message.`。这条由运行时生成的通知与模型编写的父子消息相互独立；后者使用 `sendMessage()` 与 `AgentMessageSource`。委派 schema 与模型控制工具归消费方包所有。
 
 #### Token 影响
 
-父级请求中，每个已结算的 Activation 一条通知，长度取决于子级的最终文本。如果子级先发送自己的消息再结算，父级请求会同时承担两者。
+父级请求中，每个已结算的 Activation 一条通知，长度取决于子级的最终文本。对于完全重复的报告，结算通知仅保留对已投递消息的引用。
 
 #### KV Cache 影响
 

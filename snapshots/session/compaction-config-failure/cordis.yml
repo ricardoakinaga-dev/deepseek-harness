@@ -1,0 +1,24 @@
+# Proactive compaction whose summary route has no adapter: the first failure
+# suspends automatic summaries while later tool results remain prunable.
+
+- id: llm-deepseek
+  config:
+    models:
+      - id: deepseek-v4-flash
+        contextWindow: 8382
+        maxTokens: 1000
+
+- id: compaction-basic
+  config:
+    thresholdRatio: 0.8
+    headroomTokens: 1800
+    retainTokens: 20
+    maxTokens: 32
+    summarizationProvider: unconfigured-summarizer
+    summarizationModel: unconfigured-model
+
+- id: tool-result-pruner
+  config:
+    thresholdChars: 100
+    headChars: 20
+    tailChars: 10

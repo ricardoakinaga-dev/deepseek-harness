@@ -208,19 +208,29 @@ export function sampleAcrossTopLevel(paths: readonly string[], maxItems: number,
  * @param sample - the inline page and its top-level spread.
  * @param seen - how many paths the complete result holds; always more than the page.
  * @param spillRef - the saved complete-result reference, or `undefined` when unsaved.
+ * @param ignored - paths excluded by the ignore-respecting discovery pass.
  * @returns the model-facing text.
  */
-export function formatGlobOutput(sample: GlobSample, seen: number, spillRef: SpillRef | undefined): string {
+export function formatGlobOutput(
+  sample: GlobSample, seen: number, spillRef: SpillRef | undefined, ignored: ReadonlySet<string> = new Set(),
+): string {
   const basis = sample.total === seen
     ? '.'
     : `, sampled across ${sample.shown} of the ${sample.total} top-level entries this pattern matched instead of taken in modification-time order.`
       + (sample.shown < sample.total ? ' Narrow path to inspect a specific subtree.' : '')
-  return formatGlobPage(sample.items, seen, spillRef, basis)
+  return formatGlobPage(sample.items, seen, spillRef, basis, ignored)
+}
+
+/** Keep path metadata unmodified while marking ignore-rule matches in model-facing text. */
+function labelledPaths(items: readonly string[], ignored: ReadonlySet<string>): string {
+  return items.map(path => ignored.has(path) ? `${path} [ignored by ignore rules]` : path).join('\n')
 }
 
 /** Format one bounded page and the recovery path for its complete sorted result. */
-function formatGlobPage(items: readonly string[], seen: number, spillRef: SpillRef | undefined, basis: string): string {
-  const body = items.join('\n')
+function formatGlobPage(
+  items: readonly string[], seen: number, spillRef: SpillRef | undefined, basis: string, ignored: ReadonlySet<string>,
+): string {
+  const body = labelledPaths(items, ignored)
   const recovery = spillRef !== undefined
     ? `Full sorted result stored at: ${spillRef.locator}. ${spillRef.retrievalHint}`
     : 'The complete result could not be saved; narrow pattern or path to see more.'
@@ -228,15 +238,15 @@ function formatGlobPage(items: readonly string[], seen: number, spillRef: SpillR
 }
 
 /** Bound and format one canonical path list for the Native surface relative to its search root. */
-function renderGlobPaths(paths: string[], caps: GlobToolCaps, root: string, spillRef?: SpillRef): string {
+function renderGlobPaths(paths: string[], caps: GlobToolCaps, root: string, ignored: ReadonlySet<string>, spillRef?: SpillRef): string {
   if (paths.length === 0) return 'No files found'
-  // A result that fits is shown whole, untouched: modification-time order is the
-  // tool's contract, and over a complete result it is what answers age questions.
-  if (paths.length <= caps.maxResults) return paths.join('\n')
+  if (paths.length <= caps.maxResults) return labelledPaths(paths, ignored)
   if (!caps.sampleOverCapGlobResults) {
-    return formatGlobPage(paths.slice(0, caps.maxResults), paths.length, spillRef, '.')
+    return formatGlobPage(paths.slice(0, caps.maxResults), paths.length, spillRef, '.', ignored)
   }
-  return formatGlobOutput(sampleAcrossTopLevel(paths, caps.maxResults, root), paths.length, spillRef)
+  if (ignored.size === 0) return formatGlobOutput(sampleAcrossTopLevel(paths, caps.maxResults, root), paths.length, spillRef, ignored)
+  const page = globCardPage(paths, caps, root, ignored)
+  return formatGlobPage(page.items, paths.length, spillRef, ', sampled within non-ignored paths first.', ignored)
 }
 
 /**
@@ -249,12 +259,18 @@ function renderGlobPaths(paths: string[], caps: GlobToolCaps, root: string, spil
  * @param paths - the complete discovered path list, in modification-time order.
  * @param caps - the resolved glob caps (the inline cap and the sampling switch).
  * @param root - the search root in the same display-path space as `paths`.
+ * @param ignored - discovered paths excluded by ignore rules.
  * @returns the inline page and whether the complete result was capped.
  */
-function globCardPage(paths: string[], caps: GlobToolCaps, root: string): { items: string[]; truncated: boolean } {
+function globCardPage(
+  paths: string[], caps: GlobToolCaps, root: string, ignored: ReadonlySet<string>,
+): { items: string[]; truncated: boolean } {
   if (paths.length <= caps.maxResults) return { items: paths, truncated: false }
   if (!caps.sampleOverCapGlobResults) return { items: paths.slice(0, caps.maxResults), truncated: true }
-  return { items: sampleAcrossTopLevel(paths, caps.maxResults, root).items, truncated: true }
+  const ordinary = sampleAcrossTopLevel(paths.filter(path => !ignored.has(path)), caps.maxResults, root).items
+  const remaining = caps.maxResults - ordinary.length
+  const extra = remaining === 0 ? [] : sampleAcrossTopLevel(paths.filter(path => ignored.has(path)), remaining, root).items
+  return { items: [...ordinary, ...extra], truncated: true }
 }
 
 /**
@@ -306,8 +322,9 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
   const tool = defineTool({
     name: 'glob',
     description: 'Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. '
-      + `Returns up to ${caps.maxResults} paths in modification-time order; a larger result ${overCapDescription} `
-      + 'and reports where the complete list was saved.',
+      + `Returns up to ${caps.maxResults} paths, non-ignored first and in modification-time order within each group; a larger result ${overCapDescription} `
+      + 'and reports where the complete list was saved. '
+      + 'Ignored paths are labelled using ripgrep ignore rules, including .gitignore and .ignore; this does not indicate Git tracking status.',
     parameters: {
       pattern: {
         type: 'string',
@@ -325,11 +342,12 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
         properties: {
           root: { type: 'string', required: true },
           paths: { type: 'array', required: true, items: { type: 'string' } },
+          ignoredPaths: { type: 'array', required: true, items: { type: 'string' } },
         },
       },
-      render: (_args, value) => [{ type: 'text', text: renderGlobPaths(value.paths, caps, value.root) }],
+      render: (_args, value) => [{ type: 'text', text: renderGlobPaths(value.paths, caps, value.root, new Set(value.ignoredPaths)) }],
       presentationMeta: (_args, value) => {
-        const page = globCardPage(value.paths, caps, value.root)
+        const page = globCardPage(value.paths, caps, value.root, new Set(value.ignoredPaths))
         return globSearchMeta({ items: page.items, truncated: page.truncated, seen: value.paths.length }, caps.maxMetaBytes)
       },
     },
@@ -337,7 +355,7 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
       const input = parseGlobArgs(args)
       const run = await runRipgrep(ctx, exec, 'glob', buildGlobCommand(input), caps.rawOutputMaxBytes, caps.graceMs, caps.stderrMaxBytes)
       const root = input.path === undefined ? '.' : toWorkdirRelative(input.path, run.workdir)
-      if (run.noMatches) return { root, paths: [] }
+      if (run.noMatches) return { root, paths: [], ignoredPaths: [] }
 
       const all: string[] = []
       for (const line of run.stdout.split('\n')) {
@@ -345,7 +363,16 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
         const displayPath = toWorkdirRelative(line, run.workdir)
         all.push(displayPath)
       }
-      return { root, paths: all }
+      // Positive --glob patterns override ignore rules. Classify against a
+      // second listing without that override, retaining only discovered candidates.
+      const respectedArgs = buildGlobCommand(input).filter(arg =>
+        arg !== '--no-ignore' && arg !== '--sort=modified' && arg !== `--glob=${input.pattern}`)
+      const respected = await runRipgrep(ctx, exec, 'glob ignore classification', respectedArgs, caps.rawOutputMaxBytes, caps.graceMs, caps.stderrMaxBytes,
+        new Set(run.stdout.split('\n').filter(Boolean)))
+      const visible = new Set(respected.stdout.split('\n').filter(Boolean).map(path => toWorkdirRelative(path, run.workdir)))
+      const ordinary = all.filter(path => visible.has(path))
+      const ignoredPaths = all.filter(path => !visible.has(path))
+      return { root, paths: [...ordinary, ...ignoredPaths], ignoredPaths }
     },
     presentCall: presentGlobCall,
     presentResult: presentGlobResult,
@@ -354,14 +381,16 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
 
   ctx.on('tools/post-execute', async (exec, result, next) => {
     const decision = await next()
-    const value = acceptedDirectCallValue(ctx, tool, exec, result, decision) as { root: string; paths: string[] } | undefined
+    const value = acceptedDirectCallValue(ctx, tool, exec, result, decision) as
+      { root: string; paths: string[]; ignoredPaths: string[] } | undefined
     if (value === undefined) return decision
     const paths = value.paths
     if (paths.length <= caps.maxResults) return decision
-    const spillRef = await trySaveFormattedResult(ctx, exec, 'glob-results.txt', paths.join('\n'))
+    const ignored = new Set(value.ignoredPaths)
+    const spillRef = await trySaveFormattedResult(ctx, exec, 'glob-results.txt', labelledPaths(paths, ignored))
     return {
       kind: 'accept',
-      content: [{ type: 'text', text: renderGlobPaths(paths, caps, value.root, spillRef) }],
+      content: [{ type: 'text', text: renderGlobPaths(paths, caps, value.root, ignored, spillRef) }],
       ...decision.additionalContexts !== undefined ? { additionalContexts: decision.additionalContexts } : {},
     }
   })

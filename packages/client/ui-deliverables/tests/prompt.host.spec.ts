@@ -24,6 +24,7 @@ describe('ui-deliverables node plugin', () => {
     ctx.provide('fs', {} as never)
     ctx.provide('sandboxPolicy', {} as never)
     ctx.provide('workspaceChanges', {} as never)
+    ctx.provide('attachments', {} as never)
     const mounted = ctx.plugin({ apply, inject })
     await mounted.await()
 

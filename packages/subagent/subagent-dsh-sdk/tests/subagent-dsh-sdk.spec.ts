@@ -828,6 +828,7 @@ describe('dsh-subagent-dsh-sdk provider', () => {
       agentOptions: true,
       outputSchema: false,
       depthLimit: false,
+      sandboxMode: false,
       toolFilter: false,
       persona: false,
     })

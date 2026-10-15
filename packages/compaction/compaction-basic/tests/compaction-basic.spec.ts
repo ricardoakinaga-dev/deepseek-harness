@@ -13,7 +13,7 @@ import {
   resolveTargetPolicy,
 } from '@deepseek-ai/dsh-compaction-basic/src/config.ts'
 import type { CompactionResult } from '@deepseek-ai/dsh-compaction'
-import LlmRuntime, { createUserMessage, ToolCallId, CONTEXT_WINDOW_EXCEEDED_CODE, createSystemMessage, createToolResultMessage, LlmAdapter , createMessage } from '@deepseek-ai/dsh-llm'
+import LlmRuntime, { createUserMessage, ToolCallId, CONTEXT_WINDOW_EXCEEDED_CODE, createSystemMessage, createToolResultMessage, LlmAdapter , createMessage, LlmError } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import type {
   ContentBlock,
@@ -1757,6 +1757,231 @@ describe('automatic listener and loader composition', () => {
     await expect(preStep(ctx, agent(session, MODEL))).resolves.toEqual({ kind: 'enter', messages: [] })
     expect(warnings).toContainEqual(expect.stringContaining('temporary failure'))
     expect(session.snapshotEvents().some(event => event.type === 'compaction/summary')).toBe(false)
+  })
+
+  it('suspends step compaction for the routed target until the turn ends after a configuration failure', async () => {
+    const ctx = createContext()
+    const warnings: string[] = []
+    ctx.logger.warn = ((message: string) => void warnings.push(message)) as typeof ctx.logger.warn
+    const compact = new TestCompactionEngine(ctx, {
+      headroomTokens: 0,
+      maxTokens: 8192,
+      thresholdRatio: 0.5,
+      retainTokens: 180,
+    })
+    compact.error = new LlmError(
+      `provider "${MODEL}" model "${MODEL}" does not support reasoning effort "off"`,
+      'UNSUPPORTED_REASONING_EFFORT',
+    )
+    const session = conversation(4)
+    const owner = agent(session, MODEL)
+
+    await preStep(ctx, owner)
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(1)
+    expect(warnings).toEqual([
+      `step compaction failed: provider "${MODEL}" model "${MODEL}" does not support reasoning effort "off"; `
+      + `continuing the turn without automatic summaries for ${MODEL}/${MODEL} until the turn ends`,
+    ])
+    expect(session.snapshotEvents().filter(event => event.type === 'compaction/end')).toHaveLength(1)
+
+    agentEvents(ctx, owner).emit('agent/status', { status: 'idle' })
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(2)
+  })
+
+  it('resumes suspended step compaction when the routed target changes', async () => {
+    const ctx = createContext()
+    const compact = new TestCompactionEngine(ctx, {
+      headroomTokens: 0,
+      maxTokens: 8192,
+      thresholdRatio: 0.5,
+      retainTokens: 180,
+    })
+    compact.error = new LlmError('credential reference resolved to nothing', 'MISSING_CREDENTIAL')
+    const session = conversation(4)
+    const owner = agent(session, MODEL)
+
+    await preStep(ctx, owner)
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(1)
+
+    session.append('request/header', {
+      header: { config: { provider: 'actual', model: MODEL } },
+      reason: 'change',
+    })
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(2)
+  })
+
+  it('prunes new tool results while automatic summaries are suspended', async () => {
+    const ctx = createContext()
+    try {
+      new ToolResultPruner(ctx, { thresholdChars: 100, headChars: 20, tailChars: 10 })
+      const compact = new TestCompactionEngine(ctx, {
+        headroomTokens: 0, maxTokens: 8192, thresholdRatio: 0.5, retainTokens: 180,
+      })
+      compact.error = new LlmError('summary route unavailable', 'NO_ADAPTER')
+      const session = toolConversation()
+      const owner = agent(session, MODEL)
+      await preStep(ctx, owner)
+      expect(compact.calls).toHaveLength(1)
+      const callId = ToolCallId('after-summary-failure')
+      session.append('step/start', { turn: 4, step: 1 })
+      session.append('assistant/message', {
+        stream: [], turn: 4, step: 1,
+        message: createMessage({
+          role: 'assistant',
+          content: [{ type: 'tool-call', id: callId, name: 'bash', arguments: '{}' }],
+          source: { kind: 'model', provider: MODEL, model: MODEL },
+        }),
+      }, { surfaceOp: 'append' })
+      session.append('tool/call', { turn: 4, step: 1, callId, name: 'bash', arguments: '{}' })
+      session.append('tool/result', {
+        turn: 4, step: 1,
+        message: createToolResultMessage({ callId, content: [{ type: 'text', text: 'X'.repeat(3000) }], isError: false }),
+      }, { surfaceOp: 'append' })
+      session.append('step/end', { turn: 4, step: 1 })
+      await preStep(ctx, owner)
+      expect(compact.calls).toHaveLength(1)
+      const result = session.deriveMessages().find(message => message.role === 'tool' && message.source.callId === callId)
+      expect(result?.content).toEqual([{ type: 'text', text: 'X'.repeat(20) + '\n\n[... tool result middle pruned ...]\n\n' + 'X'.repeat(10) }])
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('retries summaries on the next queued turn without an idle transition', async () => {
+    const ctx = createContext()
+    try {
+      const compact = new TestCompactionEngine(ctx, {
+        headroomTokens: 0, maxTokens: 8192, thresholdRatio: 0.5, retainTokens: 180,
+      })
+      compact.error = new LlmError('summary route unavailable', 'NO_ADAPTER')
+      const session = ctx.sessions.create(SessionId('queued-turn'), { seed: conversation(4).snapshotEvents() })
+      const owner = agent(session, MODEL)
+      await preStep(ctx, owner)
+      await preStep(ctx, owner)
+      expect(compact.calls).toHaveLength(1)
+      session.append('turn/end', { turn: 5, reason: { kind: 'completed' } })
+      session.append('turn/start', { turn: 6 })
+      await preStep(ctx, owner)
+      expect(compact.calls).toHaveLength(2)
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('recovers the same route after an adapter registration changes', async () => {
+    const ctx = createContext()
+    try {
+      const compact = new BasicCompactionEngine(ctx, {
+        headroomTokens: 0, maxTokens: 8192, thresholdRatio: 0.5, retainTokens: 180,
+        summarizationProvider: 'summary', summarizationModel: MODEL,
+      })
+      const session = conversation(4)
+      const owner = agent(session, MODEL)
+      await preStep(ctx, owner)
+      await preStep(ctx, owner)
+      expect(session.snapshotEvents().filter(event => event.type === 'compaction/end')).toHaveLength(1)
+      ctx.llm.registerAdapter(['summary'], new ScriptedAdapter([{ type: 'text', text: 'small checkpoint' }]))
+      await preStep(ctx, owner)
+      expect(session.snapshotEvents().filter(event => event.type === 'compaction/summary')).toHaveLength(1)
+      expect(compact.config.summarizationProvider).toBe('summary')
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it.each(['update', 'dispose'] as const)('recovers after an application configuration reload following policy %s', async (operation) => {
+    const ctx = createContext()
+    try {
+      new BasicCompactionEngine(ctx, {
+        headroomTokens: 0, maxTokens: 8192, thresholdRatio: 0.5, retainTokens: 180,
+        summarizationProvider: 'summary', summarizationModel: MODEL,
+      })
+      ctx.llm.registerAdapter(['summary'], new ScriptedAdapter([{ type: 'text', text: 'small checkpoint' }]))
+      const policy = await ctx.plugin({
+        name: 'test-summary-policy',
+        apply(scope: Context, config: { reject: boolean }) {
+          scope.on('llm/stream', (options, next) => {
+            if (options.purpose !== 'compaction' || !config.reject) return next()
+            return (async function* (): AsyncIterable<StreamChunk> {
+              yield { type: 'finish', reason: { kind: 'error', failure: { code: 'UNSUPPORTED_REASONING_EFFORT', message: 'unsupported effort' } } }
+            })()
+          }, { global: true })
+        },
+      }, { reject: true })
+      const session = conversation(4)
+      const owner = agent(session, MODEL)
+      await preStep(ctx, owner)
+      await preStep(ctx, owner)
+      expect(session.snapshotEvents().filter(event => event.type === 'compaction/end')).toHaveLength(1)
+      if (operation === 'update') {
+        policy.update({ reject: false })
+        await policy.await()
+      } else {
+        await policy.dispose()
+      }
+      await preStep(ctx, owner)
+      expect(session.snapshotEvents().filter(event => event.type === 'compaction/end')).toHaveLength(1)
+      ctx.emit('app-boot/config-reload')
+      await preStep(ctx, owner)
+      expect(session.snapshotEvents().filter(event => event.type === 'compaction/end')).toHaveLength(2)
+      expect(session.snapshotEvents().filter(event => event.type === 'compaction/summary')).toHaveLength(1)
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('does not suspend a corrected configuration when an older summary fails late', async () => {
+    const ctx = createContext()
+    const entered = Promise.withResolvers<undefined>()
+    const release = Promise.withResolvers<undefined>()
+    let pending: ReturnType<typeof preStep> | undefined
+    try {
+      class DelayedCompaction extends TestCompactionEngine {
+        override async summarize(input: SummarizationInput, owner: Agent, signal?: AbortSignal) {
+          entered.resolve(undefined)
+          await release.promise
+          return super.summarize(input, owner, signal)
+        }
+      }
+      const compact = new DelayedCompaction(ctx, {
+        headroomTokens: 0, maxTokens: 8192, thresholdRatio: 0.5, retainTokens: 180,
+      })
+      compact.error = new LlmError('old configuration rejected', 'UNSUPPORTED_OPTION')
+      const owner = agent(conversation(4), MODEL)
+      pending = preStep(ctx, owner)
+      await entered.promise
+      ctx.llm.registerAdapter(['new-summary-route'], new ContextAdapter(1000))
+      release.resolve(undefined)
+      await pending
+      compact.error = undefined
+      await preStep(ctx, owner)
+      expect(compact.calls).toHaveLength(2)
+      expect(owner.session.snapshotEvents().some(event => event.type === 'compaction/summary')).toBe(true)
+    } finally {
+      release.resolve(undefined)
+      await pending
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('keeps retrying step compaction after a transient model failure', async () => {
+    const ctx = createContext()
+    const compact = new TestCompactionEngine(ctx, {
+      headroomTokens: 0,
+      maxTokens: 8192,
+      thresholdRatio: 0.5,
+      retainTokens: 180,
+    })
+    compact.error = new LlmError('WebSocket closed 1012', 'TRANSPORT')
+    const owner = agent(conversation(4), MODEL)
+
+    await preStep(ctx, owner)
+    await preStep(ctx, owner)
+    expect(compact.calls).toHaveLength(2)
   })
 
   it('warns once per routed target when proactive pressure has no context metadata', async () => {

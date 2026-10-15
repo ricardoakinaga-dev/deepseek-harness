@@ -75,3 +75,45 @@ declare module '@deepseek-ai/cordis' {
     'settings/document-updated'(ns: SettingsNamespace, revision: number): void
   }
 }
+
+/** Safe resolved values from one explicitly audited plugin configuration. */
+export interface AuditedConfigurationEntry {
+  /** Unique Loader entry id. */
+  id: string
+  /** Module name; null values indicate removal from the audited configuration. */
+  plugin: string
+  values: JsonValue | null
+}
+
+/** JSON snapshot of launcher facts; independent of Host-only boot services. */
+export interface RuntimeAuditIdentity {
+  version: string
+  nodeVersion: string
+  platform: string
+  arch: string
+  /** Hash covers only the executing launcher module. */
+  launcher: { kind: 'source' | 'artifact'; sha256: string | null }
+  /** Git facts belong only to source launches from a tracked checkout. */
+  source: { revision: string; dirty: boolean } | null
+}
+
+/** Execution identity and explicitly selected configuration, retained in Session exports. */
+export type RuntimeAuditEventData = {
+  reason: 'initial'
+  /** Child and resumed sessions record their own current launcher identity. */
+  runtime: RuntimeAuditIdentity | null
+  profile: string
+  startedBundles: string[]
+  configuration: AuditedConfigurationEntry[]
+} | {
+  reason: 'reload'
+  /** Only entries whose audited values changed; null values remove an entry. */
+  configuration: AuditedConfigurationEntry[]
+}
+
+declare module '@deepseek-ai/dsh-session/types' {
+  interface SessionEventMap {
+    /** Launcher identity and explicitly audited configuration changes. */
+    'runtime/audit': RuntimeAuditEventData
+  }
+}

@@ -25,6 +25,7 @@ describe('NO_START_CAPABILITIES', () => {
       agentOptions: false,
       outputSchema: false,
       depthLimit: false,
+      sandboxMode: false,
       toolFilter: false,
       persona: false,
     })

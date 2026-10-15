@@ -165,3 +165,13 @@ describe('SkillRow', () => {
     expect(blank.container.textContent).not.toContain('正在加载 skill')
   })
 })
+
+
+it('shows recorded instruction characters and distinguishes reuse without inventing token counts', () => {
+  const view = render(<SkillRow {...props(settled({ meta: { kind: 'skill-load', instructionCharacters: 240, alreadyActive: false } }))} />)
+  expect(view.getByText('· 指令 240 字符')).toBeTruthy()
+  view.rerender(<SkillRow {...props(settled({ meta: { kind: 'skill-load', instructionCharacters: 0, alreadyActive: true } }))} />)
+  expect(view.getByText('· 复用已有指令')).toBeTruthy()
+  view.rerender(<SkillRow {...props(settled({ meta: { kind: 'skill-load', instructionCharacters: -1 } }))} />)
+  expect(view.queryByText(/指令.*字符/)).toBeNull()
+})

@@ -41,7 +41,7 @@ With these rows, oversized tool results are trimmed automatically as part of con
 
 ### What gets trimmed
 
-Every tool result whose text exceeds the threshold is replaced by a trimmed version: the configured head, a short "middle pruned" marker, and the configured tail. Rich content such as images and structured blocks keeps its order and all logged image-offload selections. The replacement keeps the tool call, step, errors, and metadata — only the text content changes. If a replacement cannot be recorded, the run fails and the trims already applied stay in place.
+Every tool result whose text exceeds the threshold is replaced by a trimmed version: the configured head, a short "middle pruned" marker, and the configured tail. Rich content such as images and structured blocks keeps its order and all logged image-offload selections. The replacement keeps the tool call, step, errors, and metadata — only the text content changes. If a replacement cannot be recorded, the run fails and the trims already applied stay in place. Results of tools listed in `exemptTools` are never trimmed; by default that is the `skill` tool, whose loaded instructions the agent keeps following. A result whose tool call is no longer on the current surface is trimmed like any other.
 
 ### Setting the size limits
 
@@ -52,6 +52,7 @@ All settings are optional; the defaults trim any result with more than 8,192 tex
 | `thresholdChars` | `8192` | Trim when combined text exceeds this many Unicode code points. |
 | `headChars` | `4096` | Leading Unicode code points retained. |
 | `tailChars` | `1024` | Trailing Unicode code points retained. |
+| `exemptTools` | `['skill']` | Tool names whose results are never trimmed; `[]` trims every tool's results. |
 
 Character counts are Unicode code points, so slicing never splits an emoji pair, though a multi-character grapheme can still be cut. The head plus the marker plus the tail must fit within the threshold, so a valid configuration trims every over-budget result without growth or repeated rewriting. An unknown setting rejects the plugin at construction.
 

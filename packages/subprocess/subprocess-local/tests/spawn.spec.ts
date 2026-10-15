@@ -204,6 +204,11 @@ async function waitForPidFile(path: string, timeoutMs = 5_000): Promise<number> 
 }
 
 describe('spawnSubprocess', () => {
+  it.each([-1, 11, 0.5, Number.NaN])('rejects a head budget before starting a child: %s', (headBytes) => {
+    const request = spec('true')
+    request.stdio.stdout = { maxBytes: 10, headBytes }
+    expect(() => { validateSubprocessSpec(request) }).toThrow('headBytes')
+  })
   it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, MAX_TIMER_DELAY_MS + 1])(
     'rejects an invalid grace before spawning: %s',
     (graceMs) => {
@@ -539,6 +544,51 @@ describe('output truncation and spill', () => {
 })
 
 describe('OutputCollector', () => {
+  it('keeps complete beginning and ending lines in a bounded UTF-8 preview with an unchanged raw spill', () => {
+    const input = 'first α😀 line\n' + 'middle λ😀 line\n'.repeat(30) + 'last β😀 line\n'
+    const collector = new OutputCollector(100, 'head-tail', spillOptions(2000).options, 25)
+    try {
+      const bytes = Buffer.from(input)
+      for (let offset = 0; offset < bytes.length; offset += 7) collector.push(bytes.subarray(offset, offset + 7))
+      const result = collector.finalize()
+      expect(result.text).toMatch(/^first α😀 line\n/)
+      expect(result.text).toMatch(/last β😀 line\n$/)
+      expect(result.text).not.toContain('�')
+      expect(Buffer.byteLength(result.text)).toBeLessThanOrEqual(100)
+      expect(result.text.split('\n').filter(line => line !== '' && line !== '…').every(line => input.split('\n').includes(line))).toBe(true)
+      expect(readFileSync(result.spillPath!, 'utf8')).toBe(input)
+    } finally { collector.seal() }
+  })
+
+  it('keeps job offsets and tail reads independent of the final head-tail preview', () => {
+    const collector = new OutputCollector(16, 'offsets', undefined, 4)
+    collector.push(Buffer.from('HEAD'))
+    const first = collector.readFrom(0)
+    collector.push(Buffer.from('01234567890123456789TAIL'))
+    const second = collector.readFrom(first.nextOffset)
+    expect(second).toEqual({ text: '890123456789TAIL', nextOffset: 28, lossy: true })
+    expect(collector.readFrom(second.nextOffset)).toEqual({ text: '', nextOffset: 28, lossy: false })
+    expect(collector.readFrom(0).preview?.text).toBe('HEAD\n…\n789TAIL')
+    collector.push(Buffer.from('!'))
+    expect(collector.readFrom(second.nextOffset)).toEqual({ text: '!', nextOffset: 29, lossy: false })
+  })
+
+  it('does not corrupt a codepoint split between preview windows before overflow', () => {
+    const collector = new OutputCollector(10, 'unicode', undefined, 2)
+    collector.push(Buffer.from('😀abc'))
+    expect(collector.finalize().text).toBe('😀abc')
+    collector.push(Buffer.from('😀xyz'))
+    expect(collector.finalize().text).not.toContain('�')
+    expect(Buffer.byteLength(collector.finalize().text)).toBeLessThanOrEqual(10)
+  })
+
+  it('keeps the default LSP diagnostic collector tail-only', () => {
+    const collector = new OutputCollector(8, 'lsp-stderr', undefined)
+    collector.push(Buffer.from('startup\nlast err'))
+    expect(collector.readFrom(0)).toEqual({ text: 'last err', nextOffset: 16, lossy: true })
+    expect(collector.finalize()).toEqual({ text: 'last err', truncated: true })
+  })
+
   it('keeps the tail of a single oversized chunk', () => {
     const collector = new OutputCollector(10, 'test', spillOptions(100).options)
     collector.push(Buffer.from('0123456789abcdef'))
@@ -751,7 +801,7 @@ describe('spill failure reporting without an owner logger', () => {
       expect(result.stdout.spillPath).toBeUndefined()
       const lines = stderr.mock.calls.map(call => String(call[0])).filter(line => line.includes('dsh-subprocess-local:'))
       expect(lines).toHaveLength(1)
-      expect(lines[0]).toContain('stdout spill failed; only the in-memory tail is retained')
+      expect(lines[0]).toContain('stdout spill failed; only bounded in-memory output is retained')
       expect(lines[0]).toContain('ENOENT')
     } finally {
       stderr.mockRestore()

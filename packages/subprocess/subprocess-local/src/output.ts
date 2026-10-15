@@ -1,21 +1,22 @@
-/** Bounded output tails and private spill files shared by process providers. */
+/** Bounded output windows and private spill files shared by process providers. */
 import { randomBytes } from 'node:crypto'
 import { closeSync, mkdtempSync, openSync, rmdirSync, unlinkSync, writeSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { CollectedOutput } from '@deepseek-ai/dsh-subprocess'
+import { TextRetainer } from '@deepseek-ai/dsh-output-retention'
 
 /**
  * Receives one spill failure so the owner can log it through its own logger.
  * Called at most once per collector, after the spill has been discarded and
- * the in-memory tail has kept collecting. A reporter that throws is contained
+ * the in-memory windows have kept collecting. A reporter that throws is contained
  * and its failure written to stderr.
  * @param error - the `node:fs` failure from opening or appending the spill file.
  * @param label - the stream label of the collector that failed.
  */
 export type SpillFailureReporter = (error: unknown, label: string) => void
 
-/** Spill storage for one collected stream; `undefined` means tail-only collection. */
+/** Spill storage for one collected stream; omission retains only the bounded in-memory output. */
 export interface SpillOptions {
   /** Whole-stream byte cap beyond which an incomplete spill is discarded. */
   maxBytes: number
@@ -34,7 +35,7 @@ let defaultSpillDir: string | undefined
  * other local users read command output or pre-create symlinks. The directory
  * is created once per process and never recreated: when an external
  * temporary-file cleaner removes it while empty, the next spill open fails and
- * the collector degrades to its in-memory tail. At a JavaScript-observable
+ * the collector retains only its in-memory output. At a JavaScript-observable
  * process exit the directory is removed only when it holds no completed spill
  * file (spill files are retained as full-output recovery artifacts until an
  * external cleanup).
@@ -63,7 +64,7 @@ process.once('exit', () => {
  * @param label - the failed stream label.
  */
 function reportSpillFailureToStderr(error: unknown, label: string): void {
-  process.stderr.write(`dsh-subprocess-local: ${label} spill failed; only the in-memory tail is retained: ${String(error)}\n`)
+  process.stderr.write(`dsh-subprocess-local: ${label} spill failed; only bounded in-memory output is retained: ${String(error)}\n`)
 }
 
 /**
@@ -78,7 +79,7 @@ export function logSpillFailure(logger: { error(message: string, ...detail: unkn
   return (error, label) => {
     const removedDirectory = (error as NodeJS.ErrnoException).code === 'ENOENT'
     logger.error(
-      `${owner} could not write the complete ${label} stream to its spill file; the result keeps only the in-memory tail and reports no full-output path.`
+      `${owner} could not write the complete ${label} stream to its spill file; the result keeps bounded in-memory output and reports no full-output path.`
       + (removedDirectory ? ' The spill directory no longer exists; a temporary-file cleaner removing it while empty is the usual cause.' : ''),
       error,
     )
@@ -115,16 +116,16 @@ export function prepareManagedProcessBinding(
  * Collects one stream with a bounded in-memory tail. With spill options, on
  * first overflow a spill file is created and every chunk (including those
  * already collected) is appended there while the full stream remains within
- * the cap; without them, only the in-memory tail is ever retained (the
- * diagnostic-tail shape — a language server's stderr).
+ * the cap; without them, only bounded in-memory output is retained.
  *
  * Spilling is best-effort: a spill open or write failure discards the spill,
  * reports once through {@link SpillOptions.onFailure}, and never interrupts
  * in-memory collection, because `push()` runs inside the stream's `'data'`
  * listener where a thrown error would become an uncaught exception.
  *
- * Tail-keep rationale (pi/OpenCode): errors and final results cluster at the
- * end of command output; the spill file covers the head.
+ * Incremental readers always receive the tail. Consumers can additionally
+ * request a bounded head/tail preview for final presentation; diagnostic
+ * consumers such as language servers keep the default tail.
  */
 export class OutputCollector {
   private chunks: Buffer[] = []
@@ -135,18 +136,32 @@ export class OutputCollector {
   private spillDisabled: boolean
   /** Total bytes ever pushed (not just retained). */
   private total = 0
+  private readonly previewHead: TextRetainer | undefined
+  private readonly previewTail: TextRetainer | undefined
+  private readonly previewGap: string
 
   /**
-   * @param maxBytes - in-memory tail cap in bytes.
+   * @param maxBytes - cap in bytes for the incremental tail and, independently, the optional final preview.
    * @param label - stream label used in spill file names and failure reports.
-   * @param spill - spill storage; omit for tail-only collection.
+   * @param spill - spill storage; omit to disable full-stream recovery.
+   * @param headBytes - optional prefix budget for final presentation; the remaining bytes retain the suffix and separator.
    */
   constructor(
     private readonly maxBytes: number,
     private readonly label: string,
     private readonly spill: SpillOptions | undefined,
+    headBytes?: number,
   ) {
     this.spillDisabled = spill === undefined
+    this.previewGap = maxBytes >= 5 ? '\n…\n' : ''
+    if (headBytes !== undefined) {
+      if (!Number.isSafeInteger(headBytes) || headBytes < 0 || headBytes > maxBytes) {
+        throw new Error('subprocess headBytes must be an integer between zero and maxBytes')
+      }
+      const head = Math.min(headBytes, maxBytes - Buffer.byteLength(this.previewGap))
+      this.previewHead = new TextRetainer({ kind: 'head', maxBytes: head })
+      this.previewTail = new TextRetainer({ kind: 'tail', maxBytes: maxBytes - head - Buffer.byteLength(this.previewGap) })
+    }
   }
 
   /**
@@ -158,6 +173,8 @@ export class OutputCollector {
    * @param chunk - the raw bytes from one stream 'data' event.
    */
   push(chunk: Buffer): void {
+    this.previewHead?.push(chunk)
+    this.previewTail?.push(chunk)
     this.total += chunk.length
     const overflows = this.bytes + chunk.length > this.maxBytes
     const spill = this.spill
@@ -186,7 +203,7 @@ export class OutputCollector {
    * Open the spill file lazily and append `chunk` (and any prior chunks once).
    * Runs inside the stream's `'data'` listener, so every filesystem failure is
    * contained here: the spill is discarded, reported once, and collection
-   * continues with the in-memory tail alone.
+   * continues with the bounded in-memory windows alone.
    */
   private spillAll(spill: SpillOptions, chunk: Buffer): void {
     if (this.total > spill.maxBytes) {
@@ -258,7 +275,7 @@ export class OutputCollector {
    * @param fromByte - whole-stream offset to resume from (a prior read's `nextOffset`; 0 for the first read).
    * @returns the delta text, the offset for the next read, the `lossy` flag, and the spill path when one was created.
    */
-  readFrom(fromByte: number): { text: string; nextOffset: number; lossy: boolean; spillPath?: string } {
+  readFrom(fromByte: number): { text: string; nextOffset: number; lossy: boolean; spillPath?: string; preview?: CollectedOutput } {
     const windowStart = this.total - this.bytes
     const buffer = Buffer.concat(this.chunks)
     const lossy = fromByte < windowStart
@@ -267,6 +284,26 @@ export class OutputCollector {
       text: slice.toString('utf8'),
       nextOffset: this.total,
       lossy,
+      ...this.spillFile !== undefined ? { spillPath: this.spillFile } : {},
+      ...fromByte === 0 && this.previewHead !== undefined ? { preview: this.preview() } : {},
+    }
+  }
+
+  /** Final presentation preserves complete boundary lines whenever the retained windows contain them. */
+  private preview(): CollectedOutput {
+    let text = Buffer.concat(this.chunks).toString('utf8')
+    if (this.dropped && this.previewHead !== undefined && this.previewTail !== undefined) {
+      let head = this.previewHead.finish().text
+      let tail = this.previewTail.finish().text
+      const headBreak = head.lastIndexOf('\n')
+      if (headBreak >= 0) head = head.slice(0, headBreak + 1)
+      const tailBreak = tail.indexOf('\n')
+      if (tailBreak >= 0 && tailBreak < tail.length - 1) tail = tail.slice(tailBreak + 1)
+      text = head + this.previewGap + tail
+    }
+    return {
+      text,
+      truncated: this.dropped,
       ...this.spillFile !== undefined ? { spillPath: this.spillFile } : {},
     }
   }
@@ -300,14 +337,10 @@ export class OutputCollector {
 
   /**
    * Seal the spill file and return the final output.
-   * @returns the final collected output: tail text, truncation flag, and the spill path when intact.
+   * @returns the selected final preview, truncation flag, and the spill path when intact.
    */
   finalize(): CollectedOutput {
     this.seal()
-    return {
-      text: Buffer.concat(this.chunks).toString('utf8'),
-      truncated: this.dropped,
-      ...this.spillFile !== undefined ? { spillPath: this.spillFile } : {},
-    }
+    return this.preview()
   }
 }

@@ -39,10 +39,14 @@ export function mapUsage(usage: PiUsage): TokenUsage {
 // wrapper a bare `terminated`, so we are left pattern-matching terse words here.
 // If pi-ai ever forwards the original Error (or a fetch/dispatcher hook that lets
 // us capture the cause ourselves), classify on `code`/`cause` instead of text.
+// The same flattening drops the numeric `code` of pi-ai's `WebSocketCloseError`,
+// so WebSocket closes are classified from its `WebSocket closed <code>` wording.
 function classifyPiAiError(message: string): string {
   if (/\b(?:401|403)\b/.test(message)) return 'AUTH'
   if (isQuotaExceededError(message)) return QUOTA_EXCEEDED_CODE
   if (/\b429\b|rate.?limit/i.test(message)) return 'RATE_LIMIT'
+  const webSocketClose = classifyWebSocketClose(message)
+  if (webSocketClose !== undefined) return webSocketClose
   // A rejected request body (gateway or provider size cap): resending the
   // same request cannot succeed, so it is invalid, not transient.
   if (/\b413\b|failed to buffer the request body:\s*length limit exceeded|payload too large|request body too large/i.test(message)) return 'INVALID_REQUEST'
@@ -53,9 +57,10 @@ function classifyPiAiError(message: string): string {
   // throws its own wording when the wire closes mid-response without a terminal
   // event (`… stream ended before message_stop`, `… before a terminal response
   // event`, `… ended without a terminal event`, `Stream ended without
-  // finish_reason`). The connection dropped mid-response, so this is a transport
-  // truncation, not a model-level error.
-  if (/stream ended (?:before|without)\b/i.test(message)) return 'TRANSPORT'
+  // finish_reason`, `WebSocket stream closed before response.completed`). The
+  // connection dropped mid-response, so this is a transport truncation, not a
+  // model-level error.
+  if (/stream (?:ended|closed) (?:before|without)\b/i.test(message)) return 'TRANSPORT'
   if (/\b(?:network|connection|socket|fetch)\b|\bECONN[A-Z]+\b/i.test(message)
     || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(message)
     // undici renders a mid-stream socket drop as a bare `terminated` (its
@@ -65,6 +70,37 @@ function classifyPiAiError(message: string): string {
     return 'TRANSPORT'
   }
   return 'PI_AI_ERROR'
+}
+
+/**
+ * WebSocket close codes the adapter retries as `TRANSPORT`. RFC 6455 section
+ * 7.4.1 defines 1001 going away, 1006 abnormal closure (reported locally), and
+ * 1011 internal error; the IANA close-code registry adds 1012 service restart,
+ * 1013 try again later, and 1014 bad gateway. Retrying them is adapter policy:
+ * other codes, including the private-use 4000-4999 range whose meaning RFC 6455
+ * section 7.4.2 leaves to applications, are not retried.
+ */
+const TRANSIENT_WEBSOCKET_CLOSE_CODES: ReadonlySet<number> = new Set([1001, 1006, 1011, 1012, 1013, 1014])
+
+/** RFC 6455 close code for a message too big to process; resending it cannot succeed. */
+const MESSAGE_TOO_BIG_CLOSE_CODE = 1009
+
+/**
+ * Classify pi-ai's WebSocket close and error wording.
+ * @param message - flattened pi-ai error message.
+ * @returns `TRANSPORT` for a transient close code, a close without a code, or a
+ *   bare socket error event; `INVALID_REQUEST` for close code 1009; otherwise
+ *   `undefined`, which leaves other close codes to the reason-text rules and
+ *   then to non-retryable `PI_AI_ERROR`.
+ */
+function classifyWebSocketClose(message: string): string | undefined {
+  if (/^WebSocket (?:closed|error)$/.test(message)) return 'TRANSPORT'
+  const match = /\bWebSocket closed (\d+)\b/.exec(message)
+  if (match === null) return undefined
+  const code = Number(match[1])
+  if (TRANSIENT_WEBSOCKET_CLOSE_CODES.has(code)) return 'TRANSPORT'
+  if (code === MESSAGE_TOO_BIG_CLOSE_CODE) return 'INVALID_REQUEST'
+  return undefined
 }
 
 /**

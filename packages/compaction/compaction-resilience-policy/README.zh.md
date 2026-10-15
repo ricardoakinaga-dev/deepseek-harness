@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-此 fork 私有包会在适配器遵守取消信号时约束缓慢的压缩请求，并在适配器执行昂贵工作前拒绝已经超过日志所记模型容量的 agent loop（智能体循环）请求。压缩调用获得可配置的输出上限、可选推理强度和协作式总截止时间。普通模型调用保持其请求选项不变。请从仓库 checkout 使用它，或使用另行授权的 fork namespace 包；此 fork 不把 upstream namespace 作为发布身份。
+此 fork 私有包会在适配器遵守取消信号时约束缓慢的压缩请求，并在适配器执行昂贵工作前拒绝已经超过日志所记模型容量的 agent loop（智能体循环）请求。压缩调用获得可配置的输出上限、按路由选择的可选推理强度和协作式总截止时间。普通模型调用保持其请求选项不变。请从仓库 checkout 使用它，或使用另行授权的 fork namespace 包；此 fork 不把 upstream namespace 作为发布身份。
 
 ## 目录
 
@@ -37,7 +37,8 @@ kind: "package-reference"
 - name: '@deepseek-ai/dsh-compaction-resilience-policy'
   config:
     compactionMaxTokens: 4096
-    compactionReasoningEffort: 'off'
+    compactionReasoningEffortByRoute:
+      llama-cpp: 'off'
     compactionTimeoutMs: 480000
     requestPreflight: true
     requestSafetyMarginTokens: 256
@@ -47,7 +48,8 @@ kind: "package-reference"
 | 字段 | 默认值 | 含义 |
 |---|---:|---|
 | `compactionMaxTokens` | `4096` | 应用于 `purpose: compaction` 请求的上限，且不会提高调用方更小的上限 |
-| `compactionReasoningEffort` | 未设置 | 仅应用于压缩的非空适配器强度 id；所选模型必须公布该值 |
+| `compactionReasoningEffort` | 未设置 | 仅在没有按路由条目的路由上应用于压缩的非空适配器强度 id；所选模型必须公布该值 |
+| `compactionReasoningEffortByRoute` | 未设置 | 以 `provider/model` 或 `provider` 为键的压缩强度；精确路由键优先于其提供方键，提供方键优先于 `compactionReasoningEffort` |
 | `compactionTimeoutMs` | `480000` | 一次压缩流的协作式总截止时间（毫秒） |
 | `requestPreflight` | `true` | 为 `dsh-agent-loop` 标记的请求启用容量检查 |
 | `requestSafetyMarginTokens` | `256` | 加到预计请求上的额外上下文余量 |
@@ -57,7 +59,7 @@ kind: "package-reference"
 
 ### 结果与恢复
 
-过大的 agent loop 请求会在适配器分派前以规范的 `CONTEXT_WINDOW_EXCEEDED` 代码结束。官方 `compaction-basic` 请求错误处理器随后可以修剪或压缩持久表面并重试。只有在下游适配器观察到取消并完全停稳后，压缩截止时间才以 `COMPACTION_TIMEOUT` 结束；更早发生的调用方取消仍是普通的 aborted 结束。不可变压缩请求会以 `COMPACTION_POLICY_IMMUTABLE_REQUEST` 快速失败，因为静默绕过已配置控制会重新引入卡死风险。
+过大的 agent loop 请求会在适配器分派前以规范的 `CONTEXT_WINDOW_EXCEEDED` 代码结束。官方 `compaction-basic` 请求错误处理器随后可以修剪或压缩持久表面并重试。只有在下游适配器观察到取消并完全停稳后，压缩截止时间才以 `COMPACTION_TIMEOUT` 结束；更早发生的调用方取消仍是普通的 aborted 结束。不可变压缩请求会以 `COMPACTION_POLICY_IMMUTABLE_REQUEST` 快速失败，因为静默绕过已配置控制会重新引入卡死风险。路由不提供所选强度时会以 `UNSUPPORTED_REASONING_EFFORT` 失败，消息会点名该路由以及作出选择的配置条目。
 
 -----
 
@@ -103,7 +105,7 @@ kind: "package-reference"
 
 #### Token 影响
 
-压缩输出受 `compactionMaxTokens` 限制，且不会提高调用方更小的限制。配置的推理强度可能依适配器增加或减少隐藏推理 token；该组合包选择 `off`，使本地摘要保持有界。
+压缩输出受 `compactionMaxTokens` 限制，且不会提高调用方更小的限制。配置的推理强度可能依适配器增加或减少隐藏推理 token；该组合包保留调用方的强度，需要让摘要保持有界的本地模型由 profile 按路由选择 `off`。
 
 #### KV Cache 影响
 
@@ -132,7 +134,7 @@ kind: "package-reference"
 - **超时是协作式的**——忽略 `AbortSignal` 的适配器仍可能无法结算；策略不会遗弃实时提供方工作，也不会在清理仍继续时发出终结结果。
 - **准入使用 token meter 的估算**——安全余量会降低估算风险，但无法把启发式分词变成提供方精确计价。
 - **容量未知或不匹配时委派**——如果没有实时会话，或最新 `request/context` 与请求的提供方和模型不匹配，则不进行预检。
-- **推理强度必须存在于所选模型**——不受支持的配置 id 会以 LLM 服务的 `UNSUPPORTED_REASONING_EFFORT` 结果失败，而不会静默回退。
+- **推理强度必须存在于所选模型**——不受支持的配置 id 会以 LLM 服务的 `UNSUPPORTED_REASONING_EFFORT` 结果失败并点名作出选择的配置条目，而不会静默回退。
 - **官方 `compaction/summary` 没有推理或超时字段**——该事件记录提供方、模型、输出上限、输出与用量；waterfall 应用的推理选择和成功截止时间不在其中表示。此包不发出自定义会话事件，因为可移除组合包不得使其历史日志变得不可读。
 - **`compaction/summary` 保留后端请求的上限**——即使此 waterfall 降低适配器请求，当前 `compaction-basic` 结果也会记录其自身配置的 `maxTokens`。记录每个有效辅助调用请求需要上游事件／API 扩展，而不是组合包本地事件。
 

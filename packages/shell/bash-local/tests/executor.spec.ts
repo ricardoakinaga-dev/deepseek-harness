@@ -54,6 +54,41 @@ async function readUntil(proc: ShellProcess, expected: string, timeoutMs = 5_000
 }
 
 describe('LocalBashExecutor.run', () => {
+  it('defaults final previews to head-tail while job readers keep their incremental tail', async () => {
+    const { ctx, bash } = await setup({ maxOutputBytes: 100 })
+    try {
+      const process = await start(bash, bash.resolve({ command: 'for i in $(seq 1 100); do printf "line-%04d\\n" $i; done' }))
+      const result = await process.result()
+      expect(result.aborted).toBe(false)
+      expect(result.timedOut).toBe(false)
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout.text).toMatch(/^line-0001\n/)
+      expect(result.stdout.text).toMatch(/line-0100\n$/)
+      const read = process.readOutput()
+      expect(read.delta).not.toContain('line-0001')
+      expect(read.delta).toContain('line-0100')
+      expect(read.lossy).toBe(true)
+      expect(process.readOutput().delta).toBe('')
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('allows a tail-only bash configuration', async () => {
+    const { ctx, bash } = await setup({ maxOutputBytes: 100, outputHeadRatio: 0 })
+    try {
+      const result = await run(bash, bash.resolve({ command: 'for i in $(seq 1 100); do printf "line-%04d\\n" $i; done' }))
+      expect(result.stdout.text).not.toContain('line-0001')
+      expect(result.stdout.text).toMatch(/line-0100\n$/)
+      expect(Buffer.byteLength(result.stdout.text)).toBe(100)
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it.each([-0.1, 1.1, Number.NaN])('rejects an unusable head fraction %s before spawning', async (outputHeadRatio) => {
+    const { ctx, bash } = await setup({ outputHeadRatio })
+    try {
+      expect(() => bash.resolve({ command: 'true' })).toThrow('outputHeadRatio')
+    } finally { await ctx.fiber.dispose() }
+  })
+
   it('resolves with output and the effective timeout', async () => {
     const { bash } = await setup({ timeoutMs: 5_000 })
     const result = await run(bash, bash.resolve({ command: 'echo hi' }))
