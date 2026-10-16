@@ -102,6 +102,48 @@ describe('web e2e: plugin manager', () => {
     return readFile(join(scaffold.harnessHome, ...segments), 'utf8').catch(() => '')
   }
 
+  it('persists built-in preset and global switches from Settings', async () => {
+    onTestFailed(() => saveFailureShot(page, 'builtin-plugin-controls'))
+    await openSettings(page, 'zh')
+    const dialog = page.getByRole('dialog', { name: '设置' })
+    await dialog.getByRole('button', { name: '内置插件', exact: true }).click()
+    const search = dialog.getByRole('searchbox', { name: '搜索插件' })
+    await search.fill('time-context')
+    const preset = dialog.locator('[data-plugin-scope="preset"] [data-plugin-entry="time-context"]')
+    const toggle = preset.getByRole('switch')
+    await toggle.waitFor()
+    expect(await toggle.getAttribute('aria-checked')).toBe('true')
+    try {
+      await toggle.click()
+      await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('false')
+      const patchPath = join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml')
+      const patch = await readFile(patchPath, 'utf8')
+      expect(patch).toContain('preset: standard')
+      expect(patch).toContain('id: time-context')
+      expect(patch).not.toContain('plugins:')
+      await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'builtin-preset-disabled.expected.md'),
+        await captureStableAria(page, '[data-plugin-scope="preset"]', scaffold.workspaceCwd), MODE)
+      await toggle.click()
+      await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('true')
+      expect(await readFile(patchPath, 'utf8')).not.toContain('preset: standard')
+      await search.fill('ui-settings-web-search')
+      const global = dialog.locator('[data-plugin-scope="global"] [data-plugin-module="@deepseek-ai/dsh-client-ui-settings-web-search"]')
+      const globalSwitch = global.getByRole('switch')
+      await globalSwitch.click()
+      await expect.poll(() => globalSwitch.getAttribute('aria-checked')).toBe('false')
+      await globalSwitch.click()
+      await expect.poll(() => globalSwitch.getAttribute('aria-checked')).toBe('true')
+      await search.fill('ui-settings')
+      expect(await dialog.locator('[data-plugin-scope="global"] [data-plugin-module="@deepseek-ai/dsh-client-ui-settings"]').getByRole('switch').isDisabled()).toBe(true)
+      expect(tripwire.pageErrors).toEqual([])
+    } finally {
+      await scaffold.ctx.pluginManager.setPresetPluginEnabled('standard', 'time-context', true)
+      const row = (await scaffold.ctx.pluginManager.listPlugins()).find(entry => entry.moduleName === '@deepseek-ai/dsh-client-ui-settings-web-search')
+      if (row !== undefined && !row.enabled) await scaffold.ctx.pluginManager.setPluginEnabled(row.entryId, true)
+      await closeSettings()
+    }
+  })
+
   it('keeps plugin header actions on one line as the available width changes', async () => {
     const facts: string[] = []
     // A dedicated scaffold keeps the measured header deterministic: an install

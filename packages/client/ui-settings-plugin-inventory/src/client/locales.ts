@@ -2,6 +2,18 @@
 
 /** Simplified Chinese dictionary and key source of truth. */
 export const zh = {
+  enablePlugin: '启用 {name}',
+  managementRequired: '插件管理需要此组件。',
+  unaddressable: '此组件没有唯一且可编辑的配置条目。',
+  managedByPreset: '由上方的会话插件控制。',
+  saved: '插件状态已保存。',
+  saveFailed: '无法确认更改结果，请刷新后再重试。',
+  applyFailed: '更改已保存，但无法应用。请检查插件配置。',
+  restartRequired: '插件状态已保存，重启 DSH 后生效。',
+  overridden: '优先级更高的配置覆盖了此更改。',
+  refreshFailed: '更改已保存，但无法刷新状态。请重新打开设置。',
+  presetChanges: '预设更改对新会话生效，已有会话保留当前插件。',
+
   tab: '插件列表',
   loading: '正在读取插件…',
   clientSyncing: '正在同步本页面的插件…',
@@ -46,6 +58,18 @@ export type PluginInventoryLocaleKey = keyof typeof zh
 
 /** English dictionary checked against the Chinese key set. */
 export const en = {
+  enablePlugin: 'Enable {name}',
+  managementRequired: 'Required to keep plugin management available.',
+  unaddressable: 'This component has no unique editable profile entry.',
+  managedByPreset: 'Controlled by Session plugins above.',
+  saved: 'Plugin state saved.',
+  saveFailed: 'Could not confirm the change. Refresh before trying again.',
+  applyFailed: 'The change was saved, but could not be applied. Review the plugin configuration.',
+  restartRequired: 'Plugin state saved. Restart DSH to apply it.',
+  overridden: 'A higher-priority configuration overrides this change.',
+  refreshFailed: 'The change was saved, but its status could not be refreshed. Reopen Settings.',
+  presetChanges: 'Preset changes apply to new sessions. Existing sessions keep their current plugins.',
+
   tab: 'Plugin list',
   loading: 'Reading plugins…',
   clientSyncing: 'Syncing plugins on this page…',

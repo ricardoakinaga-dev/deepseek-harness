@@ -302,6 +302,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   Reload: 'boot.md',
   ProfileReconciliation: 'boot.md',
   PluginInfo: 'boot.md',
+  PresetPluginInfo: 'boot.md',
   BundleInfo: 'boot.md',
   ChangeResult: 'boot.md',
   InstallBundleOptions: 'boot.md',

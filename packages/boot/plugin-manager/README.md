@@ -93,6 +93,8 @@ The CLI exposes `dsh plugin --profile <profile> version-exemptions`, `allow-vers
 
 -----
 
+`listPresetPlugins()` reports each declared preset child’s editability. `setPresetPluginEnabled(presetId, rowId, enabled)` saves a sparse name-checked selector in the current profile patch; `setPluginEnabled` continues to address global rows. Preset changes publish a new revision for future bindings while existing sessions retain their bound revision. Management dependencies cannot be disabled through either operation.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
@@ -144,7 +146,7 @@ Tool results append to the transcript. Enabling or disabling other tools can cha
 - pnpm verifies every lockfile tarball URL against its default registry when a command changes the lockfile. After a package was installed from another registry, installing a different package with the default registry, or removing that package after a restart, can fail with `ERR_PNPM_TARBALL_URL_MISMATCH`.
 - Package replacements require restarting the process without HMR. A package relinked outside Plugin Manager while it is still installed waits for a restart.
 - Startup-only profiles cannot remove packages used to start the current process; stop it and use `dsh plugin`.
-- The manager cannot disable its own management components, change another profile, or edit an agent preset's composition.
+- The manager cannot disable its management dependencies or change another profile. Preset controls require a unique declaration and a unique explicit child id.
 - A failed removal may leave dependencies partially changed, and a failed or cancelled installation can leave downloaded files under `node_modules` or the pnpm store. Inactive dependencies with missing files remain removable. Diagnostic logs remain under the profile's `.plugin-manager/logs` directory.
 - Management results describe Host activation. Browser synchronization failures appear separately in the Settings plugin list.
 - Desktop package operations remain owned by the Desktop shell.

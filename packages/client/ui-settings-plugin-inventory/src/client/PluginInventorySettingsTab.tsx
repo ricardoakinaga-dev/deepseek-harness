@@ -1,34 +1,47 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import type { ClientEntryState } from '@deepseek-ai/dsh-client-modules/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import type { PluginInventorySnapshot } from '@deepseek-ai/dsh-api-remotes/client'
+import type { PluginInventorySnapshot, PluginInfo, PresetPluginInfo } from '@deepseek-ai/dsh-api-remotes/client'
 import type { LocalizedText } from '@deepseek-ai/dsh-package-manifest'
 import {
   IconChevronDownOutlineRegular,
   IconSearchOutlineRegular,
   Menu,
   StateDot,
+  Switch,
+  Toast,
   Tag,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState, TagTone } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PluginInventoryLocaleKey } from './locales.ts'
+import type { EnablementState, PluginEnablementTarget } from './enablement.ts'
 import css from './PluginInventorySettingsTab.module.css'
 
 type PluginInventoryEntry = PluginInventorySnapshot['entries'][number]
 type AgentPresetGroup = NonNullable<PluginInventorySnapshot['agentPresets']>[number]
 type AgentPresetRow = AgentPresetGroup['rows'][number]
 
+/** Host inventory with current profile mutation permissions. */
+export interface PluginInventoryView extends PluginInventorySnapshot {
+  readonly manageableGlobals?: readonly PluginInfo[]
+  readonly manageablePresets?: readonly PresetPluginInfo[]
+}
+
 /** Registration-side Remote face used by the section. */
 export interface PluginInventorySettingsTabInjected {
   /** Resolve local package text in the current Client locale at render time. */
   resolveText: (text: LocalizedText) => string
   /** Page-local module synchronization, independent from the Host inventory. */
-  hooks: { clientSync: ObservableSnapshot<ClientEntryState> }
+  hooks: { clientSync: ObservableSnapshot<ClientEntryState>; enablement: ObservableSnapshot<EnablementState> }
   /** Retry the latest client graph without changing the Host composition. */
   retryClient: () => void
   /** Read a current Host inventory snapshot. */
-  list: () => Promise<PluginInventorySnapshot>
+  list: () => Promise<PluginInventoryView>
+  /** Persist one desired enablement and return the refreshed accepted inventory. */
+  setEnabled: (target: PluginEnablementTarget, enabled: boolean) => Promise<PluginInventoryView | undefined>
+  /** Dismiss the shell's mutation notice. */
+  dismiss: () => void
   /**
    * Display name for one preset: shipped presets resolve through the
    * agent-preset dictionaries, user-authored ones keep their own metadata.
@@ -48,7 +61,7 @@ type Translate = PluginInventorySettingsTabProps['t']
 type ViewState =
   | { readonly status: 'loading' }
   | { readonly status: 'error' }
-  | { readonly status: 'ready'; readonly snapshot: PluginInventorySnapshot }
+  | { readonly status: 'ready'; readonly snapshot: PluginInventoryView }
 
 const PHASE_KEYS = {
   pending: 'pending',
@@ -122,7 +135,7 @@ function presetLabel(preset: AgentPresetGroup, t: Translate, presetName: (preset
 
 /** One expandable plugin card; the caller owns the trailing status content. */
 function PluginCard({
-  rowKey, moduleName, title, description, metadataError, entryId, trailing, ariaLabel, failed, expanded, onToggle, children,
+  rowKey, moduleName, title, description, metadataError, entryId, trailing, controls, ariaLabel, failed, expanded, onToggle, children,
 }: {
   readonly rowKey: string
   readonly moduleName: string
@@ -131,6 +144,7 @@ function PluginCard({
   readonly metadataError: string | undefined
   readonly entryId: string | null
   readonly trailing: ReactNode
+  readonly controls?: ReactNode
   readonly ariaLabel: string
   readonly failed: boolean
   readonly expanded: string | null
@@ -171,6 +185,7 @@ function PluginCard({
           </span>
         ) : null}
       </button>
+      {controls}
       {metadataError === undefined ? null : <p className={css.brokenNote} role="status" data-package-meta-error>{metadataError}</p>}
       {open ? <div className={css.cardDetails} id={detailId}>{children}</div> : null}
     </li>
@@ -248,11 +263,12 @@ function StateTag({ kind, label }: { readonly kind: EnablementKind; readonly lab
   return kind === 'enabled' ? null : <Tag tone={TAG_TONES[kind]}>{label}</Tag>
 }
 
-/** Render the read-only plugin inventory: agent presets first, then the global plane. */
+/** Render plugin inventory and profile-owned enablement controls in both composition scopes. */
 export function PluginInventorySettingsTab(
-  { list, presetName, resolveText, t, useClientSync, retryClient }: PluginInventorySettingsTabProps,
+  { list, presetName, resolveText, t, useClientSync, useEnablement, retryClient, setEnabled }: PluginInventorySettingsTabProps,
 ): ReactNode {
   const clientSync = useClientSync(snapshot => snapshot)
+  const mutation = useEnablement(snapshot => snapshot)
   const sectionId = useId()
   const [request, setRequest] = useState(0)
   const [query, setQuery] = useState('')
@@ -270,7 +286,7 @@ export function PluginInventorySettingsTab(
       () => { if (current) setState({ status: 'error' }) },
     )
     return () => { current = false }
-  }, [list, request])
+  }, [list, request, mutation.sequence])
 
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const searching = normalizedQuery.length > 0
@@ -326,6 +342,22 @@ export function PluginInventorySettingsTab(
     setExpanded(current => current === key ? null : key)
   }
 
+  const controls = (target: PluginEnablementTarget, enabled: boolean, title: string, reason?: string): ReactNode => (
+    <div className={css.enablement}>
+      <div>
+        <span>{t(enabled ? 'enabledTag' : 'disabledTag')}</span>
+        {reason === undefined ? null : <p className={css.lockReason}>{reason}</p>}
+      </div>
+      <Switch checked={enabled} label={t('enablePlugin', { name: title })}
+        disabled={mutation.busy || reason !== undefined} {...reason === undefined ? {} : { title: reason }}
+        onChange={(enabled) => { void setEnabled(target, enabled).then((fresh) => {
+          if (fresh !== undefined) setState({ status: 'ready', snapshot: fresh })
+        }) }} />
+    </div>
+  )
+  const lockedReason = (reason: string | undefined): string | undefined => reason === undefined ? undefined
+    : t(reason === 'management-required' ? 'managementRequired' : 'unaddressable')
+
   /** Trailing status and detail facts for one row of the selected preset. */
   const presetRowCard = (preset: AgentPresetGroup, row: AgentPresetRow, index: number): ReactNode => {
     const key = `preset:${preset.id}:${String(index)}`
@@ -348,6 +380,13 @@ export function PluginInventorySettingsTab(
         expanded={expanded}
         onToggle={toggleRow}
         ariaLabel={cardLabel(title, row.entryId, stateText)}
+        controls={snapshot?.manageablePresets === undefined ? undefined : (() => {
+          const permission = snapshot.manageablePresets.find(item => item.presetId === preset.id
+            && item.rowId === row.entryId && item.moduleName === row.moduleName)
+          return row.entryId === null ? <p className={css.lockReason}>{t('unaddressable')}</p>
+            : controls({ kind: 'preset', presetId: preset.id, rowId: row.entryId }, row.enabled === true, title,
+              permission === undefined ? t('unaddressable') : lockedReason(permission.readOnlyReason))
+        })()}
         trailing={(
           <>
             {row.enabled === true && showsPhaseDot(row.fiberPhase)
@@ -397,6 +436,12 @@ export function PluginInventorySettingsTab(
         expanded={expanded}
         onToggle={toggleRow}
         ariaLabel={cardLabel(title, entry.entryId, stateText)}
+        controls={snapshot?.manageableGlobals === undefined ? undefined : (() => {
+          const permission = snapshot.manageableGlobals.find(item => item.entryId === entry.entryId)
+          return controls({ kind: 'global', entryId: entry.entryId }, entry.enabled, title,
+            providers !== undefined ? t('managedByPreset') : permission === undefined
+              ? t('unaddressable') : lockedReason(permission.readOnlyReason))
+        })()}
         trailing={(
           <>
             {entry.enabled && showsPhaseDot(entry.fiberPhase)
@@ -517,6 +562,7 @@ export function PluginInventorySettingsTab(
                 </div>
               </div>
               <p className={css.groupSub}>{t('presetSubtitle')}</p>
+              {snapshot.manageablePresets === undefined ? null : <p className={css.groupSub}>{t('presetChanges')}</p>}
               {presetEffectiveOpen ? (
                 <div id={`${sectionId}-preset`} className={css.groupBody}>
                   {selected.broken !== undefined ? (
@@ -577,4 +623,16 @@ export function PluginInventorySettingsTab(
       ) : null}
     </div>
   )
+}
+
+/** Keep operation outcomes visible after the settings panel closes.
+ * @param props - mutation state, dismissal and localized copy supplied by the owning plugin.
+ * @returns The shell toast for the latest settled mutation, or nothing.
+ */
+export function PluginEnablementToast({ useEnablement, dismiss, t }:
+  PropsRuntime<'shell.overlay'> & PropsLocale<'settings.pluginInventory'> & InjectFace<PluginInventorySettingsTabInjected>): ReactNode {
+  const state = useEnablement(snapshot => snapshot)
+  if (state.notice === null) return null
+  return <Toast key={state.sequence} text={t(state.notice)} onDone={dismiss}
+    {...state.notice === 'saved' ? { tone: 'success' as const } : {}} />
 }

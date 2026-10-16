@@ -1759,6 +1759,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Current runtime entries with persistent patch targets.',
       },
       {
+        signature: '@Remote listPresetPlugins(): Promise<PresetPluginInfo[]>',
+        description: 'Read persistent toggle availability for declared preset children, including inactive presets.',
+        parameters: [],
+        returns: 'Child ids matching inventory rows; missing and ambiguous ids remain read-only.',
+      },
+      {
         signature: '@Remote listBundles(): Promise<BundleInfo[]>',
         description: 'Read installed, installation-provided, and offline Official catalog bundles, plus selected non-bundle names. A dependency without a bundle patch is listed, as a `not-bundle` problem, only while it is selected.',
         parameters: [],
@@ -1781,6 +1787,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Persist a plugin entry\'s desired enablement and apply it on live profiles.',
         parameters: [{ name: 'id', description: 'Loader entry identity returned by listPlugins.' }, { name: 'enabled', description: 'Whether the plugin should run.' }],
         returns: 'Saved and runtime outcomes, including higher-priority overrides.',
+      },
+      {
+        signature: '@Remote setPresetPluginEnabled(presetId: string, rowId: string, enabled: boolean): Promise<ChangeResult>',
+        description: 'Persist a sparse preset child toggle and reload its declaration. Bound Agents retain their existing revision. Saved changes survive reload failure; startup-only profiles apply them at restart.',
+        parameters: [{ name: 'presetId', description: 'Declared preset identity returned by listPresetPlugins.' }, { name: 'rowId', description: 'Explicit child id returned by listPresetPlugins, unique within the preset.' }, { name: 'enabled', description: 'Whether subsequent preset compositions should enable the child.' }],
+        returns: 'Saved and runtime outcomes, including higher-priority overrides and activation failures.',
       },
       {
         signature: '@Remote setBundleEnabled(name: string, enabled: boolean): Promise<ChangeResult>',
@@ -6476,6 +6488,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PresetOption',
     declaration: 'export interface PresetOption {\n    value: string;\n    name: string;\n    description?: string;\n}',
+  },
+  {
+    name: 'PresetPluginInfo',
+    declaration: 'export interface PresetPluginInfo {\n    presetId: string;\n    rowId: string | null;\n    moduleName: string;\n    readOnlyReason?: ReadOnlyReason;\n}',
   },
   {
     name: 'PresetSpec',

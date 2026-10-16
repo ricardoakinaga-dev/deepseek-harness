@@ -40,6 +40,18 @@ export type PluginInfo = PluginInventoryEntry & (
   | { patchId?: never; readOnlyReason: ReadOnlyReason }
 )
 
+/** Persistent control availability for one declared preset child, independently of retained Agent revisions. */
+export interface PresetPluginInfo {
+  /** Preset declaration's config.id. */
+  presetId: string
+  /** Explicit child entry id; null when the declaration provides no stable id. */
+  rowId: string | null
+  /** Declared child module specifier. */
+  moduleName: string
+  /** Present when the child cannot be safely changed through a profile selector. */
+  readOnlyReason?: ReadOnlyReason
+}
+
 /** One row a bundle's patch declares, with its live entry while the bundle contributes it. */
 export interface BundleRowInfo {
   /** The row id as the patch declares it. */

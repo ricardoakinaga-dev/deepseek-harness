@@ -188,16 +188,8 @@
       "summary": "Treat ignored dependency build scripts as non-installable until the profile records and receives explicit approval.",
       "upstreamPlan": "docs/customization/fork-v2-extraction.md#extraction-matrix",
       "paths": [
-        "docs/subsystems/boot.i18n.yaml",
-        "docs/subsystems/boot.md",
-        "docs/subsystems/boot.zh.md",
-        "packages/boot/plugin-manager/README.i18n.yaml",
-        "packages/boot/plugin-manager/README.md",
-        "packages/boot/plugin-manager/README.zh.md",
         "packages/boot/plugin-manager/src/build-approval.ts",
-        "packages/boot/plugin-manager/src/index.ts",
-        "packages/boot/plugin-manager/tests/build-approval.spec.ts",
-        "packages/boot/plugin-manager/tests/manager.spec.ts"
+        "packages/boot/plugin-manager/tests/build-approval.spec.ts"
       ]
     },
     {
@@ -282,7 +274,6 @@
         "packages/client/ui-reference/README*",
         "packages/client/ui-settings-general/README*",
         "packages/client/ui-settings-models/README*",
-        "packages/client/ui-settings-plugin-inventory/README*",
         "packages/client/ui-settings-plugins/README*",
         "packages/client/ui-settings-unarchive-sessions/README*",
         "packages/client/ui-settings/README*",
@@ -449,8 +440,7 @@
         "packages/session/session-projection/README.md",
         "packages/session/session-projection/README.zh.md",
         "packages/session/session-projection/src/index.ts",
-        "packages/session/session-projection/tests/registry.spec.ts",
-        "scripts/gen-cordis-catalog.ts"
+        "packages/session/session-projection/tests/registry.spec.ts"
       ]
     },
     {
@@ -818,7 +808,6 @@
         "packages/client/ui-settings-agent-loop/package.json",
         "packages/client/ui-settings-general/package.json",
         "packages/client/ui-settings-models/package.json",
-        "packages/client/ui-settings-plugin-inventory/package.json",
         "packages/client/ui-settings-plugins/package.json",
         "packages/client/ui-settings-shell/package.json",
         "packages/client/ui-settings-subagent/package.json",
@@ -1146,7 +1135,6 @@
         "docs/subsystems/extensions.i18n.yaml",
         "docs/subsystems/extensions.md",
         "docs/subsystems/extensions.zh.md",
-        "packages/boot/plugin-manager/src/types.ts",
         "packages/bundle/web-app/cordis.patch.yml",
         "packages/client/modules/README.i18n.yaml",
         "packages/client/modules/README.md",
@@ -1190,7 +1178,6 @@
         "packages/attachment/attachment-local/src/store.ts",
         "packages/boot/app-boot/src/profile-resolution/legacy-links.ts",
         "packages/boot/app-boot/src/profile-resolution/resolver.ts",
-        "packages/boot/app-boot/src/profile.ts",
         "packages/boot/plugin-manager/src/tools.ts",
         "packages/bundle/headless/src/index.ts",
         "packages/client/AGENTS.md",
@@ -1880,7 +1867,6 @@
       "summary": "Allow local fixture sources and canonical npm scope publishers only in the Plugin Manager Web test launches.",
       "optIn": true,
       "paths": [
-        "apps/web/tests/plugin-manager.e2e.ts",
         "apps/web/tests/plugin-manager.policy.overlay.yml"
       ]
     },
@@ -2001,7 +1987,6 @@
         "apps/cli/tsdown.config.ts",
         "apps/web/tests/session.snapshot.ts",
         "packages/boot/app-boot/README*",
-        "packages/boot/app-boot/src/index.ts",
         "packages/boot/app-boot/src/profile-context.ts",
         "packages/boot/app-boot/tests/user-patches.spec.ts",
         "packages/boot/hmr/README.i18n.yaml",
@@ -2864,6 +2849,39 @@
         "snapshots/session/worktree/session.v4.jsonl",
         "snapshots/session/worktree/system-prompt.expected.md",
         "snapshots/session/worktree/tool-schemas.expected.json"
+      ]
+    },
+    {
+      "id": "builtin-plugin-controls",
+      "kind": "upstream-patch",
+      "solutionType": "upstream-package-change",
+      "status": "active",
+      "summary": "Let the existing built-in plugin inventory persist supported plugin enablement through the official profile manager.",
+      "upstreamPlan": "Extend the official inventory and profile manager together; upstream the controls without a second registry or plugin executor.",
+      "paths": [
+        "packages/boot/plugin-manager/src/index.ts",
+        "packages/boot/plugin-manager/src/patch.ts",
+        "packages/boot/plugin-manager/src/types.ts",
+        "packages/boot/plugin-manager/tests/manager.spec.ts",
+        "packages/boot/plugin-manager/tests/patch.spec.ts",
+        "packages/boot/app-boot/src/profile.ts",
+        "packages/boot/app-boot/tests/profile.spec.ts",
+        "packages/client/ui-settings-plugin-inventory/src/",
+        "packages/client/ui-settings-plugin-inventory/tests/",
+        "packages/client/ui-settings-plugin-inventory/package.json",
+        "packages/client/ui-settings-plugin-inventory/tsconfig.json",
+        "packages/boot/app-boot/src/index.ts",
+        "packages/boot/app-boot/src/compatibility-preflight.ts",
+        "packages/client/ui-settings-plugin-inventory/README*",
+        "packages/boot/plugin-manager/README*",
+        "packages/api/remotes/src/client/index.ts",
+        "scripts/gen-cordis-catalog.ts",
+        "docs/subsystems/boot.md",
+        "docs/subsystems/boot.zh.md",
+        "docs/subsystems/boot.i18n.yaml",
+        "apps/web/tests/plugin-manager.e2e.ts",
+        "apps/web/tests/expected/plugin-manager/builtin-preset-disabled.expected.md",
+        "docs/upgrade-guide/v0.2.1-alpha.3/plugin-management-dependencies/"
       ]
     }
   ]

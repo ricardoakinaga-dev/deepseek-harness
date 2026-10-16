@@ -49,6 +49,8 @@ interface PendingModule {
 }
 ```
 
+`PresetPluginInfo` identifies a declared child by `presetId`, `rowId` and `moduleName`, with an optional `readOnlyReason`. Preset switches persist sparse overrides and affect new bindings; existing Agents retain their previous preset revision.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -155,6 +157,11 @@ Manage profile files and apply their declared reload lifecycle.
  */
 @Remote async listPlugins(): Promise<PluginInfo[]>
 
+/** Read persistent toggle availability for declared preset children, including inactive presets.
+ * @returns Child ids matching inventory rows; missing and ambiguous ids remain read-only.
+ */
+@Remote listPresetPlugins(): Promise<PresetPluginInfo[]>
+
 /** Read installed, installation-provided, and offline Official catalog bundles, plus selected non-bundle names.
  * A dependency without a bundle patch is listed, as a `not-bundle` problem, only while it is selected.
  * @returns Package versions, manifest descriptions, the installable spec of profile dependencies, rows, optional
@@ -181,6 +188,15 @@ Manage profile files and apply their declared reload lifecycle.
  * @returns Saved and runtime outcomes, including higher-priority overrides.
  */
 @Remote setPluginEnabled(id: PluginEntryId, enabled: boolean): Promise<ChangeResult>
+
+/** Persist a sparse preset child toggle and reload its declaration. Bound Agents retain their existing revision.
+ * Saved changes survive reload failure; startup-only profiles apply them at restart.
+ * @param presetId Declared preset identity returned by listPresetPlugins.
+ * @param rowId Explicit child id returned by listPresetPlugins, unique within the preset.
+ * @param enabled Whether subsequent preset compositions should enable the child.
+ * @returns Saved and runtime outcomes, including higher-priority overrides and activation failures.
+ */
+@Remote setPresetPluginEnabled(presetId: string, rowId: string, enabled: boolean): Promise<ChangeResult>
 
 /** Select or remove a bundle layer while retaining installed dependencies.
  * @param name Bundle package name.

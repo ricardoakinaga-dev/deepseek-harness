@@ -12,6 +12,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterAll, describe, expect, it, onTestFinished, vi } from 'vitest'
+import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import {
   composeEntries,
   createRuntimeResolution,
@@ -19,6 +20,7 @@ import {
   initProfile,
   loadProfile,
   loadProfileDirectory,
+  loadOverlayPatches,
   PROFILE_COMPATIBILITY_FILENAME,
   PROFILE_PATCH_FILENAME,
   PROFILE_TEMPLATES,
@@ -44,6 +46,62 @@ const tmp = (): string => {
   tempRoots.push(dir)
   return dir
 }
+
+describe('sparse preset toggle composition', () => {
+  const declaration = (id: string, plugins: object[] = [{ id: 'tool', name: 'tool', config: { value: { __jsExpr: 'process.platform' } } }]): EntryOptions => ({
+    id: `preset-${id}`, name: '@deepseek-ai/dsh-agent-preset', config: { id, plugins },
+  })
+
+  it('isolates shared child ids and applies selectors and complete-config patches in layer order', () => {
+    const standard = declaration('standard')
+    const creator = declaration('creator')
+    const initial = structuredClone([standard, creator])
+    const rows = composeEntries([
+      [{ insert: [standard, creator, { id: 'tool', name: 'global-tool' }] }],
+      [{ preset: 'standard', id: 'tool', disabled: true }],
+      [{ preset: 'creator', id: 'tool', disabled: false }],
+      [{ preset: 'standard', id: 'tool', disabled: false }],
+    ])
+    expect(rows).toMatchObject([
+      { config: { id: 'standard', plugins: [{ id: 'tool', disabled: false, config: { value: { __jsExpr: 'process.platform' } } }] } },
+      { config: { id: 'creator', plugins: [{ id: 'tool', disabled: false }] } },
+      { id: 'tool', name: 'global-tool' },
+    ])
+    expect(rows[2]).not.toHaveProperty('disabled')
+    expect([standard, creator]).toEqual(initial)
+    const replacement = { id: 'standard', plugins: [{ id: 'replacement', name: 'replacement' }] }
+    expect(composeEntries([[{ insert: [standard] }, { preset: 'standard', id: 'tool', disabled: true },
+      { id: 'preset-standard', config: replacement }]])[0]?.config).toEqual(replacement)
+  })
+
+  it('addresses explicit child ids recursively inside groups without replacing sibling rows', () => {
+    const grouped = declaration('standard', [{ id: 'group', name: 'cordis:group', group: true,
+      config: [{ id: 'tool', name: 'tool' }, { id: 'sibling', name: 'sibling', disabled: { __jsExpr: 'true' } }] }])
+    expect(composeEntries([[{ insert: [grouped] }, { preset: 'standard', id: 'tool', disabled: true }]])[0]?.config)
+      .toEqual({ id: 'standard', plugins: [{ id: 'group', name: 'cordis:group', group: true,
+        config: [{ id: 'tool', name: 'tool', disabled: true }, { id: 'sibling', name: 'sibling', disabled: { __jsExpr: 'true' } }] }] })
+  })
+
+  it('rejects missing and ambiguous preset and child ids', () => {
+    for (const rows of [[], [declaration('other')], [declaration('standard'), declaration('standard')],
+      [declaration('standard', [])], [declaration('standard', [{ name: 'tool' }])],
+      [declaration('standard', [{ id: 'tool', name: 'a' }, { id: 'group', name: 'cordis:group', group: true, config: [{ id: 'tool', name: 'b' }] }])]]) {
+      expect(() => composeEntries([[{ insert: rows }, { preset: 'standard', id: 'tool', disabled: true }]])).toThrow()
+    }
+  })
+
+  it.each([
+    { preset: '', id: 'tool', disabled: true },
+    { preset: 'standard', id: '', disabled: true },
+    { preset: 'standard', id: 'tool', disabled: 'true' },
+    { preset: 'standard', id: 'tool', disabled: true, config: {} },
+    { preset: 'standard', id: 'tool', disabled: true, name: 'other' },
+  ])('rejects invalid selector %j', (patch) => {
+    const filename = join(tmp(), 'invalid-selector.yml')
+    writeFileSync(filename, JSON.stringify([patch]))
+    expect(() => composeEntries([[{ insert: [declaration('standard')] }], loadOverlayPatches('test', filename)])).toThrow()
+  })
+})
 
 /** Stage a fake installed app: package.json with deps and a node_modules holding bundles. */
 function stageInstallation(

@@ -4,10 +4,12 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { expect, it, onTestFinished } from 'vitest'
 import { applyEntryPatches } from '@deepseek-ai/cordis-plugin-include'
-import { initProfile, loadOptionalPatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { composeEntries, initProfile, loadOptionalPatches, readProfilePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { writePluginEnabled } from '../src/patch.ts'
 
 const TOOL = { id: 'tool', name: 'package' }
+
+const PRESET = { id: 'preset-standard', name: '@deepseek-ai/dsh-agent-preset', config: { id: 'standard', plugins: [TOOL] } }
 
 /** Create a profile whose patch file holds `text` (none when omitted) and whose one selected bundle inserts `rows`. */
 async function fixture(text?: string, rows: object[] = []): Promise<ProfileContext> {
@@ -159,4 +161,73 @@ it('keeps a switch whose value is an alias', async () => {
   const profile = await fixture('- id: other\n  config: { flag: &flag true }\n- id: tool\n  disabled: *flag\n', [TOOL])
   expect(await writePluginEnabled(profile, 'tool', 'package', true)).toBe(true)
   expect(loadOptionalPatches('test', profile.patchPath)).toEqual([{ id: 'other', config: { flag: true } }, { id: 'tool', disabled: false }])
+})
+
+it('persists only the selected preset toggle, preserves YAML syntax and removes a restored default', async () => {
+  const original = '# personal settings\n- id: unrelated\n  config: { value: !!js process.platform }\n'
+  const profile = await fixture(original, [PRESET, { ...PRESET, id: 'preset-creator', config: { ...PRESET.config, id: 'creator' } }, TOOL])
+  expect(await writePluginEnabled(profile, 'tool', 'package', false, 'standard')).toBe(true)
+  expect(await readFile(profile.patchPath, 'utf8')).toContain(original)
+  expect(loadOptionalPatches('test', profile.patchPath)).toEqual([
+    { id: 'unrelated', config: { value: { __jsExpr: 'process.platform' } } },
+    { preset: 'standard', id: 'tool', name: 'package', disabled: true },
+  ])
+  expect(await writePluginEnabled(profile, 'tool', 'package', false, 'standard')).toBe(false)
+  expect(await writePluginEnabled(profile, 'tool', 'package', false, 'creator')).toBe(true)
+  expect(await writePluginEnabled(profile, 'tool', 'package', false)).toBe(true)
+  expect(await writePluginEnabled(profile, 'tool', 'package', true, 'standard')).toBe(true)
+  expect(loadOptionalPatches('test', profile.patchPath)).toEqual([
+    { id: 'unrelated', config: { value: { __jsExpr: 'process.platform' } } },
+    { preset: 'creator', id: 'tool', name: 'package', disabled: true }, { id: 'tool', disabled: true },
+  ])
+})
+
+it('retains explicit preset toggles over conditional defaults and ignores later home layers when pruning', async () => {
+  const profile = await fixture('# toggle\n- preset: standard\n  id: tool\n  disabled: true # choice\n', [
+    { ...PRESET, config: { ...PRESET.config, plugins: [{ ...TOOL, disabled: { __jsExpr: 'false' } }] } },
+  ])
+  expect(await writePluginEnabled(profile, 'tool', 'package', true, 'standard')).toBe(true)
+  const saved = await readFile(profile.patchPath, 'utf8')
+  expect(saved).toContain('# toggle')
+  expect(saved).toContain('# choice')
+  expect(loadOptionalPatches('test', profile.patchPath)).toEqual([{ preset: 'standard', id: 'tool', name: 'package', disabled: false }])
+  expect(await writePluginEnabled(profile, 'tool', 'package', true, 'standard')).toBe(false)
+  const literal = await fixture('# toggle\n- preset: standard\n  id: tool\n  disabled: true\n', [PRESET])
+  await writeFile(join(literal.home, 'cordis.patch.yml'), '- preset: standard\n  id: tool\n  disabled: true\n')
+  expect(await writePluginEnabled(literal, 'tool', 'package', true, 'standard')).toBe(true)
+  expect(await readFile(literal.patchPath, 'utf8')).toBe('# toggle\n[]\n')
+})
+
+it('updates the last preset override without replacing a global override or another preset', async () => {
+  const profile = await fixture('- id: tool\n  disabled: true\n- preset: standard\n  id: tool\n  disabled: false\n- preset: creator\n  id: tool\n  disabled: true\n- preset: standard\n  id: tool\n  disabled: true # last\n',
+    [PRESET, { ...PRESET, id: 'preset-creator', config: { ...PRESET.config, id: 'creator' } }, TOOL])
+  expect(await writePluginEnabled(profile, 'tool', 'package', true, 'standard')).toBe(true)
+  expect(loadOptionalPatches('test', profile.patchPath)).toEqual([
+    { id: 'tool', disabled: true }, { preset: 'standard', id: 'tool', disabled: false }, { preset: 'creator', id: 'tool', disabled: true },
+  ])
+  expect(composeEntries([[{ insert: [PRESET] }, { preset: 'standard', id: 'tool', disabled: false }]])[0]?.config)
+    .toMatchObject({ plugins: [{ id: 'tool', disabled: false }] })
+})
+
+it('adds the module assertion to an existing unnamed preset selector and prunes a matching named selector on reset', async () => {
+  const profile = await fixture('# choice\n- preset: standard\n  id: tool\n  disabled: true\n', [PRESET])
+  expect(await writePluginEnabled(profile, 'tool', 'package', false, 'standard')).toBe(true)
+  expect(loadOptionalPatches('test', profile.patchPath)).toEqual([{ preset: 'standard', id: 'tool', name: 'package', disabled: true }])
+  expect(await writePluginEnabled(profile, 'tool', 'package', false, 'standard')).toBe(false)
+  expect(await writePluginEnabled(profile, 'tool', 'package', true, 'standard')).toBe(true)
+  expect(await readFile(profile.patchPath, 'utf8')).toBe('# choice\n[]\n')
+})
+
+it('rejects a stored preset selector when an upstream child keeps its id but changes module', async () => {
+  const profile = await fixture(undefined, [PRESET])
+  await writePluginEnabled(profile, 'tool', 'package', false, 'standard')
+  const saved = await readFile(profile.patchPath, 'utf8')
+  expect(loadOptionalPatches('test', profile.patchPath)).toEqual([{ preset: 'standard', id: 'tool', name: 'package', disabled: true }])
+  const replacement = { ...PRESET, config: { ...PRESET.config, plugins: [{ ...TOOL, name: 'replacement' }] } }
+  await writeFile(join(profile.dir, 'node_modules', 'bundle', 'cordis.patch.yml'), JSON.stringify([{ insert: [replacement] }]))
+  expect(() => composeEntries([readProfilePatches('test', profile)])).toThrow('different module name')
+  expect(await writePluginEnabled(profile, 'tool', 'package', true, 'standard')).toBe(true)
+  expect(() => composeEntries([readProfilePatches('test', profile)])).toThrow('different module name')
+  expect(await readFile(profile.patchPath, 'utf8')).toContain('name: package')
+  expect(saved).toContain('name: package')
 })

@@ -1,5 +1,5 @@
 ---
-description: "Scope-grouped read-only plugin inventory tab in Web Plugins settings for the dsh web client: agent-preset compositions first, the global plane behind a disclosure, search across both."
+description: "Inspect global and preset plugins and persist their enablement through the current profile manager."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The **Plugin list** tab lets Web users inspect plugins without changing their configuration. It lists agent presets, open by default, then the collapsed global inventory; a search opens both. Cards show localized titles and descriptions when available, identify instances by stable entry id, and expose enablement, source details, runtime status, disabled conditions, and discovery failures; preset-provided global entries name their presets. Search covers both groups and points to matches in other presets. The tab handles loading, empty, no-match, failure, and retry states without exposing transport details, and still shows the global inventory without a preset roster.
+The **Built-in plugins** settings page lists agent-preset components and global plugins, with controls for the entries the current profile can modify. Each change is saved through Plugin Manager. Protected management components remain locked with a reason; global entries supplied by presets direct users to the preset controls. Search, state details, metadata, failures and retries remain available without a managed profile, where the inventory stays read-only.
 
 ## Table of Contents
 
@@ -25,9 +25,9 @@ The **Plugin list** tab lets Web users inspect plugins without changing their co
 <a id="use-this-package"></a>
 ## Use this package
 
-Open the Plugins section in Settings and select the **Plugin list** tab to inspect the Host's plugin inventory. The tab reads no Remote during plugin activation — selecting it for the first time mounts the component and lazily calls `ctx.remote.pluginInventory.list()` through `api-remotes`.
+Open **More → Settings → Built-in plugins**. Selecting the page lazily reads `pluginInventory.list()`, then the manager’s global and preset permissions when profile management is available. Use a card’s switch to save its desired state. Writes are serialized, refresh the accepted inventory, and report success, failure, higher-priority overrides or a required restart in a shell toast that survives closing Settings.
 
-A failed installation with pending pnpm build permissions offers **Allow these scripts and retry**. The action displays the exact package names and persistent permission scope, then retries the original package spec and activation choice. One click approves the entire displayed group, which can include pending packages from earlier attempts. Closing the page grants no permission.
+Preset switches persist sparse `preset`, `id`, `name` and `disabled` overrides in the current profile patch. They affect new sessions; sessions already bound to a preset keep their current revision. No official preset file is overwritten. An absent, ambiguous or protected target is locked. A global entry provided by a preset is changed through that preset, so a global override cannot silently change another scope.
 
 ### Reading a card
 
@@ -53,7 +53,7 @@ The Plugin list also shows synchronization failures on the current page. Its ret
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The tab is a read-only projection of a Host-owned snapshot; it performs no Remote read during plugin activation and takes the snapshot on first selection.
+The Host owns inventory, editability, profile locking, persistence and reload outcomes. The Client reads the current permissions and invokes `setPluginEnabled` or `setPresetPluginEnabled`; it keeps no second plugin registry. The enablement controller owns pending writes and notices independently of the Settings mount.
 
 ### Registration
 
@@ -82,11 +82,11 @@ These pages cover the settings section, the remote call, and the Host-side proje
 <a id="model-experience"></a>
 ## Model Experience
 
-None, as the package is a browser-side inventory projection that registers nothing model-facing.
+None, as this browser page contributes no model-facing prompt or tool and delegates composition changes to Plugin Manager.
 
 #### KV Cache effect
 
-None; this package neither assembles nor sends a provider request.
+Global switches can alter the tool schemas or prompt sections in subsequent requests. Preset changes leave already-bound sessions on their previous revision.
 
 ## Known Limitations and Deferred Work
 
@@ -95,10 +95,10 @@ None; this package neither assembles nor sends a provider request.
 
 These limits define the freshness and reach of the inventory view; they are current package constraints.
 
-- **One snapshot per Settings mount or retry** — the tab does not subscribe to Loader changes or automatically refetch after reconnect; switching tabs preserves the current snapshot, while reopening Settings obtains a new one.
-- **Read-only in both planes** — the tab shows global and preset enablement but mutates neither; enable/disable controls that write a custom preset's own composition file are deliberate follow-up work.
+- **Inventory freshness** — opening Settings or retrying reads a snapshot; every settled write refreshes it. Unrelated external changes require reopening or retrying.
+- **Retained sessions** — preset changes affect subsequent bindings, while existing sessions retain their previous plugin revision. Higher-priority home or launch patches can override saved profile choices.
 
-**Runtime invariant:** No companion is published. This package owns a read-only Settings contribution.
+**Runtime invariant:** No companion is published. Plugin Manager owns the persistent state and enforces the same restrictions for every caller.
 
 <a id="dev-note"></a>
 ### Dev Note

@@ -1,0 +1,16 @@
+- button "会话插件" [expanded]
+- button "选择要查看的 Agent 预设": 标准模式（默认）
+- paragraph: 由 Agent 预设按会话组成
+- paragraph: 预设更改对新会话生效，已有会话保留当前插件。
+- list:
+  - listitem:
+    - button "时间感知, time-context, 已停用":
+      - strong: 时间感知
+      - text: 已停用 每一步把当前时间、浏览器时区和距上一条消息的时长告诉模型。
+      - code: time-context
+    - text: 已停用
+    - switch "启用 时间感知"
+- paragraph:
+  - text: 其他预设中还有 2 个匹配：
+  - button "PTC 模式"
+  - button "创造模式"

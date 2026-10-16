@@ -13,6 +13,7 @@ import type {} from './profile-resolution/service.ts'
 import type {} from './profile-context.ts'
 import { evaluatePluginCompatibility, pluginCompatibilityWarning } from './plugin-compatibility.ts'
 import { readProfileCompatibility } from './profile-compatibility.ts'
+import { composeEntries } from './profile.ts'
 
 function readManifest(filename: string): object {
   return JSON.parse(readFileSync(filename, 'utf8')) as object
@@ -181,7 +182,7 @@ export function prepareProfilePatches(
   ctx: Context, patches: PatchOptions[], parentURL: string, binName = 'dsh',
 ): PatchOptions[] {
   if (ctx.get('profileContext') === undefined) return patches
-  const entries = applyEntryPatches([], patches, patchWarning(ctx))
+  const entries = composeEntries([patches], (message) => { ctx.logger.warn(message) })
   const rows = prepareProfileEntries(ctx, entries, parentURL, binName)
   return rows.length === 0 ? [] : [{ insert: rows }]
 }

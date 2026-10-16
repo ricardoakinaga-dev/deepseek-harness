@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path'
 import { homedir, tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execa } from 'execa'
+import { createRequire } from 'node:module'
 import type { Context } from '@deepseek-ai/cordis'
 import { afterAll, beforeAll, expect, it, onTestFinished, vi } from 'vitest'
 import {
@@ -19,7 +20,12 @@ import PluginManager, { type Config, type PluginChange, type PluginInstallLogChu
 import Hmr from '@deepseek-ai/dsh-hmr'
 import Timer from '@deepseek-ai/cordis-plugin-timer'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
-import { Group } from '@deepseek-ai/cordis-plugin-loader'
+import { Group, ModuleLoader } from '@deepseek-ai/cordis-plugin-loader'
+import AgentPreset from '@deepseek-ai/dsh-agent-preset'
+import AgentPresetRegistry from '@deepseek-ai/dsh-agent-preset-registry'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import SessionStore from '@deepseek-ai/dsh-session'
+import { createScope } from '@deepseek-ai/dsh-scope'
 import * as operations from '../src/operations.ts'
 import * as githubConnection from '../src/github-connection.ts'
 import { parse, parseDocument } from 'yaml'
@@ -103,6 +109,132 @@ async function fixture(reload: 'live' | 'startup' = 'live', overlay = false, pre
   }
   return { ctx, dir, manager: ctx.pluginManager, bundle, profile, stopHmr, overlays, connection }
 }
+
+async function presetFixture(reload: 'live' | 'startup' = 'live', selector = false, invalidIds = false) {
+  const internal = ModuleLoader.fromInternal()!
+  const importModule = vi.fn(async (name: string, parentURL: string, attributes: ImportAttributes): Promise<unknown> => {
+    if (name === '@deepseek-ai/dsh-agent-preset') return { default: AgentPreset }
+    const imported: unknown = internal.import(name, parentURL, attributes)
+    return imported
+  })
+  const loader = vi.spyOn(ModuleLoader, 'fromInternal').mockReturnValue({ ...internal, import: importModule })
+  onTestFinished(() => { loader.mockRestore() })
+  return fixture(reload, false, (ctx) => {
+    ctx.loader.builtins.sessions = SessionStore
+    ctx.loader.builtins.projections = SessionProjectionRegistry
+    ctx.loader.builtins.presets = AgentPresetRegistry
+    ctx.loader.builtins.group = Group
+  }, {}, undefined, (dir) => {
+    writeFileSync(join(dir, 'node_modules', 'extra', 'preset-probe.mjs'), 'export function apply() {}\n')
+    const name = pathToFileURL(join(dir, 'node_modules', 'extra', 'preset-probe.mjs')).href
+    const plugins = [{ id: 'tool', name },
+      { id: 'group', name: 'cordis:group', group: true, config: [{ id: 'nested', name }] },
+      { id: 'protected', name: '@deepseek-ai/dsh-plugin-manager', disabled: true },
+      { id: 'broken', name: pathToFileURL(join(dir, 'missing-preset-plugin.mjs')).href, disabled: true },
+      ...invalidIds ? [{ name }, { id: 'duplicate', name, disabled: true },
+        { id: 'duplicate', name, disabled: true }] : [],
+    ]
+    writeFileSync(join(dir, 'node_modules', 'extra', 'cordis.patch.yml'), JSON.stringify([{ insert: [
+      { id: 'sessions', name: 'cordis:sessions' },
+      { id: 'projections', name: 'cordis:projections' },
+      { id: 'presets', name: 'cordis:presets', config: { default: 'standard' } },
+      ...['standard', 'creator'].map(id => ({ id: `preset-${id}`, name: '@deepseek-ai/dsh-agent-preset', config: { id, plugins } })),
+    ] }]))
+    if (selector) writeFileSync(join(dir, 'cordis.patch.yml'), '# saved toggle\n- preset: standard\n  id: tool\n  disabled: true\n')
+  })
+}
+
+it('applies sparse preset toggles at boot and HMR while existing agent scopes retain their revision', async () => {
+  const { ctx, manager, profile } = await presetFixture('live', true)
+  expect((await ctx.agentPresets.compositionInventory()).find(row => row.id === 'standard')?.rows.find(row => row.entryId === 'tool')?.enabled).toBe(false)
+  expect(await manager.listPresetPlugins()).toContainEqual({ presetId: 'standard', rowId: 'nested', moduleName: expect.stringContaining('preset-probe.mjs') })
+  const existing = createScope(ctx, {})
+  onTestFinished(() => existing.dispose())
+  await ctx.agentPresets.mount(existing.ctx, 'creator')
+  expect(ctx.agentPresets.inspectCompositions(existing.ctx)[0]?.modules.some(row => row.moduleName.endsWith('preset-probe.mjs'))).toBe(true)
+  expect(await manager.setPresetPluginEnabled('creator', 'tool', false)).toMatchObject({ changed: true, application: 'applied' })
+  expect(await manager.setPresetPluginEnabled('creator', 'nested', false)).toMatchObject({ changed: true, application: 'applied' })
+  const fresh = createScope(ctx, {})
+  onTestFinished(() => fresh.dispose())
+  await ctx.agentPresets.mount(fresh.ctx, 'creator')
+  expect(ctx.agentPresets.inspectCompositions(fresh.ctx)[0]?.modules).toEqual([])
+  expect(ctx.agentPresets.inspectCompositions(existing.ctx)[0]?.modules).toHaveLength(2)
+  expect(parse(readFileSync(profile.patchPath, 'utf8'))).toEqual([
+    { preset: 'standard', id: 'tool', disabled: true },
+    { preset: 'creator', id: 'tool', name: expect.stringContaining('preset-probe.mjs'), disabled: true },
+    { preset: 'creator', id: 'nested', name: expect.stringContaining('preset-probe.mjs'), disabled: true },
+  ])
+  expect(await manager.setPresetPluginEnabled('creator', 'tool', false)).toMatchObject({ changed: false, application: 'applied' })
+  expect(await manager.setPresetPluginEnabled('creator', 'tool', true)).toMatchObject({ changed: true, application: 'applied' })
+  expect(parse(readFileSync(profile.patchPath, 'utf8'))).not.toContainEqual(expect.objectContaining({ preset: 'creator', id: 'tool' }))
+})
+
+it('lists and refuses protected, unnamed and ambiguous preset targets without persisting changes', async () => {
+  const { manager, profile } = await presetFixture('live', false, true)
+  expect(await manager.listPresetPlugins()).toEqual(expect.arrayContaining([
+    { presetId: 'standard', rowId: 'protected', moduleName: '@deepseek-ai/dsh-plugin-manager', readOnlyReason: 'management-required' },
+    { presetId: 'standard', rowId: null, moduleName: expect.any(String), readOnlyReason: 'unaddressable' },
+    { presetId: 'standard', rowId: 'duplicate', moduleName: expect.any(String), readOnlyReason: 'unaddressable' },
+  ]))
+  const before = readFileSync(profile.patchPath, 'utf8')
+  for (const [preset, row, code] of [
+    ['standard', 'protected', 'management-required'], ['standard', 'duplicate', 'unaddressable'],
+    ['missing', 'tool', 'unknown-plugin'], ['standard', 'missing', 'unknown-plugin'], ['standard', '', 'unknown-plugin'],
+  ]) {
+    expect(await manager.setPresetPluginEnabled(preset!, row!, false)).toMatchObject({ changed: false, application: 'failed', error: { code } })
+  }
+  expect(readFileSync(profile.patchPath, 'utf8')).toBe(before)
+})
+
+it('reports preset overlays and startup-only application independently from the saved selector', async () => {
+  const { ctx, manager, profile, overlays } = await presetFixture()
+  overlays.push({ preset: 'standard', id: 'tool', disabled: true })
+  await reconcileProfilePatches(ctx, readProfilePatches('test', profile), 'test')
+  expect(await manager.setPresetPluginEnabled('standard', 'tool', true)).toMatchObject({ changed: false, application: 'overridden' })
+  const startup = await presetFixture('startup')
+  expect(await startup.manager.setPresetPluginEnabled('standard', 'tool', false)).toMatchObject({ changed: true, application: 'restart-required', restartReason: 'no-hmr' })
+  expect((await startup.ctx.agentPresets.compositionInventory()).find(row => row.id === 'standard')?.rows.find(row => row.entryId === 'tool')?.enabled).toBe(true)
+})
+
+it('refuses ambiguous preset identities before writing a selector', async () => {
+  const { manager, bundle, profile } = await presetFixture('startup')
+  bundle('extra', ['first', 'second'].map(id => ({ id, name: '@deepseek-ai/dsh-agent-preset', disabled: true,
+    config: { id: 'standard', plugins: [{ id: 'tool', name: 'example' }] } })))
+  expect(await manager.listPresetPlugins()).toEqual([
+    { presetId: 'standard', rowId: 'tool', moduleName: 'example', readOnlyReason: 'unaddressable' },
+    { presetId: 'standard', rowId: 'tool', moduleName: 'example', readOnlyReason: 'unaddressable' },
+  ])
+  const before = readFileSync(profile.patchPath, 'utf8')
+  expect(await manager.setPresetPluginEnabled('standard', 'tool', false)).toMatchObject({ changed: false, application: 'failed', error: { code: 'unaddressable' } })
+  expect(readFileSync(profile.patchPath, 'utf8')).toBe(before)
+})
+
+it.each(['home', 'overlay'])('locks preset targets introduced only by a later %s layer', async (layer) => {
+  const { manager, profile, overlays } = await presetFixture('startup')
+  const later: PatchOptions[] = [
+    { insert: [{ id: 'preset-later', name: '@deepseek-ai/dsh-agent-preset', config: { id: 'later', plugins: [{ id: 'tool', name: 'example' }] } }] },
+    { id: 'preset-standard', config: { id: 'standard', plugins: [{ id: 'later-child', name: 'example' }] } },
+  ]
+  if (layer === 'home') writeFileSync(join(profile.home, 'cordis.patch.yml'), JSON.stringify(later))
+  else overlays.push(...later)
+  expect(await manager.listPresetPlugins()).toEqual(expect.arrayContaining([
+    { presetId: 'later', rowId: 'tool', moduleName: 'example', readOnlyReason: 'unaddressable' },
+    { presetId: 'standard', rowId: 'later-child', moduleName: 'example', readOnlyReason: 'unaddressable' },
+  ]))
+  const before = readFileSync(profile.patchPath, 'utf8')
+  for (const [preset, row] of [['later', 'tool'], ['standard', 'later-child']]) {
+    expect(await manager.setPresetPluginEnabled(preset!, row!, false)).toMatchObject({ changed: false, application: 'failed', error: { code: 'unaddressable' } })
+  }
+  expect(readFileSync(profile.patchPath, 'utf8')).toBe(before)
+})
+
+it('reports a failed preset activation with its saved selector and allows disabling that child again', async () => {
+  const { manager, profile, ctx } = await presetFixture()
+  expect(await manager.setPresetPluginEnabled('standard', 'broken', true)).toMatchObject({ changed: true, application: 'failed', error: { code: 'operation-error' } })
+  expect(parse(readFileSync(profile.patchPath, 'utf8'))).toContainEqual({ preset: 'standard', id: 'broken', name: expect.stringContaining('missing-preset-plugin.mjs'), disabled: false })
+  expect(await manager.setPresetPluginEnabled('standard', 'broken', false)).toMatchObject({ changed: true, application: 'applied' })
+  expect((await ctx.agentPresets.resolve('standard')).broken).toBeUndefined()
+})
 
 it.each(['network', 'timeout'] as const)('stops a GitHub %s before pnpm and attributes it to the repository', async (kind) => {
   const { manager, dir, connection } = await fixture()
@@ -858,6 +990,25 @@ it.each([
   '@deepseek-ai/dsh-typert-registry',
   '@deepseek-ai/dsh-api-remotes',
   '@deepseek-ai/dsh-api-remote-access',
+  '@deepseek-ai/dsh-client-ui-settings',
+  '@deepseek-ai/dsh-client-ui-layout',
+  '@deepseek-ai/dsh-client-ui-renderer',
+  '@deepseek-ai/dsh-client-ui-slots',
+  '@deepseek-ai/dsh-client-ui-sidebar',
+  '@deepseek-ai/dsh-client-locale',
+  '@deepseek-ai/dsh-settings',
+  '@deepseek-ai/dsh-api-settings-controller',
+  '@deepseek-ai/dsh-api-session-controller',
+  '@deepseek-ai/dsh-api-workspace-controller',
+  '@deepseek-ai/dsh-client-file-upload',
+  '@deepseek-ai/dsh-client-shortcuts',
+  '@deepseek-ai/dsh-client-ui-agent-preset',
+  '@deepseek-ai/dsh-client-ui-conversation',
+  '@deepseek-ai/dsh-client-ui-session',
+  '@deepseek-ai/dsh-client-ui-settings-general',
+  '@deepseek-ai/dsh-client-ui-settings-plugins',
+  '@deepseek-ai/dsh-client-ui-theme',
+  '@deepseek-ai/dsh-client-ui-workspace',
 ])('protects the management dependency %s and its containing bundle', async (name) => {
   const { ctx, manager, bundle, profile, dir } = await fixture('startup')
   bundle('extra', [{ id: 'dependency', name, disabled: true }])
@@ -1829,4 +1980,37 @@ it.each(['absent', 'bundle', 'not-bundle', 'unreadable'])('keeps a missing sourc
   })
   expect((await manager.listBundles()).find(item => item.name === name)?.error?.diagnostic).toContain('restore the checkout')
   expect((await manager.listBundles()).find(item => item.name === name)?.installTarget).toBeUndefined()
+})
+
+
+function managementClientDependencies(): string[] {
+  const require = createRequire(import.meta.url)
+  const pending = [
+    '@deepseek-ai/dsh-client-ui-plugin-manager', '@deepseek-ai/dsh-client-ui-settings-plugin-inventory',
+    '@deepseek-ai/dsh-client-ui-settings-general', '@deepseek-ai/dsh-client-ui-settings-plugins',
+  ]
+  const seen = new Set<string>()
+  while (pending.length > 0) {
+    const name = pending.pop()!
+    if (seen.has(name)) continue
+    seen.add(name)
+    const manifest = JSON.parse(readFileSync(require.resolve(`${name}/package.json`), 'utf8')) as {
+      dsh?: { client?: { inject?: string[] } }
+    }
+    pending.push(...manifest.dsh?.client?.inject ?? [])
+  }
+  return [...seen]
+}
+
+it.each(managementClientDependencies())('keeps the management module graph recoverable when %s is addressed', async (name) => {
+  const { ctx, manager, bundle, profile } = await fixture('startup')
+  bundle('extra', [{ id: 'dependency', name, disabled: true }])
+  await reconcileProfilePatches(ctx, readProfilePatches('test', profile), 'test')
+  const entry = (await manager.listPlugins()).find(row => row.moduleName === name)!
+  expect(entry).toMatchObject({ readOnlyReason: 'management-required' })
+  const before = readFileSync(profile.patchPath, 'utf8')
+  expect(await manager.setPluginEnabled(entry.entryId, false)).toMatchObject({
+    changed: false, application: 'failed', error: { code: 'management-required' },
+  })
+  expect(readFileSync(profile.patchPath, 'utf8')).toBe(before)
 })

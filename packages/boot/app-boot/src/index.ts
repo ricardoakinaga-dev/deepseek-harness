@@ -13,7 +13,7 @@ import { basename, dirname, isAbsolute, resolve } from 'node:path'
 import * as yaml from 'js-yaml'
 import { Context, type Fiber, type FiberState } from '@deepseek-ai/cordis'
 import Loader, { type Entry, type EntryGroup, type EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
-import Include, { applyEntryPatches, entryListSchema, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
+import Include, { entryListSchema, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import Group from '@deepseek-ai/cordis-plugin-group'
 import { dshHomePath, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { createLaunchEnvironmentSnapshot, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
@@ -28,7 +28,7 @@ export {
   setProfileVersionExemption, type ProfileCompatibility,
 } from './profile-compatibility.ts'
 import { prepareProfilePatches } from './compatibility-preflight.ts'
-import { ProfileRuntimeResolution, type RuntimeResolution } from './profile.ts'
+import { composeEntries, ProfileRuntimeResolution, type RuntimeResolution } from './profile.ts'
 import { ResolutionRestartRequired } from './profile-resolution/resolver.ts'
 export { prepareProfileEntries, prepareProfilePatches } from './compatibility-preflight.ts'
 export { readPluginMeta, resolvePluginResource } from './package-meta.ts'
@@ -497,7 +497,7 @@ function rowIds(patches: readonly PatchOptions[]): Set<string> {
     }
   }
   // Patch warnings are logged when the generation itself is prepared.
-  visit(applyEntryPatches([], patches as PatchOptions[], () => {}))
+  visit(composeEntries([[...patches]]))
   return ids
 }
 
@@ -684,21 +684,9 @@ export function renderConfigDump(
   // YAML parsing yields untyped rows; the include validates each entry
   // at mount, and the dump prints whatever the file holds, so `EntryOptions`
   // here is structural trust in the same file `boot()` would include.
-  const base = parsed as Parameters<typeof applyEntryPatches>[0]
-  // snapshot_k = ONE application of layers 1..k flattened, using the exact
-  // arguments boot passes for that prefix. snapshot_N is the mounted composition.
-  // The patches are cloned per call: applyEntryPatches detaches the entry
-  // list but pushes `insert` rows by reference from the patch list, so
-  // sharing patch objects across snapshot calls would leak a later
-  // snapshot's mutations into an earlier one's result.
-  const snapshot = (count: number, warnings: string[]): ReturnType<typeof applyEntryPatches> => {
-    const flattened = structuredClone(layers.slice(0, count).flatMap(layer => layer.patches))
-    return applyEntryPatches(base, flattened, (message: string, ...args: unknown[]) => {
-      // The include logs through cordis's printf-style logger (`%C` = code); a
-      // dump has no logger, so substitute inline for a plain line.
-      let index = 0
-      warnings.push(message.replace(/%C/g, () => JSON.stringify(args[index++])))
-    })
+  const base = parsed as EntryOptions[]
+  const snapshot = (count: number, warnings: string[]): EntryOptions[] => {
+    return composeEntries([[{ insert: base }], ...layers.slice(0, count).map(layer => layer.patches)], message => warnings.push(message))
   }
   let previous = base
   let previousWarnings: string[] = []

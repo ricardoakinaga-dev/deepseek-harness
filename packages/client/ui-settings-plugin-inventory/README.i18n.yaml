@@ -3,20 +3,20 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-settings-plugin-inventory/README.md
 /:
-  en: 9121298d88fe8ea6
-  zh: 5da705491f951d0e
+  en: f9a8c4d5c5277ca6
+  zh: 25eab26ab074a158
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory:
   en: 463eecf002ec0f54
   zh: b8dc6003ddccd14a
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/summary:
-  en: f52353cf99816eb8
-  zh: e172c1751289882f
+  en: 3f1f65b86012a943
+  zh: f88c022c0643bb0f
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/use-this-package:
-  en: 67637808e7940157
-  zh: d4d0716ea4d33e4a
+  en: 5c84593ac6251b2a
+  zh: 134fff38277f21d3
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/use-this-package/reading-a-card:
   en: bb000df9983be741
   zh: d54ee50bafd136fb
@@ -27,8 +27,8 @@
   en: 673c7574e14078be
   zh: b093e897f0341973
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/understand-the-implementation:
-  en: cab883d26642c932
-  zh: 54e7321bd781b400
+  en: 82b3fc59d14c5145
+  zh: 349d2332376df9f3
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/understand-the-implementation/registration:
   en: e4792880c5916ce0
   zh: 4c8171a446dd153f
@@ -39,14 +39,14 @@
   en: ae3819f0c5da95bd
   zh: 40972ab96d5c95e2
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/model-experience:
-  en: 69fb187ac2361233
-  zh: d4d3ec4ed3e3d98d
+  en: 20be2284a668d9fa
+  zh: 4d439d1d067a3db3
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/model-experience/kv-cache-effect:
-  en: ca75c51c89c2c9b0
-  zh: de54f3467ef3b9be
+  en: facd1cef28dc281d
+  zh: 65663c091e89768d
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/known-limitations-and-deferred-work:
-  en: 56b2b7e447f5130f
-  zh: 329fe66fec25d0f3
+  en: 916140fee653ed05
+  zh: 34daa50571723775
 /deepseek-ai-dsh-client-ui-settings-plugin-inventory/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 3bb0c20c93f16f98

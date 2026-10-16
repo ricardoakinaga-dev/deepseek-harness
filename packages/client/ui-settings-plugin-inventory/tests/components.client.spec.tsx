@@ -12,6 +12,7 @@ import type {
   PluginInventorySettingsTabInjected,
   PluginInventorySettingsTabProps,
 } from '../src/client/PluginInventorySettingsTab.tsx'
+import { PluginEnablement } from '../src/client/enablement.ts'
 import { en, zh, type PluginInventoryLocaleKey } from '../src/client/locales.ts'
 
 afterEach(cleanup)
@@ -35,6 +36,9 @@ function props(
     resolveText,
     useClientSync: bindSnapshotSelector(createSnapshotStore<ClientEntryState>({ syncing: false, failures: [] })),
     retryClient: vi.fn(),
+    useEnablement: bindSnapshotSelector(new PluginEnablement().state),
+    setEnabled: vi.fn(),
+    dismiss: vi.fn(),
   } as PluginInventorySettingsTabProps
 }
 
@@ -660,4 +664,67 @@ it('shows current-page sync errors and retries without re-reading Host inventory
   expect(list).toHaveBeenCalledOnce()
   act(() => { sync.set({ syncing: false, failures: [] }) })
   expect(screen.queryByRole('alert')).toBeNull()
+})
+
+
+describe('profile enablement controls', () => {
+  it('refreshes a reopened panel when an earlier panel finishes saving', async () => {
+    let snapshot: Snapshot = { ...SNAPSHOT, manageableGlobals: SNAPSHOT.entries.map(row => ({ ...row, patchId: String(row.entryId) })) }
+    const controller = new PluginEnablement()
+    onTestFinished(() =>{  controller.dispose() })
+    let finish!: () => void
+    const pending = new Promise<void>((resolve) => { finish = resolve })
+    const list = async (): Promise<Snapshot> => snapshot
+    const page = props(list)
+    page.useEnablement = bindSnapshotSelector(controller.state)
+    page.setEnabled = (_target, enabled) => controller.change(async () => {
+      await pending
+      snapshot = { ...snapshot, entries: snapshot.entries.map(row => row.entryId === 'dormant' ? { ...row, enabled } : row) }
+      return { changed: true, application: 'applied', stage: 'enable', target: 'dormant' }
+    }, list)
+    const first = render(<PluginInventorySettingsTab {...page} />)
+    await screen.findByRole('searchbox', { name: en.search })
+    fireEvent.click(globalToggle())
+    fireEvent.click(screen.getByRole('switch', { name: 'Enable dormant' }))
+    first.unmount()
+    render(<PluginInventorySettingsTab {...page} />)
+    await screen.findByRole('searchbox', { name: en.search })
+    fireEvent.click(globalToggle())
+    expect(screen.getByRole('switch', { name: 'Enable dormant' }).getAttribute('aria-checked')).toBe('false')
+    await act(async () => { finish(); await pending })
+    await waitFor(() => { expect(screen.getByRole('switch', { name: 'Enable dormant' }).getAttribute('aria-checked')).toBe('true') })
+  })
+
+  it('writes the exact global target, refreshes its accepted state, and locks protected rows', async () => {
+    const snapshot: Snapshot = { ...SNAPSHOT, manageableGlobals: SNAPSHOT.entries.map(row => row.entryId === 'timer'
+      ? { ...row, readOnlyReason: 'management-required' as const }
+      : { ...row, patchId: String(row.entryId) }) }
+    const changed: Snapshot = { ...snapshot, entries: snapshot.entries.map(row => row.entryId === 'dormant' ? { ...row, enabled: true } : row) }
+    const page = props(async () => snapshot)
+    page.setEnabled = vi.fn(async () => changed)
+    render(<PluginInventorySettingsTab {...page} />)
+    await screen.findByRole('searchbox', { name: en.search })
+    fireEvent.click(globalToggle())
+    expect(screen.getByRole('switch', { name: 'Enable timer' })).toHaveProperty('disabled', true)
+    const toggle = screen.getByRole('switch', { name: 'Enable dormant' })
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(toggle)
+    expect(page.setEnabled).toHaveBeenCalledWith({ kind: 'global', entryId: 'dormant' }, true)
+    await waitFor(() => { expect(screen.getByRole('switch', { name: 'Enable dormant' }).getAttribute('aria-checked')).toBe('true') })
+    expect(screen.getByRole('switch', { name: 'Enable tool-bash' })).toHaveProperty('disabled', true)
+  })
+
+  it('addresses a preset child without enabling its global counterpart', async () => {
+    const snapshot: Snapshot = { ...SNAPSHOT, manageablePresets: (SNAPSHOT.agentPresets ?? []).flatMap(preset => preset.rows.map(row => ({
+      presetId: preset.id, rowId: row.entryId, moduleName: row.moduleName,
+    }))) }
+    const page = props(async () => snapshot)
+    page.setEnabled = vi.fn(async () => snapshot)
+    render(<PluginInventorySettingsTab {...page} />)
+    await screen.findByRole('searchbox', { name: en.search })
+    const switches = screen.getAllByRole('switch')
+    fireEvent.click(switches[0]!)
+    const preset = snapshot.agentPresets![0]!, row = preset.rows[0]!
+    expect(page.setEnabled).toHaveBeenCalledWith({ kind: 'preset', presetId: preset.id, rowId: row.entryId }, row.enabled !== true)
+  })
 })

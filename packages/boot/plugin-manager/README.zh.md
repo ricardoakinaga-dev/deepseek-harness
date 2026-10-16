@@ -93,6 +93,8 @@ CLI 提供 `dsh plugin --profile <profile> version-exemptions`、`allow-version 
 
 -----
 
+`listPresetPlugins()` 报告每个声明预设子条目的编辑权限。`setPresetPluginEnabled(presetId, rowId, enabled)` 在当前配置补丁中保存带模块名核对的稀疏选择器；`setPluginEnabled` 仍修改全局条目。预设更改为后续绑定发布新修订，已有会话保留绑定的修订。两种操作都不能停用管理依赖。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
@@ -144,7 +146,7 @@ service 运行若在 `idleTimeoutMs` 内没有任何捕获输出即被终止，�
 - 命令改动锁文件时，pnpm 按默认注册表校验锁文件中的每个 tarball URL。某个包从其他注册表安装后，使用默认注册表安装另一个包，或在重启后删除该包，可能以 `ERR_PNPM_TARBALL_URL_MISMATCH` 失败。
 - 没有 HMR 时，替换包需要重启进程。在 Plugin Manager 之外重新链接仍处于安装状态的包，需要等待重启。
 - 仅启动时加载的 profile 不能删除当前进程启动时使用的包；停止进程后使用 `dsh plugin`。
-- 管理器不能关闭自身所需的管理组件、修改其他 profile 或编辑 agent 预设组合。
+- 管理器不能关闭自身所需的管理组件或修改其他 profile。
 - 失败的删除可能留下部分依赖改动，失败或被取消的安装可能在 `node_modules` 或 pnpm 缓存中留下已下载文件。文件缺失的未启用依赖仍可删除。诊断日志保留在 profile 的 `.plugin-manager/logs` 目录中。
 - 管理结果描述 Host 激活状态。浏览器同步失败会在设置的插件列表中单独显示。
 - Desktop 包管理操作仍由 Desktop shell 负责。

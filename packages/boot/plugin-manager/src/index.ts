@@ -13,7 +13,7 @@ import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
 import { pluginEntryId, readPluginInventory } from '@deepseek-ai/dsh-host-plugin-inventory'
 import {
   readPluginMeta, readProfileManifest, resolveBundleDir, loadOverlayPatches, composeEntries,
-  readProfilePatches, OPTIONAL_BUNDLES, bundlePatchPaths,
+  readProfilePatches, readBundlePatches, loadOptionalPatches, OPTIONAL_BUNDLES, bundlePatchPaths,
   evaluatePluginCompatibility, readProfileCompatibility, readProfileVersionExemptions,
   setProfileVersionExemption, PROFILE_COMPATIBILITY_FILENAME,
   OFFICIAL_ON_DEMAND_CATALOG, getDshRuntimeVersion, ResolutionRestartRequired,
@@ -25,14 +25,14 @@ import { classifyInstallFailure } from './install-failure.ts'
 import { officialBundleInstallTarget } from './official-install-target.ts'
 import { dependencySpec, InvalidInstallSpecError, parseInstallSpec, type ParsedInstallSpec } from './install-spec.ts'
 import { attributeFailure, normalizeRegistry, NPMMIRROR_REGISTRY, registryPlan } from './registry.ts'
-import { flatten, writePluginEnabled } from './patch.ts'
+import { flatten, presetDeclarations, writePluginEnabled } from './patch.ts'
 import { incompatiblePlugin, ManagementFailure } from './failure.ts'
 import { approveBuilds, recordPendingBuilds } from './build-approval.ts'
 import { checkGithubConnection } from './github-connection.ts'
 import type {
   BundleInfo, BundleRowInfo, ChangeResult, InspectOptions, InstallBundleOptions, ManagementError, PackageResult, PluginChange,
   PluginEntryId, PluginInfo, PluginInspectProblem, PluginInstallCancellation, PluginInstallProgress, PluginInstallRequestId,
-  PluginRegistries, PluginSpecInspection, Registry, InstallSpecKind,
+  PluginRegistries, PluginSpecInspection, Registry, InstallSpecKind, PresetPluginInfo,
 } from './types.ts'
 export type * from './types.ts'
 export { classifyInstallFailure, type InstallFailureFacts } from './install-failure.ts'
@@ -79,6 +79,22 @@ const protectedModules = new Set([
   '@deepseek-ai/cordis-plugin-timer', '@deepseek-ai/dsh-client-connection',
   '@deepseek-ai/dsh-host-frontend-static', '@deepseek-ai/dsh-tools',
   '@deepseek-ai/dsh-hmr',
+  '@deepseek-ai/dsh-client-ui-settings', '@deepseek-ai/dsh-client-ui-layout',
+  '@deepseek-ai/dsh-client-ui-renderer', '@deepseek-ai/dsh-client-ui-slots',
+  '@deepseek-ai/dsh-client-ui-sidebar', '@deepseek-ai/dsh-client-locale',
+  '@deepseek-ai/dsh-settings', '@deepseek-ai/dsh-api-settings-controller',
+  '@deepseek-ai/dsh-api-session-controller',
+  '@deepseek-ai/dsh-api-workspace-controller',
+  '@deepseek-ai/dsh-client-file-upload',
+  '@deepseek-ai/dsh-client-shortcuts',
+  '@deepseek-ai/dsh-client-ui-agent-preset',
+  '@deepseek-ai/dsh-client-ui-conversation',
+  '@deepseek-ai/dsh-client-ui-session',
+  '@deepseek-ai/dsh-client-ui-settings-general',
+  '@deepseek-ai/dsh-client-ui-settings-plugins',
+  '@deepseek-ai/dsh-client-ui-theme',
+  '@deepseek-ai/dsh-client-ui-workspace',
+
 ])
 
 /** The profile files an installation writes and a failed or cancelled one restores. */
@@ -345,6 +361,31 @@ export class PluginManager extends TypertRemoteService {
     })
   }
 
+  /** Read persistent toggle availability for declared preset children, including inactive presets.
+   * @returns Child ids matching inventory rows; missing and ambiguous ids remain read-only.
+   */
+  @Remote
+  listPresetPlugins(): Promise<PresetPluginInfo[]> {
+    const declarations = presetDeclarations(composeEntries([readProfilePatches('dsh', this.profile)]))
+    const profileDeclarations = presetDeclarations(composeEntries([[
+      ...readBundlePatches('dsh', this.profile), ...loadOptionalPatches('dsh', this.profile.patchPath) ?? [],
+    ]]))
+    return Promise.resolve(declarations.flatMap(({ presetId, plugins }) => {
+      const rows = flatten(plugins)
+      const inherited = profileDeclarations.filter(row => row.presetId === presetId)
+      const uniquePreset = presetId.trim() !== '' && inherited.length === 1 && declarations.filter(row => row.presetId === presetId).length === 1
+      const inheritedRows = inherited.flatMap(row => flatten(row.plugins))
+      return rows.filter(row => !row.group).map((row): PresetPluginInfo => {
+        const rowId = typeof row.id === 'string' && row.id.trim() !== '' ? row.id : null
+        const inheritedMatches = inheritedRows.filter(candidate => candidate.id === rowId)
+        const readOnlyReason = protectedModules.has(row.name) ? 'management-required'
+          : !uniquePreset || rowId === null || rows.filter(candidate => candidate.id === rowId).length !== 1
+            || inheritedMatches.length !== 1 || inheritedMatches[0]?.name !== row.name ? 'unaddressable' : undefined
+        return { presetId, rowId, moduleName: row.name, ...readOnlyReason === undefined ? {} : { readOnlyReason } }
+      })
+    }))
+  }
+
   /** Read installed, installation-provided, and offline Official catalog bundles, plus selected non-bundle names.
    * A dependency without a bundle patch is listed, as a `not-bundle` problem, only while it is selected.
    * @returns Package versions, manifest descriptions, the installable spec of profile dependencies, rows, optional
@@ -544,6 +585,31 @@ export class PluginManager extends TypertRemoteService {
       const current = (await this.listPlugins()).find(item => item.entryId === id)
       return current?.enabled !== enabled && this.ownerContext.get('hmr') !== undefined ? 'overridden' : undefined
     }), { stage: 'enable', target: id, enabled }, 'plugin')
+  }
+
+  /** Persist a sparse preset child toggle and reload its declaration. Bound Agents retain their existing revision.
+   * Saved changes survive reload failure; startup-only profiles apply them at restart.
+   * @param presetId Declared preset identity returned by listPresetPlugins.
+   * @param rowId Explicit child id returned by listPresetPlugins, unique within the preset.
+   * @param enabled Whether subsequent preset compositions should enable the child.
+   * @returns Saved and runtime outcomes, including higher-priority overrides and activation failures.
+   */
+  @Remote
+  setPresetPluginEnabled(presetId: string, rowId: string, enabled: boolean): Promise<ChangeResult> {
+    return this.change(result => this.configure(async () => {
+      const rows = (await this.listPresetPlugins()).filter(row => row.presetId === presetId && row.rowId === rowId)
+      const [row] = rows
+      if (row === undefined) throw new ManagementFailure('unknown-plugin')
+      if (rows.length !== 1) throw new ManagementFailure('unaddressable')
+      if (row.readOnlyReason !== undefined) throw new ManagementFailure(row.readOnlyReason)
+      await writePluginEnabled(this.profile, rowId, row.moduleName, enabled, presetId)
+      Object.assign(result, await this.reload())
+      if (this.ownerContext.get('hmr') === undefined || result.restartReason !== undefined) return
+      const current = (await readPluginInventory(this.ctx)).agentPresets?.find(preset => preset.id === presetId)
+      if (current?.broken !== undefined) throw new Error(current.broken)
+      const child = current?.rows.find(entry => entry.entryId === rowId)
+      return child?.enabled !== enabled ? 'overridden' : undefined
+    }), { stage: 'enable', target: `${presetId}:${rowId}`, enabled }, 'plugin')
   }
 
   /** Select or remove a bundle layer while retaining installed dependencies.

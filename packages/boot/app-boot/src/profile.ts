@@ -806,17 +806,50 @@ export function loadProfile(
 
 /**
  * Compose patch layers into the effective entry list over an empty root —
- * the same single `applyEntryPatches` call the boot include makes, so flag
- * derivation and config dumps see exactly what mounts.
+ * including sparse `preset` selectors for declared child rows. Selectors require
+ * one declaration with the requested config.id and one explicit child id;
+ * ordinary patches keep the Include's semantics. Inputs remain unchanged.
  * @param layers - patch lists in application order.
  * @param warn - sink for skipped-patch diagnostics; defaults to silent (boot repeats them).
  * @returns the composed entry list.
+ * @throws When a preset selector is malformed or its declaration or child id is missing or ambiguous.
  */
 export function composeEntries(
   layers: readonly PatchOptions[][], warn: (message: string) => void = () => {},
 ): EntryOptions[] {
-  return applyEntryPatches([], structuredClone(layers.flat()), (message: string, ...args: unknown[]) => {
+  const report = (message: string, ...args: unknown[]): void => {
     let index = 0
     warn(message.replace(/%C/g, () => JSON.stringify(args[index++])))
-  })
+  }
+  const flatten = (rows: EntryOptions[]): EntryOptions[] => rows.flatMap(row => [row,
+    ...row.group && Array.isArray(row.config) ? flatten(row.config as EntryOptions[]) : [],
+  ])
+  let rows: EntryOptions[] = []
+  let ordinary: PatchOptions[] = []
+  for (const patch of structuredClone(layers.flat())) {
+    if (!Object.hasOwn(patch, 'preset')) {
+      ordinary.push(patch)
+      continue
+    }
+    rows = applyEntryPatches(rows, ordinary, report)
+    ordinary = []
+    const { preset, id, disabled, name } = patch
+    if (typeof preset !== 'string' || !preset.trim() || typeof id !== 'string' || !id.trim()
+      || typeof disabled !== 'boolean' || (name !== undefined && typeof name !== 'string')
+      || Object.keys(patch).some(key => !['preset', 'id', 'disabled', 'name'].includes(key))) {
+      throw new Error('Preset toggle patch requires preset, id and boolean disabled, with an optional name assertion')
+    }
+    const declarations = flatten(rows).filter(row => row.name === '@deepseek-ai/dsh-agent-preset'
+      && (row.config as { id?: string } | undefined)?.id === preset)
+    const [declaration] = declarations
+    if (declaration === undefined || declarations.length !== 1) throw new Error(`Preset patch requires one declaration for ${JSON.stringify(preset)}; found ${declarations.length}`)
+    const config = declaration.config as { plugins?: EntryOptions[] }
+    if (!Array.isArray(config.plugins)) throw new Error(`Preset ${JSON.stringify(preset)} has no plugin list`)
+    const matches = flatten(config.plugins).filter(row => row.id === id)
+    const [target] = matches
+    if (target === undefined || matches.length !== 1) throw new Error(`Preset ${JSON.stringify(preset)} patch requires one child ${JSON.stringify(id)}; found ${matches.length}`)
+    if (name !== undefined && name !== target.name) throw new Error(`Preset ${JSON.stringify(preset)} child ${JSON.stringify(id)} has a different module name`)
+    target.disabled = disabled
+  }
+  return applyEntryPatches(rows, ordinary, report)
 }
