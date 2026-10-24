@@ -24,8 +24,8 @@ const ORIGINAL_FILES = [
   { path: 'report.txt', description: 'delivered report', content: 'DELIVERED_REPORT\n' },
   { path: '说明.txt', description: 'delivered note', content: 'DELIVERED_NOTE\n' },
 ] as const
-const DECLARATIONS = ORIGINAL_FILES.map(({ path, description, content }) => ({
-  path, description, capture: { status: 'stored', attachment: {
+const declarationsAt = (cwd: string) => ORIGINAL_FILES.map(({ path, description, content }) => ({
+  path: join(cwd, path), description, capture: { status: 'stored', attachment: {
     attachmentId: `sha256:${createHash('sha256').update(content).digest('hex')}`,
     name: path, bytes: Buffer.byteLength(content),
   } },
@@ -135,7 +135,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       .toEqual([join(cwd, 'report.txt'), join(cwd, '说明.txt')])
     for (const event of events) {
       if (event.type === 'deliverables/presented') {
-        expect(event.data.files).toEqual(DECLARATIONS)
+        expect(event.data.files).toEqual(declarationsAt(cwd))
       }
     }
     expect(events.some(event => event.type === 'tool/ptc-dispatch' && event.data.name === 'present' && event.data.isError)).toBe(true)
@@ -199,6 +199,31 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
         await page.waitForFunction(() => document.querySelector('[data-presented-files-row] button:disabled') === null)
         expect(await opened()).toHaveLength(count + 1)
         expect((await opened()).at(-1)).toEqual({ action: 'open', path: await realpath(join(cwd, name)), content: bytes })
+      }
+      const success = row.locator('[data-presented-file]').filter({ hasText: '说明.txt' }).locator('[data-success]')
+      await success.waitFor()
+      const animation = await success.evaluate((element) => {
+        const style = getComputedStyle(element)
+        const fade = element.getAnimations()[0]
+        if (fade === undefined) throw new Error('Successful file feedback has no fade animation')
+        // Seek the CSS animation so the 200 ms fade does not race the assertion.
+        fade.pause()
+        fade.currentTime = 5100
+        return {
+          delay: style.animationDelay, duration: style.animationDuration,
+          fill: style.animationFillMode, opacity: Number(getComputedStyle(element).opacity),
+        }
+      })
+      expect(animation.delay).toBe('5s')
+      expect(animation.duration).toBe('0.2s')
+      expect(animation.fill).toBe('forwards')
+      expect(animation.opacity).toBeGreaterThan(0)
+      expect(animation.opacity).toBeLessThan(1)
+      try {
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        expect(await success.evaluate(element => getComputedStyle(element).animationName)).toBe('none')
+      } finally {
+        await page.emulateMedia({ reducedMotion: 'no-preference' })
       }
       expect(downloads).toHaveLength(beforeDownloads)
       await downloadSavedCopies()
@@ -319,7 +344,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
     const declarations = exported.trim().split('\n').map(line => JSON.parse(line) as SessionEvent)
       .filter(event => event.type === 'deliverables/presented')
     expect(declarations).toHaveLength(1)
-    expect(declarations[0]!.data.files).toEqual(DECLARATIONS)
+    expect(declarations[0]!.data.files).toEqual(declarationsAt(cwd))
     for (const file of ORIGINAL_FILES) {
       const digest = createHash('sha256').update(file.content).digest('hex')
       expect(entries[`files/${digest.slice(0, 2)}/${digest}/${file.path}`]).toEqual(new Uint8Array(Buffer.from(file.content)))

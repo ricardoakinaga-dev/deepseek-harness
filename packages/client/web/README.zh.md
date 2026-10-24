@@ -25,7 +25,7 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
-组装浏览器应用时使用它：`apps/web` 的 Vite 入口对挂载点运行 `new AppWebEntry(container).run()`，启动页会在激活过程中向用户展示进度。普通浏览器调用方不传任何选项。默认使用预注入的页面传输，除非提供 `seams` 覆盖：当 `globalThis.__DSH_TRANSPORT__` 携带 `loadBundle` 时，模块阶段将其采纳为 bundle 传输并跳过 `immediately` 层级的 HTTP 预取，而显式 `seams` 仍然优先（例如外部 `<script>` 执行无法到达页面上下文的 jsdom 测试）。
+组装浏览器应用时使用它：`apps/web` 的 Vite 入口对挂载点运行 `new AppWebEntry(container).run()`，启动页会在激活过程中向用户展示进度。普通浏览器调用方不传任何选项。默认使用预注入的页面传输，除非提供 `seams` 覆盖：当 `globalThis.__DSH_TRANSPORT__` 携带 `loadBundle` 时，模块阶段将其采纳为 bundle 传输并跳过 `immediately` 层级的 HTTP 预取；携带 `resolveAsset` 时，模块阶段将其采纳为解析器，把每个 `require.asset` 包资源引用映射为页面可加载的 URL；而显式 `seams` 仍然优先（例如外部 `<script>` 执行无法到达页面上下文的 jsdom 测试）。
 
 已经拥有模块系统与 Cordis 根 Context 的嵌入方可以使用公开导出的 `bootClient`、`assertEntriesActive` 与 `mountClient`；完整的启动页载体仍使用 `AppWebEntry`。
 

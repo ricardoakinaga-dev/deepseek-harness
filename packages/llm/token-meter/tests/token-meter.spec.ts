@@ -143,8 +143,13 @@ describe('TokenMeter configuration and registration', () => {
     await ctx.plugin(SessionProjectionRegistry)
     const fiber = await ctx.plugin(TokenMeter)
     expect(ctx.get('tokenMeter')).toBeInstanceOf(TokenMeter)
+    const session = ctx.sessions.create()
+    expect(Object.keys(ctx.sessionProjections.checkpoint(session)).sort())
+      .toEqual(['contextBreakdown', 'contextPressure', 'tokenMeasurement', 'tokenUsage'])
     await fiber.dispose()
     expect(ctx.get('tokenMeter')).toBeUndefined()
+    expect(ctx.sessionProjections.checkpoint(session)).toEqual({})
+    await ctx.fiber.dispose()
   })
 })
 

@@ -14,8 +14,10 @@
     "apps/desktop/src/browser-guests.ts",
     "apps/desktop/src/ipc.ts",
     "apps/desktop/src/update-overlay.ts",
+    "apps/desktop/src/windows-layout.ts",
     "apps/desktop/tests/**/*.client.spec.tsx",
     "packages/client/*/src/css-modules.d.ts",
+    "packages/experimental/*/src/css-modules.d.ts",
     "packages/client/*/tests/**/*.ts",
     "packages/client/*/tests/**/*.tsx",
     "benchmarks/**/*.client.ts",
@@ -28,6 +30,7 @@
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
     "packages/client/tsdown.client.ts",
     "scripts/client-build-environment.ts",
+    "scripts/shipped-locales.ts",
     "scripts/bundle-input-isolation.ts",
     "scripts/experimental-package-policy.ts",
     "scripts/*.client.spec.ts",
@@ -35,9 +38,26 @@
     "scripts/client-bundle-purity.spec.ts"
   ],
   "exclude": [
-    "packages/client/*/tests/**/*.host.spec.ts"
+    "packages/client/*/tests/**/*.host.spec.ts",
+    "packages/client/*/tests/**/*.host.e2e.ts",
+    "packages/client/*/tests/**/*.host.ts"
   ],
   "references": [
+    {
+      "path": "./packages/experimental/client-ui-action-cards"
+    },
+    {
+      "path": "./packages/experimental/client-ui-creation-recommendations"
+    },
+    {
+      "path": "./packages/experimental/client-ui-plugin-recommendations"
+    },
+    {
+      "path": "./packages/client/ui-file-drag"
+    },
+    {
+      "path": "./packages/session/message-quotes"
+    },
     {
       "path": "./packages/experimental/client-ui-cot-translation/tsconfig.client.json"
     },
@@ -66,6 +86,12 @@
       "path": "./packages/ptc-runtime/ptc-runtime"
     },
     {
+      "path": "./packages/core/tool-executor-native"
+    },
+    {
+      "path": "./packages/core/tool-executor-ptc"
+    },
+    {
       "path": "./packages/client/ui-settings-account"
     },
     {
@@ -91,6 +117,9 @@
     },
     {
       "path": "./packages/experimental/inspector/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/experimental/liveshare-protocol/tsconfig.client.json"
     },
     {
       "path": "./packages/experimental/session-inspector"
@@ -133,6 +162,9 @@
     },
     {
       "path": "./packages/test-support/remote-mock"
+    },
+    {
+      "path": "./packages/test-support/tool-testkit"
     },
     {
       "path": "./packages/client/shortcuts/tsconfig.client.json"
@@ -198,6 +230,9 @@
       "path": "./packages/client/ui-sidebar-right"
     },
     {
+      "path": "./packages/client/ui-entry-customization"
+    },
+    {
       "path": "./packages/client/ui-sidebar-documentpreview/tsconfig.client.json"
     },
     {
@@ -228,6 +263,9 @@
       "path": "./packages/client/ui-model-selection"
     },
     {
+      "path": "./packages/client/ui-deepseek-model-label-1017"
+    },
+    {
       "path": "./packages/client/ui-agent-preset"
     },
     {
@@ -244,6 +282,9 @@
     },
     {
       "path": "./packages/client/ui-settings-agent-loop"
+    },
+    {
+      "path": "./packages/experimental/cua/tsconfig.client.json"
     },
     {
       "path": "./packages/client/ui-settings-session-log"
@@ -280,6 +321,9 @@
     },
     {
       "path": "./packages/client/ui-plugin-manager/tsconfig.client.json"
+    },
+    {
+      "path": "./packages/client/ui-plugin-market"
     },
     {
       "path": "./packages/client/ui-settings-plugin-inventory"

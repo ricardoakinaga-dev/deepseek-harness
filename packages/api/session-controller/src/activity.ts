@@ -76,4 +76,4 @@ export const sessionActivityProjectionDefinition = {
   },
   wire: { viewSchema: activitySchema, view: state => state.value },
   stateVersion: 1,
-} satisfies ProjectionDefinition<'sessionActivity'>
+} satisfies ProjectionDefinition<'sessionActivity', SessionActivityState>

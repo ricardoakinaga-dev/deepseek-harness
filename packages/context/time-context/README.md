@@ -77,6 +77,8 @@ The plugin prepends an `agent/pre-step` listener that delegates first and append
 
 ### Main flow
 
+The pre-step listener is installed before awaiting projection registration. Steps arriving during activation wait for the reader; registration failure or owner disposal stops the request, and cancellation while waiting produces no reading.
+
 When an injection is due, the plugin samples the wall clock, derives the browser-zone policy from the open turn's `user-rpc` messages, resolves the display zone (request-local or fallback), and renders the three-line reading. A host-only Session projection folds each durable event, retaining the latest reading and raw browser zones even when compaction shadows their messages. Its checkpoint fingerprint includes the Node, V8, ICU, CLDR, and time-zone database versions used by `Intl`, so a runtime change refolds the state from the log. A reading records an entered step, not a completed or transmitted request; a later preparation failure can leave it in history.
 
 </details>
@@ -134,6 +136,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 These limits define when clock context is a poor fit. They are current package constraints.
 
+- **State and replay cost** — timestamps and the current turn number have fixed size. Zone state grows with distinct reported strings in the latest entered turn, not all messages; each new distinct zone copies that list. Formatters remain discardable process caches. The standard AgentLoop requests its latest entered turn. If a typed pre-step caller requests another turn, the original full-prefix synchronous scan includes later entered messages. Retiring this fallback requires limiting pre-step requests to the latest entered turn and updating callers together.
 - **Prompt guidance only** — browser-zone context guides natural-language interpretation but does not silently supply another tool's required zone field.
 - **Mixed turns ask** — if one open turn contains prompts from different browser zones, the model is told to clarify rather than guess which one owns an unqualified time.
 - **Fallback is not user authority** — the configured or process zone formats the clock when current-turn browser zones are missing or mixed, but the model-facing policy still says to clarify.

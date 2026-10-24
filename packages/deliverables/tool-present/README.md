@@ -25,6 +25,8 @@ Use `present` to declare final files accessible through the Session filesystem, 
 <a id="use-this-package"></a>
 ## Use this package
 
+Shared output and file-link guidance comes from [`dsh-deliverable-file-references`](../deliverable-file-references/README.md), mounted separately by Web and SDK bundles.
+
 `present` validates paths against the Session's current working directory and records absolute paths, so later directory changes do not redirect delivered files.
 
 The `standard`, `ptc`, and `cordis` agent presets mount this plugin. Call `present` with `files: [{ path, description? }]` after creating the files. Files must be regular files accessible through the Session filesystem. Relative paths resolve against the Session working directory; absolute paths may name files outside it, including `/tmp` or Downloads. Missing files, directories, final symbolic links, and provider-denied paths fail the call. Files in a shell sandbox’s private `/tmp` must first be written somewhere the Session filesystem can access.
@@ -77,7 +79,7 @@ The optional `capture` field is absent in historical declarations; absence does 
 
 #### What the model sees
 
-The [present schema](../../../docs/tool-catalog.md#present) asks for existing accessible files: “Declare existing files as final deliverables for the user. Use it when the user needs a separate file, especially Office documents, spreadsheets, and slide decks; prefer your final response when that suffices. A saved copy preserves the presented bytes within the configured file-size limit; larger files are declared without a saved copy. The original path remains available for opening the current file.” The `files` parameter asks for the 1-2 most important deliverables and at most 4 per call. Captured files report `Presented <path>`. Oversized files report `Presented <path> (not saved: exceeds <maxBytes> bytes; keep the original file)`. The program result and durable event contain paths, optional descriptions, and capture outcomes.
+The [present schema](../../../docs/tool-catalog.md#present) asks for existing accessible files: “Declare existing files as final deliverables for the user. Hosts may show presented files only after your turn ends, so call it once the files are final. If the user needs to review files earlier, such as before a tool call that waits for their answer, link them in your message instead. Use it when the user needs a separate file, especially Office documents, spreadsheets, and slide decks; prefer your final response when that suffices. A saved copy preserves the presented bytes within the configured file-size limit; larger files are declared without a saved copy. The original path remains available for opening the current file.” The `files` parameter asks for the 1-2 most important deliverables and at most 4 per call. Captured files report `Presented <path>`. Oversized files report `Presented <path> (not saved: exceeds <maxBytes> bytes; keep the original file)`. The program result and durable event contain paths, optional descriptions, and capture outcomes.
 
 #### Token effect
 

@@ -1,0 +1,2 @@
+$ tsx scripts/run-oxlint.ts .
+packages/experimental/client-ui-cot-translation/src/index.ts:82:9: warning: Unused oxlint-disable directive (no problems were reported).

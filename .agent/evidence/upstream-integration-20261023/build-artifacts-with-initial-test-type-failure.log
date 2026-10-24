@@ -1,0 +1,33 @@
+$ tsx scripts/build.ts
+run-gates: build running 10 gate(s) with 4 worker(s) from $DSH_GATE_CONCURRENCY.
+run-gates: start native addon
+run-gates: start Host Typert
+run-gates: PASS native addon (1.35s)
+run-gates: PASS Host Typert (9.78s)
+run-gates: start host compiler
+run-gates: PASS host compiler (2.66s)
+run-gates: start Host bundle
+run-gates: start host aggregate check
+
+== FAILED host aggregate check (35.08s) ==
+command: tsc -p tsconfig.host.json
+outcome: exit 2
+packages/subagent/subagent/tests/continuation.spec.ts(3129,27): error TS2352: Conversion of type '{ version: "v2"; import(specifier: string): Promise<unknown>; }' to type 'NonNullable<ModuleLoader | undefined>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ version: "v2"; import(specifier: string): Promise<unknown>; }' is missing the following properties from type 'ModuleLoaderV2': loadCache, register, getOrCreateModuleJob, resolveSync, load
+run-gates: PASS Host bundle (45.00s)
+run-gates: start Desktop bundle
+run-gates: PASS Desktop bundle (10.32s)
+run-gates: start client compiler
+run-gates: PASS client compiler (2.13s)
+run-gates: start Client bundle
+run-gates: start client aggregate check
+run-gates: PASS client aggregate check (16.97s)
+run-gates: PASS Client bundle (34.46s)
+run-gates: start Web build
+run-gates: PASS Web build (12.92s)
+
+run-gates: 9 passed, 1 failed, 0 skipped in 117.27s.
+run-gates: unsuccessful gates:
+  - FAILED host aggregate check (35.08s, exit 2)
+    tsc -p tsconfig.host.json
+[ELIFECYCLE] Command failed with exit code 1.

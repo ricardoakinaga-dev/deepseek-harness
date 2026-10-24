@@ -85,7 +85,7 @@ function restoredPolicySession(ctx: Context, id: SessionId, events: readonly Ses
 }
 
 function foldedSandboxMode(ctx: Context, id: SessionId, events: readonly SessionEvent[]): unknown {
-  return ctx.sessionProjections.stateOf(restoredPolicySession(ctx, id, events), 'sandboxMode')
+  return ctx.sandboxPolicy.overrideOf(Session.create(id, events)) ?? null
 }
 
 function foldedApprovalPolicy(ctx: Context, id: SessionId, events: readonly SessionEvent[]): unknown {

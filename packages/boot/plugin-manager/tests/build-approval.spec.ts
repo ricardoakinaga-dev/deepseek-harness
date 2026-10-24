@@ -1,10 +1,10 @@
 /** Pending script permissions survive cleanup and preserve unrelated workspace settings. */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { expect, it, onTestFinished } from 'vitest'
 import { parse } from 'yaml'
-import { approveBuilds, ignoredBuildNames, recordPendingBuilds } from '../src/build-approval.ts'
+import { approveBuilds, blockedBuildNames, recordPendingBuilds } from '../src/build-approval.ts'
 
 function fixture(text?: string) {
   const dir = mkdtempSync(join(tmpdir(), 'build-approval-'))
@@ -28,7 +28,7 @@ it('records ignored build scripts from pnpm output without replacing existing de
   const { dir, filename } = fixture('nodeLinker: hoisted\nallowBuilds:\n  denied: false\n')
   const output = '│   Ignored build scripts: approval-fixture-addon@file:../../addon, @scope/native. │\n'
 
-  expect(ignoredBuildNames(output)).toEqual(['approval-fixture-addon@file:../../addon', '@scope/native'])
+  expect(blockedBuildNames(output)).toEqual(['approval-fixture-addon@file:../../addon', '@scope/native'])
   await recordPendingBuilds(dir, output)
   expect(await recordPendingBuilds(dir, '')).toEqual(['approval-fixture-addon@file:../../addon', '@scope/native'])
   expect(parse(readFileSync(filename, 'utf8'))).toMatchObject({
@@ -41,7 +41,7 @@ it('records ignored build scripts from pnpm output without replacing existing de
 })
 
 it('drops empty names from ignored-build diagnostics', () => {
-  expect(ignoredBuildNames('│ Ignored build scripts: , native, . │\n')).toEqual(['native'])
+  expect(blockedBuildNames('│ Ignored build scripts: , native, . │\n')).toEqual(['native'])
 })
 
 it.each(['missing', 'denied', '*', '--all'])('rejects an unlisted approval atomically: %s', async (name) => {
@@ -107,6 +107,40 @@ it('records the ignored build scripts a non-interactive run reported', async () 
   expect(await recordPendingBuilds(dir, output)).toEqual(['native@1.0.0', '@scope/other@file:../other'])
   await approveBuilds(dir, ['native@1.0.0'])
   expect(parse(readFileSync(filename, 'utf8'))).toMatchObject({ allowBuilds: { 'native@1.0.0': true } })
+})
+
+function gitPrepareRefusal(key: string, eol = '\n') {
+  return [
+    '[ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED] Failed to prepare git-hosted package fetched from "https://example.com/sidechat.git": The git-hosted package "@scope/sidechat@0.2.0" needs to execute build scripts but is not in the "allowBuilds" allowlist.',
+    '',
+    'Add the package to "allowBuilds" in your project\'s pnpm-workspace.yaml to allow it to run scripts. For example:',
+    'allowBuilds:',
+    `  ${key}: true`,
+    '',
+  ].join(eol)
+}
+
+it.each([
+  ['LF', '@scope/sidechat@git+https://example.com/sidechat.git#244b67419a80844f5fb1fd7971109b9c19a20b76', '\n'],
+  ['CRLF', '@scope/sidechat@git+https://example.com/sidechat.git#244b67419a80844f5fb1fd7971109b9c19a20b76', '\r\n'],
+  ['a subdirectory with a space', '@scope/sidechat@git+file:///repo#244b67419a80844f5fb1fd7971109b9c19a20b76&path:plugin folder', '\n'],
+  ['an SSH user name', '@scope/sidechat@git+ssh://git@example.com/sidechat.git#244b67419a80844f5fb1fd7971109b9c19a20b76', '\n'],
+])('records the allowBuilds key pnpm suggests for a git-hosted package it refused to prepare (%s)', async (_label, key, eol) => {
+  const { dir, filename } = fixture()
+  expect(await recordPendingBuilds(dir, gitPrepareRefusal(key, eol))).toEqual([key])
+  await approveBuilds(dir, [key])
+  expect(parse(readFileSync(filename, 'utf8'))).toMatchObject({ allowBuilds: { [key]: true } })
+})
+
+it.each([
+  '@scope/sidechat@git+https://user:token@example.com/sidechat.git#244b67419a80844f5fb1fd7971109b9c19a20b76',
+  '@scope/sidechat@git+http://token@example.com/sidechat.git#244b67419a80844f5fb1fd7971109b9c19a20b76',
+  '@scope/sidechat@git+ssh://git:secret@example.com/sidechat.git#244b67419a80844f5fb1fd7971109b9c19a20b76',
+])('does not record a git key that carries a credential: %s', async (key) => {
+  const { dir, filename } = fixture()
+  expect(await recordPendingBuilds(dir, gitPrepareRefusal(key))).toEqual([])
+  expect(await recordPendingBuilds(dir, `[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: ${key}\n`)).toEqual([])
+  expect(existsSync(filename)).toBe(false)
 })
 
 it.each([

@@ -1,13 +1,16 @@
 /**
  * Tests for the spill-policy PLUGIN. It registers no service, only the
  * `tools/post-execute` transformer. We drive real tools through
- * `ctx.tools.execute(...)` and assert: disabled mode is a true no-op, an
+ * `executeToolFixture(ctx, ...)` and assert: disabled mode is a true no-op, an
  * oversized plain-text result is spilled and replaced with a preview + locator,
  * a small result and a non-text result pass through, `read` is skipped, and a
  * `saveText` failure / missing backend / missing owner all preserve the original
  * result without an `isError`.
  */
+import { executeToolFixture, executeModelToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import * as PtcToolExecutor from '@deepseek-ai/dsh-tool-executor-ptc'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
@@ -18,7 +21,8 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime, { defineContentToolFixture, defineTool } from '@deepseek-ai/dsh-tools'
+import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineContentToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { PostToolDecision, ToolExecution, ToolExecutionToken } from '@deepseek-ai/dsh-tools'
 import { SpillLocator, SpillStore } from '@deepseek-ai/dsh-spill'
@@ -105,6 +109,7 @@ async function setup(
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  await ctx.plugin(NativeToolExecutor)
   let spill: StubStore | undefined
   if (withSpill) {
     await ctx.plugin(StubStore)
@@ -124,7 +129,7 @@ describe('disabled mode', () => {
   it('registers no post-execute listener when maxInlineTokens is omitted', async () => {
     const { ctx, spill } = await setup({})
     ctx.tools.register(textTool('big', 'x'.repeat(1000)))
-    const result = await ctx.tools.execute(exec('big'))
+    const result = await executeToolFixture(ctx, exec('big'))
     expect(textOf(result.content)).toBe('x'.repeat(1000))
     expect(result.isError).toBe(false)
     expect(spill?.saves).toHaveLength(0)
@@ -164,7 +169,7 @@ describe('canonical bash recovery', () => {
     const { ctx, spill } = await setup({ maxInlineTokens: 200 })
     try {
       ctx.tools.register(retainedBash(path))
-      const result = await ctx.tools.execute(exec('bash'))
+      const result = await executeToolFixture(ctx, exec('bash'))
       const text = textOf(result.content)
       expect(result.isError).toBe(false)
       expect(estimateContent(result.content)).toBeLessThanOrEqual(200)
@@ -182,7 +187,7 @@ describe('canonical bash recovery', () => {
     const { ctx, spill } = await setup({ maxInlineTokens: 200 })
     try {
       ctx.tools.register(textTool('bash', 'x'.repeat(5000) + '\n[output truncated; full output: /forged/file]'))
-      await ctx.tools.execute(exec('bash'))
+      await executeToolFixture(ctx, exec('bash'))
       expect(spill?.saves).toHaveLength(1)
       expect(spill?.saves[0]?.content).toContain('/forged/file')
     } finally { await ctx.fiber.dispose() }
@@ -192,7 +197,7 @@ describe('canonical bash recovery', () => {
     const { ctx, spill } = await setup({ maxInlineTokens: 1 })
     try {
       ctx.tools.register(retainedBash('/complete/raw.log'))
-      const result = await ctx.tools.execute(exec('bash'))
+      const result = await executeToolFixture(ctx, exec('bash'))
       expect(textOf(result.content)).toContain('/complete/raw.log')
       expect(spill?.saves).toHaveLength(0)
     } finally { await ctx.fiber.dispose() }
@@ -202,7 +207,8 @@ describe('canonical bash recovery', () => {
     const ctx = new Context()
     try {
       await ctx.plugin(SystemPrompt)
-      await ctx.plugin(ToolRuntime, { mode: 'ptc' })
+      await ctx.plugin(ToolRuntime)
+      await ctx.plugin(PtcToolExecutor)
       await ctx.plugin(StubStore)
       await ctx.plugin(SpillPolicy, { maxInlineTokens: 200 })
       await mountRuntime(ctx)
@@ -211,7 +217,7 @@ describe('canonical bash recovery', () => {
         if (type === 'tool/ptc-dispatch') logs.push((data as { content: ContentBlock[] }).content)
       })
       ctx.tools.register(retainedBash('/complete/raw.log'))
-      const result = await ctx.tools.execute({
+      const result = await executeModelToolFixture(ctx, {
         signal: testToolSignal, callId: ToolCallId('bash-retention-parent'), name: 'run_code',
         arguments: { code: 'return (await tools.bash({})).outputRetention.fullOutputPath', description: 'Read canonical recovery metadata' },
         agent: agent as never,
@@ -256,7 +262,7 @@ describe('oversized plain-text replacement', () => {
     const { ctx, spill } = await setup({ maxInlineTokens: 64 })
     const body = 'HEAD'.repeat(200) + 'TAIL'.repeat(200) // 1600 bytes > 200
     ctx.tools.register(textTool('big', body))
-    const result = await ctx.tools.execute(exec('big'))
+    const result = await executeToolFixture(ctx, exec('big'))
 
     expect(result.isError).toBe(false)
     expect(spill?.saves).toHaveLength(1)
@@ -284,7 +290,7 @@ describe('oversized plain-text replacement', () => {
     const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
     const body = 'xxxxx' // 5 bytes > 4, but far shorter than the notice
     ctx.tools.register(textTool('big', body))
-    const result = await ctx.tools.execute(exec('big'))
+    const result = await executeToolFixture(ctx, exec('big'))
     expect(textOf(result.content)).toBe(body)
     expect(warn).toHaveBeenCalled()
   })
@@ -292,7 +298,7 @@ describe('oversized plain-text replacement', () => {
   it('leaves a small plain-text result unchanged', async () => {
     const { ctx, spill } = await setup({ maxInlineTokens: 1000 })
     ctx.tools.register(textTool('small', 'tiny'))
-    const result = await ctx.tools.execute(exec('small'))
+    const result = await executeToolFixture(ctx, exec('small'))
     expect(textOf(result.content)).toBe('tiny')
     expect(spill?.saves).toHaveLength(0)
   })
@@ -307,7 +313,7 @@ describe('oversized plain-text replacement', () => {
         return [{ type: 'text', text: 'x'.repeat(100) }, { type: 'reasoning', text: 'why' }]
       },
     }))
-    const result = await ctx.tools.execute(exec('mixed'))
+    const result = await executeToolFixture(ctx, exec('mixed'))
     expect(spill?.saves).toHaveLength(0)
     expect(result.content).toHaveLength(2)
   })
@@ -317,14 +323,15 @@ describe('outer PTC mode failure capture', () => {
   it('spills the bounded output-limit diagnostic through the ordinary outer-result policy', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
-    await ctx.plugin(ToolRuntime, { mode: 'ptc' })
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(PtcToolExecutor)
     await ctx.plugin(StubStore)
     await ctx.plugin(SpillPolicy, { maxInlineTokens: 64 })
     await mountRuntime(ctx, { maxOutputBytes: 500 })
     const events: unknown[] = []
     const agent = observedAgent(ctx, 'code-spill', (_type: string, data: unknown) => { events.push(data) })
 
-    const result = await ctx.tools.execute({
+    const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('code-output-limit'),
       name: 'run_code',
@@ -350,7 +357,7 @@ describe('read skip', () => {
   it('never spills the read tool result (avoids a read → spill → read loop)', async () => {
     const { ctx, spill } = await setup({ maxInlineTokens: 10 })
     ctx.tools.register(textTool('read', 'x'.repeat(1000)))
-    const result = await ctx.tools.execute(exec('read'))
+    const result = await executeToolFixture(ctx, exec('read'))
     expect(textOf(result.content)).toBe('x'.repeat(1000))
     expect(spill?.saves).toHaveLength(0)
   })
@@ -361,7 +368,8 @@ describe('the durable dispatch-log arm', () => {
   async function runCodeWith(program: string, maxInlineTokens: number, extraTools: ToolDefinition[] = []) {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
-    await ctx.plugin(ToolRuntime, { mode: 'ptc' })
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(PtcToolExecutor)
     await ctx.plugin(StubStore)
     await ctx.plugin(SpillPolicy, { maxInlineTokens })
     await mountRuntime(ctx, {})
@@ -370,7 +378,7 @@ describe('the durable dispatch-log arm', () => {
     ctx.tools.register(textTool('huge_read', 'H'.repeat(2_000)))
     ctx.tools.register(textTool('small_read', 'tiny'))
     for (const tool of extraTools) ctx.tools.register(tool)
-    const result = await ctx.tools.execute({
+    const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('parent-1'),
       name: 'run_code',
@@ -430,7 +438,8 @@ describe('the durable dispatch-log arm', () => {
   it('a slow spill backend never delays the program value or a later dispatch slot', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
-    await ctx.plugin(ToolRuntime, { mode: 'ptc' })
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(PtcToolExecutor)
     await ctx.plugin(StubStore)
     await ctx.plugin(SpillPolicy, { maxInlineTokens: 40 })
     await mountRuntime(ctx, {})
@@ -451,7 +460,7 @@ describe('the durable dispatch-log arm', () => {
     })
     ctx.tools.register(textTool('huge_read', 'H'.repeat(2_000)))
     ctx.tools.register(textTool('small_read', 'tiny'))
-    const runPromise = ctx.tools.execute({
+    const runPromise = executeModelToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('parent-3'),
       name: 'run_code',
@@ -483,7 +492,8 @@ describe('the durable dispatch-log arm', () => {
   it('a sustained slow backend backpressures the run instead of accumulating unbounded log tasks', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
-    await ctx.plugin(ToolRuntime, { mode: 'ptc', maxParallelSubCalls: 1 })
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(PtcToolExecutor, { maxParallelSubCalls: 1 })
     await ctx.plugin(StubStore)
     await ctx.plugin(SpillPolicy, { maxInlineTokens: 40 })
     await mountRuntime(ctx, {})
@@ -513,7 +523,7 @@ describe('the durable dispatch-log arm', () => {
     ctx.tools.register(textTool('huge_read', 'H'.repeat(2_000)))
     const started = (n: number): boolean => events.some(event => event.type === 'tool/ptc-dispatch-start'
       && (event.data as { subCallId: string }).subCallId.endsWith(`:ptc:${n}`))
-    const runPromise = ctx.tools.execute({
+    const runPromise = executeModelToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('parent-bound'),
       name: 'run_code',
@@ -550,7 +560,8 @@ describe('the durable dispatch-log arm', () => {
   it('a saveText failure keeps the complete content in the durable log (best-effort)', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
-    await ctx.plugin(ToolRuntime, { mode: 'ptc' })
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(PtcToolExecutor)
     await ctx.plugin(StubStore)
     await ctx.plugin(SpillPolicy, { maxInlineTokens: 40 })
     await mountRuntime(ctx, {})
@@ -559,7 +570,7 @@ describe('the durable dispatch-log arm', () => {
     const events: { type: string; data: unknown }[] = []
     const agent = observedAgent(ctx, 'dispatch-spill-fail', (type: string, data: unknown) => { events.push({ type, data }) })
     ctx.tools.register(textTool('huge_read', 'H'.repeat(2_000)))
-    const result = await ctx.tools.execute({
+    const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('parent-2'),
       name: 'run_code',
@@ -582,7 +593,7 @@ describe('nested-call skip', () => {
       ...exec('nested'),
       parent: Symbol('outer') as ToolExecutionToken,
     }
-    const result = await ctx.tools.execute(nested)
+    const result = await executeToolFixture(ctx, nested)
     expect(textOf(result.content)).toBe(body)
     expect(spill?.saves).toHaveLength(0)
   })
@@ -594,7 +605,7 @@ describe('best-effort fallback', () => {
     spill!.fail = true
     const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
     ctx.tools.register(textTool('big', 'x'.repeat(1000)))
-    const result = await ctx.tools.execute(exec('big'))
+    const result = await executeToolFixture(ctx, exec('big'))
     expect(textOf(result.content)).toBe('x'.repeat(1000))
     expect(result.isError).toBe(false)
     expect(warn).toHaveBeenCalled()
@@ -604,7 +615,7 @@ describe('best-effort fallback', () => {
     const { ctx } = await setup({ maxInlineTokens: 10 }, false)
     const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
     ctx.tools.register(textTool('big', 'x'.repeat(1000)))
-    const result = await ctx.tools.execute(exec('big'))
+    const result = await executeToolFixture(ctx, exec('big'))
     expect(textOf(result.content)).toBe('x'.repeat(1000))
     expect(warn).toHaveBeenCalled()
   })
@@ -613,7 +624,7 @@ describe('best-effort fallback', () => {
     const { ctx, spill } = await setup({ maxInlineTokens: 10 })
     const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
     ctx.tools.register(textTool('big', 'x'.repeat(1000)))
-    const result = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('c'), name: 'big', arguments: {} })
+    const result = await executeToolFixture(ctx, { signal: testToolSignal, callId: ToolCallId('c'), name: 'big', arguments: {} })
     expect(textOf(result.content)).toBe('x'.repeat(1000))
     expect(spill?.saves).toHaveLength(0)
     expect(warn).toHaveBeenCalled()
@@ -634,7 +645,7 @@ describe('composition', () => {
     })
     ctx.tools.register(textTool('search', 'initial capped page'))
 
-    const result = await ctx.tools.execute(exec('search'))
+    const result = await executeToolFixture(ctx, exec('search'))
 
     expect(downstreamDecision).toEqual({ kind: 'accept' })
     expect(spill?.saves[0]?.content).toContain('Full canonical result stored at /spill/search-results.txt.')
@@ -648,7 +659,7 @@ describe('composition', () => {
     ctx.on('tools/post-execute', async (_e, _r, _next) =>
       ({ kind: 'accept', content: [{ type: 'text', text: 'z'.repeat(500) }] }))
     ctx.tools.register(textTool('small', 'tiny'))
-    const result = await ctx.tools.execute(exec('small'))
+    const result = await executeToolFixture(ctx, exec('small'))
     expect(spill?.saves[0]?.content).toBe('z'.repeat(500))
     expect(textOf(result.content)).toContain('Full formatted result stored at')
   })
@@ -662,7 +673,7 @@ describe('composition', () => {
     ctx.on('tools/post-execute', async (_e, _r, _next) =>
       ({ kind: 'accept', additionalContexts: [context] }))
     ctx.tools.register(textTool('big', 'x'.repeat(1000)))
-    const result = await ctx.tools.execute(exec('big'))
+    const result = await executeToolFixture(ctx, exec('big'))
     expect(textOf(result.content)).toContain('Full formatted result stored at')
     expect(result.additionalContexts).toEqual([context])
   })
@@ -673,7 +684,7 @@ describe('composition', () => {
     ctx.on('tools/post-execute', async () => ({ kind: 'accept' as const, value: replacement }))
     ctx.tools.register(textTool('small', 'tiny'))
 
-    const result = await ctx.tools.execute(exec('small'))
+    const result = await executeToolFixture(ctx, exec('small'))
 
     expect(result.isError).toBe(false)
     if (result.isError) throw new Error('expected replacement success')
@@ -692,7 +703,7 @@ describe('cap invariant', () => {
     const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
     const body = 'x'.repeat(5000)
     ctx.tools.register(textTool('big', body))
-    const result = await ctx.tools.execute(exec('big'))
+    const result = await executeToolFixture(ctx, exec('big'))
     expect(textOf(result.content)).toBe(body)
     expect(warn).toHaveBeenCalled()
   })
@@ -705,14 +716,14 @@ describe('disposal (HMR safety)', () => {
     ctx.tools.register(textTool('big', body))
 
     // Live: the listener spills and replaces.
-    const before = await ctx.tools.execute(exec('big'))
+    const before = await executeToolFixture(ctx, exec('big'))
     expect(textOf(before.content)).toContain('Full formatted result stored at')
     expect(spill?.saves).toHaveLength(1)
 
     // After disposal the listener is gone — the result passes through untouched
     // and nothing more is spilled (no leaked registration across reload).
     await fiber.dispose()
-    const after = await ctx.tools.execute(exec('big'))
+    const after = await executeToolFixture(ctx, exec('big'))
     expect(textOf(after.content)).toBe(body)
     expect(spill?.saves).toHaveLength(1)
   })

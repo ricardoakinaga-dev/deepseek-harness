@@ -13,9 +13,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import { afterAll, beforeAll, expect, it, onTestFinished, vi } from 'vitest'
 import {
   boot, composeEntries, initProfile, loadProfileDirectory, readProfilePatches, readProfileManifest,
-  reconcileProfilePatches, OPTIONAL_BUNDLES, OFFICIAL_ON_DEMAND_CATALOG, PluginPackages, readPluginMeta, getDshRuntimeVersion,
+  reconcileProfilePatches, PluginPackages, readPluginMeta, getDshRuntimeVersion,
   type ProfileContext, type RuntimeResolution,
 } from '@deepseek-ai/dsh-app-boot'
+import { OPTIONAL_BUNDLES, OFFICIAL_ON_DEMAND_CATALOG } from '@deepseek-ai/dsh-official-bundles'
 import PluginManager, { type Config, type PluginChange, type PluginInstallLogChunk, type PluginInstallProgress, type PluginInstallRequestId } from '../src/index.ts'
 import Hmr from '@deepseek-ai/dsh-hmr'
 import Timer from '@deepseek-ai/cordis-plugin-timer'
@@ -25,9 +26,11 @@ import AgentPreset from '@deepseek-ai/dsh-agent-preset'
 import AgentPresetRegistry from '@deepseek-ai/dsh-agent-preset-registry'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionStore from '@deepseek-ai/dsh-session'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import * as operations from '../src/operations.ts'
 import * as githubConnection from '../src/github-connection.ts'
+import * as gitTransport from '../src/git-transport.ts'
 import { parse, parseDocument } from 'yaml'
 import { isolateGitCommandLineConfig } from './git-environment.ts'
 
@@ -119,8 +122,9 @@ async function presetFixture(reload: 'live' | 'startup' = 'live', selector = fal
   })
   const loader = vi.spyOn(ModuleLoader, 'fromInternal').mockReturnValue({ ...internal, import: importModule })
   onTestFinished(() => { loader.mockRestore() })
-  return fixture(reload, false, (ctx) => {
+  const result = await fixture(reload, false, (ctx) => {
     ctx.loader.builtins.sessions = SessionStore
+    ctx.loader.builtins.agents = AgentRegistry
     ctx.loader.builtins.projections = SessionProjectionRegistry
     ctx.loader.builtins.presets = AgentPresetRegistry
     ctx.loader.builtins.group = Group
@@ -137,17 +141,23 @@ async function presetFixture(reload: 'live' | 'startup' = 'live', selector = fal
     writeFileSync(join(dir, 'node_modules', 'extra', 'cordis.patch.yml'), JSON.stringify([{ insert: [
       { id: 'sessions', name: 'cordis:sessions' },
       { id: 'projections', name: 'cordis:projections' },
+      { id: 'agents', name: 'cordis:agents' },
       { id: 'presets', name: 'cordis:presets', config: { default: 'standard' } },
       ...['standard', 'creator'].map(id => ({ id: `preset-${id}`, name: '@deepseek-ai/dsh-agent-preset', config: { id, plugins } })),
     ] }]))
     if (selector) writeFileSync(join(dir, 'cordis.patch.yml'), '# saved toggle\n- preset: standard\n  id: tool\n  disabled: true\n')
   })
+  return {
+    ...result,
+    probeModule: pathToFileURL(join(result.dir, 'node_modules', 'extra', 'preset-probe.mjs')).href,
+    brokenModule: pathToFileURL(join(result.dir, 'missing-preset-plugin.mjs')).href,
+  }
 }
 
 it('applies sparse preset toggles at boot and HMR while existing agent scopes retain their revision', async () => {
-  const { ctx, manager, profile } = await presetFixture('live', true)
+  const { ctx, manager, profile, probeModule } = await presetFixture('live', true)
   expect((await ctx.agentPresets.compositionInventory()).find(row => row.id === 'standard')?.rows.find(row => row.entryId === 'tool')?.enabled).toBe(false)
-  expect(await manager.listPresetPlugins()).toContainEqual({ presetId: 'standard', rowId: 'nested', moduleName: expect.stringContaining('preset-probe.mjs') })
+  expect(await manager.listPresetPlugins()).toContainEqual({ presetId: 'standard', rowId: 'nested', moduleName: probeModule })
   const existing = createScope(ctx, {})
   onTestFinished(() => existing.dispose())
   await ctx.agentPresets.mount(existing.ctx, 'creator')
@@ -161,8 +171,8 @@ it('applies sparse preset toggles at boot and HMR while existing agent scopes re
   expect(ctx.agentPresets.inspectCompositions(existing.ctx)[0]?.modules).toHaveLength(2)
   expect(parse(readFileSync(profile.patchPath, 'utf8'))).toEqual([
     { preset: 'standard', id: 'tool', disabled: true },
-    { preset: 'creator', id: 'tool', name: expect.stringContaining('preset-probe.mjs'), disabled: true },
-    { preset: 'creator', id: 'nested', name: expect.stringContaining('preset-probe.mjs'), disabled: true },
+    { preset: 'creator', id: 'tool', name: probeModule, disabled: true },
+    { preset: 'creator', id: 'nested', name: probeModule, disabled: true },
   ])
   expect(await manager.setPresetPluginEnabled('creator', 'tool', false)).toMatchObject({ changed: false, application: 'applied' })
   expect(await manager.setPresetPluginEnabled('creator', 'tool', true)).toMatchObject({ changed: true, application: 'applied' })
@@ -170,11 +180,11 @@ it('applies sparse preset toggles at boot and HMR while existing agent scopes re
 })
 
 it('lists and refuses protected, unnamed and ambiguous preset targets without persisting changes', async () => {
-  const { manager, profile } = await presetFixture('live', false, true)
+  const { manager, profile, probeModule } = await presetFixture('live', false, true)
   expect(await manager.listPresetPlugins()).toEqual(expect.arrayContaining([
     { presetId: 'standard', rowId: 'protected', moduleName: '@deepseek-ai/dsh-plugin-manager', readOnlyReason: 'management-required' },
-    { presetId: 'standard', rowId: null, moduleName: expect.any(String), readOnlyReason: 'unaddressable' },
-    { presetId: 'standard', rowId: 'duplicate', moduleName: expect.any(String), readOnlyReason: 'unaddressable' },
+    { presetId: 'standard', rowId: null, moduleName: probeModule, readOnlyReason: 'unaddressable' },
+    { presetId: 'standard', rowId: 'duplicate', moduleName: probeModule, readOnlyReason: 'unaddressable' },
   ]))
   const before = readFileSync(profile.patchPath, 'utf8')
   for (const [preset, row, code] of [
@@ -229,9 +239,9 @@ it.each(['home', 'overlay'])('locks preset targets introduced only by a later %s
 })
 
 it('reports a failed preset activation with its saved selector and allows disabling that child again', async () => {
-  const { manager, profile, ctx } = await presetFixture()
+  const { manager, profile, ctx, brokenModule } = await presetFixture()
   expect(await manager.setPresetPluginEnabled('standard', 'broken', true)).toMatchObject({ changed: true, application: 'failed', error: { code: 'operation-error' } })
-  expect(parse(readFileSync(profile.patchPath, 'utf8'))).toContainEqual({ preset: 'standard', id: 'broken', name: expect.stringContaining('missing-preset-plugin.mjs'), disabled: false })
+  expect(parse(readFileSync(profile.patchPath, 'utf8'))).toContainEqual({ preset: 'standard', id: 'broken', name: brokenModule, disabled: false })
   expect(await manager.setPresetPluginEnabled('standard', 'broken', false)).toMatchObject({ changed: true, application: 'applied' })
   expect((await ctx.agentPresets.resolve('standard')).broken).toBeUndefined()
 })
@@ -278,6 +288,47 @@ it('cancels an active GitHub check before starting pnpm', async () => {
   onTestFinished(() => { pnpm.mockRestore() })
   const requestId = '824103ec-bc45-489d-bb85-5b4fe0aefc78' as PluginInstallRequestId
   const installing = manager.installBundle('github:acme/dsh-plugin', { requestId })
+  await entered.promise
+  expect(await manager.cancelInstall(requestId)).toEqual({ status: 'cancelled' })
+  expect(await installing).toMatchObject({ application: 'cancelled', changed: false })
+  expect(pnpm).not.toHaveBeenCalled()
+})
+
+it('installs the spec the Git transport probe chooses with the profile Git environment and deadline', async () => {
+  const env = { GIT_CONFIG_GLOBAL: '/application/git.config' }
+  const { manager, dir } = await fixture('live', false, undefined, { gitTransportTimeoutMs: 7000 }, { command: 'pnpm', args: [], env })
+  const spec = 'git+https://git.example/team/sub/plugin.git#main'
+  const transport = vi.spyOn(gitTransport, 'chooseGitTransport').mockResolvedValue('git+ssh://git@git.example/team/sub/plugin.git#main')
+  const pnpm = vi.spyOn(operations, 'runProfilePnpm').mockResolvedValue({ exitCode: 1, output: 'stop', truncated: false, logPath: 'pnpm.log', kind: 'unknown' })
+  onTestFinished(() => { transport.mockRestore(); pnpm.mockRestore() })
+  expect((await manager.installBundle(spec)).application).toBe('failed')
+  expect(transport).toHaveBeenCalledWith(expect.objectContaining({ kind: 'git', spec }), dir, expect.objectContaining({ timeoutMs: 7000, env }))
+  expect(pnpm.mock.calls[0]?.[1]).toEqual(['add', 'git+ssh://git@git.example/team/sub/plugin.git#main'])
+})
+
+it('attributes a failure to the host of the SSH spec the probe chose, which carries no HTTPS port', async () => {
+  const { manager } = await fixture()
+  const transport = vi.spyOn(gitTransport, 'chooseGitTransport').mockResolvedValue('git+ssh://git@git.example/team/plugin.git#main')
+  const pnpm = vi.spyOn(operations, 'runProfilePnpm').mockResolvedValue({
+    exitCode: 1, output: 'ssh: Could not resolve hostname git.example: nodename nor servname provided', truncated: false, logPath: 'pnpm.log',
+  })
+  onTestFinished(() => { transport.mockRestore(); pnpm.mockRestore() })
+  expect(await manager.installBundle('git+https://git.example:8443/team/plugin.git#main')).toMatchObject({ application: 'failed', failedAt: 'spec-host' })
+  expect(pnpm).toHaveBeenCalledOnce()
+})
+
+it('cancels an active Git transport probe before starting pnpm', async () => {
+  const { manager } = await fixture()
+  const entered = Promise.withResolvers<undefined>()
+  const transport = vi.spyOn(gitTransport, 'chooseGitTransport').mockImplementation(async (spec, _dir, options) => {
+    entered.resolve(undefined)
+    await new Promise<void>((resolve) => { options.signal.addEventListener('abort', () => { resolve() }, { once: true }) })
+    return spec.spec
+  })
+  const pnpm = vi.spyOn(operations, 'runProfilePnpm')
+  onTestFinished(() => { transport.mockRestore(); pnpm.mockRestore() })
+  const requestId = '5f0c1f8e-3f5e-4a59-9a43-1d0c5c3f7a21' as PluginInstallRequestId
+  const installing = manager.installBundle('git+https://git.example/team/plugin.git', { requestId })
   await entered.promise
   expect(await manager.cancelInstall(requestId)).toEqual({ status: 'cancelled' })
   expect(await installing).toMatchObject({ application: 'cancelled', changed: false })
@@ -449,12 +500,12 @@ it('lists bundle versions and current-profile plugin targets', async () => {
   expect(plugins.find(row => row.entryId === 'include:manager')?.readOnlyReason).toBe('management-required')
   expect((await manager.listBundles()).filter(bundle => bundle.installTarget === undefined)).toEqual([
     {
-      name: 'core', version: '1.0.0', enabled: true, installed: false, official: false, availability: 'profile', optional: false, removable: false, readOnlyReason: 'management-required',
+      name: 'core', version: '1.0.0', enabled: true, installed: false, official: false, availability: 'profile', optional: false, removable: false, updatable: false, readOnlyReason: 'management-required',
       meta: { title: 'core' },
       rows: [{ rowId: 'manager', moduleName: 'cordis:manager', entryId: 'include:manager' }], overrides: [],
     },
     {
-      name: 'extra', version: '1.0.0', source: 'extra@1.0.0', enabled: true, installed: true, official: false, availability: 'profile', optional: false, removable: true,
+      name: 'extra', version: '1.0.0', source: 'extra@1.0.0', enabled: true, installed: true, official: false, availability: 'profile', optional: false, removable: true, updatable: true,
       meta: { title: 'extra' },
       rows: [{ rowId: 'managed', moduleName: pathToFileURL(join(dir, 'node_modules', 'extra', 'plugin.mjs')).href, entryId: 'include:managed' }], overrides: [],
     },
@@ -476,7 +527,7 @@ it('describes a bundle by its manifest and patch: one-liner, rows without a live
   writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
   const moduleName = pathToFileURL(join(dir, 'node_modules', 'described', 'plugin.mjs')).href
   expect((await manager.listBundles()).find(row => row.name === 'described')).toEqual({
-    name: 'described', version: '2.0.0', description: 'Describes itself.', source: 'described@2.0.0', enabled: false, installed: true, official: false, availability: 'profile', optional: false, removable: true,
+    name: 'described', version: '2.0.0', description: 'Describes itself.', source: 'described@2.0.0', enabled: false, installed: true, official: false, availability: 'profile', optional: false, removable: true, updatable: true,
     meta: { title: 'described', description: 'Describes itself.' },
     rows: [{ rowId: 'described-row', moduleName }], overrides: ['managed'],
   })
@@ -487,6 +538,25 @@ it('describes a bundle by its manifest and patch: one-liner, rows without a live
   // Off again, the rows lose their entries.
   await manager.setBundleEnabled('described', false)
   expect((await manager.listBundles()).find(row => row.name === 'described')?.rows).toEqual([{ rowId: 'described-row', moduleName }])
+})
+
+it('projects each bundle\'s default GUI listing without changing its selection, and reports invalid declarations', async () => {
+  const { manager, dir } = await fixture()
+  const path = join(dir, 'node_modules', 'extra', 'package.json')
+  const manifest = JSON.parse(readFileSync(path, 'utf8')) as { dsh: { bundle: { patch: string; listedByDefault?: boolean | string } } }
+  for (const listedByDefault of [false, true, undefined]) {
+    if (listedByDefault === undefined) delete manifest.dsh.bundle.listedByDefault
+    else manifest.dsh.bundle.listedByDefault = listedByDefault
+    writeFileSync(path, JSON.stringify(manifest))
+    const entry = (await manager.listBundles()).find(row => row.name === 'extra')
+    expect(entry?.listedByDefault).toBe(listedByDefault)
+    expect(entry?.enabled).toBe(true)
+    expect(entry?.error).toBeUndefined()
+  }
+  manifest.dsh.bundle.listedByDefault = 'hidden'
+  writeFileSync(path, JSON.stringify(manifest))
+  expect((await manager.listBundles()).find(row => row.name === 'extra')).toMatchObject({ enabled: true,
+    error: { diagnostic: 'dsh.bundle.listedByDefault must be a boolean' } })
 })
 
 it('names where each installed bundle comes from as a spec pnpm installs', async () => {
@@ -600,7 +670,7 @@ it.each([
   writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
 
   expect((await manager.listBundles()).find(row => row.name === 'unnamed')).toEqual({
-    name: 'unnamed', version: '1.0.0', source: 'unnamed@1.0.0', enabled: false, installed: true, official: false, availability: 'profile', optional: false, removable: true,
+    name: 'unnamed', version: '1.0.0', source: 'unnamed@1.0.0', enabled: false, installed: true, official: false, availability: 'profile', optional: false, removable: true, updatable: true,
     rows: [], overrides: [], ...expected,
   })
 })
@@ -845,6 +915,38 @@ it('denies unconfigured sources and refuses untrusted or unverifiable publishers
   expect(await manager.inspect(scoped)).toEqual({
     status: 'refused', problem: 'invalid-spec', reason: 'bundle "@scope/no-publisher" publisher "@scope" is not allowlisted',
   })
+})
+
+it('offers approval for a real git-hosted package pnpm refused to prepare', async () => {
+  // Both the fixture's Git and the manager's pnpm child read only this empty configuration.
+  const env = { GIT_CONFIG_GLOBAL: '', GIT_CONFIG_NOSYSTEM: '1' }
+  const pnpm = fileURLToPath(new URL('../../../../apps/desktop/node_modules/pnpm/bin/pnpm.mjs', import.meta.url))
+  const { manager, dir, profile } = await fixture('startup', false, undefined, {}, { command: process.execPath, args: ['--expose-internals', pnpm], env })
+  const repository = join(profile.cwd, 'repository')
+  mkdirSync(repository)
+  env.GIT_CONFIG_GLOBAL = join(profile.cwd, 'git.config')
+  writeFileSync(env.GIT_CONFIG_GLOBAL, '')
+  const git = (args: string[]) => execa('git', args, { cwd: repository, env })
+  await git(['init', '--initial-branch=main'])
+  writeFileSync(join(repository, 'package.json'), JSON.stringify({ name: '@test/git-prepared', version: '1.0.0',
+    scripts: { prepare: 'node build.cjs' }, dsh: { bundle: { patch: './cordis.patch.yml', publisher: 'test' } } }))
+  writeFileSync(join(repository, 'build.cjs'), 'require("node:fs").writeFileSync("built.txt", "built")\n')
+  writeFileSync(join(repository, 'cordis.patch.yml'), '[]\n')
+  await git(['add', '.'])
+  await git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-m', 'fixture bundle'])
+  writeFileSync(join(dir, 'package.json'), '{"name":"git-approval-fixture","private":true}\n')
+  const policy = parseDocument(readFileSync(join(dir, 'pnpm-workspace.yaml'), 'utf8'))
+  policy.set('storeDir', join(profile.cwd, 'store'))
+  writeFileSync(join(dir, 'pnpm-workspace.yaml'), String(policy))
+  const spec = `git+${pathToFileURL(repository).href}`
+  const blocked = await manager.installBundle(spec, { enabled: false })
+  expect(blocked, JSON.stringify(blocked)).toMatchObject({ application: 'failed', packageResult: { kind: 'build-blocked' } })
+  expect(blocked.pendingBuilds).toEqual([expect.stringMatching(/^@test\/git-prepared@git\+file:.*#[0-9a-f]{40}$/)])
+  const built = join(dir, 'node_modules', '@test', 'git-prepared', 'built.txt')
+  expect(existsSync(built)).toBe(false)
+  const allowed = await manager.installBundle(spec, { enabled: false, approvedBuilds: blocked.pendingBuilds! })
+  expect(allowed, JSON.stringify(allowed)).toMatchObject({ application: 'restart-required', packageResult: { exitCode: 0 } })
+  expect(readFileSync(built, 'utf8')).toBe('built')
 })
 
 it.each(['[', 'allowBuilds: false\n'])('preserves pnpm diagnostics when pending approvals cannot be read: %s', async (policy) => {
@@ -1105,6 +1207,10 @@ it('refuses to install over an installed package, by name, version or local dire
   expect(await manager.installBundle(join(dir, '..', 'extra-1.0.0.tgz'), { approvedBuilds: ['native-provider'] }))
     .toMatchObject({ application: 'failed', changed: false, error: { code: 'already-installed' } })
   expect(existsSync(workspace) ? readFileSync(workspace, 'utf8') : undefined).toBe(settings)
+  // A self-hosted HTTPS Git spec matches the SSH form an earlier installation saved.
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ ...manifest, dependencies: { extra: 'git+ssh://git@git.example/team/sub/extra.git#main' } }))
+  expect(await manager.installBundle('git+https://git.example/team/sub/extra.git#main'))
+    .toMatchObject({ application: 'failed', changed: false, error: { code: 'already-installed' } })
   writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
   expect(install).not.toHaveBeenCalled()
   expect(readProfileManifest('test', dir).dependencies).toEqual({ extra: '1.0.0' })
@@ -1317,11 +1423,11 @@ it('reads what a spec names before installing it', async () => {
   expect(await manager.inspect('dsh-x')).toEqual({
     status: 'accepted', kind: 'registry', name: 'dsh-x', version: '1.4.2', description: 'A sidebar.', bundle: true, registry: null,
   })
-  expect(view).toHaveBeenCalledWith(dir, 'dsh-x', { command: 'pnpm-test', timeoutMs: 1000, registry: null })
+  expect(view).toHaveBeenCalledWith(dir, 'dsh-x', { command: 'pnpm-test', fields: ['name', 'version', 'description', 'author', 'dsh'], timeoutMs: 1000, registry: null })
   const signal = AbortSignal.abort()
   answers(JSON.stringify([{ name: 'dsh-lib', version: '1.0.0', dsh: { bundle: {} } }, { name: 'dsh-lib', version: '1.1.0', dsh: null }]))
   expect(await manager.inspect('dsh-lib@^1', undefined, signal)).toEqual({ status: 'refused', problem: 'not-a-bundle', reason: 'dsh-lib declares no dsh.bundle', registries: [null] })
-  expect(view).toHaveBeenLastCalledWith(dir, 'dsh-lib@^1', { command: 'pnpm-test', timeoutMs: 1000, signal, registry: null })
+  expect(view).toHaveBeenLastCalledWith(dir, 'dsh-lib@^1', { command: 'pnpm-test', fields: ['name', 'version', 'description', 'author', 'dsh'], timeoutMs: 1000, signal, registry: null })
   // An answer that names no package keeps the name the spec gave; colour escapes around the JSON are dropped.
   answers('\x1b[36m' + JSON.stringify({ version: '0.0.1', description: '', dsh: { bundle: { patch: './p.yml', publisher: 'test' } } }) + '\x1b[39m\n')
   expect(await manager.inspect('dsh-bare')).toEqual({ status: 'accepted', kind: 'registry', name: 'dsh-bare', version: '0.0.1', bundle: true, registry: null })
@@ -1443,7 +1549,7 @@ it.each(OPTIONAL_BUNDLES)('offers %s switched off and never removable', async (o
   expect((await manager.listBundles()).find(row => row.name === offered)).toEqual({
     name: offered, version: '3.0.0', description: 'Package one-liner.',
     meta: { title: offered, description: 'Package one-liner.' },
-    enabled: false, installed: false, official: true, availability: 'installation', optional: true, removable: false,
+    enabled: false, installed: false, official: true, availability: 'installation', optional: true, removable: false, updatable: false,
     rows: [{ rowId: 'offered-row', moduleName: pathToFileURL(join(supplied, 'plugin.mjs')).href }], overrides: [],
   })
   expect(await manager.setBundleEnabled(offered, true)).toMatchObject({ application: 'applied' })
@@ -1561,7 +1667,7 @@ it('asks the registries in turn while one is unreachable or stale, and names the
   expect(await manager.inspect('dsh-x')).toEqual({ status: 'accepted', kind: 'registry', name: 'dsh-x', version: '1.0.0', bundle: true, registry: MIRROR })
   expect(asked(0)).toEqual([null, MIRROR])
   expect(read).toHaveBeenCalledWith(dir, { command: 'pnpm', timeoutMs: 1000 })
-  expect(view).toHaveBeenLastCalledWith(expect.any(String), 'dsh-x', { command: 'pnpm', timeoutMs: 1000, registry: MIRROR })
+  expect(view).toHaveBeenLastCalledWith(expect.any(String), 'dsh-x', { command: 'pnpm', fields: ['name', 'version', 'description', 'author', 'dsh'], timeoutMs: 1000, registry: MIRROR })
   // pnpm prints a refusal as JSON on stdout with nothing on stderr: it is read the same way, and the reason is its message.
   view.mockResolvedValueOnce({ exitCode: 1, stdout: '{\n  "error": {\n    "code": "ERR_PNPM_META_FETCH_FAIL",\n    "message": "GET https://registry.npmjs.org/dsh-x: fetch failed"\n  }\n}\n', stderr: '', timedOut: false })
   answers(manifest)
@@ -1752,7 +1858,7 @@ it.each(['live', 'startup'] as const)('requires exact risk acknowledgement and p
   expect(managed()).toBeUndefined()
   expect((await manager.listBundles()).find(bundle => bundle.name === 'extra')?.error).toEqual({
     code: 'incompatible-version',
-    incompatible: [{ name: 'extra', version: '1.0.0', runtimeVersion: runtime, peers: { '@deepseek-ai/dsh': '999.0.0' } }],
+    incompatible: [{ name: 'extra', version: '1.0.0', runtimeVersion: runtime, requirements: { '@deepseek-ai/dsh': '999.0.0' } }],
   })
   expect(await manager.setBundleEnabled('extra', true)).toMatchObject({ changed: false, application: 'failed' })
   expect(await manager.setVersionExemption('extra@1.0.0', runtime, true)).toMatchObject({ changed: false, application: 'failed' })
@@ -1777,7 +1883,7 @@ it.each(['live', 'startup'] as const)('requires exact risk acknowledgement and p
 
 it('reports a package run refused for compatibility as a typed refusal', async () => {
   const { manager } = await fixture()
-  const incompatible = [{ name: 'dsh-x', version: '2.0.0', runtimeVersion: getDshRuntimeVersion(), peers: { '@deepseek-ai/dsh': '999.0.0' } }]
+  const incompatible = [{ name: 'dsh-x', version: '2.0.0', runtimeVersion: getDshRuntimeVersion(), requirements: { '@deepseek-ai/dsh': '999.0.0' } }]
   const install = vi.spyOn(operations, 'runProfilePnpm').mockResolvedValue({
     exitCode: 1, output: 'dsh: installation rejected', truncated: false, logPath: 'pnpm.log', kind: 'unknown', incompatible,
   })
@@ -1821,7 +1927,7 @@ it('lists absent Official entries offline without resolving their packages or co
   for (const entry of OFFICIAL_ON_DEMAND_CATALOG) {
     expect(bundles.filter(bundle => bundle.name === entry.packageName)).toEqual([{
       name: entry.packageName, official: true, availability: 'missing', enabled: false, installed: false, optional: false,
-      removable: false, rows: [], overrides: [], meta: entry.meta,
+      removable: false, updatable: false, rows: [], overrides: [], meta: entry.meta,
       installTarget: { spec: `${entry.packageName}@${getDshRuntimeVersion()}`, version: getDshRuntimeVersion() },
     }])
     expect(resolve.mock.calls.some(([name]) => name === entry.packageName)).toBe(false)
@@ -2013,4 +2119,292 @@ it.each(managementClientDependencies())('keeps the management module graph recov
     changed: false, application: 'failed', error: { code: 'management-required' },
   })
   expect(readFileSync(profile.patchPath, 'utf8')).toBe(before)
+})
+
+/** A `pnpm view` stand-in answering by spec and printed fields. */
+function viewAnswers(
+  answer: (spec: string, fields: readonly string[], registry: string | null | undefined) => operations.PackageViewResult | object | string,
+) {
+  const view = vi.spyOn(operations, 'viewProfilePackage').mockImplementation(async (_dir, spec, options) => {
+    const value = answer(spec, options.fields, options.registry)
+    if (typeof value === 'object' && 'exitCode' in value) return value
+    return { exitCode: 0, stdout: typeof value === 'string' ? value : JSON.stringify(value), stderr: '', timedOut: false }
+  })
+  onTestFinished(() => { view.mockRestore() })
+  return view
+}
+
+const BUNDLE = { bundle: { patch: './cordis.patch.yml', publisher: 'test' } }
+
+/** The published `extra` versions the version tests offer; the installed copy is 1.0.0. */
+function extraRegistry(spec: string, fields: readonly string[]): object {
+  if (fields.includes('versions')) {
+    return {
+      versions: ['0.9.0', '1.0.0', '1.1.0', '1.2.0-beta.1', '1.2.0', '2.0.0', 'not-semver'],
+      time: { '1.1.0': '2026-09-01T00:00:00.000Z', '2.0.0': '2026-10-10T00:00:00.000Z' },
+      'dist-tags': { latest: '2.0.0', next: '1.2.0-beta.1' },
+    }
+  }
+  const version = spec.slice('extra@'.length)
+  if (version === '2.0.0') return { name: 'extra', version, peerDependencies: { '@deepseek-ai/dsh': '>=999.0.0' }, dsh: BUNDLE }
+  if (version === '1.1.0') return { name: 'extra', version, deprecated: 'use 1.2.0', dsh: BUNDLE }
+  if (version === '1.2.0-beta.1') return { name: 'extra', version }
+  // An own `engines.dsh` decides compatibility alone, so its unmet peer range does not make this version incompatible.
+  if (version === '1.2.0') {
+    return { name: 'extra', version, engines: { dsh: '>=0.0.0-0' }, peerDependencies: { '@deepseek-ai/dsh': '>=999.0.0' }, dsh: BUNDLE }
+  }
+  return { name: 'extra', version, dsh: BUNDLE }
+}
+
+it('lists newer registry versions with tags, times, deprecation, bundle declaration, and DSH compatibility', async () => {
+  const config = { inspectTimeoutMs: 1000, versionListLimit: 3, versionLookupConcurrency: 2 }
+  const { manager, dir } = await fixture(undefined, false, undefined, config)
+  const view = viewAnswers(extraRegistry)
+  const listed = await manager.listVersions('extra')
+  expect(listed).toEqual({
+    status: 'listed', installed: '1.0.0', registry: null, attempts: [{ registry: null }], omitted: 1,
+    versions: [
+      {
+        version: '2.0.0', publishedAt: '2026-10-10T00:00:00.000Z', tags: ['latest'], prerelease: false, bundle: true,
+        incompatible: { name: 'extra', version: '2.0.0', runtimeVersion: getDshRuntimeVersion(), requirements: { '@deepseek-ai/dsh': '>=999.0.0' } },
+      },
+      { version: '1.2.0', tags: [], prerelease: false, bundle: true },
+      { version: '1.2.0-beta.1', tags: ['next'], prerelease: true, bundle: false },
+    ],
+  })
+  // The list itself, then one lookup per listed version on the registry that answered.
+  expect(view.mock.calls.map(call => call[1])).toEqual(expect.arrayContaining(['extra', 'extra@2.0.0', 'extra@1.2.0', 'extra@1.2.0-beta.1']))
+  expect(view).toHaveBeenCalledTimes(4)
+  expect(view).toHaveBeenCalledWith(dir, 'extra', expect.objectContaining({ fields: ['versions', 'time', 'dist-tags'], timeoutMs: 1000 }))
+  expect(view).toHaveBeenCalledWith(dir, 'extra@1.2.0', expect.objectContaining({ fields: ['name', 'version', 'engines', 'peerDependencies', 'deprecated', 'dsh'], registry: null }))
+})
+
+it('lists versions from the next registry while one is unreachable, and refuses what no registry answered', async () => {
+  const { manager } = await fixture(undefined, false, undefined, { inspectTimeoutMs: 1000 })
+  const unreachable = { exitCode: 1, stdout: '', stderr: 'ERR_PNPM_META_FETCH_FAIL  GET https://registry.npmjs.org/extra: ETIMEDOUT\n', timedOut: false }
+  viewAnswers((spec, fields, registry) => registry === null ? unreachable
+    : fields.includes('versions') ? { versions: ['1.0.0', '1.1.0'], 'dist-tags': { latest: '1.1.0' } } : extraRegistry(spec, fields))
+  // A requested registry is asked first.
+  expect(await manager.listVersions('extra', { registry: MIRROR })).toMatchObject({ status: 'listed', registry: MIRROR, attempts: [{ registry: MIRROR }] })
+  expect(await manager.listVersions('extra')).toMatchObject({
+    status: 'listed', registry: MIRROR,
+    attempts: [{ registry: null, problem: 'network', reason: unreachable.stderr.trim() }, { registry: MIRROR }],
+    versions: [{ version: '1.1.0', deprecated: 'use 1.2.0', tags: ['latest'] }],
+  })
+  viewAnswers(() => unreachable)
+  expect(await manager.listVersions('extra')).toEqual({
+    status: 'refused', problem: 'network', reason: unreachable.stderr.trim(),
+    attempts: [{ registry: null, problem: 'network', reason: unreachable.stderr.trim() }, { registry: MIRROR, problem: 'network', reason: unreachable.stderr.trim() }],
+  })
+  // One version that cannot be read refuses the list, naming the registry that failed it.
+  viewAnswers((spec, fields) => spec === 'extra@1.1.0' ? { exitCode: 1, stdout: '', stderr: 'boom', timedOut: false } : extraRegistry(spec, fields))
+  expect(await manager.listVersions('extra')).toMatchObject({ status: 'refused', problem: 'unknown', reason: 'boom', attempts: [{ registry: null, problem: 'unknown' }] })
+  viewAnswers(() => ({ 'dist-tags': {} }))
+  expect(await manager.listVersions('extra')).toMatchObject({ status: 'refused', problem: 'unknown', reason: 'pnpm view answered no versions' })
+  viewAnswers((spec, fields) => fields.includes('versions') ? { versions: '1.0.0' } : extraRegistry(spec, fields))
+  expect(await manager.listVersions('extra')).toMatchObject({ status: 'listed', versions: [], omitted: 0 })
+  viewAnswers((_spec, fields) => fields.includes('versions') ? { versions: ['1.1.0'] } : { name: 'extra', version: '1.1.0', peerDependencies: { '@deepseek-ai/dsh': 3 } })
+  expect(await manager.listVersions('extra')).toMatchObject({ status: 'refused', problem: 'unknown', reason: expect.stringContaining('must be a string') as string })
+})
+
+it('refuses to list versions of a package not installed from a registry', async () => {
+  const { manager, dir, bundle } = await fixture()
+  const view = viewAnswers(extraRegistry)
+  const refusal = (reason: string) => ({ status: 'refused', problem: 'not-updatable', reason, attempts: [] })
+  expect(await manager.listVersions('core')).toEqual(refusal('core is not a third-party package installed in this profile'))
+  expect(await manager.listVersions('absent')).toEqual(refusal('absent is not a third-party package installed in this profile'))
+  bundle('linked', [])
+  const manifest = readProfileManifest('test', dir)
+  manifest.dependencies = { ...manifest.dependencies, linked: `link:${join(dir, 'node_modules', 'linked')}` }
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+  expect(await manager.listVersions('linked')).toEqual(refusal('linked is not installed from a registry under its own name'))
+  // An alias saves another package under the dependency's name; its versions are not the alias's.
+  const aliased = readProfileManifest('test', dir)
+  aliased.dependencies = { ...aliased.dependencies, linked: 'npm:other-plugin@1.0.0' }
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(aliased))
+  expect(await manager.listVersions('linked')).toEqual(refusal('linked is not installed from a registry under its own name'))
+  writeFileSync(join(dir, 'node_modules', 'extra', 'package.json'), JSON.stringify({ name: 'extra', version: 'nightly', dsh: BUNDLE }))
+  expect(await manager.listVersions('extra')).toEqual(refusal('extra declares no semver version'))
+  // A bundle carrying plugin management cannot be removed, so it is not offered for an update.
+  writeFileSync(join(dir, 'node_modules', 'extra', 'cordis.patch.yml'), JSON.stringify([{ insert: [{ id: 'pm', name: '@deepseek-ai/dsh-plugin-manager' }] }]))
+  expect((await manager.listBundles()).find(item => item.name === 'extra')).toMatchObject({ readOnlyReason: 'management-required', updatable: false })
+  expect(await manager.listVersions('extra')).toEqual(refusal('extra carries plugin management and cannot be removed'))
+  expect(view).not.toHaveBeenCalled()
+})
+
+/** A pnpm stand-in that removes `extra` and installs the version an `add` names, unless `fails` names it. */
+function extraPnpm(dir: string, bundle: (name: string, rows: unknown[]) => void, fails: readonly string[] = []) {
+  const pnpm = vi.spyOn(operations, 'runProfilePnpm').mockImplementation(async (_context, args) => {
+    const manifest = readProfileManifest('test', dir)
+    const spec = String(args[1])
+    if (args[0] === 'remove') {
+      delete manifest.dependencies?.extra
+      rmSync(join(dir, 'node_modules', 'extra'), { recursive: true, force: true })
+    } else if (fails.includes(spec)) {
+      return { exitCode: 1, output: `ERR_PNPM_FETCH_404  GET ${spec}: Not Found - 404`, truncated: false, logPath: '/install.log', kind: 'not-found' as const }
+    } else {
+      const version = spec.slice('extra@'.length)
+      bundle('extra', [{ id: 'managed', name: './plugin.mjs' }])
+      writeFileSync(join(dir, 'node_modules', 'extra', 'package.json'), JSON.stringify({ name: 'extra', version, dsh: BUNDLE }))
+      manifest.dependencies = { ...manifest.dependencies, extra: version }
+    }
+    writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+    return { exitCode: 0, output: '', truncated: false, logPath: '/install.log' }
+  })
+  onTestFinished(() => { pnpm.mockRestore() })
+  return pnpm
+}
+
+it.each([
+  { allowedSources: ['path'] as const, allowedPublishers: ['test'], reason: 'bundle source "registry" is disabled by the profile policy' },
+  { allowedSources: ['registry'] as const, allowedPublishers: ['other'], reason: 'bundle "extra" publisher "test" is not allowlisted' },
+])('refuses an update outside profile policy before removing the installed bundle: $reason', async ({ allowedSources, allowedPublishers, reason }) => {
+  const { manager, dir } = await fixture('live', false, undefined, { allowedSources: [...allowedSources], allowedPublishers })
+  viewAnswers(extraRegistry)
+  const pnpm = vi.spyOn(operations, 'runProfilePnpm')
+  onTestFinished(() => { pnpm.mockRestore() })
+  expect(await manager.updateBundle('extra', '1.2.0')).toMatchObject({
+    step: 'check', result: { changed: false, application: 'failed', error: { code: 'invalid-spec', diagnostic: reason } },
+  })
+  expect(pnpm).not.toHaveBeenCalled()
+  expect(readProfileManifest('test', dir).dependencies?.extra).toBe('1.0.0')
+})
+
+it('updates a registry bundle by removing it and installing the exact newer version with its selection', async () => {
+  const { ctx, manager, dir, bundle } = await fixture()
+  viewAnswers(extraRegistry)
+  const pnpm = extraPnpm(dir, bundle)
+  const steps: string[] = []
+  ctx.on('plugin-manager/update-state', ({ step }) => { steps.push(step) })
+  const requestId = 'c2b8f1a4-6f0e-4b52-9a51-0a8e5f0b7d11' as PluginInstallRequestId
+  const updated = await manager.updateBundle('extra', '1.2.0', { registry: MIRROR, requestId })
+  expect(updated).toMatchObject({ from: '1.0.0', to: '1.2.0', step: 'install', result: { application: 'applied', version: '1.2.0', enabled: true } })
+  expect(updated.restore).toBeUndefined()
+  expect(steps).toEqual(['checking', 'removing', 'installing'])
+  expect(pnpm.mock.calls.map(call => call[1])).toEqual([['remove', 'extra'], ['add', 'extra@1.2.0', '--save-exact', `--registry=${MIRROR}`]])
+  expect(readProfileManifest('test', dir).dependencies?.extra).toBe('1.2.0')
+  expect(ctx.get('managedProbe')).toBe(true)
+})
+
+it('installs the removed version again when the target fails to install', async () => {
+  const { manager, dir, bundle } = await fixture()
+  viewAnswers(extraRegistry)
+  const pnpm = extraPnpm(dir, bundle, ['extra@1.2.0'])
+  // The removed copy came from the mirror, so it is installed again from there.
+  await manager.updateBundle('extra', '1.1.0', { registry: MIRROR })
+  pnpm.mockClear()
+  const updated = await manager.updateBundle('extra', '1.2.0')
+  expect(updated).toMatchObject({
+    from: '1.1.0', to: '1.2.0', step: 'install', result: { application: 'failed', packageResult: { kind: 'not-found' } },
+    restore: { application: 'applied', version: '1.1.0' },
+  })
+  expect(pnpm.mock.calls.map(call => call[1])).toEqual([
+    // The update starts at the registry the package came from; a 404 there may be a mirror not yet synced, so pnpm's
+    // own registry is asked too before the installation gives up.
+    ['remove', 'extra', `--config.registry=${MIRROR}`], ['add', 'extra@1.2.0', '--save-exact', `--registry=${MIRROR}`], ['add', 'extra@1.2.0', '--save-exact'],
+    ['add', 'extra@1.1.0', '--save-exact', `--registry=${MIRROR}`],
+  ])
+  expect(readProfileManifest('test', dir).dependencies?.extra).toBe('1.1.0')
+})
+
+it.each([
+  ['cancelled', 'cancelled'],
+  ['rejected', 'rejected'],
+] as const)('installs the removed version again when the target installation is %s', async (_name, outcome) => {
+  const { manager, dir, bundle } = await fixture()
+  viewAnswers(extraRegistry)
+  extraPnpm(dir, bundle)
+  const install = manager.installBundle.bind(manager)
+  const spy = vi.spyOn(manager, 'installBundle').mockImplementation(async (spec, options) => {
+    if (spec !== 'extra@1.2.0') return install(spec, options)
+    if (outcome === 'rejected') throw new Error('lock wait timed out')
+    return { changed: false, application: 'cancelled', stage: 'install', target: spec }
+  })
+  onTestFinished(() => { spy.mockRestore() })
+  const updated = await manager.updateBundle('extra', '1.2.0')
+  expect(updated.result.application).toBe(outcome === 'rejected' ? 'failed' : 'cancelled')
+  if (outcome === 'rejected') expect(updated.result.error).toEqual({ code: 'operation-error', diagnostic: 'lock wait timed out' })
+  expect(updated.restore).toMatchObject({ application: 'applied', version: '1.0.0' })
+  expect(readProfileManifest('test', dir).dependencies?.extra).toBe('1.0.0')
+})
+
+it('removes a target that installed but could not start before installing the removed version again', async () => {
+  const { manager, dir, bundle } = await fixture()
+  viewAnswers(extraRegistry)
+  const pnpm = extraPnpm(dir, bundle)
+  const install = manager.installBundle.bind(manager)
+  const spy = vi.spyOn(manager, 'installBundle').mockImplementation(async (spec, options) => {
+    const result = await install(spec, options)
+    // The target's files land, then its activation fails, as a plugin that throws on start does.
+    return spec === 'extra@1.2.0' ? { ...result, application: 'failed', stage: 'enable', error: { code: 'operation-error', diagnostic: 'cannot start' } } : result
+  })
+  onTestFinished(() => { spy.mockRestore() })
+  const updated = await manager.updateBundle('extra', '1.2.0')
+  expect(updated).toMatchObject({ result: { application: 'failed', stage: 'enable' }, restore: { application: 'applied', version: '1.0.0' } })
+  expect(pnpm.mock.calls.map(call => call[1].slice(0, 2))).toEqual([['remove', 'extra'], ['add', 'extra@1.2.0'], ['remove', 'extra'], ['add', 'extra@1.0.0']])
+  expect(readProfileManifest('test', dir).dependencies?.extra).toBe('1.0.0')
+})
+
+it('reports a removal that rejects as the update\'s last step', async () => {
+  const { manager, dir, bundle } = await fixture()
+  viewAnswers(extraRegistry)
+  const pnpm = extraPnpm(dir, bundle)
+  const spy = vi.spyOn(manager, 'removeBundle').mockRejectedValue(new Error('lock wait timed out'))
+  onTestFinished(() => { spy.mockRestore() })
+  expect(await manager.updateBundle('extra', '1.2.0')).toMatchObject({
+    step: 'remove', result: { application: 'failed', stage: 'remove', error: { code: 'operation-error', diagnostic: 'lock wait timed out' } },
+  })
+  expect(pnpm).not.toHaveBeenCalled()
+})
+
+it('reports a reinstallation that fails too, leaving the package uninstalled', async () => {
+  const { manager, dir, bundle } = await fixture()
+  viewAnswers(extraRegistry)
+  extraPnpm(dir, bundle, ['extra@1.2.0', 'extra@1.0.0'])
+  const updated = await manager.updateBundle('extra', '1.2.0')
+  expect(updated).toMatchObject({ step: 'install', result: { application: 'failed' }, restore: { application: 'failed' } })
+  expect(readProfileManifest('test', dir).dependencies?.extra).toBeUndefined()
+})
+
+it('refuses an update before changing anything when the target is not a newer compatible bundle', async () => {
+  const { manager, dir, bundle } = await fixture()
+  viewAnswers((spec, fields) => spec === 'extra@3.0.0' ? { exitCode: 1, stdout: '', stderr: 'ERR_PNPM_NO_MATCHING_VERSION  No matching version found for extra@3.0.0', timedOut: false }
+    : spec === 'extra@1.5.0' ? { name: 'extra', version: '1.5.0', peerDependencies: { '@deepseek-ai/dsh': 7 }, dsh: BUNDLE }
+      : extraRegistry(spec, fields))
+  const pnpm = extraPnpm(dir, bundle)
+  const before = readFileSync(join(dir, 'package.json'), 'utf8')
+  const refused = async (name: string, version: string) => (await manager.updateBundle(name, version)).result.error
+  expect(await refused('extra', '0.9.0')).toEqual({ code: 'invalid-spec', diagnostic: '0.9.0 is not a version newer than the installed 1.0.0' })
+  expect(await refused('extra', 'latest')).toMatchObject({ code: 'invalid-spec' })
+  expect(await refused('core', '2.0.0')).toEqual({ code: 'invalid-spec', diagnostic: 'core is not a third-party package installed in this profile' })
+  expect(await refused('extra', '2.0.0')).toMatchObject({ code: 'incompatible-version', incompatible: [{ name: 'extra', version: '2.0.0' }] })
+  expect(await refused('extra', '1.2.0-beta.1')).toEqual({ code: 'not-bundle' })
+  expect(await refused('extra', '3.0.0')).toMatchObject({ code: 'operation-error', diagnostic: expect.stringContaining('No matching version') as string })
+  expect(await refused('extra', '1.5.0')).toMatchObject({ code: 'operation-error', diagnostic: expect.stringContaining('must be a string') as string })
+  expect(await manager.updateBundle('extra', '0.9.0')).toMatchObject({ from: '1.0.0', to: '0.9.0', step: 'check', result: { application: 'failed', changed: false, stage: 'install', target: 'extra' } })
+  expect(pnpm).not.toHaveBeenCalled()
+  expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(before)
+})
+
+it('reports a removal the profile refuses as the update\'s last step', async () => {
+  const { manager, dir, bundle } = await fixture()
+  viewAnswers(extraRegistry)
+  const pnpm = extraPnpm(dir, bundle)
+  pnpm.mockResolvedValueOnce({ exitCode: 1, output: 'EBUSY', truncated: false, logPath: '/remove.log', kind: 'unknown' })
+  expect(await manager.updateBundle('extra', '1.2.0')).toMatchObject({ step: 'remove', result: { application: 'failed', stage: 'remove' } })
+  expect(pnpm).toHaveBeenCalledOnce()
+})
+
+it('installs over the running version without HMR and reports the restart', async () => {
+  const { ctx, manager, dir, bundle } = await fixture('startup')
+  viewAnswers(extraRegistry)
+  const pnpm = extraPnpm(dir, bundle)
+  const steps: string[] = []
+  ctx.on('plugin-manager/update-state', ({ step }) => { steps.push(step) })
+  const requestId = '5f7d1e9a-2b3c-4d5e-8f90-a1b2c3d4e5f6' as PluginInstallRequestId
+  expect(await manager.updateBundle('extra', '1.2.0', { requestId })).toMatchObject({
+    step: 'install', result: { application: 'restart-required', restartReason: 'no-hmr', version: '1.2.0' },
+  })
+  expect(steps).toEqual(['checking', 'installing'])
+  expect(pnpm.mock.calls.map(call => call[1])).toEqual([['add', 'extra@1.2.0', '--save-exact']])
 })

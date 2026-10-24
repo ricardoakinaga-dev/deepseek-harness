@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Compaction resilience",
+    "description": "Apply compaction deadlines, output and reasoning limits, and reject requests that exceed their logged context capacity."
+  }
+}

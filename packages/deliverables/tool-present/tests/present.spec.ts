@@ -4,7 +4,9 @@ import { createHash } from 'node:crypto'
 import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
 import { FsError } from '@deepseek-ai/dsh-fs'
 import { AttachmentError, type FileAttachmentRef } from '@deepseek-ai/dsh-attachment'
-import { provideWorkingDirectoryFixture, unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { unsupportedModel, provideWorkingDirectoryFixture, unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -15,7 +17,6 @@ import { createScope, type Scope } from '@deepseek-ai/dsh-scope'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
 import * as Present from '../src/index.ts'
@@ -35,6 +36,7 @@ async function agent(ctx: Context, cwd: string | undefined): Promise<Agent> {
     id,
     options: {},
     session,
+    model: unsupportedModel(),
     inbox: unsupportedInbox(),
     status: 'idle',
     get ctx() { return scope.ctx },
@@ -61,16 +63,16 @@ async function setup(config: Partial<Present.Config> = {}) {
   await ctx.plugin(SessionStore)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(LocalFileSystem, { cwd: root })
   await ctx.plugin(LocalAttachmentStore, { dshHome: join(root, 'home') })
-  await ctx.plugin(SessionProjectionRegistry)
-  ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
   const fiber = ctx.plugin(Present, { maxFileBytes: Present.Config().maxFileBytes, maxFiles: 2, ...config })
   await fiber
   const owner = await agent(ctx, root)
   owner.session.append('turn/start', { turn: 1 })
-  const execute = (files: unknown, signal = new AbortController().signal) => ctx.tools.execute({
+  const execute = (files: unknown, signal = new AbortController().signal) => executeToolFixture(ctx, {
     signal, callId: ToolCallId(`call-${++callNumber}`),
     name: 'present', arguments: { files }, agent: owner,
   })
@@ -161,7 +163,10 @@ describe('present', () => {
 })
 
 
-it('validates deployment limits before registering the tool', () => {
+it('validates deployment limits before registering the tool', async () => {
+  const ctx = new Context()
+  cleanups.push(() => ctx.fiber.dispose())
+  await ctx.plugin(SessionProjectionRegistry)
   for (const config of [{ maxFiles: 0 }, { maxFiles: 1.5 }, { maxFiles: Number.POSITIVE_INFINITY }]) {
     expect(() => { Present.apply(new Context(), { ...config, maxFileBytes: 20 * 1024 * 1024 }) }).toThrow('positive integer maxFiles')
   }
@@ -169,13 +174,13 @@ it('validates deployment limits before registering the tool', () => {
 
 it('requires an agent, an open turn, and a workspace', async () => {
   const { ctx, owner, execute } = await setup()
-  const detached = await ctx.tools.execute({ signal: new AbortController().signal, callId: ToolCallId('detached'), name: 'present', arguments: { files: [{ path: 'a' }] } })
+  const detached = await executeToolFixture(ctx, { signal: new AbortController().signal, callId: ToolCallId('detached'), name: 'present', arguments: { files: [{ path: 'a' }] } })
   expect(detached.isError).toBe(true)
   owner.session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
   expect((await execute([{ path: 'a' }])).isError).toBe(true)
   const noWorkspace = await agent(ctx, undefined)
   noWorkspace.session.append('turn/start', { turn: 1 })
-  const absent = await ctx.tools.execute({ signal: new AbortController().signal, callId: ToolCallId('no-workspace'), name: 'present', arguments: { files: [{ path: 'a' }] }, agent: noWorkspace })
+  const absent = await executeToolFixture(ctx, { signal: new AbortController().signal, callId: ToolCallId('no-workspace'), name: 'present', arguments: { files: [{ path: 'a' }] }, agent: noWorkspace })
   expect(absent.isError).toBe(true)
 })
 

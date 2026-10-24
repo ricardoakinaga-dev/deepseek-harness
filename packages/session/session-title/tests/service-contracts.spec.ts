@@ -2,6 +2,7 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import SessionStore, { Session, SessionId, SessionSeq } from '@deepseek-ai/dsh-session'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionTitleService, {
   SessionTitleProviderId,
@@ -32,6 +33,7 @@ async function setup(config: Config = CONFIG): Promise<Context> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(AgentRegistry)
   await ctx.plugin(SessionTitleService, config)
   return ctx
 }
@@ -264,6 +266,7 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(AgentRegistry)
     const lifecycle: { fiber?: Fiber; session?: Session; inactiveRefresh?: Promise<unknown> } = {}
     ctx.on('internal/plugin', (subject) => {
       if (subject !== lifecycle.fiber || subject.uid !== null || lifecycle.session === undefined) return
@@ -297,6 +300,7 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(AgentRegistry)
     const fiber = await ctx.plugin(SessionTitleService, CONFIG)
     const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => undefined)
     const session = startSession(ctx, 'service-unload-started-fallback')
@@ -313,6 +317,7 @@ describe('SessionTitleService configuration and refresh boundaries', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(AgentRegistry)
     const fiber = await ctx.plugin(SessionTitleService, CONFIG)
     const history = deferred<readonly SessionTitleUserMessage[]>()
     const loadStarted = deferred<undefined>()

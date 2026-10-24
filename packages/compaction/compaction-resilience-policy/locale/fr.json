@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Résilience de la compression",
+    "description": "Appliquez des délais et des limites de sortie et de raisonnement à la compression, et refusez les requêtes qui dépassent leur capacité de contexte enregistrée."
+  }
+}

@@ -3,8 +3,9 @@ import { Context } from '@deepseek-ai/cordis'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session, SessionSeq as SessionSeqType } from '@deepseek-ai/dsh-session'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import SessionTitleService from '@deepseek-ai/dsh-session-title'
+import SessionTitleService, { titleProjectionDefinition } from '@deepseek-ai/dsh-session-title'
 
 const CONFIG = { fallbackMaxWords: 8, fallbackMaxBytes: 64, maxTitleBytes: 256 }
 
@@ -12,6 +13,7 @@ async function harness(withTitleService: boolean): Promise<{ ctx: Context; sessi
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(AgentRegistry)
   if (withTitleService) await ctx.plugin(SessionTitleService, CONFIG)
   return { ctx, session: ctx.sessions.create(SessionId('titled')) }
 }
@@ -38,6 +40,7 @@ describe('title projection unit', () => {
 
   it('serves the latest title last-wins and notifies the change feed with the causing seq', async () => {
     const { ctx, session } = await harness(true)
+    const title = await ctx.sessionProjections.register(titleProjectionDefinition)
     const changes: { key: string; value: unknown; seq: SessionSeqType }[] = []
     ctx.sessionProjections.onChanged((_session, key, value, seq) => {
       changes.push({ key, value, seq })
@@ -52,7 +55,7 @@ describe('title projection unit', () => {
     const snapshot = ctx.sessionProjections.snapshot(session)
     expect(snapshot.values.title).toBe('Second title')
     expect(snapshot.asOfSeq).toBe(session.seq - 1)
-    expect(ctx.sessionProjections.stateOf(session, 'title')).toMatchObject({
+    expect(title.stateOf(session)).toMatchObject({
       title: 'Second title',
       messageSeqs: [firstSeq - 1],
       source: { kind: 'fallback' },
@@ -92,11 +95,11 @@ describe('title projection unit', () => {
     })
   })
 
-  it('rejects service registration after events without an explicit restore cut', async () => {
+  it('recovers title metadata when the service registers after events', async () => {
     const { ctx, session } = await harness(false)
     appendTitle(session, 'Pre-mount title')
-    await expect(ctx.plugin(SessionTitleService, CONFIG))
-      .rejects.toThrow(/requires an exact baseline/)
+    await ctx.plugin(SessionTitleService, CONFIG)
+    expect(ctx.sessionTitle.get(session)?.title).toBe('Pre-mount title')
   })
 
   it('has no title key without the title service, and drops it when the service unloads (HMR safety)', async () => {
@@ -119,10 +122,8 @@ describe('title projection unit', () => {
         source: { kind: 'user' },
       }), { surfaceOp: 'append' })
     }
-    const state = ctx.sessionProjections.stateOf(session, 'titleInput')
-    expect(state?.count).toBe(5_000)
-    expect(state?.first?.text).toBe('message 0')
-    expect(state?.lastSeq).toBe(session.seq - 1)
+    const state = ctx.sessionProjections.checkpoint(session).titleInput?.val
+    expect(state).toMatchObject({ count: 5_000, first: { text: 'message 0' }, lastSeq: session.seq - 1 })
     expect(ctx.sessionProjections.checkpoint(session).titleInput).toBeDefined()
   })
 

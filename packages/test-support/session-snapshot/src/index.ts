@@ -22,6 +22,7 @@ export {
 } from './identity.ts'
 export { assertFreshRuntimeAuditIdentity, assertRuntimeAuditIdentity, normalizeRuntimeAudit } from './runtime-audit.ts'
 export {
+  REPLAY_CREDENTIAL_ENV,
   runScenario,
   snapshotSpillRoot,
   type HarvestedLog,

@@ -127,6 +127,11 @@ function failureMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'unknown teardown failure'
 }
 
+/** Read the exact parent-visible text, independent of text-block segmentation. */
+function messageText(content: readonly ContentBlock[]): string {
+  return content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')
+}
+
 /** Own subagent requests and the resources of every live activation. */
 export class SubagentManager {
   /** Child session id → its live Activation. Process-local, never durable. */
@@ -925,7 +930,15 @@ export class SubagentManager {
           setup,
         })
 
-      resource = { kind: 'local', handle, outputStart: handle.agent.session.seq, structured, failureAt: undefined, poke: Promise.withResolvers<void>() }
+      resource = {
+        kind: 'local',
+        handle,
+        outputStart: handle.agent.session.seq,
+        structured,
+        failureAt: undefined,
+        poke: Promise.withResolvers<void>(),
+        lastParentMessageText: undefined,
+      }
     }
     const observer = this.host.observeActivation(provider, childId, parent)
 
@@ -954,8 +967,19 @@ export class SubagentManager {
       if (activation.kind === 'local') {
         observeLocalFailure(activation, wakeSettlement)
         activation.handle.agent.ctx.on('agent/inbox/inserted', wakeSettlement)
-        activation.handle.agent.ctx.on('agent/inbox/claimed', wakeSettlement)
+        activation.handle.agent.ctx.on('agent/inbox/claimed', () => {
+          // Claimed input means the closing text may report work the child's
+          // last message to its parent did not.
+          activation.lastParentMessageText = undefined
+          wakeSettlement()
+        })
         activation.handle.agent.ctx.on('agent/inbox/discarded', wakeSettlement)
+        // Native and nested PTC starts precede policy and dispatch. A successful
+        // send can establish fresh eligibility; its later result must not clear it.
+        // Only tags are consumed, including those declared by optional executors.
+        activation.handle.agent.ctx.on('session/event', (_session, { type }: { readonly type: string }) => {
+          if (type === 'tool/call' || type === 'tool/ptc-dispatch-start') activation.lastParentMessageText = undefined
+        })
       }
       observer.start(activationAgent(activation))
     } catch (error: unknown) {
@@ -1193,8 +1217,11 @@ export class SubagentManager {
     try {
       const parent = this.ctx.agents.get(activation.parent.id)
       if (parent !== activation.parent) return
+      const omitClosingText = activation.kind === 'local'
+        && activation.lastParentMessageText !== undefined
+        && activation.lastParentMessageText === messageText(terminal.output)
       const message = createSettlementMessage(
-        activation.childId, terminal, activationAgent(activation) !== undefined,
+        activation.childId, terminal, activation.kind === 'local', omitClosingText,
       )
       if (this.closingTeardownFor(parent) !== undefined) {
         parent.inject(message)
@@ -1286,7 +1313,7 @@ export class SubagentManager {
 
   /** Deliver one resident continuable child's message to its live direct parent. */
   private sendToParent(
-    activation: Activation,
+    activation: LocalActivation,
     sender: Agent,
     content: ContentBlock[],
   ): MessageId {
@@ -1307,6 +1334,8 @@ export class SubagentManager {
     }
     const message = createAgentMessage(sender, content)
     this.sendAgentMessage(parent, message)
+    const text = messageText(content)
+    activation.lastParentMessageText = text.length === 0 ? undefined : text
     return message.id
   }
 

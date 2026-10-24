@@ -13,6 +13,7 @@ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import type { Session, SessionSeq } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionQuerySqlite from '@deepseek-ai/dsh-session-query-sqlite'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SessionTitleService from '@deepseek-ai/dsh-session-title'
 import * as providerPlugin from '@deepseek-ai/dsh-session-title-first-prompt-llm'
 import { anthropicTextEvents, closeMockServers, mockServer } from '../../../llm/llm-pi-ai/tests/mock-server.ts'
@@ -61,6 +62,7 @@ async function loadComposition(
     '  config:',
     "    path: ':memory:'",
     "    openAt: 'never'",
+    "- name: '@deepseek-ai/dsh-agent'",
     "- name: '@deepseek-ai/dsh-session-title'",
     '  config:',
     '    fallbackMaxWords: 5',
@@ -84,6 +86,7 @@ async function loadComposition(
     ['@deepseek-ai/dsh-session', SessionStore],
     ['@deepseek-ai/dsh-session-projection', SessionProjectionRegistry],
     ['@deepseek-ai/dsh-session-query-sqlite', SessionQuerySqlite],
+    ['@deepseek-ai/dsh-agent', AgentRegistry],
     ['@deepseek-ai/dsh-session-title', SessionTitleService],
     ['@deepseek-ai/dsh-session-title-first-prompt-llm', providerPlugin],
     ...entryModules,

@@ -135,9 +135,7 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  * authoritative append cannot reject the request or suppress its matching
  * audit event.
  * @param req - the pending decision (agent, tool identity, reason, signal).
- * @returns the closed outcome; `'allowed-once'` is the only grant. A Session
- *   without an exact owner fold returns `'unavailable'` before either audit
- *   event is appended.
+ * @returns the closed outcome; `'allowed-once'` is the only grant.
  * @throws when no turn is open or either audit event fails before the append
  *   commit point.
  */

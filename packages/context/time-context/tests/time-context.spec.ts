@@ -1,18 +1,18 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import { createUserMessage, ToolCallId, LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import SessionStore, { Session, SessionId, SessionLogOffset, SessionSeq, type SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
-import AgentRegistry, { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
-import { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
+import AgentRegistry, { agentEvents, type Agent, type PreStepDecision } from '@deepseek-ai/dsh-agent'
+import { defineContentToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import { unsupportedInbox, mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
+import { unsupportedModel, unsupportedInbox, mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import * as timeContext from '@deepseek-ai/dsh-time-context'
 import type { Config } from '@deepseek-ai/dsh-time-context'
-import { timeContextCacheFingerprint } from '../src/projection.ts'
+import { timeContextCacheFingerprint, timeContextStateSchema } from '../src/projection.ts'
 import type { TimeContextProjection } from '../src/projection.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -61,6 +61,7 @@ function sessionAgent(session: Session, id = 'agent'): Agent {
     id: SessionId(id),
     options: {},
     session,
+    model: unsupportedModel(),
     inbox: unsupportedInbox(),
     status: 'running',
     ctx: new Context(),
@@ -95,8 +96,9 @@ function browserZoneMessage(timeZone: string): ReturnType<typeof createUserMessa
 
 /** Put a focused request fixture at the durable turn and step passed to its listener. */
 function prepareStep(ctx: Context, session: Session, turn: number, step: number): void {
-  let state = ctx.sessionProjections.stateOf(session, 'timeContext')
-  if (state === undefined) return
+  const row = ctx.sessionProjections.checkpoint(session).timeContext
+  if (row === undefined) return
+  let state = timeContextStateSchema.parse(row.val)
   if (state.openTurn !== turn) {
     if (state.openStep !== null && state.openTurn !== null) {
       session.append('step/end', { turn: state.openTurn, step: state.openStep })
@@ -105,7 +107,7 @@ function prepareStep(ctx: Context, session: Session, turn: number, step: number)
       session.append('turn/end', { turn: state.openTurn, reason: { kind: 'completed' } })
     }
     session.append('turn/start', { turn })
-    state = ctx.sessionProjections.stateOf(session, 'timeContext')
+    state = timeContextStateSchema.parse(ctx.sessionProjections.checkpoint(session).timeContext?.val)
     if (state === undefined) return
   }
   if (state.openStep === step) return
@@ -147,7 +149,7 @@ async function fire(
   })
   const decision = await agentEvents(ctx, agent).waterfall(
     'agent/pre-step',
-    { messages: [proposed], turn, step, signal },
+    { modelSelection: { provider: 'mock', model: 'mock' }, messages: [proposed], turn, step, signal },
     () => Promise.resolve({ kind: 'enter' as const, messages: [proposed] }),
   )
   if (decision.kind === 'enter') {
@@ -394,7 +396,7 @@ describe('durable step context', () => {
       surfaceOp: { op: 'replace', startSeq: browserMessage.seq, endSeq: browserMessage.seq },
       sourceEventSeqs: [browserMessage.seq],
     })
-    expect(ctx.sessionProjections.stateOf(source, 'timeContext')?.browserTimeZoneInputs)
+    expect(timeContextStateSchema.parse(ctx.sessionProjections.checkpoint(source).timeContext?.val)?.browserTimeZoneInputs)
       .toEqual(['Asia/Shanghai'])
 
     const resumed = newSession(ctx, SessionId('zone-resumed'), source.snapshotEvents())
@@ -423,7 +425,7 @@ describe('durable step context', () => {
 
     await expect(agentEvents(ctx, enteredAgent).waterfall(
       'agent/pre-step',
-      { messages: proposed, turn: 1, step: 1, signal: SIGNAL },
+      { modelSelection: { provider: 'mock', model: 'mock' }, messages: proposed, turn: 1, step: 1, signal: SIGNAL },
       () => Promise.resolve({ kind: 'enter' as const, messages: proposed }),
     )).rejects.toThrow(/Not\/A_Real_Zone/)
 
@@ -432,7 +434,7 @@ describe('durable step context', () => {
     const proposedAgent = sessionAgent(proposedOnly, 'zone-order-proposed-agent')
     await expect(agentEvents(ctx, proposedAgent).waterfall(
       'agent/pre-step',
-      { messages: proposed, turn: 1, step: 1, signal: SIGNAL },
+      { modelSelection: { provider: 'mock', model: 'mock' }, messages: proposed, turn: 1, step: 1, signal: SIGNAL },
       () => Promise.resolve({ kind: 'enter' as const, messages: proposed }),
     )).rejects.toThrow(/Other\/Not_A_Real_Zone/)
   })
@@ -457,7 +459,7 @@ describe('durable step context', () => {
       session.header,
       session.inheritedEventCount,
     )
-    expect(restored.checkpoint['timeContext']?.ver).toBe(3)
+    expect(restored.checkpoint['timeContext']?.ver).toBe(4)
     expect(restored.checkpoint['timeContext']?.cacheFingerprint).toBe(timeContextCacheFingerprint)
     expect(restored.checkpoint['timeContext']?.val).toMatchObject({
       openTurn: 1,
@@ -559,7 +561,7 @@ describe('durable step context', () => {
 
     await expect(agentEvents(ctx, agent).waterfall(
       'agent/pre-step',
-      { messages: proposed, turn: 1, step: 1, signal: SIGNAL },
+      { modelSelection: { provider: 'mock', model: 'mock' }, messages: proposed, turn: 1, step: 1, signal: SIGNAL },
       () => Promise.resolve({ kind: 'reject' as const }),
     )).resolves.toEqual({ kind: 'reject' })
     expect(contextTexts(session)).toHaveLength(0)
@@ -575,7 +577,7 @@ describe('durable step context', () => {
 
     vi.setSystemTime(BASE + 500)
     openMessageTurn(session, 2, 'Not/A_Real_Zone')
-    expect(ctx.sessionProjections.stateOf(session, 'timeContext')?.browserTimeZoneInputs)
+    expect(timeContextStateSchema.parse(ctx.sessionProjections.checkpoint(session).timeContext?.val)?.browserTimeZoneInputs)
       .toEqual(['Not/A_Real_Zone'])
     const beforeSkip = session.snapshotEvents().length
 
@@ -667,15 +669,133 @@ describe('configuration and lifecycle', () => {
 })
 
 describe('time-context projection fold edges', () => {
+  it('restores browser zones from a JSON checkpoint and suffix without reading the prefix', async () => {
+    const { ctx } = await mount({ refreshIntervalMs: 0 })
+    onTestFinished(() => ctx.fiber.dispose())
+    const session = Session.create(SessionId('browser-checkpoint'))
+    openMessageTurn(session, 1, 'Asia/Shanghai')
+    const cut = session.seq
+    const rows = structuredClone(ctx.sessionProjections.checkpoint(session))
+    session.append('user/message', createUserMessage({
+      content: [],
+      source: { kind: 'user', rpcId: 'steer', clientTimeZone: 'America/New_York' } as never,
+    }), { surfaceOp: 'append' })
+    const events = session.snapshotEvents()
+    const suffix = session.snapshotEvents(cut)
+    const jsonRows = JSON.parse(JSON.stringify(rows)) as typeof rows
+    const restored = ctx.sessionProjections.restore(jsonRows, suffix, cut, session.header, session.inheritedEventCount)
+    expect(restored.checkpoint.timeContext).toEqual(ctx.sessionProjections.checkpoint(session).timeContext)
+
+    const cold = Session.create(SessionId('browser-cold'), events)
+    const lookup = vi.spyOn(cold, 'eventAt')
+    const snapshot = vi.spyOn(cold, 'snapshotEvents')
+    const own = vi.spyOn(cold, 'ownEvents')
+    ctx.sessionProjections.hydrate(cold, jsonRows, suffix, cut)
+    await fire(ctx, sessionAgent(cold), 1, 1)
+    // The supplied suffix is already hydrated; later lifecycle records may still be read.
+    expect(lookup.mock.calls.every(([seq]) => seq >= events.length)).toBe(true)
+    expect(snapshot.mock.calls.every(([from]) => from !== undefined && from >= events.length)).toBe(true)
+    expect(own).not.toHaveBeenCalled()
+    lookup.mockRestore()
+    snapshot.mockRestore()
+    own.mockRestore()
+    expect(contextTexts(cold).at(-1)).toContain('mixed ["America/New_York","Asia/Shanghai"]')
+  })
+
+  it('rebuilds an old checkpoint from the full journal and removes the unit on unload', async () => {
+    const { ctx, fiber } = await mount()
+    onTestFinished(() => ctx.fiber.dispose())
+    const session = Session.create(SessionId('browser-old-row'))
+    openMessageTurn(session, 1, 'Asia/Shanghai')
+    const rows = ctx.sessionProjections.checkpoint(session)
+    const oldRows = {
+      ...rows,
+      timeContext: {
+        ver: 2,
+        seq: rows.timeContext!.seq,
+        val: { lastMessageTime: BASE, lastInjectionTime: null, lastTurnInjectionTime: null },
+      },
+    }
+    const cold = Session.create(SessionId('browser-old-cold'), session.snapshotEvents())
+    ctx.sessionProjections.hydrate(cold, oldRows, cold.snapshotEvents(), SessionLogOffset(0))
+    expect(ctx.sessionProjections.checkpoint(cold).timeContext).toEqual({
+      ver: 4, seq: cold.seq - 1, val: rows.timeContext!.val, cacheFingerprint: timeContextCacheFingerprint,
+    })
+    await fiber.dispose()
+    expect(ctx.sessionProjections.checkpoint(cold).timeContext).toBeUndefined()
+  })
+
+  it('retains reported invalid zones without validating rejected or throttled requests', async () => {
+    const { ctx } = await mount({ refreshIntervalMs: 1000 })
+    onTestFinished(() => ctx.fiber.dispose())
+    const session = Session.create(SessionId('browser-refusal-timing'))
+    const agent = sessionAgent(session)
+    openMessageTurn(session, 1, 'UTC')
+    await fire(ctx, agent, 1, 1)
+    session.append('user/message', createUserMessage({
+      content: [],
+      source: { kind: 'user', rpcId: 'invalid', clientTimeZone: '+08:00' } as never,
+    }), { surfaceOp: 'append' })
+    expect(ctx.sessionProjections.checkpoint(session).timeContext?.val).toMatchObject({
+      browserTimeZoneInputs: ['UTC', '+08:00'],
+    })
+    vi.setSystemTime(BASE + 500)
+    await expect(fire(ctx, agent, 1, 2)).resolves.toBeUndefined()
+    vi.setSystemTime(BASE + 1000)
+    const reject = ctx.on('agent/pre-step', () => Promise.resolve({ kind: 'reject' as const }))
+    await expect(fire(ctx, agent, 1, 2)).resolves.toBeUndefined()
+    reject()
+    await expect(fire(ctx, agent, 1, 2)).rejects.toThrow(
+      'browser time zone must be canonical UTC or IANA Area/Location: "+08:00"',
+    )
+    expect(contextTexts(session)).toHaveLength(1)
+  })
+
+  it('keeps the historical requested-turn fallback and resets distinct zones on the next turn', async () => {
+    const { ctx } = await mount({ refreshIntervalMs: 0 })
+    onTestFinished(() => ctx.fiber.dispose())
+    const session = Session.create(SessionId('browser-historical-turn'))
+    session.append('user/message', createUserMessage({
+      content: [],
+      source: { kind: 'user', rpcId: 'before-turn', clientTimeZone: 'Europe/London' } as never,
+    }), { surfaceOp: 'append' })
+    expect(ctx.sessionProjections.checkpoint(session).timeContext?.val).toMatchObject({
+      openTurn: null, browserTimeZoneInputs: [],
+    })
+    openMessageTurn(session, 1, 'Asia/Shanghai')
+    session.append('user/message', createUserMessage({
+      content: [],
+      source: { kind: 'user', rpcId: 'duplicate', clientTimeZone: 'Asia/Shanghai' } as never,
+    }), { surfaceOp: 'append' })
+    expect(ctx.sessionProjections.checkpoint(session).timeContext?.val).toMatchObject({
+      openTurn: 1, browserTimeZoneInputs: ['Asia/Shanghai'],
+    })
+    openMessageTurn(session, 2, 'America/New_York')
+    expect(ctx.sessionProjections.checkpoint(session).timeContext?.val).toMatchObject({
+      openTurn: 2, browserTimeZoneInputs: ['America/New_York'],
+    })
+    const fallback: PreStepDecision = { kind: 'enter', messages: [] }
+    const decision = await agentEvents(ctx, sessionAgent(session)).waterfall(
+      'agent/pre-step',
+      { modelSelection: { provider: 'mock', model: 'mock' }, messages: [], turn: 1, step: 1, signal: SIGNAL },
+      () => Promise.resolve(fallback),
+    )
+    expect(decision.kind).toBe('enter')
+    if (decision.kind !== 'enter') throw new Error('expected historical-turn context')
+    const readings: string[] = decision.messages.flatMap(message => message.content)
+      .flatMap(block => block.type === 'text' ? [block.text] : [])
+    expect(readings.join('\n')).toContain('mixed ["America/New_York","Asia/Shanghai"]')
+  })
+
   it('clears the open-turn injection time at the next turn start', async () => {
     const { ctx } = await mount()
     const session = newSession(ctx, SessionId('same-turn'))
     openMessageTurn(session, 1)
     await fire(ctx, sessionAgent(session), 1, 1)
-    expect(typeof ctx.sessionProjections.stateOf(session, 'timeContext')?.lastTurnInjectionTime).toBe('number')
+    expect(typeof timeContextStateSchema.parse(ctx.sessionProjections.checkpoint(session).timeContext?.val)?.lastTurnInjectionTime).toBe('number')
     session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
     session.append('turn/start', { turn: 2 })
-    expect(ctx.sessionProjections.stateOf(session, 'timeContext')).toMatchObject({
+    expect(ctx.sessionProjections.checkpoint(session).timeContext?.val).toMatchObject({
       lastTurnInjectionTime: null,
     })
   })
@@ -684,7 +804,7 @@ describe('time-context projection fold edges', () => {
     const { ctx } = await mount()
     const session = newSession(ctx, SessionId('end-without-start'))
     session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
-    expect(ctx.sessionProjections.stateOf(session, 'timeContext')).toMatchObject({
+    expect(ctx.sessionProjections.checkpoint(session).timeContext?.val).toMatchObject({
       lastTurnInjectionTime: null,
     })
   })

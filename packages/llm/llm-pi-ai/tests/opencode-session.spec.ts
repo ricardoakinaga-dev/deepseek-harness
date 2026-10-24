@@ -20,6 +20,7 @@ describe('OpenCode conversation routing', () => {
   it.each(['opencode-go', 'opencode'])('sends the same conversation ID on repeated %s requests', async (provider) => {
     const server = await mockServer([{ events: textEvents }, { events: textEvents }])
     const profiles = resolveProfiles({ [provider]: {
+      api: 'openai-completions',
       baseURL: server.url,
       models: [{ id: 'deepseek-v4-flash' }],
       headers: { 'X-OpenCode-Session': 'stale-profile-id', 'x-company': 'retained', 'User-Agent': 'wrong' },
@@ -42,6 +43,7 @@ describe('OpenCode conversation routing', () => {
   it('keeps simultaneous conversations separate on one adapter', async () => {
     const server = await mockServer([{ events: textEvents }, { events: textEvents }])
     const profiles = resolveProfiles({ 'opencode-go': {
+      api: 'openai-completions',
       baseURL: server.url,
       models: [{ id: 'deepseek-v4-flash' }],
     } })

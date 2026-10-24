@@ -1,0 +1,2 @@
+$ tsx scripts/verify-package-dependencies.ts
+verify-package-dependencies: 92 package(s) match the published dependency policy (5 Client-only, 85 Client/Host, 2 configured Host).

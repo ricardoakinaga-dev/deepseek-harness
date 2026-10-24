@@ -7,6 +7,7 @@
 import { randomUUID } from 'node:crypto'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import { z as zod } from 'zod'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
@@ -17,10 +18,9 @@ declare module '@deepseek-ai/dsh-llm' {
 }
 
 import { scopeTarget } from '@deepseek-ai/dsh-scope'
-import type { Session } from '@deepseek-ai/dsh-session'
+import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
+import type { ProjectionDefinition, ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-system-prompt'
-import { installApprovalSessionLease } from './session-state.ts'
-import type { ApprovalSessionLease } from './session-state.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -73,13 +73,44 @@ export const APPROVAL_POLICIES: readonly ApprovalPolicy[] = ['ask', 'never']
 /** Model-facing statement for the deterministic `'never'` policy. */
 const NEVER_SENTENCE = 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).'
 /** Model-facing statement for an interactive policy that may still fail closed. */
-const ASK_SENTENCE = 'Approval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
+const ASK_SENTENCE = 'Approval prompts are enabled in this session: operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
+/** Model-facing policy names in switch notices; a bare `never` reads as "approval is never granted". */
+const POLICY_NOTICE_NAMES: Readonly<Record<ApprovalPolicy, string>> = {
+  ask: 'ask the user for approval',
+  never: 'never ask the user for approval',
+}
 
-class ApprovalStateUnavailableError extends Error {}
+interface ApprovalState {
+  policy: ApprovalPolicy | null
+  // Mirrors AgentRegistry's turn enclosure without requiring an agent registry.
+  turnOpen: boolean
+}
+
+const approvalStateDefinition = {
+  key: 'approvalState',
+  stateVersion: 1,
+  stateSchema: zod.object({
+    policy: zod.enum(['ask', 'never']).nullable(),
+    turnOpen: zod.boolean(),
+  }),
+  init: (): ApprovalState => ({ policy: null, turnOpen: false }),
+  apply(state: ApprovalState, event: SessionEvent): ApprovalState {
+    switch (event.type) {
+      case 'approval/policy':
+        return state.policy === event.data.policy ? state : { ...state, policy: event.data.policy }
+      case 'turn/start':
+        return state.turnOpen ? state : { ...state, turnOpen: true }
+      case 'turn/end':
+        return state.turnOpen ? { ...state, turnOpen: false } : state
+      default:
+        return state
+    }
+  },
+} satisfies ProjectionDefinition<'approvalState', ApprovalState>
 
 /**
  * Append the sole durable representation of a session policy override. Invalid
- * values throw before the log changes; consumers fold the new value on each read.
+ * values throw before the log changes; projected state follows the committed record.
  * @param session - the session the override belongs to.
  * @param policy - the policy in effect until the next switch.
  */
@@ -135,25 +166,28 @@ export interface Config {
  * Open-turn and latest-policy reads require an exact package-owned Session fold.
  */
 export class ApprovalService extends Service {
-  static inject = ['sessions']
+  static inject = ['sessionProjections']
 
   static Config: z<Config> = z.object({
     policy: z.union(['ask', 'never'] as const).default('ask'),
   })
 
-  private readonly sessionState: ApprovalSessionLease
+  private approvalProjectionHandle!: ProjectionHandle<ApprovalState>
 
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'approval')
-    this.sessionState = installApprovalSessionLease(ctx, (message) => {
-      throw new ApprovalStateUnavailableError(`approval session state: ${message}`)
-    })
+  }
+
+  protected async [Service.init](): Promise<void> {
+    this.approvalProjectionHandle = await this.ctx.sessionProjections.register(approvalStateDefinition)
+    // Registration can finish after an unload has started. Do not add effects then.
+    if (this.ctx.fiber.uid === null) return
 
     const effective = (agent: Agent): ApprovalPolicy => this.effectivePolicy(agent.session)
 
     // The complete current value travels after retained history, so switching
     // policy does not rewrite the stable system-prompt cache prefix.
-    ctx.inject(['systemPrompt'], (scope: Context) => {
+    await this.ctx.inject(['systemPrompt'], (scope: Context) => {
       scope.systemPrompt.context({
         name: 'approval:policy',
         order: scope.systemPrompt.getContextOrder('APPROVAL_POLICY'),
@@ -182,7 +216,7 @@ export class ApprovalService extends Service {
     agent.inject(createUserMessage({
       content: [{
         type: 'text',
-        text: `The approval policy changed from "${previous}" to "${policy}" (changed by the user).`,
+        text: `The user changed the approval policy from "${POLICY_NOTICE_NAMES[previous]}" to "${POLICY_NOTICE_NAMES[policy]}".`,
       }],
       source: { kind: 'user-approval' },
     }))
@@ -202,22 +236,13 @@ export class ApprovalService extends Service {
    * authoritative append cannot reject the request or suppress its matching
    * audit event.
    * @param req - the pending decision (agent, tool identity, reason, signal).
-   * @returns the closed outcome; `'allowed-once'` is the only grant. A Session
-   *   without an exact owner fold returns `'unavailable'` before either audit
-   *   event is appended.
+   * @returns the closed outcome; `'allowed-once'` is the only grant.
    * @throws when no turn is open or either audit event fails before the append
    *   commit point.
    */
   async request(req: ApprovalRequest): Promise<ApprovalOutcome> {
     const session = req.agent.session
-    let state: ReturnType<ApprovalSessionLease['readCurrent']>
-    try {
-      state = this.sessionState.readCurrent(session)
-    } catch (error: unknown) {
-      if (error instanceof ApprovalStateUnavailableError) return 'unavailable'
-      throw error
-    }
-    if (state.openTurn === null) {
+    if (!this.approvalStateOf(session).turnOpen) {
       throw new Error(
         'approval.request() outside an open turn: the approval/asked + approval/decided audit pair '
         + 'must be turn-enclosed (a bare event between turns is crash-tail garbage on reload). '
@@ -237,7 +262,7 @@ export class ApprovalService extends Service {
   }
 
   /**
-   * The session's effective policy: its own `approval/policy` fold, else the
+   * The session's effective policy: its projected override, else the
    * configured default (the schema already defaulted an omitted policy to
    * `'ask'`; the `??` only narrows the optional-input TYPE).
    * @param session - the exact accepted session whose policy applies.
@@ -255,7 +280,11 @@ export class ApprovalService extends Service {
    * @throws when this provider has no exact fold for the current Session prefix.
    */
   overrideOf(session: Session): ApprovalPolicy | undefined {
-    return this.sessionState.readCurrent(session).latestPolicy
+    return this.approvalStateOf(session).policy ?? undefined
+  }
+
+  private approvalStateOf(session: Session): ApprovalState {
+    return this.approvalProjectionHandle.stateOf(session)
   }
 
   /**

@@ -1,0 +1,50 @@
+$ tsx scripts/run-gates.ts doc-quick
+run-gates: doc-quick running 23 gate(s) with 8 worker(s) from 12 local default worker(s) of 16 CPU(s), doc-quick cap 8.
+run-gates: start markdown links
+run-gates: start type equivalence
+run-gates: start translation pairing
+run-gates: start markdown wrap
+run-gates: start npm dependency catalog
+run-gates: start Session format references
+run-gates: start public repository links
+run-gates: start repository references
+run-gates: PASS npm dependency catalog (2.67s)
+run-gates: start concrete terms
+run-gates: PASS concrete terms (7.41s)
+run-gates: start doc refs
+run-gates: PASS public repository links (12.31s)
+run-gates: start package README Summaries
+run-gates: PASS type equivalence (12.63s)
+run-gates: start package README model experience
+run-gates: PASS doc refs (4.06s)
+run-gates: start agent note classification
+run-gates: PASS package README Summaries (2.23s)
+run-gates: start agent note format
+run-gates: PASS agent note classification (2.84s)
+run-gates: start archived agent notes
+run-gates: PASS Session format references (17.96s)
+run-gates: start skill invocation metadata
+run-gates: PASS agent note format (3.98s)
+run-gates: start translation prompt
+run-gates: PASS archived agent notes (2.99s)
+run-gates: start doc budgets
+run-gates: PASS repository references (20.18s)
+run-gates: start upgrade guides
+run-gates: PASS skill invocation metadata (2.94s)
+run-gates: start documentation standard tests
+run-gates: PASS translation prompt (2.39s)
+run-gates: start package README limitations
+run-gates: PASS doc budgets (3.12s)
+run-gates: start package README order
+run-gates: PASS upgrade guides (4.39s)
+run-gates: start README community parity
+run-gates: PASS README community parity (2.24s)
+run-gates: PASS package README order (5.30s)
+run-gates: PASS documentation standard tests (7.68s)
+run-gates: PASS package README model experience (16.71s)
+run-gates: PASS package README limitations (14.21s)
+run-gates: PASS markdown wrap (50.55s)
+run-gates: PASS markdown links (54.01s)
+run-gates: PASS translation pairing (60.34s)
+
+run-gates: 23 passed, 0 failed, 0 skipped in 60.36s.

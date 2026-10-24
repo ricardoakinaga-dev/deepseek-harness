@@ -84,6 +84,11 @@ export type ActivationResource =
     failureAt: SessionLogOffset | undefined
     /** Renewed when local settlement must recheck input or owned children. */
     poke: PromiseWithResolvers<void>
+    /**
+     * Exact text last delivered to the direct parent, eligible for closing-text
+     * deduplication until input is claimed or another tool call is logged.
+     */
+    lastParentMessageText: string | undefined
   }
   | {
     readonly kind: 'external'

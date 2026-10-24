@@ -62,6 +62,8 @@ Loading a listed skill returns its full instructions; the model sees one canonic
 
 -----
 
+When Session projections are available, the tool awaits its private projection handle and reuses an unchanged instruction body still present in model history. Compaction or pruning that removes the body causes a full reload. Without the projection service, every invocation loads the full instructions.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 

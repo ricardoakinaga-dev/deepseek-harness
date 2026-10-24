@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-experimental-browser-use-stagehand-native",
   "description": "Experimental Stagehand browser tools with separately configured native models",
-  "version": "0.2.1-alpha.3",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },
@@ -18,6 +18,7 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json",
     "./worker": {
       "types": "./lib/types/worker.d.ts",
@@ -25,6 +26,7 @@
     }
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
     "lib/worker.js",
     "lib/types/**/*.d.ts"
@@ -61,6 +63,8 @@
     "@deepseek-ai/dsh-session": "workspace:*",
     "@deepseek-ai/dsh-session-projection": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
+    "@deepseek-ai/dsh-tool-executor-native": "workspace:*",
+    "@deepseek-ai/dsh-tool-testkit": "workspace:*",
     "@deepseek-ai/dsh-tools": "workspace:*",
     "tsx": "^4.23.13"
   }

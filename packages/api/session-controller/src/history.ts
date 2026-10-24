@@ -29,7 +29,6 @@ import type {
   SessionPage,
   SessionPageRequest,
   SessionProjectionBaseline,
-  SessionProjectionValues,
   SessionWireHeader,
   SessionWireEvent,
 } from './types.ts'
@@ -300,7 +299,7 @@ function projectionBlock(
   return {
     asOfSeq: snapshot.asOfSeq,
     // Projection definitions validate whole JSON values before snapshot publication.
-    values: snapshot.values as SessionProjectionValues,
+    values: snapshot.values,
   }
 }
 

@@ -1,46 +1,48 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { carrierKeyOf, createScope } from '@deepseek-ai/dsh-scope'
 import type { Scope } from '@deepseek-ai/dsh-scope'
 import SessionStore, { SessionId, type Session } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ApprovalService, { ApprovalOutcome, ApprovalRequest, setApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
 
-/**
- * A minimal Agent stand-in — the service only reaches `agent.session.append`
- * and the owner-maintained Session fold. Seeded inside an open turn by default (request()'s
- * turn-enclosure precondition); pass `seed` to stage idle/closed logs.
- * Returns the recorded audit appends alongside the fake.
- */
-function fakeAgent(ctx: Context, seed: Array<{ type: string }> = [{ type: 'turn/start' }, { type: 'user/message' }]): { agent: Agent; appended: Array<{ type: string; data: Record<string, unknown> }> } {
+// Keep the Agent structural while exercising committed events on a real managed Session.
+function fakeAgent(ctx: Context, seed: Array<{ type: 'turn/start' | 'turn/end' | 'user/message' }> = [{ type: 'turn/start' }, { type: 'user/message' }]): { agent: Agent; appended: Array<{ type: string; data: Record<string, unknown> }> } {
   const appended: Array<{ type: string; data: Record<string, unknown> }> = []
   const session = ctx.sessions.create()
-  ctx.on('session/event', (subject, event) => {
-    if (subject === session) appended.push({ type: event.type, data: event.data as Record<string, unknown> })
-  }, { global: true })
-  for (const item of seed) {
-    if (item.type === 'turn/start') session.append('turn/start', { turn: 1 })
-    else if (item.type === 'turn/end') session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+  for (const event of seed) {
+    switch (event.type) {
+      case 'turn/start': session.append('turn/start', { turn: 1 }); break
+      case 'turn/end': session.append('turn/end', { turn: 1, reason: { kind: 'completed' } }); break
+      case 'user/message': session.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'seed' }] }), { surfaceOp: 'append' }); break
+    }
   }
-  appended.length = 0
-  const agent = { id: session.id, session } as Agent
-  return { agent, appended }
+  ctx.on('session/event', (subject, event) => {
+    if (subject === session && (event.type === 'approval/asked' || event.type === 'approval/decided')) {
+      appended.push({ type: event.type, data: { ...event.data } })
+    }
+  })
+  return { agent: { session } as Agent, appended }
+}
+
+async function context(): Promise<Context> {
+  const ctx = new Context()
+  onTestFinished(() => ctx.fiber.dispose())
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  return ctx
 }
 
 async function mounted(): Promise<Context> {
-  const ctx = new Context()
-  await ctx.plugin(SessionStore)
+  const ctx = await context()
   await ctx.plugin(ApprovalService)
   return ctx
 }
 
-async function mountApproval(ctx: Context, config?: { policy?: 'ask' | 'never' }): Promise<void> {
-  if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
-  await ctx.plugin(ApprovalService, config)
-}
 
 function requestOf(agent: Agent, overrides: Partial<ApprovalRequest> = {}): ApprovalRequest {
   return { agent, toolName: 'echo', ...overrides }
@@ -121,8 +123,7 @@ describe('ApprovalService.request', () => {
   })
 
   it('contains an approval/asked observer throw after append and still completes the pair', async () => {
-    const ctx = new Context()
-    await ctx.plugin(SessionStore)
+    const ctx = await context()
     await ctx.plugin(ApprovalService)
     const session = ctx.sessions.create(SessionId('asked-observer-throw'))
     session.append('turn/start', { turn: 1 })
@@ -144,8 +145,7 @@ describe('ApprovalService.request', () => {
   })
 
   it('contains an approval/decided observer throw after append and still resolves', async () => {
-    const ctx = new Context()
-    await ctx.plugin(SessionStore)
+    const ctx = await context()
     await ctx.plugin(ApprovalService)
     const session = ctx.sessions.create(SessionId('decided-observer-throw'))
     session.append('turn/start', { turn: 1 })
@@ -169,10 +169,8 @@ describe('ApprovalService.request', () => {
   it('propagates an append failure that prevented audit log growth', async () => {
     const ctx = await mounted()
     const failure = new Error('append failed before log growth')
-    const session = ctx.sessions.create()
-    session.append('turn/start', { turn: 1 })
-    vi.spyOn(session, 'append').mockImplementation(() => { throw failure })
-    const agent = { session } as Agent
+    const { agent } = fakeAgent(ctx)
+    vi.spyOn(agent.session, 'append').mockImplementation(() => { throw failure })
 
     await expect(ctx.approval.request(requestOf(agent))).rejects.toBe(failure)
   })
@@ -356,7 +354,7 @@ describe('ApprovalService.request', () => {
 
 describe('approval policy (the approval/policy fold)', () => {
   const NEVER_SENTENCE = 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).'
-  const ASK_SENTENCE = 'Approval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
+  const ASK_SENTENCE = 'Approval prompts are enabled in this session: operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
 
   /**
    * An agent stand-in over a REAL Session — gate and context fold real events;
@@ -389,28 +387,26 @@ describe('approval policy (the approval/policy fold)', () => {
     expect(append).not.toHaveBeenCalled()
   })
 
-  it('defaults a schema-less construction to ask (the ?? narrows the optional TYPE)', async () => {
-    // Direct construction bypasses the plugin schema (the SystemPrompt-test
-    // precedent for covering a defaulted Config field's type-narrowing ??).
-    const ctx = new Context()
-    await ctx.plugin(SessionStore)
-    const service = new ApprovalService(ctx, {})
+  it('defaults an omitted policy to ask', async () => {
+    const ctx = await mounted()
+    const service = ctx.approval
+    service.config = {}
     const { agent } = sessionAgent(ctx, 'sess-bare-config')
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
     await expect(service.request({ agent, toolName: 'echo' })).resolves.toBe('allowed-once')
   })
 
   it('contains an answerer that throws SYNCHRONOUSLY as unavailable', async () => {
-    const ctx = new Context()
-    await mountApproval(ctx)
+    const ctx = await context()
+    await ctx.plugin(ApprovalService)
     const { agent } = sessionAgent(ctx, 'sess-syncthrow')
     ctx.on('approval/request', () => { throw new Error('sync bug') })
     await expect(ctx.approval.request({ agent, toolName: 'echo' })).resolves.toBe('unavailable')
   })
 
   it('a never config rejects deterministically without consulting any answerer', async () => {
-    const ctx = new Context()
-    await mountApproval(ctx, { policy: 'never' })
+    const ctx = await context()
+    await ctx.plugin(ApprovalService, { policy: 'never' })
     const consulted = vi.fn()
     ctx.on('approval/request', (_req, next) => { consulted(); return next() })
     const { agent, session } = sessionAgent(ctx, 'sess-gate-1')
@@ -422,9 +418,9 @@ describe('approval policy (the approval/policy fold)', () => {
   })
 
   it('the gate decides FIRST even against an answerer registered before the service (prepend)', async () => {
-    const ctx = new Context()
+    const ctx = await context()
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
-    await mountApproval(ctx, { policy: 'never' })
+    await ctx.plugin(ApprovalService, { policy: 'never' })
     const { agent } = sessionAgent(ctx, 'sess-gate-2')
     await expect(ctx.approval.request({ agent, toolName: 'bash' })).resolves.toBe('rejected')
   })
@@ -433,8 +429,8 @@ describe('approval policy (the approval/policy fold)', () => {
     // Cordis prepend unshifts ahead of every existing listener, including any gate LISTENER the
     // service could register — which is exactly why the 'never' decision lives inside request()
     // instead. This eager grant would bypass a listener-based gate and therefore must never run.
-    const ctx = new Context()
-    await mountApproval(ctx, { policy: 'never' })
+    const ctx = await context()
+    await ctx.plugin(ApprovalService, { policy: 'never' })
     const consulted = vi.fn()
     ctx.on('approval/request', () => { consulted(); return Promise.resolve<ApprovalOutcome>('allowed-once') }, { prepend: true })
     const { agent, appended } = fakeAgent(ctx)
@@ -444,8 +440,8 @@ describe('approval policy (the approval/policy fold)', () => {
   })
 
   it('a session override outranks the configured default, in both directions', async () => {
-    const ctx = new Context()
-    await mountApproval(ctx, { policy: 'never' })
+    const ctx = await context()
+    await ctx.plugin(ApprovalService, { policy: 'never' })
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
     const { agent, session } = sessionAgent(ctx, 'sess-gate-3')
     expect(ctx.approval.overrideOf(session)).toBeUndefined()
@@ -457,8 +453,8 @@ describe('approval policy (the approval/policy fold)', () => {
   })
 
   it('queues a live policy switch for the next model step', async () => {
-    const ctx = new Context()
-    await mountApproval(ctx)
+    const ctx = await context()
+    await ctx.plugin(ApprovalService)
     const { agent, session } = sessionAgent(ctx, 'sess-policy-notice')
     const inject = vi.fn<Agent['inject']>()
     const liveAgent = { ...agent, inject } as Agent
@@ -471,16 +467,25 @@ describe('approval policy (the approval/policy fold)', () => {
     expect(inject.mock.calls[0]?.[0]).toMatchObject({
       content: [{
         type: 'text',
-        text: 'The approval policy changed from "ask" to "never" (changed by the user).',
+        text: 'The user changed the approval policy from "ask the user for approval" to "never ask the user for approval".',
       }],
       source: { kind: 'user-approval' },
+    })
+
+    ctx.approval.setPolicy(liveAgent, 'ask')
+
+    expect(inject.mock.calls[1]?.[0]).toMatchObject({
+      content: [{
+        type: 'text',
+        text: 'The user changed the approval policy from "never ask the user for approval" to "ask the user for approval".',
+      }],
     })
   })
 
   it('contributes the complete current ask or never policy as cache-safe context', async () => {
-    const ctx = new Context()
+    const ctx = await context()
     await ctx.plugin(SystemPrompt)
-    await mountApproval(ctx)
+    await ctx.plugin(ApprovalService)
     const askAgent = sessionAgent(ctx, 'sess-sect-ask').agent
     const { agent: neverAgent, session } = sessionAgent(ctx, 'sess-sect-never')
     setApprovalPolicy(session, 'never')
@@ -493,9 +498,9 @@ describe('approval policy (the approval/policy fold)', () => {
   })
 
   it('reflects the latest durable switch in cache-safe context and stays byte-stable while unchanged', async () => {
-    const ctx = new Context()
+    const ctx = await context()
     await ctx.plugin(SystemPrompt)
-    await mountApproval(ctx)
+    await ctx.plugin(ApprovalService)
     const { agent, session } = sessionAgent(ctx, 'sess-context-switch')
     const contextFor = async () =>
       (await ctx.systemPrompt.assemble({ agent })).contexts.find(entry => entry.name === 'approval:policy')?.text
@@ -509,9 +514,8 @@ describe('approval policy (the approval/policy fold)', () => {
   })
 
   it('disposes the runtime-context contribution with the service', async () => {
-    const ctx = new Context()
+    const ctx = await context()
     await ctx.plugin(SystemPrompt)
-    await ctx.plugin(SessionStore)
     const fiber = await ctx.plugin(ApprovalService)
     const { agent } = sessionAgent(ctx, 'sess-hmr-service-live')
     const contextFor = async () =>

@@ -24,7 +24,7 @@ import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, Sess
 import type { SessionHeader } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { ProjectionCheckpoint, ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
-import type { SessionProjectionStateMap } from '@deepseek-ai/dsh-session-projection/types'
+import type { TitleProjection } from '@deepseek-ai/dsh-session-title'
 import Storage from '@deepseek-ai/dsh-storage'
 import {
   apply as storageJsonApply, Config as storageJsonConfig, inject as storageJsonInject, name as storageJsonName,
@@ -46,17 +46,11 @@ declare module '@deepseek-ai/dsh-session/types' {
   }
 }
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    'fixtures-test/env-fold': number
-  }
-}
-
 // Mirrors the predecessor title unit's storage face: stateVersion 1 and
 // bare-string archived rows. The current title state is richer, so the
 // schema adapts only this historical fixture value before the rewrite path
 // folds a test event and emits the current state format.
-type CurrentTitleState = SessionProjectionStateMap['title']
+type CurrentTitleState = TitleProjection | null
 
 const legacyTitleStateSchema: import('zod').ZodType<CurrentTitleState> = z.string().nullable().transform((title): CurrentTitleState => {
   if (title === null) return null
@@ -138,7 +132,7 @@ async function harness(root: string) {
   const ctx = await storageHarness(root)
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
-  ctx.sessionProjections.register(titleUnit)
+  await ctx.sessionProjections.register(titleUnit)
   await ctx.plugin(SessionProjectionCache, { writeEveryEvents: 100, writeIntervalMs: 60_000 })
   return { ctx, cache: ctx.sessionProjectionCache }
 }
@@ -288,7 +282,7 @@ describe('archived version recovery', () => {
     const doc = await placeDoc(root, id, 'v7-session-doc.json')
     expect(doc.version).toBe(7)
     const { ctx, cache } = await harness(root)
-    ctx.sessionProjections.register(environmentUnit)
+    await ctx.sessionProjections.register(environmentUnit)
     expect(cache.cachedSnapshot(headerFor(id, doc.record.identity), ['title'])).toBeUndefined()
     expect(cache.cachedPredecessorTitle(headerFor(id, doc.record.identity))?.values.title)
       .toBe('v7标题')
@@ -388,7 +382,7 @@ describe('archived version recovery', () => {
     await ctx.plugin({ name: storageDomainName, inject: storageDomainInject, apply: storageDomainApply, Config: storageDomainConfig }, { backend: 'json' })
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    ctx.sessionProjections.register(titleUnit)
+    await ctx.sessionProjections.register(titleUnit)
     const error = vi.spyOn(ctx.logger, 'error').mockImplementation(() => {})
     // The boot survives the broken record — this line rejecting IS the fixed bug.
     await ctx.plugin(SessionProjectionCache, { writeEveryEvents: 100, writeIntervalMs: 60_000 })

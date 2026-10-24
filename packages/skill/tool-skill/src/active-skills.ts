@@ -5,14 +5,8 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 
 const stateSchema = z.record(z.string(), z.object({ digest: z.string(), seq: z.number().int().nonnegative() }))
-type ActiveSkills = z.infer<typeof stateSchema>
-
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    /** Intact direct skill results still present on the model surface. */
-    activeSkills: ActiveSkills
-  }
-}
+/** Intact model-visible instruction identities indexed by skill name. */
+export type ActiveSkills = z.infer<typeof stateSchema>
 
 /**
  * Identify the rendered instructions and their provider without conflating equal names.
@@ -44,6 +38,6 @@ function apply(state: ActiveSkills, event: SessionEvent): ActiveSkills {
 }
 
 /** The same pure fold is shared by every preset instance and reconstructed on resume. */
-export const activeSkillsProjection: ProjectionDefinition<'activeSkills'> = {
+export const activeSkillsProjection: ProjectionDefinition<'activeSkills', ActiveSkills> = {
   key: 'activeSkills', stateVersion: 2, stateSchema, init: () => ({}), apply,
 }

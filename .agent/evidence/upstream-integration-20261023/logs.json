@@ -1,0 +1,97 @@
+{
+  "custom-regressions": {
+    "file": "custom-regressions.log",
+    "sha256": "bbe2a54415ae95efdb123f7a3f99b98bea838e8b4e1ac4fd63d9dddbbe7518a1",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "continuation-179": {
+    "file": "continuation-179.log",
+    "sha256": "bed22e95b7917f3187e89318863219a959defb8af5ac118c708b363f3fde92d6",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "continuation-final-fixture": {
+    "file": "continuation-final-fixture.log",
+    "sha256": "78cd7dba41a10c904b6abbe649b41ada00194f3d104442b96c57f1ad9be55435",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "build-artifacts-with-initial-test-type-failure": {
+    "file": "build-artifacts-with-initial-test-type-failure.log",
+    "sha256": "ecf0fc3d568480dbb3c9d7c8e700c148b78899599e183bd850b02b8f3cd5755c",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "build-aggregate-after-fixture-repair": {
+    "file": "build-aggregate-after-fixture-repair.log",
+    "sha256": "e9b94c31c396da99bd673425ca74705c998b2577e69266ed61ccc1f6e15bb3a0",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "lint-full": {
+    "file": "lint-full.log",
+    "sha256": "9f188cb3a7b9e3e1dae31d2d89e0da25c37d4b4d587c58b22140d87dc6e7e606",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "headless-171": {
+    "file": "headless-171.log",
+    "sha256": "900c9c3a36ecf0cf0c1a91c0a8f7a480dba8116fd072370f7887425d33def8ef",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "headless-compaction-3": {
+    "file": "headless-compaction-3.log",
+    "sha256": "7937b6fb7eedf21285860545b2edb45e57aafcd65e5fb8ce676f868d3b7d0940",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "sdk-artifact-37": {
+    "file": "sdk-artifact-37.log",
+    "sha256": "eca36da6c847c54b4ca365998be2e4b585535b1c03b4c82e53cbed6881c15214",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "sdk-source-36-initial-missing-oracle": {
+    "file": "sdk-source-36-initial-missing-oracle.log",
+    "sha256": "fb71fdbb4e48be8d80c2adeb4f3b8b28d67b96f0426b61cf0f42d87bed7bc8bc",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "sdk-source-final-case": {
+    "file": "sdk-source-final-case.log",
+    "sha256": "4ff312cb83959fbb06567fb0532d9c13ab766630cea2b4c63f63dea9ea6e9f59",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "sdk-post-f9-artifact-3": {
+    "file": "sdk-post-f9-artifact-3.log",
+    "sha256": "2261db082153e525ac8a8512374667380183f921a998b2ebfc893e532ec1c19f",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "docs-final-23": {
+    "file": "docs-final-23.log",
+    "sha256": "a40f6b8ee75df62cf5cf49ae954f48e3e22f1d329beda014f2643b7e52df685a",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "pairing-final-1128": {
+    "file": "pairing-final-1128.log",
+    "sha256": "1d7970c74a971adb585afb2deb5e2b9a87291686d7b438e3b2f50920209d45d2",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "config-catalog": {
+    "file": "config-catalog.log",
+    "sha256": "a1652449aaf0d73a66b03fc831d22fd102283579404228e1b8b81fb92c2c5155",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "module-graph": {
+    "file": "module-graph.log",
+    "sha256": "0eb3498bae5009761a1c2a7225ad26ae4208ef20f4f73610e37b34bda4693ccb",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "dependency-catalog": {
+    "file": "dependency-catalog.log",
+    "sha256": "a416186ecfaad20a02305f578cb4f401f87d292acbc4cfbc4803643ab7687081",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "frozen-install": {
+    "file": "frozen-install.log",
+    "sha256": "8a5b87b14bbdba39611ae6ab51d24e4dc17b065e079f658540e8b67ea09bc7ae",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  },
+  "package-dependencies-final": {
+    "file": "package-dependencies-final.log",
+    "sha256": "30cfd4596f04dca271b3451b304c62ccd74b5fdeb2aa2b1af4087e859e1f7312",
+    "storageNormalization": "trailing blank lines removed; original log retained under /tmp"
+  }
+}

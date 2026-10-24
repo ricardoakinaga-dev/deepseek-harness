@@ -23,14 +23,6 @@ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 
 declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    'test/marks': MarksState
-    'test/count': number
-    'test/stable-view': StableViewState
-    'test/cut': number
-    'test/prepared-count': number
-  }
-
   interface SessionProjectionMap {
     'test/marks': { marks: string[] }
     'test/stable-view': { marks: string[] }
@@ -167,14 +159,14 @@ describe('SessionProjectionRegistry drive', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    ctx.sessionProjections.register(marksUnit())
-    const prepared = ctx.sessions.prepare(SessionId('pre-entry-append'))
+    const projection = await ctx.sessionProjections.register(marksUnit())
+    const prepared = Session.create(SessionId('pre-entry-append'))
     const accepted = mark(prepared, ['before-entry'])
 
     const detach = ctx.sessions.enter(prepared)
     ctx.sessions.announce(prepared)
 
-    expect(ctx.sessionProjections.stateOf(prepared, 'test/marks')).toEqual({ marks: ['before-entry'] })
+    expect(projection.stateOf(prepared)).toEqual({ marks: ['before-entry'] })
     expect(ctx.sessionProjections.snapshot(prepared).asOfSeq).toBe(accepted.seq)
     detach()
   })
@@ -183,7 +175,7 @@ describe('SessionProjectionRegistry drive', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    ctx.sessionProjections.register(cutUnit())
+    const cut = await ctx.sessionProjections.register(cutUnit())
     const inherited: SessionEvent[] = [
       { type: 'turn/start', seq: SessionSeq(0), time: 1, data: { turn: 1 } },
       { type: 'turn/end', seq: SessionSeq(1), time: 2, data: { turn: 1, reason: { kind: 'completed' } } },
@@ -194,7 +186,7 @@ describe('SessionProjectionRegistry drive', () => {
       meta: { isSeeded: true },
     })
 
-    expect(ctx.sessionProjections.stateOf(session, 'test/cut')).toBe(inherited.length)
+    expect(cut.stateOf(session)).toBe(inherited.length)
     const restored = ctx.sessionProjections.restore(
       {},
       inherited,
@@ -215,18 +207,18 @@ describe('SessionProjectionRegistry drive', () => {
       inherited,
       SessionLogOffset(0),
     ).asOfSeq).toBe(1)
-    expect(ctx.sessionProjections.stateOf(prepared, 'test/cut')).toBe(inherited.length)
+    expect(cut.stateOf(prepared)).toBe(inherited.length)
   })
 
   it('prepares registered cells from the constructor cut and append feed before publication', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    const prepared = ctx.sessions.prepare(SessionId('prepared-projection'))
+    const prepared = Session.create(SessionId('prepared-projection'))
     let reject = false
     let reenter = false
     const applied: number[] = []
-    ctx.sessionProjections.register({
+    const projection = await ctx.sessionProjections.register({
       key: 'test/prepared-count',
       stateSchema: z.number().int().nonnegative(),
       init: () => 0,
@@ -244,29 +236,29 @@ describe('SessionProjectionRegistry drive', () => {
     const preparation = SessionPreparation.create(prepared)
     const first = prepared.append('turn/start', { turn: 1 })
     ctx.sessionProjections.prepareSession(preparation)
-    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(1)
+    expect(projection.stateOf(prepared)).toBe(1)
 
     reject = true
     expect(() => prepared.append('turn/start', { turn: 2 })).toThrow()
     expect(prepared.seq).toBe(1)
-    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(1)
+    expect(projection.stateOf(prepared)).toBe(1)
 
     reenter = true
     expect(() => prepared.append('turn/end', { turn: 1, reason: { kind: 'completed' } }))
       .toThrow('session append cannot reenter while another append is being published')
     expect(prepared.seq).toBe(1)
-    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(1)
+    expect(projection.stateOf(prepared)).toBe(1)
 
     reject = false
     const accepted = prepared.append('turn/start', { turn: 2 })
     expect(accepted.seq).toBe(1)
-    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(2)
+    expect(projection.stateOf(prepared)).toBe(2)
     const callsBeforePublication = applied.length
     const detach = ctx.sessions.enter(prepared)
     ctx.on('session/created', (created, baseline) => {
       expect(created).toBe(prepared)
       expect(baseline.events).toEqual([first, accepted])
-      expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(2)
+      expect(projection.stateOf(prepared)).toBe(2)
     })
     ctx.sessions.announce(prepared)
     expect(applied).toHaveLength(callsBeforePublication)
@@ -276,7 +268,7 @@ describe('SessionProjectionRegistry drive', () => {
     ctx.on('session/event', () => { throw new Error('observer failure') })
     expect(() => prepared.append('turn/end', { turn: 2, reason: { kind: 'completed' } })).not.toThrow()
     expect(prepared.seq).toBe(3)
-    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(3)
+    expect(projection.stateOf(prepared)).toBe(3)
     expect(warnings).toEqual([
       'session "prepared-projection": session/event listener threw: Error: observer failure',
     ])
@@ -289,7 +281,7 @@ describe('SessionProjectionRegistry drive', () => {
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     const applied: number[] = []
-    ctx.sessionProjections.register({
+    const projection = await ctx.sessionProjections.register({
       key: 'test/prepared-count',
       stateSchema: z.number().int().nonnegative(),
       init: () => 0,
@@ -300,7 +292,7 @@ describe('SessionProjectionRegistry drive', () => {
       stateVersion: 1,
     })
 
-    const prepared = ctx.sessions.prepare(SessionId('prepared-before-hook'))
+    const prepared = Session.create(SessionId('prepared-before-hook'))
     const preparation = SessionPreparation.create(prepared)
     prepared.append('turn/start', { turn: 1 })
     const observed: SessionPreparation[] = []
@@ -319,7 +311,7 @@ describe('SessionProjectionRegistry drive', () => {
     expect(observed).toEqual([preparation])
     expect(feedSeqs).toEqual([0])
     expect(applied).toEqual([0])
-    expect(ctx.sessionProjections.stateOf(prepared, 'test/prepared-count')).toBe(1)
+    expect(projection.stateOf(prepared)).toBe(1)
 
     prepared.append('turn/start', { turn: 2 })
     expect(feedSeqs).toEqual([0, 1])
@@ -342,7 +334,7 @@ describe('SessionProjectionRegistry drive', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    const prepared = ctx.sessions.prepare(SessionId('prepared-hook-failure'))
+    const prepared = Session.create(SessionId('prepared-hook-failure'))
     const preparation = SessionPreparation.create(prepared)
     const observed: number[] = []
     const failure = new Error('later pre-prepare listener failed')
@@ -371,7 +363,7 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('drives a registered unit over committed events and snapshots the current value', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
     mark(session, ['a'])
     mark(session, ['a', 'b'])
     const snapshot = ctx.sessionProjections.snapshot(session)
@@ -381,7 +373,7 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('rejects a delivered event that skips the cell watermark before applying it', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    const projection = await ctx.sessionProjections.register(marksUnit())
     const gap: SessionEvent = {
       type: 'test/mark',
       seq: SessionSeq(1),
@@ -391,20 +383,22 @@ describe('SessionProjectionRegistry drive', () => {
 
     expect(() => { ctx.emit('session/event', session, gap) })
       .toThrow(/requires an exact baseline/)
-    expect(ctx.sessionProjections.stateOf(session, 'test/marks')).toBeNull()
+    expect(projection.stateOf(session)).toBeNull()
   })
 
-  it('rejects registration after events flowed without an explicit baseline', async () => {
+  it('recovers a late registration and continues its live drive', async () => {
     const { ctx, session } = await harness()
     mark(session, ['pre-registration'])
-    expect(() => ctx.sessionProjections.register(marksUnit()))
-      .toThrow(/requires an exact baseline/)
-    expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
+    await ctx.sessionProjections.register(marksUnit())
+    expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['pre-registration'] })
+    // The lazily-built cell then continues on the live drive path.
+    mark(session, ['after'])
+    expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['after'] })
   })
 
   it('serves init-derived state and asOfSeq -1 for an empty log', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
     const snapshot = ctx.sessionProjections.snapshot(session)
     expect(snapshot.asOfSeq).toBe(-1)
     expect(snapshot.values['test/marks']).toEqual({ marks: [] })
@@ -412,7 +406,7 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('notifies onChanged with the validated view and the causing seq, and skips same-reference applies', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
     const seen: { key: string; value: unknown; seq: SessionSeq; sessionId: string }[] = []
     ctx.sessionProjections.onChanged((changedSession, key, value, seq) => {
       seen.push({ key, value, seq, sessionId: String(changedSession.id) })
@@ -425,8 +419,8 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('lets a change listener read every projection at the causing event cursor', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register(stableViewUnit(state => state.value))
+    await ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(stableViewUnit(state => state.value))
     const seen: unknown[] = []
     ctx.sessionProjections.onChanged((changedSession) => {
       seen.push(ctx.sessionProjections.snapshot(changedSession))
@@ -441,7 +435,7 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('contains a throwing change listener and publishes to later subscribers', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
     const warning = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
     ctx.sessionProjections.onChanged(() => { throw new Error('listener failed') })
     const seen: unknown[] = []
@@ -455,19 +449,19 @@ describe('SessionProjectionRegistry drive', () => {
   it('does not compute a view while no change listener exists', async () => {
     const { ctx, session } = await harness()
     const view = vi.fn((state: StableViewState) => state.value)
-    ctx.sessionProjections.register(stableViewUnit(view))
+    const handle = await ctx.sessionProjections.register(stableViewUnit(view))
 
     session.append('turn/start', { turn: 1 })
     session.append('turn/start', { turn: 2 })
 
-    expect(ctx.sessionProjections.stateOf(session, 'test/stable-view')?.revision).toBe(2)
+    expect(handle.stateOf(session).revision).toBe(2)
     expect(view).not.toHaveBeenCalled()
   })
 
   it('publishes the first observed view and suppresses later same-reference views', async () => {
     const { ctx, session } = await harness()
     const view = vi.fn((state: StableViewState) => state.value)
-    ctx.sessionProjections.register(stableViewUnit(view))
+    await ctx.sessionProjections.register(stableViewUnit(view))
 
     const seen: unknown[] = []
     ctx.sessionProjections.onChanged((_session, key, value) => {
@@ -488,7 +482,7 @@ describe('SessionProjectionRegistry drive', () => {
   it('publishes the first view after an unobserved state change', async () => {
     const { ctx, session } = await harness()
     const view = vi.fn((state: StableViewState) => state.value)
-    ctx.sessionProjections.register(stableViewUnit(view))
+    await ctx.sessionProjections.register(stableViewUnit(view))
     const first: unknown[] = []
     const stop = ctx.sessionProjections.onChanged((_session, key, value) => {
       if (key === 'test/stable-view') first.push(value)
@@ -516,7 +510,7 @@ describe('SessionProjectionRegistry drive', () => {
     const stateByEvent = new Map<string, MarksState>()
     const viewByState = new Map<MarksState, MarksView>()
     const computedViews: MarksView[] = []
-    ctx.sessionProjections.register({
+    await ctx.sessionProjections.register({
       key: 'test/marks',
       stateSchema: marksViewSchema.nullable(),
       init: () => initialState,
@@ -642,7 +636,7 @@ describe('SessionProjectionRegistry drive', () => {
   it('drives independently per session (cells are per-session watermarks)', async () => {
     const { ctx, session } = await harness()
     const other = ctx.sessions.create()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
     mark(session, ['one'])
     mark(other, ['two'])
     expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['one'] })
@@ -651,95 +645,93 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('updates host-only units without publishing them to wire listeners', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register(countUnit())
+    await ctx.sessionProjections.register(marksUnit())
+    const count = await ctx.sessionProjections.register(countUnit())
     const changedKeys: string[] = []
     ctx.sessionProjections.onChanged((_session, key) => {
       changedKeys.push(key)
     })
     session.append('turn/start', { turn: 1 })
     expect(changedKeys).toEqual([])
-    expect(ctx.sessionProjections.stateOf(session, 'test/count')).toBe(1)
+    expect(count.stateOf(session)).toBe(1)
     expect(ctx.sessionProjections.snapshot(session).values).toEqual({ 'test/marks': { marks: [] } })
   })
 
   it('shares one unit between registrants of the same key', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
 
     // One definition already serves every session (cells are keyed by
     // Session), and registrants are per-session now: an agent preset mounts
     // the same tool package once per agent.
-    expect(() => ctx.sessionProjections.register(marksUnit())).not.toThrow()
+    const handle = await ctx.sessionProjections.register(marksUnit())
+    expect(typeof handle.stateOf).toBe('function')
     mark(session, ['kept'])
     expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['kept'] })
   })
 
   it('keeps the unit until the last registrant releases it', async () => {
     const { ctx, session } = await harness()
-    const first = ctx.sessionProjections.register(marksUnit())
-    const second = ctx.sessionProjections.register(marksUnit())
+    const first = await ctx.sessionProjections.register(marksUnit())
+    const second = await ctx.sessionProjections.register(marksUnit())
     mark(session, ['kept'])
 
-    first()
+    await first.dispose()
 
     // The regression this counts against: without last-release semantics, one
     // session ending strips the projection from every other live session,
     // because the first registrant owns the only disposer.
     expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['kept'] })
-    second()
+    await second.dispose()
     expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
   })
 
   it('refuses to share a key across a stateVersion change', async () => {
     const { ctx } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
 
     // The one incompatibility a runtime comparison can name: the versioned
     // contract says the cached state shape differs, so the two cannot share
     // cells. Everything else about a definition is functions.
-    expect(() => ctx.sessionProjections.register({ ...marksUnit(), stateVersion: 9 }))
-      .toThrow(/already registered with stateVersion 1 .*refusing to share it with stateVersion 9/)
+    await expect(Promise.resolve(ctx.sessionProjections.register({ ...marksUnit(), stateVersion: 9 })))
+      .rejects.toThrow(/already registered with stateVersion 1 .*refusing to share it with stateVersion 9/)
   })
 
   it('shares a key only when optional cache fingerprints match exactly', async () => {
     const { ctx } = await harness()
     const definition = { ...marksUnit(), cacheFingerprint: 'intl-a' }
-    const dispose = ctx.sessionProjections.register(definition)
-    const matching = ctx.sessionProjections.register({ ...marksUnit(), cacheFingerprint: 'intl-a' })
-    expect(() => ctx.sessionProjections.register({ ...marksUnit(), cacheFingerprint: 'intl-b' }))
-      .toThrow(/cacheFingerprint/)
-    expect(() => ctx.sessionProjections.register(marksUnit()))
-      .toThrow(/cacheFingerprint/)
-    dispose()
-    matching()
+    const dispose = await ctx.sessionProjections.register(definition)
+    const matching = await ctx.sessionProjections.register({ ...marksUnit(), cacheFingerprint: 'intl-a' })
+    await expect(Promise.resolve(ctx.sessionProjections.register({ ...marksUnit(), cacheFingerprint: 'intl-b' })))
+      .rejects.toThrow(/cacheFingerprint/)
+    await expect(Promise.resolve(ctx.sessionProjections.register(marksUnit())))
+      .rejects.toThrow(/cacheFingerprint/)
+    await dispose.dispose()
+    await matching.dispose()
   })
 
   it('rejects a non-integer or negative stateVersion at register time', async () => {
     const { ctx } = await harness()
-    expect(() => ctx.sessionProjections.register({ ...marksUnit(), stateVersion: -1 })).toThrow(/stateVersion/)
-    expect(() => ctx.sessionProjections.register({ ...marksUnit(), stateVersion: 1.5 })).toThrow(/stateVersion/)
+    await expect(Promise.resolve(ctx.sessionProjections.register({ ...marksUnit(), stateVersion: -1 }))).rejects.toThrow(/stateVersion/)
+    await expect(Promise.resolve(ctx.sessionProjections.register({ ...marksUnit(), stateVersion: 1.5 }))).rejects.toThrow(/stateVersion/)
   })
 
-  it('register() restores an unloaded key only at its exact live cursor', async () => {
+  it('rebuilds an unloaded key from the current committed log', async () => {
     const { ctx, session } = await harness()
-    const dispose = ctx.sessionProjections.register(marksUnit())
+    const dispose = await ctx.sessionProjections.register(marksUnit())
     mark(session, ['cached'])
-    dispose()
+    await dispose.dispose()
     expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
-    const reload = ctx.sessionProjections.register(marksUnit())
-    expect(ctx.sessionProjections.stateOf(session, 'test/marks')).toEqual({ marks: ['cached'] })
-    reload()
-    mark(session, ['unobserved'])
-    expect(() => ctx.sessionProjections.register(marksUnit()))
-      .toThrow(/requires an exact baseline/)
+    await ctx.sessionProjections.register(marksUnit())
+    // Fresh registration rebuilds from the log, not from a stale cell.
+    expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toEqual({ marks: ['cached'] })
   })
 
   it('removes registrations and change listeners when their owning fiber unloads (HMR safety)', async () => {
     const { ctx, session } = await harness()
     const notifications: string[] = []
-    const fiber = await ctx.plugin(Object.assign((inner: Context) => {
-      inner.sessionProjections.register(marksUnit())
+    const fiber = await ctx.plugin(Object.assign(async (inner: Context) => {
+      await inner.sessionProjections.register(marksUnit())
       inner.sessionProjections.onChanged((_session, key) => {
         notifications.push(key)
       })
@@ -752,38 +744,36 @@ describe('SessionProjectionRegistry drive', () => {
     expect(ctx.sessionProjections.snapshot(session).values).toEqual({})
   })
 
-  it('keeps a yielded registration live until the composite finishes using it', async () => {
+  it('retains readable state during owner teardown', async () => {
     const { ctx, session } = await harness()
     onTestFinished(async () => { await ctx.fiber.dispose() })
     let observed: MarksState | undefined
-    const fiber = await ctx.plugin(Object.assign((inner: Context) => {
-      inner.effect(function* () {
-        yield inner.sessionProjections.register(marksUnit())
-        yield () => { observed = inner.sessionProjections.stateOf(session, 'test/marks') }
-      })
+    const fiber = await ctx.plugin(Object.assign(async (inner: Context) => {
+      const handle = await inner.sessionProjections.register(marksUnit())
+      inner.effect(() => () => { observed = handle.stateOf(session) })
     }, { inject: ['sessionProjections'] }))
     mark(session, ['live'])
     await fiber.dispose()
     expect(observed).toEqual({ marks: ['live'] })
-    expect(ctx.sessionProjections.stateOf(session, 'test/marks')).toBeUndefined()
+    expect(ctx.sessionProjections.snapshot(session).values['test/marks']).toBeUndefined()
   })
 
   it('snapshot serves client views and excludes host-only state', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register(countUnit())
+    await ctx.sessionProjections.register(marksUnit())
+    const count = await ctx.sessionProjections.register(countUnit())
     mark(session, ['a', 'b'])
     const values = ctx.sessionProjections.snapshot(session).values
     expect(values['test/marks']).toEqual({ marks: ['a', 'b'] })
     expect('test/count' in values).toBe(false)
-    expect(ctx.sessionProjections.stateOf(session, 'test/count')).toBe(1)
+    expect(count.stateOf(session)).toBe(1)
     expect('test/unregistered' in values).toBe(false)
   })
 
   it('checkpoints every persisted unit with its stateVersion and per-cell watermark', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register({ ...countUnit(), stateVersion: 7 })
+    await ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register({ ...countUnit(), stateVersion: 7 })
     const markEvent = mark(session, ['a'])
     const rows = ctx.sessionProjections.checkpoint(session)
     expect(rows['test/marks']).toEqual({ ver: 1, seq: markEvent.seq, val: { marks: ['a'] } })
@@ -795,7 +785,7 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('checkpoint states are detached clones — mutating them cannot corrupt the watermark cache', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
     mark(session, ['a'])
     const rows = ctx.sessionProjections.checkpoint(session)
     // Hostile (or merely careless) consumer mutates the handed-out state.
@@ -809,8 +799,8 @@ describe('SessionProjectionRegistry drive', () => {
   it('restoreFloor anchors one below the lowest usable watermark and at 0 for missing or mismatched rows', async () => {
     const { ctx } = await harness()
     expect(ctx.sessionProjections.restoreFloor({})).toBeUndefined() // no unit registered
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register(countUnit())
+    await ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(countUnit())
     expect(ctx.sessionProjections.restoreFloor({})).toBe(0)
     // Lowest usable watermark is count's 5 → the anchored tail starts AT 5
     // (one below the first needed seq 6), so the read proves seq 5 still exists.
@@ -835,7 +825,7 @@ describe('SessionProjectionRegistry drive', () => {
     const apply = vi.fn((state: MarksState, event: SessionEvent) => (
       event.type === 'test/mark' ? event.data : state
     ))
-    ctx.sessionProjections.register({
+    await ctx.sessionProjections.register({
       ...marksUnit(),
       apply,
       cacheFingerprint: 'current',
@@ -878,7 +868,7 @@ describe('SessionProjectionRegistry drive', () => {
     })
 
     const { ctx: other } = await harness()
-    other.sessionProjections.register(marksUnit())
+    await other.sessionProjections.register(marksUnit())
     const removed = {
       'test/marks': { ver: 1, seq: SessionSeq(1), val: { marks: ['old'] }, cacheFingerprint: 'old' },
     }
@@ -895,8 +885,8 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('restore folds the tail past each usable row and refolds from init on version mismatch', async () => {
     const { ctx } = await harness()
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register(countUnit())
+    await ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(countUnit())
     const tail: SessionEvent[] = [
       { type: 'test/mark', seq: SessionSeq(3), time: 3, data: { marks: ['new'] } },
       { type: 'turn/end', seq: SessionSeq(4), time: 4, data: { turn: 1, reason: { kind: 'completed' } } },
@@ -929,8 +919,8 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('restore over a suffix folds only past each row watermark and serves an exact empty-tail cut', async () => {
     const { ctx } = await harness()
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register(countUnit())
+    await ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(countUnit())
     const rows = {
       'test/marks': { ver: 1, seq: SessionSeq(4), val: { marks: ['done'] } },
       'test/count': { ver: 1, seq: SessionSeq(2), val: 3 },
@@ -965,8 +955,8 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('viewCheckpoint serves version-matching rows without any log and skips mismatched keys', async () => {
     const { ctx } = await harness()
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register(countUnit())
+    await ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(countUnit())
     const values = ctx.sessionProjections.viewCheckpoint({
       'test/marks': { ver: 1, seq: SessionSeq(4), val: { marks: ['stored'] } },
       'test/count': { ver: 99, seq: SessionSeq(4), val: 5 }, // mismatched: absent
@@ -978,8 +968,8 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('viewCheckpoint and restore exclude host-only state while retaining its checkpoint', async () => {
     const { ctx } = await harness()
-    ctx.sessionProjections.register(marksUnit())
-    ctx.sessionProjections.register(countUnit())
+    await ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(countUnit())
     const rows = {
       'test/marks': { ver: 1, seq: SessionSeq(4), val: { marks: ['stored'] } },
       'test/count': { ver: 1, seq: SessionSeq(4), val: 5 },
@@ -1003,7 +993,7 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('rejects version-matching rows whose state no longer matches the registered schema', async () => {
     const { ctx } = await harness()
-    ctx.sessionProjections.register(marksUnit())
+    await ctx.sessionProjections.register(marksUnit())
     const drifted = {
       'test/marks': { ver: 1, seq: SessionSeq(2), val: { marks: 'not-an-array' } },
     }
@@ -1020,7 +1010,7 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('restore rejects a row claiming events past the supplied log end (shrunk log ⇒ re-read)', async () => {
     const { ctx } = await harness()
-    ctx.sessionProjections.register(countUnit())
+    await ctx.sessionProjections.register(countUnit())
     const rows = { 'test/count': { ver: 1, seq: SessionSeq(9), val: 10 } }
     // The anchored floor sits ON the watermark, so the tail read must return
     // at least seq 9 from an intact log…
@@ -1065,7 +1055,7 @@ describe('SessionProjectionRegistry drive', () => {
 
   it('fails loud when a unit view violates its own schema (async unit output is unrepresentable)', async () => {
     const { ctx, session } = await harness()
-    ctx.sessionProjections.register({
+    await ctx.sessionProjections.register({
       key: 'test/marks',
       stateSchema: z.object({ marks: z.array(z.string()) }).nullable(),
       init: () => null as MarksState,

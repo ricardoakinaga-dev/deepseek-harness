@@ -31,7 +31,7 @@ This package is the contract every delegation setup shares. You enable it by mou
 
 ### Enabling delegation
 
-Mount the service with a provider and the delegation tool. The provider registers under its configured name; each tool row selects one provider. A minimal setup:
+Mount the service with `@deepseek-ai/dsh-session-projection`, a provider, and the delegation tool; the service waits for the projection registry before initializing. The provider registers under its configured name; each tool row selects one provider. A minimal setup:
 
 ```yaml
 - name: '@deepseek-ai/dsh-subagent'
@@ -76,7 +76,7 @@ Local children capture the effective parent sandbox mode, including deployment d
 
 Each local publication, including cold resume, records `subagent/authority` in the direct parent's log: confirmed file mode, recorded approval policy, and actual visible tool names including child-owned response infrastructure. Null policy fields remain unconfirmed, and external executions produce no observation. The catalog exposes the latest publication facts independently of requested permissions.
 
-The final reply is delivered automatically in the runtime's settlement notice. Initial guidance reserves `send_message` for progress or coordination and asks the child to avoid a second final-result copy. Progress messages remain independent messages; settlement never compares arbitrary prose to suppress closing output.
+The final reply is delivered automatically in the runtime's settlement notice. Initial guidance reserves `send_message` for progress or coordination and asks the child to avoid a second final-result copy. Progress messages remain independent messages. Settlement suppresses closing text only when it exactly matches the last eligible message delivered to the parent; distinct final answers are delivered automatically.
 
 -----
 
@@ -170,7 +170,7 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-Parent delivery emits a user-role status notice containing the child’s nonempty final text blocks, regardless of `send_message` availability or use. External notices also state that further messages are unsupported. Reasoning and other nontext blocks are excluded. Every parent notice includes available structured output as `Structured result: <JSON>` and the provider’s safe diagnostic as a separate text block. Empty closing text is reported as `It left no closing message.` Caller delivery emits no notice; SDK lifecycle notifications retain complete child output when cleanup succeeds.
+Parent delivery emits a user-role status notice containing the child’s nonempty final text blocks. When that text exactly matches the child's last message delivered to its parent, with no input claimed and no tool call logged after it, the notice replaces the duplicate with `It sent you a message just before finishing, so its closing message is omitted.` The comparison joins text blocks without trimming or matching substrings; a distinct closing answer remains in the notice. External notices also state that further messages are unsupported. Reasoning and other nontext blocks are excluded. Every parent notice includes available structured output as `Structured result: <JSON>` and the provider’s safe diagnostic as a separate text block. Empty closing text is reported as `It left no closing message.` Caller delivery emits no notice; SDK lifecycle notifications retain complete child output when cleanup succeeds.
 
 #### Token effect
 

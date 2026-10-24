@@ -12,12 +12,6 @@
       "path": "../../core/session"
     },
     {
-      "path": "../../session/session-projection"
-    },
-    {
-      "path": "../../ptc-runtime/ptc-runtime"
-    },
-    {
       "path": "../../../vendor/cosmokit"
     },
     {
@@ -42,13 +36,7 @@
       "path": "../../interaction/user-approval"
     },
     {
-      "path": "../../sandbox/sandbox"
-    },
-    {
-      "path": "../../sandbox/sandbox-policy"
-    },
-    {
-      "path": "../../session/working-directory"
+      "path": "../../session/session-projection"
     }
   ]
 }

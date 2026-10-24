@@ -1,3 +1,5 @@
+import { provideWorkingDirectoryFixture } from '@deepseek-ai/dsh-agent-loop-testkit'
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import { appendFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,7 +15,8 @@ import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
+import ToolRuntime from '@deepseek-ai/dsh-tools'
+import { defineContentToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import * as Retry from '../src/index.ts'
 
 type Reply = 'premature-close' | 'complete' | 'tool' | 'fatal'
@@ -124,7 +127,7 @@ async function loadComposition(maxRetries = 2): Promise<Context> {
   await writeFile(configPath, [
     ...[
       '@deepseek-ai/dsh-llm', '@deepseek-ai/dsh-session', '@deepseek-ai/dsh-session-projection',
-      '@deepseek-ai/dsh-system-prompt', '@deepseek-ai/dsh-tools', '@deepseek-ai/dsh-agent',
+      '@deepseek-ai/dsh-system-prompt', '@deepseek-ai/dsh-tools', '@deepseek-ai/dsh-tool-executor-native', '@deepseek-ai/dsh-agent',
       '@deepseek-ai/dsh-llm-retry', '@deepseek-ai/dsh-agent-loop',
     ].map(name => `- name: '${name}'`),
     "- name: '@deepseek-ai/dsh-llm-pi-ai'",
@@ -146,6 +149,7 @@ async function loadComposition(maxRetries = 2): Promise<Context> {
   const payload = Buffer.from(JSON.stringify({ 'https://api.openai.com/auth': { chatgpt_account_id: 'local-test' } })).toString('base64url')
   vi.stubEnv('H02_CODEX_TOKEN', `test.${payload}.test`)
   const ctx = new Context()
+  provideWorkingDirectoryFixture(ctx)
   context = ctx
   ctx.baseUrl = pathToFileURL(root).href + '/'
   await ctx.plugin(Loader)
@@ -156,6 +160,7 @@ async function loadComposition(maxRetries = 2): Promise<Context> {
     ['@deepseek-ai/dsh-session-projection', SessionProjectionRegistry],
     ['@deepseek-ai/dsh-system-prompt', SystemPrompt],
     ['@deepseek-ai/dsh-tools', ToolRuntime],
+    ['@deepseek-ai/dsh-tool-executor-native', NativeToolExecutor],
     ['@deepseek-ai/dsh-agent', AgentRegistry],
     ['@deepseek-ai/dsh-agent-loop', AgentLoop],
     ['@deepseek-ai/dsh-llm-retry', Retry],

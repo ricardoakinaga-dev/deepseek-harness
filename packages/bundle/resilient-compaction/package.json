@@ -2,7 +2,7 @@
   "name": "@deepseek-ai/dsh-resilient-compaction",
   "private": true,
   "description": "Opt-in profile bundle for bounded compaction and pre-dispatch context admission",
-  "version": "0.2.1-alpha.3",
+  "version": "0.2.1-rc.3",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ricardoakinaga-dev/deepseek-harness.git",

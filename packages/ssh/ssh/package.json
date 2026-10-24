@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-ssh",
   "description": "Shared OpenSSH connection and versioned POSIX remote helper",
-  "version": "0.2.1-alpha.3",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },
@@ -18,6 +18,7 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json",
     "./helper": {
       "types": "./lib/types/helper-entry.d.ts",
@@ -33,6 +34,7 @@
     }
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
     "lib/helper.js",
     "lib/protocol.js",

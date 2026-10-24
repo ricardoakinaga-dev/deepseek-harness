@@ -12,8 +12,8 @@ import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionSeq, type UserMessage } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-session-projection'
-import { activeSkillsProjection, skillDigest } from './active-skills.ts'
+import type { ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
+import { activeSkillsProjection, skillDigest, type ActiveSkills } from './active-skills.ts'
 import {
   escapeText,
   isModelInvocable,
@@ -80,7 +80,15 @@ export const Config: z<Config> = z.object({
 export function apply(ctx: Context, config: Config = {}): void {
   const catalogDescriptionMaxLength = config.catalogDescriptionMaxLength ?? DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH
   assertPositiveInteger('catalogDescriptionMaxLength', catalogDescriptionMaxLength, 3)
-  ctx.inject(['sessionProjections'], (scope) => { scope.sessionProjections.register(activeSkillsProjection) })
+  let activeSkillsReady: Promise<ProjectionHandle<ActiveSkills>> | undefined
+  ctx.inject(['sessionProjections'], async (scope) => {
+    const ready = scope.sessionProjections.register(activeSkillsProjection)
+    activeSkillsReady = ready
+    scope.effect(() => () => {
+      if (activeSkillsReady === ready) activeSkillsReady = undefined
+    })
+    await ready
+  })
 
   const skillTool = defineTool({
     name: 'skill',
@@ -159,8 +167,9 @@ export function apply(ctx: Context, config: Config = {}): void {
       if (!isModelInvocable(skill)) {
         throw new Error(`skill "${args.name}" is not available for model invocation`)
       }
+      const activeSkills = activeSkillsReady === undefined ? undefined : await activeSkillsReady
       const state = exec.parent === undefined && exec.agent !== undefined
-        ? ctx.get('sessionProjections')?.stateOf(exec.agent.session, 'activeSkills') : undefined
+        ? activeSkills?.stateOf(exec.agent.session) : undefined
       const active = state?.[skill.name]
       const alreadyActive = active !== undefined && active.digest === skillDigest(skill.provider, renderSkillContent(skill))
       return {

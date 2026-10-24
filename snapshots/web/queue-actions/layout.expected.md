@@ -9,8 +9,9 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- group "Command input": "/goal create {\"objective\":\"Keep the composer context panels aligned\",\"requiredTasks\":[{\"id\":\"panel-order\",\"criterion\":\"Confirm Todo, Goal and Queue order and alignment\"}]}"
-- 'button "goal Goal created Status: active Objective: Keep the composer context panels aligned Original objective: Keep the composer context panels aligned Original required IDs: panel-order Required panel-order: PENDING — Confirm Todo, Goal and Queue order and alignment Rounds: 0/256 Activation: armed Commands: /goal edit <objective>, /goal pause, /goal clear, /goal accept <id>, /goal scope <JSON>"'
+  - button "More conversation views"
+- group "Command input": /goal Keep the composer context panels aligned
+- 'button "goal Goal created Status: active Objective: Keep the composer context panels aligned Rounds: 0/256 Activation: armed Commands: /goal edit <objective>, /goal pause, /goal clear"'
 - button "Continuing goal {{clock}}":
   - text: Continuing goal
   - time: {{clock}}

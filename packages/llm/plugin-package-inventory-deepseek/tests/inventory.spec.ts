@@ -1,3 +1,4 @@
+import SessionStore from '@deepseek-ai/dsh-session'
 import { afterEach, describe, expect, it } from 'vitest'
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -7,7 +8,7 @@ import { Context, LoggerLevel } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import AgentPresets from '@deepseek-ai/dsh-agent-preset-registry'
@@ -48,9 +49,9 @@ async function harness(
   await ctx.plugin(Loader)
   if (packageService) await ctx.plugin(PluginPackages)
   ctx.loader.builtins.include = Include
-  await ctx.plugin(AgentRegistry)
-  await ctx.plugin(SessionStore)
+  if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(AgentRegistry)
   await ctx.plugin(AgentPresets, { default: 'fixture' })
   await ctx.plugin(DeepSeekLlmApiExtensionRegistry)
   const inventory = enabled === undefined
@@ -261,6 +262,8 @@ describe('DeepSeek plugin package inventory', () => {
     const ctx = new Context()
     contexts.push(ctx)
     await ctx.plugin(Loader)
+    if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(DeepSeekLlmApiExtensionRegistry)
     await ctx.plugin(PluginInventory)

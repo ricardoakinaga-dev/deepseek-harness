@@ -8,6 +8,7 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
+  - button "More conversation views"
 - text: Show the Markdown image policy. {{clock}}
 - button "Copy"
 - status: Completed

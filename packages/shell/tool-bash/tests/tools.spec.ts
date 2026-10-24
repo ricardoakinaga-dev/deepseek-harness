@@ -1,5 +1,8 @@
+import SessionStore from '@deepseek-ai/dsh-session'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { provideWorkingDirectoryFixture } from '@deepseek-ai/dsh-agent-loop-testkit'
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { unsupportedModel, unsupportedInbox, provideWorkingDirectoryFixture } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -11,9 +14,7 @@ import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { TOOL_ABORTED, TOOL_ABORTED_BEFORE_DISPATCH } from '@deepseek-ai/dsh-tools'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId } from '@deepseek-ai/dsh-session'
 import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
 import * as ToolJobs from '@deepseek-ai/dsh-tool-jobs'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
@@ -46,20 +47,16 @@ afterAll(() => {
   rmSync(spillDir, { recursive: true, force: true })
 })
 
-async function mountProjectionSeam(ctx: Context): Promise<void> {
-  await ctx.plugin(SessionStore)
-  await ctx.plugin(SessionProjectionRegistry)
-  ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
-}
-
 /** Foreground-only harness: no job runtime (backgrounding fails loud here). */
 async function setup() {
   const ctx = new Context()
   provideWorkingDirectoryFixture(ctx)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(AgentRegistry)
-  await mountProjectionSeam(ctx)
   await ctx.plugin(LocalSubprocessRuntime)
   ;(ctx.subprocess as LocalSubprocessRuntime).internals = { spillDir }
   await ctx.plugin(BashEnvPlugin)
@@ -74,8 +71,10 @@ async function setupWithJobs() {
   provideWorkingDirectoryFixture(ctx)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(AgentRegistry)
-  await mountProjectionSeam(ctx)
   await ctx.plugin(LocalJobRegistry)
   await ctx.plugin(ToolJobs)
   await ctx.plugin(LocalSubprocessRuntime)
@@ -104,7 +103,7 @@ async function registerFakeAgent(ctx: Context, sessionId: string, inject: (...ar
 }
 let callCounter = 0
 function call(ctx: Context, name: string, args: unknown, agent?: Agent) {
-  return ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId(`call-${++callCounter}`), name, arguments: args, ...agent ? { agent } : {} })
+  return executeToolFixture(ctx, { signal: testToolSignal, callId: ToolCallId(`call-${++callCounter}`), name, arguments: args, ...agent ? { agent } : {} })
 }
 
 function text(result: { content: { type: string; text?: string }[] }): string {
@@ -223,10 +222,12 @@ async function setupSandboxed(withApproval = false) {
   provideWorkingDirectoryFixture(ctx)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(LocalJobRegistry)
   await ctx.plugin(ToolJobs)
-  await mountProjectionSeam(ctx)
   await ctx.plugin(SandboxPolicyService, {})
   await ctx.plugin(RecordingSandboxExecutor)
   if (withApproval) await ctx.plugin(ApprovalService)
@@ -254,6 +255,7 @@ function sandboxAgent(
     options: {},
     ctx: ctx.plugin(() => {}).ctx,
     session,
+    model: unsupportedModel(),
     inbox: unsupportedInbox(),
     status: 'idle',
     send() {}, followup() {}, steer() {}, inject() {}, cancel() {},
@@ -325,6 +327,7 @@ describe('bash tool', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(LocalSubprocessRuntime)
     ;(ctx.subprocess as LocalSubprocessRuntime).internals = { spillDir }
     await ctx.plugin(LocalBashExecutor, { maxOutputBytes: 100, graceMs: 200 })
@@ -401,7 +404,7 @@ describe('bash tool', () => {
   it('surfaces foreground aborts as the structured TOOL_ABORTED error', async () => {
     const ctx = await setup()
     const controller = new AbortController()
-    const pending = ctx.tools.execute({
+    const pending = executeToolFixture(ctx, {
       callId: ToolCallId('call-abort'),
       name: 'bash',
       arguments: { command: 'sleep 60', description: 'test command' },
@@ -532,6 +535,7 @@ describe('bash tool', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(LocalSubprocessRuntime)
     await ctx.plugin(LocalBashExecutor, {})
     await ctx.plugin(BashEnvPlugin)
@@ -549,6 +553,7 @@ describe('bash tool', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
     // inject: ['tools', 'bash'] keeps the plugin pending until bash exists.
     await ctx.plugin(BashEnvPlugin)
     await ctx.plugin(ToolBash)
@@ -566,6 +571,9 @@ describe('bash tool', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(LocalJobRegistry)
     await ctx.plugin(LocalSubprocessRuntime)
@@ -585,6 +593,9 @@ describe('the background surface follows the job registry', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(LocalSubprocessRuntime)
     ;(ctx.subprocess as LocalSubprocessRuntime).internals = { spillDir }
@@ -696,6 +707,9 @@ describe('background execution through the job runtime', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(LocalJobRegistry)
     await ctx.plugin(ToolJobs)
@@ -705,7 +719,7 @@ describe('background execution through the job runtime', () => {
 
     const controller = new AbortController()
     controller.abort()
-    const result = await ctx.tools.execute({
+    const result = await executeToolFixture(ctx, {
       callId: ToolCallId('call-pre-aborted'),
       name: 'bash',
       arguments: { command: 'sleep 60', description: 'test command', run_in_background: true },
@@ -726,6 +740,9 @@ describe('background execution through the job runtime', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(LocalJobRegistry)
     await ctx.plugin(CountingStartExecutor)
@@ -744,6 +761,7 @@ describe('background execution through the job runtime', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(LocalSubprocessRuntime)
     await ctx.plugin(BashEnvPlugin)
     await ctx.plugin(LocalBashExecutor, {})
@@ -779,6 +797,7 @@ describe('sandbox escalation through the generic task producer', () => {
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(RecordingSandboxExecutor)
     await ctx.plugin(BashEnvPlugin)
     await expect(ctx.plugin(ToolBash)).rejects.toThrow('tool-bash: the mounted bash executor confines but ctx.sandboxPolicy is missing')
@@ -899,7 +918,7 @@ describe('sandbox escalation through the generic task producer', () => {
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
     const agent = sandboxAgent(ctx)
     await ctx.agents.register(agent)
-    const foreground = await ctx.tools.execute({
+    const foreground = await executeToolFixture(ctx, {
       callId: ToolCallId('sandbox-signal'),
       name: 'bash',
       arguments: escalate,
@@ -925,7 +944,7 @@ describe('sandbox escalation through the generic task producer', () => {
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
     const started = vi.spyOn(bash, 'execute')
 
-    const result = await ctx.tools.execute({
+    const result = await executeToolFixture(ctx, {
       callId: ToolCallId('cancelled-escalation-background'),
       name: 'bash',
       arguments: { ...escalate, run_in_background: true },
@@ -1116,7 +1135,7 @@ describe('session-cwd routing (per-session workdir)', () => {
   it('falls back to the executor default when the agent has no session cwd', async () => {
     const ctx = await setup()
     // No exec.agent at all → executor uses its config/process.cwd() default.
-    const result = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('cwd-noagent'), name: 'bash', arguments: { command: 'pwd', description: 'pwd' } })
+    const result = await executeToolFixture(ctx, { signal: testToolSignal, callId: ToolCallId('cwd-noagent'), name: 'bash', arguments: { command: 'pwd', description: 'pwd' } })
     expect(result.isError).toBe(false)
     expect(text(result).trim().length).toBeGreaterThan(0)
   })
@@ -1392,6 +1411,9 @@ describe('the model-facing bash tool builds its request from named args only (no
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    if (ctx.get('sessions') === undefined) await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(LocalJobRegistry)
     await ctx.plugin(ToolJobs)
@@ -1412,7 +1434,7 @@ describe('the model-facing bash tool builds its request from named args only (no
     const agent = await registerFakeAgent(ctx, 'request-fg', () => undefined)
     const ambient = process.env.DSH_SESSION_ID
 
-    await ctx.tools.execute({
+    await executeToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('session-env-fg'),
       name: 'bash',
@@ -1432,7 +1454,7 @@ describe('the model-facing bash tool builds its request from named args only (no
     const { ctx, bash } = await setupRecording()
     const agent = await registerFakeAgent(ctx, 'request-bg', () => undefined)
 
-    await ctx.tools.execute({
+    await executeToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('session-env-bg'),
       name: 'bash',
@@ -1459,7 +1481,7 @@ describe('the model-facing bash tool builds its request from named args only (no
     const child = await registerFakeAgent(ctx, 'request-child', () => undefined)
 
     for (const [callId, agent] of [['parent', parent], ['child', child]] as const) {
-      await ctx.tools.execute({
+      await executeToolFixture(ctx, {
         signal: testToolSignal,
         callId: ToolCallId(`session-env-${callId}`),
         name: 'bash',
@@ -1487,7 +1509,7 @@ describe('the model-facing bash tool builds its request from named args only (no
     // Unknown `env` and `stdin` keys are ignored by the schema and named request construction.
     // This preserves the request shape; it is not a security boundary because shell syntax can
     // already set environment variables or feed stdin.
-    await ctx.tools.execute({
+    await executeToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('no-forward-1'),
       name: 'bash',
@@ -1509,7 +1531,7 @@ describe('the model-facing bash tool builds its request from named args only (no
 
   it('a background bash call likewise carries no trusted-only fields', async () => {
     const { ctx, bash } = await setupRecording()
-    const result = await ctx.tools.execute({
+    const result = await executeToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('no-forward-2'),
       name: 'bash',

@@ -1,6 +1,6 @@
 /**
  * Integration tests: the REAL local subprocess service plus the PACKAGED
- * ripgrep binary (`@vscode/ripgrep`), exercised through `ctx.tools.execute()`.
+ * ripgrep binary (`@vscode/ripgrep`), exercised through `executeToolFixture()`.
  * These verify the WORLD — actual files on disk are discovered and grepped,
  * hostile patterns stay inert (they are plain argv elements; there is no
  * shell layer to escape), and real `rg` stderr classifies into the
@@ -8,7 +8,9 @@
  * suite runs on every platform without a system `rg` install; the
  * fake-service suite (tools.spec.ts) carries the coverage gate.
  */
+import { executeToolFixture, executeModelToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import { provideWorkingDirectoryFixture } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { existsSync } from 'node:fs'
@@ -30,7 +32,7 @@ let searchFiber: Awaited<ReturnType<Context['plugin']>>
 
 let callCounter = 0
 function call(name: string, args: unknown, agentObj?: object) {
-  return ctx.tools.execute({
+  return executeToolFixture(ctx, {
     signal: testToolSignal,
     callId: ToolCallId(`it-${++callCounter}`),
     name,
@@ -67,6 +69,7 @@ describe('search tools over the real subprocess service + the packaged rg', () =
     provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(LocalSubprocessRuntime)
     searchFiber = await ctx.plugin(ToolFsSearch, { sampleOverCapGlobResults: true })
   })
@@ -88,9 +91,10 @@ describe('search tools over the real subprocess service + the packaged rg', () =
       try {
         await limited.plugin(SystemPrompt)
         await limited.plugin(ToolRuntime)
+        await limited.plugin(NativeToolExecutor)
         await limited.plugin(LocalSubprocessRuntime)
         await limited.plugin(ToolFsSearch, { sampleOverCapGlobResults: true, rawOutputMaxBytes: 256 })
-        const result = await limited.tools.execute({
+        const result = await executeModelToolFixture(limited, {
           signal: testToolSignal, callId: ToolCallId('narrow-ignore'), name: 'glob',
           arguments: { pattern: '*.ts', include_ignored: true }, agent: agent() as never,
         })
@@ -289,7 +293,7 @@ describe('search tools over the real subprocess service + the packaged rg', () =
     it('a pre-aborted registry call is ABORTED_BEFORE_DISPATCH', async () => {
       const controller = new AbortController()
       controller.abort()
-      const result = await ctx.tools.execute({
+      const result = await executeToolFixture(ctx, {
         callId: ToolCallId(`it-${++callCounter}`),
         name: 'grep',
         arguments: { pattern: 'x' },

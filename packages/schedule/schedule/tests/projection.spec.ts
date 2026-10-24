@@ -122,7 +122,7 @@ describe('Schedule Session projection', () => {
     contexts.push(ctx)
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    ctx.sessionProjections.register(scheduleProjectionDefinition)
+    await ctx.sessionProjections.register(scheduleProjectionDefinition)
 
     const first = created(afterRecord('one'), SessionSeq(0))
     const second = created(atRecord('two'), SessionSeq(1))
@@ -156,7 +156,7 @@ describe('Schedule Session projection', () => {
     contexts.push(ctx)
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    ctx.sessionProjections.register(scheduleProjectionDefinition)
+    await ctx.sessionProjections.register(scheduleProjectionDefinition)
     const row = (val: unknown) => ({ schedule: { ver: 2, seq: SessionSeq(0), val } })
 
     expect(ctx.sessionProjections.viewCheckpoint(row({
@@ -187,9 +187,10 @@ describe('Schedule Session projection', () => {
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
     const fiber = ctx.plugin({
-      apply(owner: Context) { owner.effect(() => ctx.sessionProjections.register(scheduleProjectionDefinition)) },
+      inject: ['sessionProjections'],
+      async apply(owner: Context) { await owner.sessionProjections.register(scheduleProjectionDefinition) },
     })
-    ctx.sessionProjections.register(scheduleProjectionDefinition)
+    const handle = await ctx.sessionProjections.register(scheduleProjectionDefinition)
     await fiber.await()
 
     const session = ctx.sessions.create()
@@ -198,9 +199,9 @@ describe('Schedule Session projection', () => {
       operation: 'create',
       schedule: afterRecord('live'),
     })
-    expect(ctx.sessionProjections.stateOf(session, 'schedule')?.active).toHaveLength(1)
+    expect(handle.stateOf(session).active).toHaveLength(1)
 
     await fiber.dispose()
-    expect(ctx.sessionProjections.stateOf(session, 'schedule')?.active).toEqual([afterRecord('live')])
+    expect(handle.stateOf(session).active).toEqual([afterRecord('live')])
   })
 })

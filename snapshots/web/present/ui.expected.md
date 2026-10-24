@@ -1,14 +1,15 @@
 - banner:
   - navigation "Session hierarchy": Use one run_code program to
+  - text: PTC mode
   - group "Session activity":
     - text: not running ·
     - time: "Last recorded: turn ended, {{duration}} ago"
-  - text: PTC mode
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
+  - button "More conversation views"
 - text: "Use one run_code program to do the following in order. Call present for missing.txt and catch its error without creating that file. Use bash to run exactly `printf \"DELIVERED_REPORT\\n\" > report.txt; printf \"DELIVERED_NOTE\\n\" > 说明.txt`. Call present for report.txt and 说明.txt. After present succeeds, deliberately throw the string \"AFTER_PRESENT\" (not an Error object) from that same run_code program. Do not retry the program or create any other files. Finish by mentioning `report.txt` and `说明.txt` in inline code, and put PRESENT_DONE in a separate paragraph. {{clock}}"
 - button "Copy"
 - status: Completed
@@ -41,13 +42,13 @@
 - button "Preview {{cwd}}/workspace/report.txt in sidebar"
 - text: report.txt delivered report
 - link "Saved copy · Download":
-  - /url: api/present.download?sessionId=session-{{uuid}}&seq=20&index=0
+  - /url: api/present.download?sessionId=session-{{uuid}}&seq=24&index=0
 - button "Open in Test Editor"
 - button "More ways to open"
 - button "Preview {{cwd}}/workspace/说明.txt in sidebar"
 - text: 说明.txt delivered note
 - link "Saved copy · Download":
-  - /url: api/present.download?sessionId=session-{{uuid}}&seq=20&index=1
+  - /url: api/present.download?sessionId=session-{{uuid}}&seq=24&index=1
 - button "Open in Test Editor"
 - button "More ways to open"
 - button "Copy"

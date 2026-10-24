@@ -10,7 +10,6 @@ import type {
   SessionControlBaseline,
   SessionControlFrame,
   SessionProjectionBaseline,
-  SessionProjectionValues,
 } from './types.ts'
 
 /** Owns the Host-wide Session control stream. */
@@ -68,7 +67,7 @@ export class SessionControlController {
       blocks[session.id] = {
         asOfSeq: snapshot.asOfSeq,
         // Every projection definition validates its value before snapshot publication.
-        values: snapshot.values as SessionProjectionValues,
+        values: snapshot.values,
       }
     }
     return blocks

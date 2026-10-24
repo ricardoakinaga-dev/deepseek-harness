@@ -7,7 +7,7 @@ import { snapshotSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
 import { subagentIdentityProjectionDefinition } from '@deepseek-ai/dsh-subagent/src/projection.ts'
 import { describe, expect, it, vi } from 'vitest'
 import { SessionHistoryController } from '../src/history.ts'
-import { installSessionReadTestServices, TestSessionQuery, testSessionPersistence } from './test-remote.ts'
+import { installSessionReadTestServices, testSessionPersistence } from './test-remote.ts'
 
 const signal = (): AbortSignal => new AbortController().signal
 
@@ -72,15 +72,11 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve }
 }
 
-async function setup(withProjections = true): Promise<{ ctx: Context; transport: SessionHistoryController }> {
+async function setup(): Promise<{ ctx: Context; transport: SessionHistoryController }> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
-  if (withProjections) {
-    installSessionReadTestServices(ctx)
-    ctx.sessionProjections.register(subagentIdentityProjectionDefinition)
-  } else {
-    new TestSessionQuery(ctx)
-  }
+  installSessionReadTestServices(ctx)
+  await ctx.sessionProjections.register(subagentIdentityProjectionDefinition)
   const transport = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
   return { ctx, transport }
 }
@@ -172,7 +168,7 @@ describe('SessionHistoryController', () => {
   })
 
   it('subscribes before a cold read and ignores unrelated and replayed buffered events', async () => {
-    const { ctx, transport } = await setup(false)
+    const { ctx, transport } = await setup()
     const sessionId = SessionId('cold-race')
     const header: SessionHeader = {
       version: SESSION_FORMAT_VERSION,
@@ -282,11 +278,6 @@ describe('SessionHistoryController', () => {
     }
     const seed = [event('fixture/start', SessionSeq(0))]
     cold(ctx, header, seed)
-    agentCtx.on('session/created', (session) => {
-      if (session.id !== sessionId) return
-      append(session, 'fixture/setup-one', {})
-      append(session, 'fixture/setup-two', {})
-    })
     const abort = new AbortController()
     const iterator = transport.follow({ address: { kind: 'session', sessionId } }, abort.signal)
       [Symbol.asyncIterator]()
@@ -296,6 +287,8 @@ describe('SessionHistoryController', () => {
     const attached = agentCtx.sessions.prepare(sessionId, { meta: header, seed })
     agentCtx.sessions.enter(attached)
     agentCtx.sessions.announce(attached)
+    append(attached, 'fixture/setup-one', {})
+    append(attached, 'fixture/setup-two', {})
     await expect(iterator.next()).resolves.toMatchObject({
       done: false,
       value: { type: 'event', event: { type: 'session/end-seed', seq: 1 } },
@@ -319,7 +312,7 @@ describe('SessionHistoryController', () => {
   })
 
   it('rejects gaps in replayed and live event sequences', async () => {
-    const replay = await setup(false)
+    const replay = await setup()
     const replayId = SessionId('replay-gap')
     const replayHeader: SessionHeader = {
       version: SESSION_FORMAT_VERSION,
@@ -334,7 +327,7 @@ describe('SessionHistoryController', () => {
     }, signal())[Symbol.asyncIterator]()
     await expect(replayed.next()).rejects.toMatchObject({ code: 'SESSION_QUERY_CORRUPT_SESSION' })
 
-    const live = await setup(false)
+    const live = await setup()
     const session = live.ctx.sessions.create(SessionId('live-gap'), { meta: { cwd: '/workspace' } })
     append(session, 'fixture/start', {})
     live.ctx.provide('agents', { get: () => ({ id: session.id }) } as never)

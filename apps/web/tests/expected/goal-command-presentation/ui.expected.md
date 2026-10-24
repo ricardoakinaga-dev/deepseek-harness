@@ -9,6 +9,7 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
+  - button "More conversation views"
 - group "Command input": /goal
 - 'button "goal No goal is currently set. Usage: /goal [create <JSON>|accept <id>|scope <JSON>|clear|edit <objective>|pause|resume]"'
 - textbox "Message or run a task, / commands, @ files or sessions"

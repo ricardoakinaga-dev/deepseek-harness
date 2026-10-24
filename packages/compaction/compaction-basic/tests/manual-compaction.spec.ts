@@ -29,7 +29,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {
   SummarizationInput,
   SummaryResult,
-} from '@deepseek-ai/dsh-compaction-basic/src/summarizer.ts'
+} from '../src/summarizer.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {

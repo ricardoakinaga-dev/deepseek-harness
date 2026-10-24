@@ -120,13 +120,6 @@ const legacyPromptSchema = zod.object({ source: zod.string().nullable(), web: zo
 /** Value-bearing paragraphs of the latest nonempty system prompt a Session committed; `null` where it has none. */
 type LegacyPrompt = zod.infer<typeof legacyPromptSchema>
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    /** Value-bearing harness-source and Web-surface paragraphs of the latest nonempty admitted system prompt. */
-    harnessDevLegacyPrompt: LegacyPrompt
-  }
-}
-
 /** The complete single-line paragraph between `prefix` and `suffix`, or `null` when the prompt has none. */
 function legacyParagraph(prompt: string, { prefix, suffix }: { prefix: string; suffix: string }): string | null {
   const start = prompt.indexOf(prefix)
@@ -160,8 +153,9 @@ const ADMITS_NOTHING: LegacyPrompt = { source: null, web: null }
  * projection that keeps a Session's admitted paragraphs.
  * @param ctx - plugin context with every {@link inject} service.
  * @param config - validated deployment policy; exact admitted legacy paragraphs remain verbatim in every mode.
+ * @returns when the projection reader and prompt registrations are ready.
  */
-export function apply(ctx: Context, config: Config): void {
+export async function apply(ctx: Context, config: Config): Promise<void> {
   // Installed packages without Git checkout metadata do not enable development guidance automatically.
   const checkoutRoot = config.developmentContext === 'auto' && existsSync(join(SOURCE_ROOT, '.git'))
     ? realpathSync(SOURCE_ROOT) : undefined
@@ -170,7 +164,7 @@ export function apply(ctx: Context, config: Config): void {
     if (config.developmentContext === 'never' || checkoutRoot === undefined || context.agent === undefined) return false
     return insideCheckout(checkoutRoot, ctx.workingDirectory.get(context.agent.session))
   }
-  ctx.sessionProjections.register({
+  const legacyPromptProjectionHandle = await ctx.sessionProjections.register({
     key: LEGACY_PROMPT,
     stateVersion: 1,
     stateSchema: legacyPromptSchema,
@@ -179,8 +173,7 @@ export function apply(ctx: Context, config: Config): void {
   })
   const admitted = (context: AssembleContext): LegacyPrompt => {
     const session = context.agent?.session
-    // This plugin registers the unit above, so its state exists for every Session.
-    return session === undefined ? ADMITS_NOTHING : ctx.sessionProjections.stateOf(session, LEGACY_PROMPT) as LegacyPrompt
+    return session === undefined ? ADMITS_NOTHING : legacyPromptProjectionHandle.stateOf(session)
   }
   ctx.systemPrompt.section({
     name: HARNESS_SOURCE,

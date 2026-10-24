@@ -1,68 +1,81 @@
-/** Browser-zone derivation and model-facing policy text for one open request turn. */
+/** Browser-zone facts from committed or proposed user-rpc messages and model-facing policy text. */
 
+import { canonicalizeTimeZone } from '@deepseek-ai/dsh-util-time'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 
-const IANA_TIME_ZONE = /^[A-Za-z][A-Za-z0-9_+.-]*(?:\/[A-Za-z0-9_+.-]+)+$/
-
-/** Browser-zone facts derived from user-rpc messages in one open turn. */
+/** Browser-zone facts for the messages selected while preparing a request. */
 export type BrowserTimeZoneContext =
   | { readonly kind: 'resolved'; readonly timeZone: string }
   | { readonly kind: 'mixed'; readonly timeZones: readonly string[] }
   | { readonly kind: 'missing' }
 
-/** Read an unvalidated browser-zone string from one ordinary user-rpc message. */
+/**
+ * Read the raw zone reported by a user-rpc source; validation belongs to request preparation.
+ * @param message - user message; only user sources with a string rpcId and clientTimeZone contribute.
+ * @returns the reported zone, or undefined when no user-rpc zone was reported.
+ */
 export function browserTimeZoneInput(message: UserMessage): string | undefined {
   const source = message.source
-  const value = source.kind === 'user'
+  return source.kind === 'user'
     && 'rpcId' in source
     && typeof source.rpcId === 'string'
     && 'clientTimeZone' in source
     && typeof source.clientTimeZone === 'string'
     ? source.clientTimeZone
     : undefined
-  return value
 }
 
-/** Validate one Host-canonicalized browser-zone string. */
-function canonicalBrowserTimeZone(value: string): string {
-  if (value !== 'UTC' && !IANA_TIME_ZONE.test(value)) {
-    throw new TypeError(
-      `browser time zone must be canonical UTC or IANA Area/Location: ${JSON.stringify(value)}`,
-    )
+/** Validate a reported zone at request preparation, preserving the platform refusal. */
+function browserTimeZone(value: string): string {
+  const resolved = canonicalizeTimeZone(value)
+  if (resolved.kind === 'accepted') {
+    if (resolved.timeZone !== value) {
+      throw new TypeError(`browser time zone must be canonical: ${JSON.stringify(value)}`)
+    }
+    return value
   }
-  let canonical: string
-  try {
-    canonical = new Intl.DateTimeFormat('en-US', { timeZone: value }).resolvedOptions().timeZone
-  } catch (error: unknown) {
-    throw new TypeError(`browser time zone is unsupported: ${JSON.stringify(value)}`, { cause: error })
+  switch (resolved.reason) {
+    case 'unsupported':
+      throw new TypeError(`browser time zone is unsupported: ${JSON.stringify(value)}`, { cause: resolved.cause })
+    case 'blank':
+    case 'padded':
+    case 'not_area_location':
+      throw new TypeError(`browser time zone must be canonical UTC or IANA Area/Location: ${JSON.stringify(value)}`)
+    /* v8 ignore next 2 -- Intl answers a canonical Area/Location for every name it accepts. */
+    case 'not_canonical_shape':
+      throw new TypeError(`browser time zone must be canonical: ${JSON.stringify(value)}`)
+    /* v8 ignore next 2 -- TimeZoneRejection is closed; this arm only makes adding a reason a compile error. */
+    default:
+      assertNever(resolved.reason, 'TimeZoneRejection')
   }
-  if (canonical !== value) {
-    throw new TypeError(`browser time zone must be canonical: ${JSON.stringify(value)}`)
-  }
-  return value
 }
 
 /**
- * Derive the unique, mixed, or missing browser zone for one open turn.
- * @param messages - Entered and proposed user messages belonging to the turn.
+ * Derive the unique, mixed, or missing browser zone for the selected request messages.
+ * @param messages - proposed messages, or entered plus proposed messages selected by the legacy reader.
+ * @param enteredTimeZones - reported zones from committed messages, before the proposed messages.
  * @returns Sorted, duplicate-free browser-zone facts.
  * @throws TypeError when a user-rpc source carries an invalid or noncanonical zone.
  */
 export function deriveBrowserTimeZoneContext(
   messages: readonly UserMessage[],
+  enteredTimeZones: readonly string[] = [],
 ): BrowserTimeZoneContext {
-  return deriveBrowserTimeZoneContextFromInputs(messages.flatMap((message) => {
+  const reported = messages.flatMap((message) => {
     const timeZone = browserTimeZoneInput(message)
     return timeZone === undefined ? [] : [timeZone]
-  }))
+  })
+  return deriveBrowserTimeZoneContextFromInputs([...enteredTimeZones, ...reported])
 }
 
-/** Validate and classify ordered raw browser-zone inputs at the time-context read point. */
-export function deriveBrowserTimeZoneContextFromInputs(
-  inputs: readonly string[],
-): BrowserTimeZoneContext {
-  const timeZones = [...new Set(inputs.map(canonicalBrowserTimeZone))].sort()
+/**
+ * Validate and classify raw zones in committed and proposed message order.
+ * @param inputs - reported zones in message encounter order.
+ * @returns unique, mixed, or missing browser-zone facts.
+ */
+export function deriveBrowserTimeZoneContextFromInputs(inputs: readonly string[]): BrowserTimeZoneContext {
+  const timeZones = [...new Set(inputs.map(browserTimeZone))].sort()
   const [timeZone, ...remaining] = timeZones
   if (timeZone === undefined) return { kind: 'missing' }
   if (remaining.length === 0) return { kind: 'resolved', timeZone }
@@ -71,7 +84,7 @@ export function deriveBrowserTimeZoneContextFromInputs(
 
 /**
  * Render the model instruction for one browser-zone context.
- * @param context - Browser-zone facts for the open turn.
+ * @param context - browser-zone facts selected for this request.
  * @returns One durable policy line.
  */
 export function renderBrowserTimeZoneContext(context: BrowserTimeZoneContext): string {

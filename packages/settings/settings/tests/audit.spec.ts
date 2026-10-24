@@ -9,7 +9,9 @@ import { Context } from '@deepseek-ai/cordis'
 import Timer from '@deepseek-ai/cordis-plugin-timer'
 import Hmr from '@deepseek-ai/dsh-hmr'
 import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
+import { unsupportedModel } from '@deepseek-ai/dsh-agent-loop-testkit'
 import SessionStore, { Session, type SessionEvent } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import LlmRuntime, { EMPTY_RESPONSE_CODE } from '@deepseek-ai/dsh-llm'
 import * as NativeApiKey from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import * as NativeAccount from '@deepseek-ai/dsh-llm-deepseek-account'
@@ -23,7 +25,7 @@ import { configurationFixture } from './configuration-fixture.ts'
 async function publish(ctx: Context, session: Session): Promise<void> {
   const unused = (): never => { throw new Error('audit fixture does not drive a model') }
   const agent: Agent = {
-    id: session.id, session, ctx, options: {}, status: 'idle',
+    id: session.id, session, ctx, options: {}, status: 'idle', model: unsupportedModel(),
     inbox: { nextTurn: [], nextStep: [], clear: unused, append: unused, prepend: unused, replace: unused, remove: unused, splice: unused },
     send: unused, followup: unused, steer: unused, inject: unused, cancel: unused,
     whenIdle: () => Promise.resolve(), runMaintenance: task => task(new AbortController().signal),
@@ -37,6 +39,7 @@ it('audits changed active siblings after a watched profile patch partially fails
     fail: z.boolean().default(false),
   }), apply: (_ctx, config) => { if (Reflect.get(config as object, 'fail') === true) throw new Error('partial activation rejected') } })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const events: SessionEvent<'runtime/audit'>[] = []
   ctx.on('session/event', (_session, event) => { if (event.type === 'runtime/audit') events.push(event) })
@@ -116,11 +119,12 @@ it('records actual resolved route effort, changed values after real reload, and 
     compactionReasoningEffortByRoute: z.dict(z.string()).default({ codex: 'medium' }).volatile().extra('extra', { audit: true }),
   }) })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const events: SessionEvent[] = []
   const children: SessionEvent[] = []
-  ctx.on('session/event', (owner, event) => { (owner.header.parentSession === undefined ? events : children).push(event) })
   const session = ctx.sessions.create()
+  ctx.on('session/event', (owner, event) => { (owner.id === session.id ? events : children).push(event) })
   await publish(ctx, session)
   const child = ctx.sessions.fork(session)
   await publish(ctx, child)
@@ -150,6 +154,7 @@ it('records actual resolved route effort, changed values after real reload, and 
 it.each(['configuration', 'module'])('records removal and stops after disposal on %s reload', async (kind) => {
   const { ctx } = await configurationFixture()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const events: SessionEvent[] = []
   ctx.on('session/event', (_session, event) => { events.push(event) })
@@ -174,6 +179,7 @@ it.each(['configuration', 'module'])('records removal and stops after disposal o
 it('audits changed module defaults once and rejects newly secret fields without recording them', async () => {
   const { ctx } = await configurationFixture()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const session = ctx.sessions.create()
   await publish(ctx, session)
@@ -207,6 +213,7 @@ it('refuses publication when an audited secret is configured and permits setting
   const { ctx } = await configurationFixture({ schema: z.object({ ordinary: z.string(), token: z.string().role('secret').extra('extra', { audit: true }) }) })
   expect(ctx.settings).toBeDefined()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   await expect(publish(ctx, ctx.sessions.create())).rejects.toThrow('must not contain')
   expect(ctx.agents.list()).toHaveLength(0)
@@ -215,6 +222,7 @@ it('refuses publication when an audited secret is configured and permits setting
 it('publishes audit after every Session baseline and only for announced agents', async () => {
   const { ctx } = await configurationFixture()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   let announced = false
   let delivered = 0
@@ -252,6 +260,7 @@ it('does not advance recorded config after append rejection, and retries it on t
     ordinary: z.string(), count: z.number().default(1).volatile().extra('extra', { audit: true }),
   }) })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const session = ctx.sessions.create()
   const firstAppend = vi.spyOn(session, 'append').mockImplementationOnce(() => { throw new Error('append rejected') })
@@ -304,6 +313,7 @@ it('keeps historical unknown runtime facts unchanged and records only the curren
   }
   const { ctx } = await configurationFixture({ runtimeIdentity: runtime })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const session = ctx.sessions.create()
   const events: SessionEvent[] = []
@@ -334,6 +344,7 @@ it('keeps historical unknown runtime facts unchanged and records only the curren
 it('records plugin-only reloads and rolls them back after an append failure', async () => {
   const { ctx } = await configurationFixture()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const session = ctx.sessions.create()
   await publish(ctx, session)
@@ -372,6 +383,7 @@ it('does not identify current disk bytes as loaded code across configuration rel
   const { ctx, profile } = await configurationFixture()
   await ctx.plugin(PluginPackages)
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const packageDir = join(profile.dir, 'audit-probe')
   mkdirSync(packageDir, { recursive: true })
@@ -451,6 +463,7 @@ it.each([false, true])('settles watched module attempts after rejected replaceme
   await ctx.plugin(Hmr, { base: profile.dir, root: [filename], ignored: [], debounce: 0,
     awaitWriteFinish: { stabilityThreshold: 30, pollInterval: 10 } })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const events: SessionEvent<'runtime/audit'>[] = []
   const notifications: string[][] = []
@@ -523,6 +536,7 @@ it('audits actual nested Include state after watched reload attempts, including 
   const plugin = readRuntimePluginIdentities(ctx).find(row => row.id === childId)
   expect(plugin).toMatchObject({ plugin: 'cordis:probe', moduleSha256: null, package: null })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const events: SessionEvent<'runtime/audit'>[] = []
   ctx.on('session/event', (_session, event) => { if (event.type === 'runtime/audit') events.push(event) })
@@ -600,6 +614,7 @@ it.each([false, true])('awaits removed nested resources before watched Include s
   await ctx.plugin(Hmr, { base: profile.dir, root: ['held-nested.yml'], ignored: [], debounce: 0,
     awaitWriteFinish: { stabilityThreshold: 30, pollInterval: 10 } })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   const events: SessionEvent<'runtime/audit'>[] = []
   ctx.on('session/event', (_session, event) => { if (event.type === 'runtime/audit') events.push(event) })
@@ -636,6 +651,7 @@ it.each([false, true])('awaits removed nested resources before watched Include s
 it('reopens persisted runtime audit records without inventing historical identity', async () => {
   const { ctx, home } = await configurationFixture()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(JsonlSessionPersistence, { root: join(home, 'audit-sessions'), compression: 'none' })
   const events: SessionEvent[] = []
@@ -660,6 +676,7 @@ it('records registered native provider retry defaults and effective updates with
   const { ctx } = await configurationFixture({ hmr: false })
   await ctx.plugin(LlmRuntime)
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   Object.assign(ctx.loader.builtins, { nativeApiKey: NativeApiKey, nativeAccount: NativeAccount })
   const nativeId = await ctx.loader.create({ name: 'cordis:nativeApiKey', config: { apiKeyEnv: 'PRIVATE_REFERENCE' } })
@@ -686,6 +703,7 @@ it('keeps the registered pi-ai retry policy when a conflicting configuration can
   const { ctx } = await configurationFixture({ hmr: false })
   await ctx.plugin(LlmRuntime)
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   Object.assign(ctx.loader.builtins, { nativeApiKey: NativeApiKey, piAi: PiAi })
   await ctx.loader.create({ name: 'cordis:nativeApiKey' })

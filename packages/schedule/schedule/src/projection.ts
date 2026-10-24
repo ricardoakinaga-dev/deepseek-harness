@@ -79,9 +79,3 @@ export const scheduleProjectionDefinition = {
   },
   stateVersion: 2,
 } satisfies ProjectionDefinition<'schedule', ScheduleProjectionState>
-
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    schedule: ScheduleProjectionState
-  }
-}

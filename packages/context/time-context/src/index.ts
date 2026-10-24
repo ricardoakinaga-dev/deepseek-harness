@@ -7,17 +7,20 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import type { PreStepDecision } from '@deepseek-ai/dsh-agent'
+import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContextFormed } from '@deepseek-ai/dsh-llm'
+import { SessionSeq } from '@deepseek-ai/dsh-session'
+import type { ContextFormed, UserMessage } from '@deepseek-ai/dsh-llm'
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
     'time-context': { kind: 'time-context' } & ContextFormed
   }
 }
 
+import { Duration } from '@deepseek-ai/dsh-util-time'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import {
+  deriveBrowserTimeZoneContext,
   deriveBrowserTimeZoneContextFromInputs,
   renderBrowserTimeZoneContext,
 } from './request-zone.ts'
@@ -29,18 +32,11 @@ import {
   timeContextCacheFingerprint,
   timeContextStateSchema,
 } from './projection.ts'
-import type { TimeContextProjection } from './projection.ts'
 import { createTimestampFormatter, formatTimestamp } from './timestamp.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'time-context'
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    /** Latest time-context readings. */
-    timeContext: TimeContextProjection
-  }
-}
 
 /** The agent registry that owns pre-step processing. */
 export const inject = ['agents', 'sessionProjections']
@@ -59,21 +55,35 @@ export const Config: z<Config> = z.object({
   refreshIntervalMs: z.number(),
 })
 
-/** Format a non-negative elapsed millisecond count as compact whole-second units. */
+/**
+ * Format a non-negative elapsed millisecond count as compact whole-second units.
+ *
+ * A backward wall-clock reading is a property of the clock rather than of the
+ * span, so it clamps to zero here; the shared span type then supplies the whole
+ * parts, and this package keeps the wording.
+ */
 function formatDuration(elapsedMs: number): string {
-  let seconds = Math.floor(Math.max(0, elapsedMs) / 1000)
-  const days = Math.floor(seconds / 86_400)
-  seconds %= 86_400
-  const hours = Math.floor(seconds / 3600)
-  seconds %= 3600
-  const minutes = Math.floor(seconds / 60)
-  seconds %= 60
+  const { days, hours, minutes, seconds } = Duration
+    .fromMilliseconds(Math.max(0, elapsedMs))
+    .decompose()
   const parts: string[] = []
   if (days > 0) parts.push(`${days}d`)
   if (hours > 0) parts.push(`${hours}h`)
   if (minutes > 0) parts.push(`${minutes}m`)
   parts.push(`${seconds}s`)
   return parts.join(' ')
+}
+
+/** Read committed messages for an explicitly requested historical turn. */
+function requestMessages(agent: Agent, turn: number, proposed: readonly UserMessage[]): UserMessage[] {
+  const entered: UserMessage[] = []
+  for (let seq = agent.session.seq - 1; seq >= 0; seq -= 1) {
+    // oxlint-disable-next-line typescript/no-deprecated -- Historical-turn fallback reads exact journal positions.
+    const event = agent.session.eventAt(SessionSeq(seq))
+    if (event?.type === 'turn/start' && event.data.turn === turn) return [...entered.reverse(), ...proposed]
+    if (event?.type === 'user/message') entered.push(event.data)
+  }
+  return [...proposed]
 }
 
 function renderText(
@@ -104,11 +114,14 @@ function validateRefreshInterval(refreshIntervalMs: number): void {
 
 /**
  * Register a prepended pre-step listener for the lifetime of `ctx`.
+ * Steps admitted during activation await the projection registration; a
+ * registration failure or owner disposal prevents the request from proceeding.
  * @param ctx - plugin context; the listener is disposed with it.
  * @param config - time zone and durable refresh scheduling configuration.
  * @throws when the refresh interval is invalid or the configured or process time zone cannot be resolved.
+ * @returns when the plugin is ready.
  */
-export function apply(ctx: Context, config: Config): void {
+export async function apply(ctx: Context, config: Config): Promise<void> {
   const timeZone = config.timeZone
   const refreshIntervalMs = config.refreshIntervalMs ?? 600_000
   validateRefreshInterval(refreshIntervalMs)
@@ -133,9 +146,9 @@ export function apply(ctx: Context, config: Config): void {
     return created
   }
 
-  ctx.sessionProjections.register({
+  const projectionReady = ctx.sessionProjections.register({
     key: 'timeContext',
-    stateVersion: 3,
+    stateVersion: 4,
     cacheFingerprint: timeContextCacheFingerprint,
     stateSchema: timeContextStateSchema,
     init: initialTimeContextProjection,
@@ -146,10 +159,12 @@ export function apply(ctx: Context, config: Config): void {
     { agent, turn, step, signal },
     next,
   ): Promise<PreStepDecision> => {
+    const timeContextProjectionHandle = await projectionReady
+    ctx.fiber.assertActive()
     const decision = await next()
     if (decision.kind === 'reject' || signal.aborted) return decision
     const now = Date.now()
-    const state = ctx.sessionProjections.stateOf(agent.session, 'timeContext') as TimeContextProjection
+    const state = timeContextProjectionHandle.stateOf(agent.session)
     if (refreshIntervalMs > 0) {
       const lastInjection = state.lastInjectionTime
       if (lastInjection != null
@@ -161,10 +176,12 @@ export function apply(ctx: Context, config: Config): void {
       ? state.lastMessageTime ?? undefined
       : state.lastTurnInjectionTime ?? undefined
     const proposed = decision.messages
-    const browser = deriveBrowserTimeZoneContextFromInputs([
-      ...state.browserTimeZoneInputs,
-      ...proposedBrowserTimeZoneInputs(proposed),
-    ])
+    const browser = state.openTurn === turn
+      ? deriveBrowserTimeZoneContextFromInputs([
+        ...state.browserTimeZoneInputs,
+        ...proposedBrowserTimeZoneInputs(proposed),
+      ])
+      : deriveBrowserTimeZoneContext(requestMessages(agent, turn, proposed))
     const selectedTimeZone = browser.kind === 'resolved' ? browser.timeZone : fallbackTimeZone
     const text = renderText(
       now,
@@ -186,4 +203,5 @@ export function apply(ctx: Context, config: Config): void {
       ],
     }
   }, { prepend: true })
+  await projectionReady
 }

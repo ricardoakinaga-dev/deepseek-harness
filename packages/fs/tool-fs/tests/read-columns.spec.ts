@@ -8,6 +8,9 @@ import { Context } from '@deepseek-ai/cordis'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
+import { provideWorkingDirectoryFixture } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
 import * as FsPolicy from '@deepseek-ai/dsh-fs-observation-policy'
 import * as ToolFs from '@deepseek-ai/dsh-tool-fs'
@@ -25,6 +28,8 @@ describe('bounded read columns', () => {
     ctx = new Context()
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
+    provideWorkingDirectoryFixture(ctx, dir)
     await ctx.plugin(LocalFileSystem, { cwd: dir })
     await ctx.plugin(FsPolicy)
     fiber = await ctx.plugin(ToolFs, { readStreamMinSize: 1 })
@@ -37,7 +42,7 @@ describe('bounded read columns', () => {
   })
 
   function call(name: string, args: object) {
-    return ctx.tools.execute({
+    return executeToolFixture(ctx, {
       signal: new AbortController().signal,
       callId: ToolCallId(`column-${++callId}`),
       name, arguments: args, agent: agent as never,

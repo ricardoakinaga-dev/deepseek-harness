@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Resiliencia de la compresión",
+    "description": "Aplica plazos y límites de salida y razonamiento a la compresión, y rechaza solicitudes que superen su capacidad de contexto registrada."
+  }
+}

@@ -1,10 +1,18 @@
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { mountWorkingDirectoryFixture } from './working-directory-fixture.ts'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
+import Loader from '@deepseek-ai/cordis-plugin-loader'
+import Include from '@deepseek-ai/cordis-plugin-include'
+import { writeFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
+import { PtcRuntime } from '@deepseek-ai/dsh-ptc-runtime'
+import type { PtcRunRequest, PtcRunSpec, PtcRunResult } from '@deepseek-ai/dsh-ptc-runtime'
 import { liveConfig } from '../../../settings/settings/tests/live-config.ts'
+import { sourceModuleLoader } from '../../../llm/llm-deepseek/tests/helpers.ts'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { agentEvents } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
@@ -17,7 +25,7 @@ import * as SubagentFork from '@deepseek-ai/dsh-subagent-fork-in-process'
 import * as SubagentControl from '@deepseek-ai/dsh-tool-subagent-control'
 import type { ContentBlock, GenerateOptions, MessageId, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { ToolCallId, createUserMessage, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineTool, type PreToolDecision } from '@deepseek-ai/dsh-tools'
 import { MockAdapter, maxTokensResponse, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import SubagentRuntime, {
   SubagentError,
@@ -81,10 +89,17 @@ afterEach(async () => {
 /** Boot the full continuable stack: loop, persistence, providers, and subagents. */
 async function setupWith(
   adapter: LlmAdapter,
-  options: { persistence?: boolean; sessionQuery?: boolean; maxActiveSubagents?: number } = {},
+  options: { persistence?: boolean; sessionQuery?: boolean; maxActiveSubagents?: number; ptc?: boolean } = {},
 ) {
   const ctx = new Context()
-  await mountAgentLoopTestDependencies(ctx)
+  if (options.ptc) {
+    cleanups.push(async () => {
+      const agents = ctx.get('agents')
+      await ctx.fiber.dispose()
+      expect(agents?.list() ?? []).toEqual([])
+    })
+  }
+  await mountAgentLoopTestDependencies(ctx, options.ptc ? { tools: { mode: 'ptc' } } : {})
   let disposePersistence: (() => Promise<void>) | undefined
   let root: string | undefined
   if (options.persistence !== false) {
@@ -100,6 +115,7 @@ async function setupWith(
   await ctx.plugin(AgentLoop, { agents: [] })
   if (options.sessionQuery !== false) await ctx.plugin(TestSessionQuery)
   await mountWorkingDirectoryFixture(ctx)
+  if (ctx.get('sessionProjections') === undefined) await ctx.plugin(SessionProjectionRegistry)
   subagentConfigs.set(ctx, await liveConfig(ctx, SubagentRuntime,
     options.maxActiveSubagents === undefined ? {} : { maxActiveSubagents: options.maxActiveSubagents }))
   await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
@@ -109,7 +125,7 @@ async function setupWith(
   return { ctx, parent, disposePersistence, root }
 }
 
-async function setup(script: Script, options: { persistence?: boolean } = {}) {
+async function setup(script: Script, options: { persistence?: boolean; ptc?: boolean } = {}) {
   const adapter = new MockAdapter(script)
   const booted = await setupWith(adapter, options)
   return { ...booted, adapter }
@@ -262,6 +278,7 @@ describe('continuable activation capacity', () => {
     const ctx = new Context()
     try {
       await mountWorkingDirectoryFixture(ctx)
+      if (ctx.get('sessionProjections') === undefined) await ctx.plugin(SessionProjectionRegistry)
       await expect(ctx.plugin(SubagentRuntime, { maxActiveSubagents })).rejects.toThrow()
     } finally {
       await ctx.fiber.dispose()
@@ -272,6 +289,7 @@ describe('continuable activation capacity', () => {
     const ctx = new Context()
     try {
       await mountWorkingDirectoryFixture(ctx)
+      if (ctx.get('sessionProjections') === undefined) await ctx.plugin(SessionProjectionRegistry)
       const live = await liveConfig(ctx, SubagentRuntime, { maxDepth: 4 })
       subagentConfigs.set(ctx, live)
       const fiber = live.fiber
@@ -2845,7 +2863,13 @@ describe('continuable adjacent-Agent delivery', () => {
     await vi.waitFor(() => {
       expect(adapter.requests.filter(request => request.sessionId === parent.id)).toHaveLength(2)
     })
-    expect(settlementNotices(parent)[0]?.text).toContain('Its closing message:\nchild answer')
+    const notice = settlementNotices(parent)[0]!.text
+    if (progress === 'child answer') {
+      expect(notice).toContain('It sent you a message just before finishing, so its closing message is omitted.')
+      expect(notice).not.toContain('Its closing message:')
+    } else {
+      expect(notice).toContain('Its closing message:\nchild answer')
+    }
   })
 
   it.each(['absent', 'replaced'] as const)('rejects child-to-parent delivery when the direct parent is %s', async (state) => {
@@ -2898,6 +2922,36 @@ describe('continuable adjacent-Agent delivery', () => {
   })
 })
 
+/** External runtime double; the production PTC executor owns every nested dispatch. */
+class SettlementPtcRuntime extends PtcRuntime {
+  readonly language = 'typescript'
+  readonly isolation = 'fixture'
+
+  resolve(request: PtcRunRequest): PtcRunSpec {
+    return { ...request, cwd: request.cwd ?? process.cwd(), timeoutMs: request.timeoutMs ?? 120_000 }
+  }
+
+  async run(request: PtcRunSpec): Promise<PtcRunResult> {
+    const tools = request.bindings.find(binding => binding.global === 'tools')!.functions
+    const actions = request.program.split(',')
+    for (const action of actions) {
+      if (action === 'noop') {
+        await tools.noop!({})
+      } else if (action === 'denied-send') {
+        try {
+          await tools.send_message!({ agent_id: 'parent', message: 'DENIED_MESSAGE' })
+          throw new Error('expected the second send to fail')
+        } catch (error) {
+          if (!(error instanceof Error) || !error.message.includes('second send denied')) throw error
+        }
+      } else {
+        await tools.send_message!({ agent_id: 'parent', message: 'CANONICAL_CHILD_FINAL' })
+      }
+    }
+    return { logs: [] }
+  }
+}
+
 describe('continuable settlement delivery', () => {
   it('includes the child answer when messaging is available', async () => {
     const { ctx, parent } = await setup([textResponse('the answer'), textResponse('parent ack')])
@@ -2930,10 +2984,199 @@ describe('continuable settlement delivery', () => {
     })
     await waitNoActivation(ctx, started.childId)
 
-    // The contract is unconditional precisely so the parent-side tool
-    // description can promise it; bookkeeping "did it report?" would make the
-    // promise conditional on a channel this manager does not own.
+    // A distinct answer remains part of the settlement even after progress delivery.
     await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+    expect(settlementNotices(parent)[0]!.text).toBe(
+      `Background subagent ${started.childId} finished and will do no further work unless you send it more.\n`
+      + 'Its closing message:\nthe answer',
+    )
+  })
+
+  it('reports the closing message again when the child received input after its message', async () => {
+    const release = Promise.withResolvers<undefined>()
+    const adapter = new GatedAdapter([
+      { chunks: textResponse('interim'), gate: release.promise },
+      { chunks: textResponse('parent ack') },
+      { chunks: textResponse('the answer') },
+      { chunks: textResponse('parent ack') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    const started = await ctx.subagents.startActivation({ ...startSpec(parent), delivery: 'parent' })
+    const child = await vi.waitFor(() => {
+      const live = ctx.agents.get(started.childId)
+      expect(live).toBeDefined()
+      expect(adapter.requests).toHaveLength(1)
+      return live!
+    })
+    await ctx.subagents.sendMessage(child, parent.id, message('an interim finding'), { signal: testSignal })
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(2) })
+    await parent.whenIdle()
+    await ctx.subagents.sendMessage(parent, started.childId, message('now finish'), { signal: testSignal })
+    release.resolve(undefined)
+    await waitNoActivation(ctx, started.childId)
+
+    await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+    expect(settlementNotices(parent)[0]!.text).toBe(
+      `Background subagent ${started.childId} finished and will do no further work unless you send it more.\nIts closing message:\nthe answer`,
+    )
+  })
+
+  it('reports the closing message when the child ran a tool after its message, even past a short-circuiting tool policy', async () => {
+    const release = Promise.withResolvers<undefined>()
+    const adapter = new GatedAdapter([
+      { chunks: toolCallResponse('t1', 'noop', {}), gate: release.promise },
+      { chunks: textResponse('parent ack') },
+      { chunks: textResponse('the answer') },
+      { chunks: textResponse('parent ack') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    ctx.tools.register(defineTool({
+      name: 'noop',
+      description: 'does nothing',
+      parameters: {},
+      output: {
+        schema: { type: 'object', additionalProperties: false, properties: {} },
+        render: () => [{ type: 'text', text: 'noop' }],
+      },
+      execute: () => Promise.resolve({}),
+    }))
+    // A policy that allows the call without delegating hides it from later pre-execute listeners.
+    ctx.on('tools/pre-execute', (exec, next) => exec.name === 'noop' ? Promise.resolve({ kind: 'allow' as const }) : next(), { prepend: true })
+    const started = await ctx.subagents.startActivation({ ...startSpec(parent), delivery: 'parent' })
+    const child = await vi.waitFor(() => {
+      const live = ctx.agents.get(started.childId)
+      expect(live).toBeDefined()
+      expect(adapter.requests).toHaveLength(1)
+      return live!
+    })
+    await ctx.subagents.sendMessage(child, parent.id, message('an interim finding'), { signal: testSignal })
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(2) })
+    release.resolve(undefined)
+    await waitNoActivation(ctx, started.childId)
+
+    await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+    expect(settlementNotices(parent)[0]!.text).toBe(
+      `Background subagent ${started.childId} finished and will do no further work unless you send it more.\nIts closing message:\nthe answer`,
+    )
+  })
+
+  it.each([
+    ['reports', 'another call follows a matching message in its step', ['send_message', 'noop'], 'the answer', 'the answer', 'Its closing message:\nthe answer'],
+    ['omits', 'a matching message is the last call of its step', ['noop', 'send_message'], 'the answer', 'the answer', 'It sent you a message just before finishing, so its closing message is omitted.'],
+    ['reports', 'a progress message is the last call of its step', ['noop', 'send_message'], 'PROGRESS_ONLY', 'CANONICAL_CHILD_FINAL', 'Its closing message:\nCANONICAL_CHILD_FINAL'],
+    ['reports', 'the message only contains the final as a substring', ['noop', 'send_message'], 'prefix CANONICAL_CHILD_FINAL', 'CANONICAL_CHILD_FINAL', 'Its closing message:\nCANONICAL_CHILD_FINAL'],
+  ] as const)('%s the closing message when %s', async (_verb, _case, order, sentText, finalText, ending) => {
+    let childTurns = 0
+    const respond = (options: GenerateOptions): StreamChunk[] => {
+      const history = JSON.stringify(options.messages)
+      if (!history.includes('Your parent agent id is')) return textResponse('parent ack')
+      childTurns += 1
+      if (childTurns > 1) return textResponse(finalText)
+      const parentId = /Your parent agent id is \\"([^\\]+)\\"/.exec(history)![1]!
+      const calls = order.map(name => name === 'noop'
+        ? { id: ToolCallId('n1'), name, arguments: '{}' }
+        : { id: ToolCallId('s1'), name, arguments: JSON.stringify({ agent_id: parentId, message: sentText }) })
+      return [
+        ...calls.flatMap((call, index): StreamChunk[] => [
+          { type: 'block-start', index, blockType: 'tool-call' },
+          { type: 'tool-call-delta', index, id: call.id, name: call.name, argumentsDelta: call.arguments },
+          { type: 'block-end', index, block: { type: 'tool-call', ...call } },
+        ]),
+        { type: 'usage', usage: { inputTokens: 10, outputTokens: 5 } },
+        { type: 'finish', reason: { kind: 'tool-calls' } },
+      ]
+    }
+    const { ctx, parent } = await setup(Array.from({ length: 6 }, () => respond))
+    await ctx.plugin(SubagentControl)
+    ctx.tools.register(defineTool({
+      name: 'noop',
+      description: 'does nothing',
+      parameters: {},
+      output: {
+        schema: { type: 'object', additionalProperties: false, properties: {} },
+        render: () => [{ type: 'text', text: 'noop' }],
+      },
+      execute: () => Promise.resolve({}),
+    }))
+    const started = await ctx.subagents.startActivation({ ...startSpec(parent), delivery: 'parent' })
+    await waitNoActivation(ctx, started.childId)
+
+    await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+    expect(settlementNotices(parent)[0]!.text).toBe(
+      `Background subagent ${started.childId} finished and will do no further work unless you send it more.\n${ending}`,
+    )
+  })
+
+  it.each([
+    ['send,noop', false],
+    ['noop,send', true],
+    ['send,denied-send', false],
+  ] as const)('uses producer PTC dispatch starts to settle %s (duplicate omitted: %s)', async (program, omitted) => {
+    let childRequests = 0
+    const respond = (options: GenerateOptions): StreamChunk[] => {
+      if (options.sessionId === 'parent') return textResponse('parent ack')
+      childRequests += 1
+      return childRequests === 1
+        ? toolCallResponse('ptc-root', 'run_code', { code: program, description: 'Exercise nested settlement ordering' })
+        : textResponse('CANONICAL_CHILD_FINAL')
+    }
+    const { ctx, parent, root } = await setup(Array.from({ length: 6 }, () => respond), { ptc: true })
+    if (root === undefined) throw new Error('expected the fixture root')
+    const configPath = join(root, 'settlement-ptc.cordis.yml')
+    await writeFile(configPath, [
+      "- name: 'fixture:ptc-runtime'",
+      "- name: '@deepseek-ai/dsh-tool-subagent-control'",
+      '',
+    ].join('\n'))
+    if (ctx.get('loader') === undefined) await ctx.plugin(Loader)
+    ctx.loader.builtins.include = Include
+    const modules = new Map<string, unknown>([
+      ['fixture:ptc-runtime', SettlementPtcRuntime],
+      ['@deepseek-ai/dsh-tool-subagent-control', SubagentControl],
+    ])
+    ctx.loader.internal = sourceModuleLoader(async (specifier) => {
+      if (!modules.has(specifier)) throw new Error(`unexpected fixture module ${specifier}`)
+      return modules.get(specifier)
+    })
+    await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
+    await ctx.loader.await()
+    let noopCalls = 0
+    ctx.tools.register(defineTool({
+      name: 'noop', description: 'Record nested work.', parameters: {},
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
+      execute: () => { noopCalls += 1; return Promise.resolve('done') },
+    }))
+    ctx.on('tools/pre-execute', async (exec, next): Promise<PreToolDecision> => {
+      if (exec.name === 'send_message' && JSON.stringify(exec.arguments).includes('DENIED_MESSAGE')) {
+        return { kind: 'deny', reason: 'second send denied' }
+      }
+      return next()
+    }, { prepend: true })
+    const captured: SessionEvent[] = []
+    ctx.on('session/event', (session, event) => {
+      if (session.header.parentSession === parent.id) captured.push(event)
+    }, { global: true })
+    const started = await ctx.subagents.startActivation({ ...startSpec(parent), delivery: 'parent' })
+    await waitNoActivation(ctx, started.childId)
+    await vi.waitFor(() => { expect(settlementNotices(parent)).toHaveLength(1) })
+    const starts = captured.filter(event => event.type === 'tool/ptc-dispatch-start')
+    const results = captured.filter(event => event.type === 'tool/ptc-dispatch')
+    expect(starts.map(event => event.data.name), JSON.stringify(captured.filter(event => event.type === 'tool/result'))).toEqual(program === 'send,denied-send'
+      ? ['send_message', 'send_message'] : program.split(',').map(action => action === 'send' ? 'send_message' : action))
+    expect(results.map(event => event.data.isError)).toEqual([false, program === 'send,denied-send'])
+    expect(noopCalls).toBe(program === 'send,denied-send' ? 0 : 1)
+    const notice = settlementNotices(parent)[0]!.text
+    if (omitted) {
+      expect(notice).toContain('It sent you a message just before finishing, so its closing message is omitted.')
+      expect(notice).not.toContain('CANONICAL_CHILD_FINAL')
+    } else {
+      expect(notice).toContain('Its closing message:\nCANONICAL_CHILD_FINAL')
+      expect(notice).not.toContain('closing message is omitted')
+    }
+    const relays = parent.session.snapshotEvents().flatMap(event => event.type === 'user/message'
+      && event.data.source.kind === 'agent-message' ? [event.data] : [])
+    expect(relays).toHaveLength(1)
+    expect(relays[0]!.content).toContainEqual({ type: 'text', text: 'CANONICAL_CHILD_FINAL' })
   })
 
   it('delivers the terminal reason when the child never had a chance to report', async () => {
@@ -3811,6 +4054,7 @@ describe('continuable errors', () => {
     })
     await ctx.plugin(AgentLoop, { agents: [] })
     await mountWorkingDirectoryFixture(ctx)
+    if (ctx.get('sessionProjections') === undefined) await ctx.plugin(SessionProjectionRegistry)
     const serviceFiber = await ctx.plugin(SubagentRuntime)
     await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
     ctx.llm.registerAdapter(['mock'], adapter)
